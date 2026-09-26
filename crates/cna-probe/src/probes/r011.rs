@@ -101,13 +101,10 @@ pub fn probe(ctx: &Ctx) -> Probe {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cna_data::close_assault::CloseAssault;
 
     #[test]
     fn combined_base_multiplies_small_side_losses() {
-        let ctx = Ctx {
-            table: CloseAssault::load().unwrap(),
-        };
+        let ctx = Ctx::load().unwrap();
         let p = probe(&ctx);
         assert_eq!(
             p.x.values,

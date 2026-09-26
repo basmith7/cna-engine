@@ -97,13 +97,10 @@ pub fn probe(ctx: &Ctx) -> Probe {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cna_data::close_assault::CloseAssault;
 
     #[test]
     fn the_13_18_cell_cannot_be_rolled_past_16_and_the_gap_is_3_in_36() {
-        let p = probe(&Ctx {
-            table: CloseAssault::load().unwrap(),
-        });
+        let p = probe(&Ctx::load().unwrap());
         let s = &p.series[0];
         let i = p.x.values.iter().position(|x| x.contains("13-18")).unwrap();
         let j = p.x.values.iter().position(|x| x.contains("34-36")).unwrap();
