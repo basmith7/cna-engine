@@ -1,6 +1,7 @@
 //! Close assault resolution (SPI 15.0–15.89) as exact dice distributions.
 
 use crate::dice::{P, rolls};
+use crate::ruleset::{R011, R012, Ruleset};
 use cna_data::close_assault::{CloseAssault, Side};
 
 /// What one side's half of the table says for one reading.
@@ -68,6 +69,36 @@ pub fn shift(t: &CloseAssault, column: &str, by: i32) -> String {
     let i = t.column_index(column).expect("known column") as i32;
     let j = (i + by).clamp(0, t.columns.len() as i32 - 1) as usize;
     t.columns[j].id.clone()
+}
+
+/// Raw points a side loses per percentage point of its result, as a share
+/// of its own raw points (SPI 15.83b; R-011). 1 under option 1; the combined
+/// total over the side's own under option 2.
+pub fn loss_base_factor(rules: &Ruleset, side: Side, attacker_raw: f64, defender_raw: f64) -> f64 {
+    let own = match side {
+        Side::Attacker => attacker_raw,
+        Side::Defender => defender_raw,
+    };
+    match rules.r011 {
+        R011::OwnRaw => 1.0,
+        R011::CombinedRaw => (attacker_raw + defender_raw) / own,
+    }
+}
+
+/// Whether a defender who commits nothing may stay put and pay 10 % per hex
+/// not retreated (SPI 15.29, 15.82; R-012), given whether a three-hex
+/// retreat path exists.
+pub fn may_buy_out(rules: &Ruleset, path_exists: bool) -> bool {
+    match rules.r012 {
+        R012::MustRetreat => false,
+        R012::BuyOut => true,
+        R012::NoPathNoWithhold => path_exists,
+    }
+}
+
+/// Whether a defender may commit nothing at all (R-012).
+pub fn may_withhold(rules: &Ruleset, path_exists: bool) -> bool {
+    path_exists || rules.r012 == R012::BuyOut
 }
 
 #[cfg(test)]
@@ -139,5 +170,40 @@ mod tests {
             (5 * 50 + 5 * 40 + 5 * 30 + 3 * 25 + 6 * 20 + 6 * 15 + 3 * 10 + 3 * 5) as f64 / 36.0;
         assert!((o.expected_pct - expected).abs() < 1e-9, "{o:?}");
         assert_eq!(o.unresolved, 0.0);
+    }
+
+    #[test]
+    fn r011_switch_changes_the_base() {
+        let own = Ruleset::default();
+        let comb = Ruleset {
+            r011: R011::CombinedRaw,
+            ..own
+        };
+        assert_eq!(loss_base_factor(&own, Side::Attacker, 1.0, 4.0), 1.0);
+        assert_eq!(loss_base_factor(&comb, Side::Attacker, 1.0, 4.0), 5.0);
+        assert_eq!(loss_base_factor(&comb, Side::Defender, 1.0, 4.0), 1.25);
+    }
+
+    #[test]
+    fn r012_switch_decides_withholding() {
+        let r = |r012| Ruleset {
+            r012,
+            ..Ruleset::default()
+        };
+        // (option, path exists) -> (may withhold, may buy out)
+        for (o, path, w, b) in [
+            (R012::MustRetreat, true, true, false),
+            (R012::MustRetreat, false, false, false),
+            (R012::BuyOut, true, true, true),
+            (R012::BuyOut, false, true, true),
+            (R012::NoPathNoWithhold, true, true, true),
+            (R012::NoPathNoWithhold, false, false, false),
+        ] {
+            assert_eq!(
+                (may_withhold(&r(o), path), may_buy_out(&r(o), path)),
+                (w, b),
+                "{o:?} {path}"
+            );
+        }
     }
 }
