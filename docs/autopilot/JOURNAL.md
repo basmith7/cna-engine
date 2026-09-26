@@ -21,3 +21,9 @@ Done: slice 2 merged (PR #2); slice 3 plan written and executed (PR #3): morale 
 Deviation: R-001 probe plots positive measures (the board's chart has no negative axis); plan updated.
 Next: merge PR #3, then slice 4 (plan drafted: R-018 default option 3, chart-vs-text probe on the guarded-dump check).
 Blocked: none
+
+## 2026-09-26 11:18 MST — autopilot/slice-4
+Done: slice 3 merged (PR #3); slice 4 plan written and executed (PR #4): Construction Chart, dice sums, R-018 switch (default option 3, per its Rationale) and probe, chart-vs-text probe; test that every switch changes its probe; probe values rounded to 6 decimals.
+MISSION 1 COMPLETE (all four parts merged once PR #4 lands).
+Next: nothing under Mission 1; await a new mission in AUTOPILOT.md or PROGRESS Feedback.
+Blocked: none
