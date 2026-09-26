@@ -42,11 +42,24 @@ pub fn probe(ctx: &Ctx) -> Probe {
             }
         }
     }
+    // Morale Modifier Table rows that skip a reading (SPI 17.4).
+    for g in &ctx.morale.known_gaps {
+        let hits = rolls()
+            .filter(|(a, b)| g.readings.contains(&(a * 10 + b)))
+            .count();
+        let readings: Vec<String> = g.readings.iter().map(|r| r.to_string()).collect();
+        labels.push(format!(
+            "morale {}: no cell for {}",
+            g.level,
+            readings.join(", ")
+        ));
+        values.push(100.0 * hits as f64 / 36.0);
+    }
     let matter: Vec<String> = labels
         .iter()
         .zip(&values)
         .filter(|(_, v)| **v > 0.0)
-        .map(|(l, v)| format!("{l} ({v:.1} % of rolls in that column)"))
+        .map(|(l, v)| format!("{l} ({v:.1} % of rolls in that column or row)"))
         .collect();
     let never: Vec<&str> = labels
         .iter()
@@ -68,9 +81,6 @@ pub fn probe(ctx: &Ctx) -> Probe {
             never.join("; ")
         );
     }
-    // Close assault only so far; the board item also names a Morale
-    // Modifier cell, which the cohesion slice measures.
-    finding += " The Morale Modifier cell on this item is not measured yet.";
     Probe {
         id: "chart-oddities".into(),
         kind: Kind::Bar,
@@ -78,7 +88,7 @@ pub fn probe(ctx: &Ctx) -> Probe {
         rules_commit: String::new(),
         engine_commit: String::new(),
         x: Axis {
-            label: "Close Assault Results Table oddity".into(),
+            label: "Printed oddity (close assault, morale modifier)".into(),
             values: labels,
         },
         y: Axis {
@@ -106,5 +116,17 @@ mod tests {
         let j = p.x.values.iter().position(|x| x.contains("34-36")).unwrap();
         assert_eq!(s.values[i], 0.0); // readings 17 and 18 do not exist
         assert!((s.values[j] - 100.0 * 3.0 / 36.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn the_morale_gap_is_1_in_36() {
+        let p = probe(&Ctx::load().unwrap());
+        let i =
+            p.x.values
+                .iter()
+                .position(|x| x.contains("morale -4"))
+                .unwrap();
+        assert!((p.series[0].values[i] - 100.0 / 36.0).abs() < 1e-9);
+        assert!(!p.finding.contains("not measured"));
     }
 }

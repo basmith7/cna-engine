@@ -4,6 +4,7 @@ use crate::output::Probe;
 use cna_data::anti_armour::AntiArmour;
 use cna_data::barrage::Barrage;
 use cna_data::close_assault::CloseAssault;
+use cna_data::morale::MoraleModifier;
 use cna_data::terrain::Terrain;
 
 pub mod oddities;
@@ -18,6 +19,7 @@ pub struct Ctx {
     pub barrage: Barrage,
     pub anti_armour: AntiArmour,
     pub terrain: Terrain,
+    pub morale: MoraleModifier,
 }
 
 impl Ctx {
@@ -27,6 +29,7 @@ impl Ctx {
             barrage: Barrage::load()?,
             anti_armour: AntiArmour::load()?,
             terrain: Terrain::load()?,
+            morale: MoraleModifier::load()?,
         })
     }
 }
