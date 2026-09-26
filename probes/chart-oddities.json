@@ -20,9 +20,9 @@
       "option": null,
       "label": "% of rolls that land on the odd cell",
       "values": [
-        8.333333333333334,
+        8.333333,
         0.0,
-        2.7777777777777777
+        2.777778
       ]
     }
   ],

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 pub mod anti_armour;
 pub mod barrage;
 pub mod close_assault;
+pub mod construction;
 pub mod errata;
 pub mod morale;
 pub mod terrain;

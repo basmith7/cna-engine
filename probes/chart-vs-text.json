@@ -1,0 +1,63 @@
+{
+  "id": "chart-vs-text",
+  "kind": "line",
+  "question": "Chart against text: how much the printed disagreements matter",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Guards' raw close-assault defence",
+    "values": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ]
+  },
+  "y": {
+    "label": "% of raids that get past the guards"
+  },
+  "series": [
+    {
+      "option": null,
+      "label": "Chart (27.91): sum at least the defence",
+      "values": [
+        100.0,
+        97.222222,
+        91.666667,
+        83.333333,
+        72.222222,
+        58.333333,
+        41.666667,
+        27.777778,
+        16.666667,
+        8.333333,
+        2.777778
+      ]
+    },
+    {
+      "option": null,
+      "label": "Text (27.5x): sum above the defence",
+      "values": [
+        97.222222,
+        91.666667,
+        83.333333,
+        72.222222,
+        58.333333,
+        41.666667,
+        27.777778,
+        16.666667,
+        8.333333,
+        2.777778,
+        0.0
+      ]
+    }
+  ],
+  "finding": "Guarded dump raids: the chart's 'at least' lets the raider past the guards up to 16.7 percentage points more often than the text's 'above', at a defence of 7 (58.3 % against 41.7 %); the gap is exactly the chance of rolling the defence. Temporary repair facility: the chart asks 50 fuel and 250 stores in 1 stage, the text (24.82) 150 fuel and 250 stores over 3 stages. Facility rebuild: the chart asks 10 fuel and 50 stores, the text (24.84) 30 fuel and 50 stores."
+}

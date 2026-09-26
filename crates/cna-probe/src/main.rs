@@ -49,6 +49,13 @@ fn render_all(rules: &str, engine: &str) -> Result<Vec<(String, String)>> {
         .map(|(id, f)| {
             let mut p = f(&ctx);
             assert_eq!(p.id, id, "probe registered under the wrong id");
+            // Six decimals is ample for a chart and drops float noise
+            // such as 0.30000000000000004 and -0.0 from the files.
+            for s in &mut p.series {
+                for v in &mut s.values {
+                    *v = (*v * 1e6).round() / 1e6 + 0.0;
+                }
+            }
             p.rules_commit = rules.to_string();
             p.engine_commit = engine.to_string();
             Ok((
@@ -127,5 +134,26 @@ mod tests {
         let b = render_all("bbb", "e").unwrap();
         assert_ne!(a, b);
         assert!(a.iter().any(|(n, _)| n == "R-012.json"));
+    }
+
+    #[test]
+    fn every_switch_changes_its_probe() {
+        // Spec: a switch that changes no probe output is a bug.
+        let ctx = probes::Ctx::load().unwrap();
+        let all = probes::all();
+        for id in cna_rules::ruleset::SWITCHED {
+            let (_, f) = all
+                .iter()
+                .find(|(pid, _)| pid == id)
+                .unwrap_or_else(|| panic!("{id} has a switch but no probe"));
+            let p = f(&ctx);
+            let options: Vec<_> = p.series.iter().filter(|s| s.option.is_some()).collect();
+            let differ = options.iter().any(|a| {
+                options
+                    .iter()
+                    .any(|b| a.option != b.option && a.values != b.values)
+            });
+            assert!(differ, "{id}: no two options differ in its probe");
+        }
     }
 }

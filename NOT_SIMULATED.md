@@ -17,7 +17,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-014 | interpretive: what may capture a destroyed-tank marker |
 | R-016 | interpretive: when a Tank Delivery Squadron moves |
 | R-017 | interpretive: what a Tank Delivery Squadron may do in combat and retreat |
-| R-018 | planned: slice 4 (construction costs) |
 | R-019 | interpretive: the fleet's western limit; a map question, not one of numbers |
 | R-020 | needs the Logistics Game (§47–58) restated in cna |
 | R-021 | needs the Logistics Game (§47–58) restated in cna |

@@ -1,0 +1,48 @@
+{
+  "id": "R-018",
+  "kind": "bar",
+  "question": "What a supply dump costs under each option",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Cost",
+    "values": [
+      "Real dump: CP",
+      "Real dump: stores",
+      "Dummy dump: CP"
+    ]
+  },
+  "y": {
+    "label": "CP or stores"
+  },
+  "series": [
+    {
+      "option": 1,
+      "label": "Text, 24.9 (option 1)",
+      "values": [
+        3.0,
+        20.0,
+        3.0
+      ]
+    },
+    {
+      "option": 2,
+      "label": "Charts, 24.17 and 6.3 (option 2)",
+      "values": [
+        3.0,
+        10.0,
+        2.0
+      ]
+    },
+    {
+      "option": 3,
+      "label": "CP from charts, stores from text (option 3)",
+      "values": [
+        3.0,
+        20.0,
+        2.0
+      ]
+    }
+  ],
+  "finding": "The options agree on a real dump's CP and differ on a dummy's CP (3 or 2) and a real dump's stores (20 or 10; stores count only in the Logistics Game). 10 real dumps and 5 dummies cost option 1: 45 CP and 200 stores; option 2: 40 CP and 100 stores; option 3: 40 CP and 200 stores."
+}
