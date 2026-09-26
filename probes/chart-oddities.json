@@ -1,0 +1,28 @@
+{
+  "id": "chart-oddities",
+  "kind": "bar",
+  "question": "How often does a roll land on a printed oddity?",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Close Assault Results Table oddity",
+    "values": [
+      "defender +2: no row for 34-36",
+      "attacker -2: 20 % row reads 13-18"
+    ]
+  },
+  "y": {
+    "label": "% of rolls"
+  },
+  "series": [
+    {
+      "option": null,
+      "label": "% of rolls that land on the odd cell",
+      "values": [
+        8.333333333333334,
+        0.0
+      ]
+    }
+  ],
+  "finding": "Comes up in play and needs a ruling: defender +2: no row for 34-36 (8.3 % of rolls in that column). Cannot occur, since the odd part is not a reading two dice can make: attacker -2: 20 % row reads 13-18. The Morale Modifier cell on this item is not measured yet."
+}

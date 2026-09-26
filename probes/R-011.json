@@ -1,0 +1,77 @@
+{
+  "id": "R-011",
+  "kind": "line",
+  "question": "Loss as a share of each side's own strength, by size ratio (column 0 before the double-strength shift)",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Raw strength, attacker:defender",
+    "values": [
+      "1:4",
+      "1:3",
+      "1:2",
+      "1:1",
+      "2:1",
+      "3:1",
+      "4:1"
+    ]
+  },
+  "y": {
+    "label": "Expected loss, % of the side's own raw points"
+  },
+  "series": [
+    {
+      "option": 1,
+      "label": "Attacker, own raw (option 1)",
+      "values": [
+        10.138888888888896,
+        10.138888888888896,
+        10.138888888888896,
+        7.7777777777777795,
+        6.111111111111113,
+        6.111111111111113,
+        6.111111111111113
+      ]
+    },
+    {
+      "option": 2,
+      "label": "Attacker, combined raw (option 2)",
+      "values": [
+        50.694444444444485,
+        40.555555555555586,
+        30.41666666666669,
+        15.555555555555559,
+        9.16666666666667,
+        8.14814814814815,
+        7.638888888888892
+      ]
+    },
+    {
+      "option": 1,
+      "label": "Defender, own raw (option 1)",
+      "values": [
+        4.8611111111111125,
+        4.8611111111111125,
+        4.8611111111111125,
+        6.944444444444447,
+        7.083333333333336,
+        7.083333333333336,
+        7.083333333333336
+      ]
+    },
+    {
+      "option": 2,
+      "label": "Defender, combined raw (option 2)",
+      "values": [
+        6.076388888888891,
+        6.481481481481483,
+        7.291666666666669,
+        13.888888888888895,
+        21.250000000000007,
+        28.333333333333343,
+        35.41666666666668
+      ]
+    }
+  ],
+  "finding": "With equal actual strength (column 0 before the double-strength shift), option 2 multiplies the smaller side's loss by the combined total over its own raw points: up to 5x for the attacker at 1:4, whose expected loss goes from 10.1 % of its strength to 50.7 %. No value reaches 100 % of a side's strength in expectation."
+}

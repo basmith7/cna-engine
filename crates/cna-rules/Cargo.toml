@@ -1,0 +1,10 @@
+[package]
+name = "cna-rules"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cna-data = { path = "../cna-data" }
+serde.workspace = true
+anyhow.workspace = true

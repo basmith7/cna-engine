@@ -1,0 +1,3 @@
+[submodule "vendor/cna"]
+	path = vendor/cna
+	url = https://github.com/basmith7/cna.git
