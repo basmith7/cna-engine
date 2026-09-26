@@ -4,12 +4,31 @@
 use super::Ctx;
 use crate::output::{Axis, Kind, Probe, Series};
 use cna_data::close_assault::Side;
-use cna_rules::close_assault::outcome;
+use cna_rules::close_assault::{may_buy_out, outcome};
+use cna_rules::ruleset::{R012, Ruleset};
 
 /// The buy-out: stay put and pay 10 % per hex of the three not retreated.
 const BUY_OUT_PCT: f64 = 30.0;
 
 pub fn probe(ctx: &Ctx) -> Probe {
+    let n = ctx.table.columns.len();
+    // The cheapest a withholding defender with a retreat path can do.
+    let withhold = |r012: R012, label: &str| {
+        let rules = Ruleset {
+            r012,
+            ..Ruleset::default()
+        };
+        let pct = if may_buy_out(&rules, true) {
+            BUY_OUT_PCT
+        } else {
+            0.0
+        };
+        Series {
+            option: Some(r012 as u8),
+            label: label.into(),
+            values: vec![pct; n],
+        }
+    };
     let cols: Vec<String> = ctx.table.columns.iter().map(|c| c.id.clone()).collect();
     let fight: Vec<f64> = cols
         .iter()
@@ -63,18 +82,10 @@ pub fn probe(ctx: &Ctx) -> Probe {
                 label: "Fight (expected)".into(),
                 values: fight,
             },
-            Series {
-                option: Some(1),
-                label: "Withhold: retreat 3 hexes, 0 % (+3 DP)".into(),
-                values: vec![0.0; cols.len()],
-            },
+            withhold(R012::MustRetreat, "Withhold: retreat 3 hexes, 0 % (+3 DP)"),
             // Option 3 equals option 2 whenever a retreat path exists (the
             // ruling's option 3 keeps the buy-out), so it is not plotted.
-            Series {
-                option: Some(2),
-                label: "Withhold: stay, pay 30 % (+3 DP)".into(),
-                values: vec![BUY_OUT_PCT; cols.len()],
-            },
+            withhold(R012::BuyOut, "Withhold: stay, pay 30 % (+3 DP)"),
         ],
         finding,
     }
