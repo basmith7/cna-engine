@@ -59,9 +59,13 @@ problem for later, and none of slice 1 depends on it.
 
 ### Probe output (`probes/R-012.json`)
 
+`id` is a ruling id or a decision-board item id (for example `chart-oddities`).
+`kind` is `line` or `bar`.
+
 ```json
 {
-  "ruling": "R-012",
+  "id": "R-012",
+  "kind": "line",
   "question": "Expected strength lost: fight, or withhold everything",
   "rules_commit": "<vendor/cna sha>",
   "engine_commit": "<sha>",
