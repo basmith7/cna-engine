@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+pub mod close_assault;
+pub mod errata;
+
 pub fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
