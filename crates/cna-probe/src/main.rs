@@ -128,4 +128,25 @@ mod tests {
         assert_ne!(a, b);
         assert!(a.iter().any(|(n, _)| n == "R-012.json"));
     }
+
+    #[test]
+    fn every_switch_changes_its_probe() {
+        // Spec: a switch that changes no probe output is a bug.
+        let ctx = probes::Ctx::load().unwrap();
+        let all = probes::all();
+        for id in cna_rules::ruleset::SWITCHED {
+            let (_, f) = all
+                .iter()
+                .find(|(pid, _)| pid == id)
+                .unwrap_or_else(|| panic!("{id} has a switch but no probe"));
+            let p = f(&ctx);
+            let options: Vec<_> = p.series.iter().filter(|s| s.option.is_some()).collect();
+            let differ = options.iter().any(|a| {
+                options
+                    .iter()
+                    .any(|b| a.option != b.option && a.values != b.values)
+            });
+            assert!(differ, "{id}: no two options differ in its probe");
+        }
+    }
 }
