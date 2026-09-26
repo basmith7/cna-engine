@@ -16,14 +16,15 @@ Slice 1 merged 2026-09-26: Rust workspace, close-assault table with errata,
 exact dice distributions, switches for R-011 and R-012, and probes
 `R-011`, `R-012` and `chart-oddities` (they render on the board with
 `--probes`). Slice 2 merged: barrage, anti-armour and terrain tables,
-switches and probes for R-009 and R-015. Slice 3 in progress.
+switches and probes for R-009 and R-015. Slice 3 merged: cohesion ledger,
+Morale Modifier Table, R-001 switch and probe. Slice 4 in progress.
 
 | Part | What | State | PR |
 |---|---|---|---|
 | 1 | Slice 1: close assault (R-011, R-012, oddities) | merged | #1 |
 | 2 | Slice 2: barrage and anti-armour (R-009, R-015) | merged | #2 |
-| 3 | Slice 3: cohesion (R-001) | in progress | |
-| 4 | Slice 4: construction costs (R-018) | not started | |
+| 3 | Slice 3: cohesion (R-001) | merged | #3 |
+| 4 | Slice 4: construction costs (R-018) | in progress | |
 
 **Found (slice 1):** under R-012 option 2, fighting costs the defender less
 than the 30 % buy-out on average in every column, but only by 0.6 points at
@@ -38,10 +39,16 @@ more often (3-4 points: 39 % against 0 %). Under R-015, for armour
 assaulting out of rough ground up a slope, option 1 cuts defensive
 anti-armour damage by 12 % and option 3 by 24 % against option 2.
 
+**Found (slice 3):** a unit alternating a 4-DP push with a stage of rest
+never collapses under R-001 option 1 (level never below −4) but collapses
+at stage 13 under option 2 with no reset rule. The Morale Modifier gap
+(level −4, reading 56) is 2.8 % of rolls at that level. No undeclared gaps
+in the morale table.
+
 ## Next steps
 
-For the autopilot: continue slice 3 on `autopilot/slice-3` (plan
-`docs/plans/2026-09-26-slice-3-cohesion.md`).
+For the autopilot: continue slice 4 on `autopilot/slice-4` (plan
+`docs/plans/2026-09-26-slice-4-construction-costs.md`).
 
 ## Runs and quota
 
