@@ -26,7 +26,7 @@ pub fn probe(ctx: &Ctx) -> Probe {
     let mut losses = vec![];
     for (opt, label) in [
         (R009::EitherSide, "Terrain shifts the reply (option 1)"),
-        (R009::NonPhasingOnly, "Reply at full strength (option 2)"),
+        (R009::PhasingFireOnly, "Reply at full strength (option 2)"),
     ] {
         let rules = Ruleset {
             r009: opt,

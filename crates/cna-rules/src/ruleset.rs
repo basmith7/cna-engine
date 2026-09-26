@@ -11,7 +11,7 @@ pub enum R009 {
     #[default]
     EitherSide = 1,
     /// Only barrages fired by the phasing player.
-    NonPhasingOnly = 2,
+    PhasingFireOnly = 2,
 }
 
 /// R-011: whose raw points form the percentage-loss base (SPI 15.83b).

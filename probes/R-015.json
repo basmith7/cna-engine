@@ -96,5 +96,5 @@
       ]
     }
   ],
-  "finding": "For armour assaulting out of a rough hex up a slope, option 1 cuts the defender's expected anti-armour damage by 12 % summed over 1-16 points (at most 2.1 damage points), and option 3 by 24 % (at most 3.9). Option 2 leaves it unshifted. Phasing fire is the same under every option. Assumes at least five raw points, so the starred 0 column is reached only by shifts (SPI 14.33)."
+  "finding": "For armour assaulting out of a rough hex up a slope, option 1 cuts the defender's expected anti-armour damage by 12 % summed over 1-16 points (at most 2.1 damage points), and option 3 by 24 % (at most 3.9). Option 2 leaves it unshifted. Phasing fire is the same under every option. Assumes the firing side has at least five raw points (actual points are a fraction of raw), so the starred 0 column is reached only by shifts (SPI 14.33)."
 }

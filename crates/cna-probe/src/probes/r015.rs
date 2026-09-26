@@ -58,7 +58,7 @@ pub fn probe(ctx: &Ctx) -> Probe {
     let (c1, w1) = cut(&series[0]);
     let (c3, w3) = cut(&series[2]);
     let finding = format!(
-        "For armour assaulting out of a rough hex up a slope, option 1 cuts the defender's expected anti-armour damage by {c1:.0} % summed over 1-16 points (at most {w1:.1} damage points), and option 3 by {c3:.0} % (at most {w3:.1}). Option 2 leaves it unshifted. Phasing fire is the same under every option. Assumes at least five raw points, so the starred 0 column is reached only by shifts (SPI 14.33)."
+        "For armour assaulting out of a rough hex up a slope, option 1 cuts the defender's expected anti-armour damage by {c1:.0} % summed over 1-16 points (at most {w1:.1} damage points), and option 3 by {c3:.0} % (at most {w3:.1}). Option 2 leaves it unshifted. Phasing fire is the same under every option. Assumes the firing side has at least five raw points (actual points are a fraction of raw), so the starred 0 column is reached only by shifts (SPI 14.33)."
     );
     Probe {
         id: "R-015".into(),

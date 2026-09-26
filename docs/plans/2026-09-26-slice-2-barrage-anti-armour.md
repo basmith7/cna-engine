@@ -115,7 +115,7 @@ Global Constraints apply unchanged).
 **Files:** Modify `crates/cna-rules/src/ruleset.rs`, `NOT_SIMULATED.md`; add to `barrage.rs` and `anti_armour.rs`.
 
 **Interfaces:**
-- `R009 { EitherSide = 1, NonPhasingOnly = 2 }` (default 1), `R015 { OwnHexBoth = 1, PhasingOnly = 2, HexAndHexsideBoth = 3 }` (default 2). `Ruleset` gains `r009`, `r015`; `SWITCHED` gains both.
+- `R009 { EitherSide = 1, PhasingFireOnly = 2 }` (default 1), `R015 { OwnHexBoth = 1, PhasingOnly = 2, HexAndHexsideBoth = 3 }` (default 2). `Ruleset` gains `r009`, `r015`; `SWITCHED` gains both.
 - `barrage::terrain_shift(rules, target_shift: i32, firer_phasing: bool) -> i32`.
 - `anti_armour::terrain_shift(rules, firer_phasing: bool, target_hex_shift: i32, hexside_shift: i32) -> i32`, where for phasing fire the target hex is the defended hex, and for non-phasing fire it is the assaulting armour's own hex.
 

@@ -10,8 +10,8 @@ pub use cna_data::barrage::Barrage;
 pub fn terrain_shift(rules: &Ruleset, target_shift: i32, firer_phasing: bool) -> i32 {
     match rules.r009 {
         R009::EitherSide => target_shift,
-        R009::NonPhasingOnly if firer_phasing => target_shift,
-        R009::NonPhasingOnly => 0,
+        R009::PhasingFireOnly if firer_phasing => target_shift,
+        R009::PhasingFireOnly => 0,
     }
 }
 
@@ -137,8 +137,8 @@ mod tests {
         for (o, phasing, want) in [
             (R009::EitherSide, true, -2),
             (R009::EitherSide, false, -2),
-            (R009::NonPhasingOnly, true, -2),
-            (R009::NonPhasingOnly, false, 0),
+            (R009::PhasingFireOnly, true, -2),
+            (R009::PhasingFireOnly, false, 0),
         ] {
             assert_eq!(terrain_shift(&r(o), -2, phasing), want, "{o:?} {phasing}");
         }
