@@ -10,6 +10,7 @@ pub mod oddities;
 pub mod r009;
 pub mod r011;
 pub mod r012;
+pub mod r015;
 
 pub struct Ctx {
     pub table: CloseAssault,
@@ -37,5 +38,6 @@ pub fn all() -> Vec<(&'static str, ProbeFn)> {
         ("R-009", r009::probe),
         ("R-011", r011::probe),
         ("R-012", r012::probe),
+        ("R-015", r015::probe),
     ]
 }
