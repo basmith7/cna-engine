@@ -65,6 +65,22 @@ pub enum R015 {
     HexAndHexsideBoth = 3,
 }
 
+/// R-018: what a supply dump costs (SPI 24.9 text against the 24.17 and
+/// 6.3 charts). The default follows the ruling's Rationale: the charts' CP
+/// (two charts agree), the text's stores (tied, and what the restated rules
+/// use).
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum R018 {
+    /// The text: real 3 CP + 20 stores, dummy 3 CP.
+    Text = 1,
+    /// The charts: real 3 CP + 10 stores, dummy 2 CP.
+    Charts = 2,
+    /// CP from the charts, stores from the text.
+    #[default]
+    CpChartsStoresText = 3,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Ruleset {
     pub r001: R001,
@@ -72,10 +88,11 @@ pub struct Ruleset {
     pub r011: R011,
     pub r012: R012,
     pub r015: R015,
+    pub r018: R018,
 }
 
 /// Rulings with a switch. Every other ruling is listed in `NOT_SIMULATED.md`.
-pub const SWITCHED: &[&str] = &["R-001", "R-009", "R-011", "R-012", "R-015"];
+pub const SWITCHED: &[&str] = &["R-001", "R-009", "R-011", "R-012", "R-015", "R-018"];
 
 #[cfg(test)]
 mod tests {
