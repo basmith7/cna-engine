@@ -67,7 +67,7 @@ pub fn probe(ctx: &Ctx) -> Probe {
         if worst.2 == "attacker" { 0 } else { 2 },
     );
     let finding = format!(
-        "Option 2 multiplies the smaller side's loss by the combined total over its own raw points: up to {:.0}x for the {} at {}, whose expected loss goes from {:.1} % of its strength to {:.1} %.{}",
+        "With equal actual strength (column 0 before the double-strength shift), option 2 multiplies the smaller side's loss by the combined total over its own raw points: up to {:.0}x for the {} at {}, whose expected loss goes from {:.1} % of its strength to {:.1} %.{}",
         worst.0,
         worst.2,
         worst.1,

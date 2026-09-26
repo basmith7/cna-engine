@@ -73,5 +73,5 @@
       ]
     }
   ],
-  "finding": "Option 2 multiplies the smaller side's loss by the combined total over its own raw points: up to 5x for the attacker at 1:4, whose expected loss goes from 10.1 % of its strength to 50.7 %. No value reaches 100 % of a side's strength in expectation."
+  "finding": "With equal actual strength (column 0 before the double-strength shift), option 2 multiplies the smaller side's loss by the combined total over its own raw points: up to 5x for the attacker at 1:4, whose expected loss goes from 10.1 % of its strength to 50.7 %. No value reaches 100 % of a side's strength in expectation."
 }

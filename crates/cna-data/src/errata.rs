@@ -15,6 +15,19 @@ pub fn apply_errata(table: &mut Value, errata: &Value) -> Result<()> {
     Ok(())
 }
 
+/// Fails unless the errata names a table that exists, so a misspelt
+/// `table` cannot leave an errata silently unapplied.
+pub fn check_target(errata: &Value, tables: &std::path::Path) -> Result<()> {
+    let id = errata["id"].as_str().unwrap_or("?");
+    let Some(table) = errata["table"].as_str() else {
+        anyhow::bail!("{id}: no `table` field");
+    };
+    if !tables.join(format!("{table}.json")).is_file() {
+        anyhow::bail!("{id}: names table `{table}`, which does not exist");
+    }
+    Ok(())
+}
+
 /// Reads `data/tables/<name>.json` and applies every errata file whose
 /// `table` is `name`, in id order.
 pub fn load_table(name: &str) -> Result<Value> {
@@ -31,6 +44,7 @@ pub fn load_table(name: &str) -> Result<Value> {
     for f in files {
         let e: Value = serde_json::from_str(&std::fs::read_to_string(&f)?)
             .with_context(|| format!("parsing {}", f.display()))?;
+        check_target(&e, &root.join("tables"))?;
         if e["table"] == name {
             apply_errata(&mut table, &e)?;
         }
@@ -49,5 +63,15 @@ mod tests {
             "patches": [{"op": "replace", "path": "/missing/deep", "value": 2}]});
         let err = apply_errata(&mut table, &e).unwrap_err().to_string();
         assert!(err.contains("E-999"), "{err}");
+    }
+
+    #[test]
+    fn errata_for_a_missing_table_names_the_errata() {
+        let tables = crate::cna_root().join("data/tables");
+        let e = serde_json::json!({"id": "E-998", "table": "no-such-table", "patches": []});
+        let err = check_target(&e, &tables).unwrap_err().to_string();
+        assert!(err.contains("E-998"), "{err}");
+        let e = serde_json::json!({"id": "E-997", "patches": []});
+        assert!(check_target(&e, &tables).is_err());
     }
 }

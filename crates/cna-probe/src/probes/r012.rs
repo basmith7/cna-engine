@@ -47,8 +47,9 @@ pub fn probe(ctx: &Ctx) -> Probe {
                 .enumerate()
                 .fold((0, 0.0), |m, (i, f)| if *f > m.1 { (i, *f) } else { m });
             format!(
-                "Fighting costs the defender less than the {BUY_OUT_PCT:.0} % buy-out on average in every column, so under option 2 withholding everything is never cheaper in expectation; the closest is column {} ({worst:.1} % when fighting). The buy-out's appeal is certainty and avoiding Engaged, not a lower average loss.",
-                cols[i]
+                "Counting the table's percentage loss only, fighting costs the defender less than the {BUY_OUT_PCT:.0} % buy-out on average in every column; the closest is column {} ({worst:.1} % when fighting, {:.1} points under). Capture, overrun and a forced retreat that cannot be completed are not counted and could close that margin at the top columns, so the buy-out's appeal there is certainty and avoiding Engaged, not a clearly lower loss.",
+                cols[i],
+                BUY_OUT_PCT - worst
             )
         }
         None => format!(
@@ -62,6 +63,20 @@ pub fn probe(ctx: &Ctx) -> Probe {
             fight[cols.len() - 1],
             cols[cols.len() - 1]
         ),
+    };
+    let gaps: Vec<String> = cols
+        .iter()
+        .map(|c| (c, outcome(&ctx.table, Side::Defender, c).unresolved))
+        .filter(|(_, u)| *u > 0.0)
+        .map(|(c, u)| format!("{c} ({:.1} % of rolls)", 100.0 * u))
+        .collect();
+    let finding = if gaps.is_empty() {
+        finding
+    } else {
+        format!(
+            "{finding} Rolls in a printed gap are left out of the fight curve at {}.",
+            gaps.join(", ")
+        )
     };
     Probe {
         id: "R-012".into(),

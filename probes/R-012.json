@@ -104,5 +104,5 @@
       ]
     }
   ],
-  "finding": "Fighting costs the defender less than the 30 % buy-out on average in every column, so under option 2 withholding everything is never cheaper in expectation; the closest is column +17 (29.4 % when fighting). The buy-out's appeal is certainty and avoiding Engaged, not a lower average loss."
+  "finding": "Counting the table's percentage loss only, fighting costs the defender less than the 30 % buy-out on average in every column; the closest is column +17 (29.4 % when fighting, 0.6 points under). Capture, overrun and a forced retreat that cannot be completed are not counted and could close that margin at the top columns, so the buy-out's appeal there is certainty and avoiding Engaged, not a clearly lower loss. Rolls in a printed gap are left out of the fight curve at +2 (8.3 % of rolls)."
 }
