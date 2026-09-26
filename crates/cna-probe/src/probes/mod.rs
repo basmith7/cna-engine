@@ -3,6 +3,7 @@
 use crate::output::Probe;
 use cna_data::close_assault::CloseAssault;
 
+pub mod oddities;
 pub mod r011;
 pub mod r012;
 
@@ -21,5 +22,9 @@ impl Ctx {
 pub type ProbeFn = fn(&Ctx) -> Probe;
 
 pub fn all() -> Vec<(&'static str, ProbeFn)> {
-    vec![("R-011", r011::probe), ("R-012", r012::probe)]
+    vec![
+        ("chart-oddities", oddities::probe),
+        ("R-011", r011::probe),
+        ("R-012", r012::probe),
+    ]
 }

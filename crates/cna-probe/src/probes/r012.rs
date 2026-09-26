@@ -12,7 +12,8 @@ const BUY_OUT_PCT: f64 = 30.0;
 
 pub fn probe(ctx: &Ctx) -> Probe {
     let n = ctx.table.columns.len();
-    // The cheapest a withholding defender with a retreat path can do.
+    // What staying put costs a withholding defender with a retreat path:
+    // the buy-out where allowed, otherwise nothing (it must retreat).
     let withhold = |r012: R012, label: &str| {
         let rules = Ruleset {
             r012,
