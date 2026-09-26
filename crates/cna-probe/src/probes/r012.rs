@@ -21,9 +21,16 @@ pub fn probe(ctx: &Ctx) -> Probe {
         .find(|&i| fight[i..].iter().all(|f| *f > BUY_OUT_PCT))
         .filter(|_| fight.iter().any(|f| *f > BUY_OUT_PCT));
     let finding = match from {
-        None if fight.iter().all(|f| *f <= BUY_OUT_PCT) => format!(
-            "Fighting never costs the defender more than {BUY_OUT_PCT:.0} % on average in any column, so the 15.82 buy-out is never a bargain."
-        ),
+        None if fight.iter().all(|f| *f <= BUY_OUT_PCT) => {
+            let (i, worst) = fight
+                .iter()
+                .enumerate()
+                .fold((0, 0.0), |m, (i, f)| if *f > m.1 { (i, *f) } else { m });
+            format!(
+                "Fighting costs the defender less than the {BUY_OUT_PCT:.0} % buy-out on average in every column, so under option 2 withholding everything is never cheaper in expectation; the closest is column {} ({worst:.1} % when fighting). The buy-out's appeal is certainty and avoiding Engaged, not a lower average loss.",
+                cols[i]
+            )
+        }
         None => format!(
             "Fighting costs the defender more than {BUY_OUT_PCT:.0} % on average in some columns, but not in a run up to the last column; see the chart."
         ),

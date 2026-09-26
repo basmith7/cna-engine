@@ -1,0 +1,108 @@
+{
+  "id": "R-012",
+  "kind": "line",
+  "question": "Defender's expected loss when fighting, against withholding everything",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Final close-assault column",
+    "values": [
+      "-11",
+      "-8",
+      "-6",
+      "-4",
+      "-3",
+      "-2",
+      "-1",
+      "0",
+      "+1",
+      "+2",
+      "+3",
+      "+4",
+      "+5",
+      "+7",
+      "+9",
+      "+11",
+      "+14",
+      "+17"
+    ]
+  },
+  "y": {
+    "label": "Defender loss, % of raw points"
+  },
+  "series": [
+    {
+      "option": null,
+      "label": "Fight (expected)",
+      "values": [
+        0.9722222222222221,
+        1.3888888888888886,
+        2.083333333333333,
+        2.6388888888888884,
+        4.027777777777777,
+        4.8611111111111125,
+        5.972222222222226,
+        6.944444444444447,
+        7.083333333333337,
+        7.083333333333336,
+        8.888888888888891,
+        10.555555555555564,
+        12.777777777777786,
+        15.972222222222223,
+        19.30555555555556,
+        21.388888888888903,
+        27.22222222222223,
+        29.444444444444443
+      ]
+    },
+    {
+      "option": 1,
+      "label": "Withhold: retreat 3 hexes, 0 % (+3 DP)",
+      "values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "option": 2,
+      "label": "Withhold: stay, pay 30 % (+3 DP)",
+      "values": [
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0
+      ]
+    }
+  ],
+  "finding": "Fighting costs the defender less than the 30 % buy-out on average in every column, so under option 2 withholding everything is never cheaper in expectation; the closest is column +17 (29.4 % when fighting). The buy-out's appeal is certainty and avoiding Engaged, not a lower average loss."
+}
