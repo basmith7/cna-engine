@@ -16,3 +16,21 @@ git clone --recursive https://github.com/basmith7/cna-engine.git
 cargo test
 cargo run -p cna-probe -- run
 ```
+
+## Probes
+
+| File | Question |
+|---|---|
+| `probes/R-011.json` | Loss as a share of each side's own strength, by size ratio, under each loss base |
+| `probes/R-012.json` | The defender's expected close-assault loss when fighting, against withholding everything |
+| `probes/chart-oddities.json` | How often a roll lands on a printed oddity of the Close Assault Results Table |
+
+`cargo run -p cna-probe -- check` fails when a committed probe is stale (the
+`vendor/cna` commit moved, or the output changed); CI runs it. Rulings with
+no switch yet are listed, with the reason, in `NOT_SIMULATED.md`.
+
+To see the probes on the decision board, from a `cna` checkout:
+
+```bash
+python3 tools/decisions_page.py --probes ~/path/to/cna-engine/probes
+```
