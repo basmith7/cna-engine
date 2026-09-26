@@ -59,7 +59,7 @@ pub fn probe(ctx: &Ctx) -> Probe {
         .iter()
         .zip(&values)
         .filter(|(_, v)| **v > 0.0)
-        .map(|(l, v)| format!("{l} ({v:.1} % of rolls in that column or row)"))
+        .map(|(l, v)| format!("{l} ({v:.1} % of the rolls read there)"))
         .collect();
     let never: Vec<&str> = labels
         .iter()

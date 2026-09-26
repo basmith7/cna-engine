@@ -74,8 +74,8 @@ Global Constraints apply unchanged), `…-slice-2-barrage-anti-armour.md`.
 
 **Files:** Create `crates/cna-probe/src/probes/r001.rs`.
 
-- [ ] **Step 1: Write the failing test:** x is stages `1` … `24`; the option 1 series is the cohesion level after each stage and never falls below −4; the option 2 series is minus the DP tally and first reaches −26 at stage 13.
-- [ ] **Step 3: Implement.** `kind: Line`. Scenario: a unit that alternately pushes 4 CP over its CPA (4 DP) and rests for a whole stage. Series: "Cohesion level (option 1)" and "Minus the DP tally, never reset (option 2)". `finding`: the stage at which each option collapses the unit (or that option 1 never does) and the lowest level reached. `question`: "A unit alternating a 4-DP push with a stage of rest: when does it collapse?"
+- [ ] **Step 1: Write the failing test:** x is stages `1` … `24`; the option 1 series is minus the cohesion level after each stage and never exceeds 4; the option 2 series is the DP tally and first reaches 26 at stage 13. (Both are plotted as positive numbers: the board's chart has no negative axis.)
+- [ ] **Step 3: Implement.** `kind: Line`. Scenario: a unit that alternately pushes 4 CP over its CPA (4 DP) and rests for a whole stage. Series: "Minus the cohesion level (option 1)" and "DP tally, never reset (option 2)". `finding`: the stage at which each option collapses the unit (or that option 1 never does) and the lowest level reached. `question`: "A unit alternating a 4-DP push with a stage of rest: when does it collapse?"
 - [ ] **Step 4:** run, `cargo run -p cna-probe -- run`. **Step 5: Commit.** `R-001 probe`
 
 ### Task 4: Morale gap in chart-oddities

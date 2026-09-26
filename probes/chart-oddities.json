@@ -26,5 +26,5 @@
       ]
     }
   ],
-  "finding": "Comes up in play and needs a ruling: defender +2: no row for 34-36 (8.3 % of rolls in that column or row); morale -4: no cell for 56 (2.8 % of rolls in that column or row). Cannot occur, since the odd part is not a reading two dice can make: attacker -2: 20 % row reads 13-18."
+  "finding": "Comes up in play and needs a ruling: defender +2: no row for 34-36 (8.3 % of the rolls read there); morale -4: no cell for 56 (2.8 % of the rolls read there). Cannot occur, since the odd part is not a reading two dice can make: attacker -2: 20 % row reads 13-18."
 }
