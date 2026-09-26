@@ -28,10 +28,16 @@ pub struct MoraleModifier {
 }
 
 impl MoraleModifier {
+    /// Fails unless the rows run from +8 down to −17 with no level missing.
     pub fn load() -> Result<Self> {
-        Ok(serde_json::from_value(crate::errata::load_table(
-            "morale-modifier",
-        )?)?)
+        let t: Self = serde_json::from_value(crate::errata::load_table("morale-modifier")?)?;
+        let levels: Vec<i32> = t.rows.iter().map(|r| r.level).collect();
+        let want: Vec<i32> = (-17..=8).rev().collect();
+        anyhow::ensure!(
+            levels == want,
+            "morale-modifier: rows are {levels:?}, want +8 down to -17"
+        );
+        Ok(t)
     }
 
     /// The row a cohesion level reads on, clamped to the end rows (SPI 17.24).

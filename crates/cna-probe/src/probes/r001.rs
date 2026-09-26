@@ -40,7 +40,7 @@ pub fn probe(_ctx: &Ctx) -> Probe {
     };
     let lowest = history.iter().map(|u| u.level).min().unwrap_or(0);
     let finding = format!(
-        "A unit that pushes {PUSH_DP} CP over its CPA and then rests, stage after stage, {} under option 1 (its level never falls below {lowest}) but {} under option 2, because a DP tally with no reset only grows. Option 2 turns routine over-exertion into eventual surrender.",
+        "A unit that pushes {PUSH_DP} CP over its CPA and then rests, stage after stage, {} under option 1 (its level never falls below {lowest}) but {} under option 2, because a DP tally with no reset only grows. The rules give option 2 no reset, and the ruling notes one would have to be invented; any reset rule would move its collapse later.",
         describe(collapse(R001::CohesionLevel)),
         describe(collapse(R001::DpTally)),
     );
@@ -63,8 +63,8 @@ pub fn probe(_ctx: &Ctx) -> Probe {
         series: vec![
             Series {
                 option: Some(R001::CohesionLevel as u8),
-                label: "Minus the cohesion level (option 1)".into(),
-                values: history.iter().map(|u| -(u.level as f64)).collect(),
+                label: "Minus the cohesion level, floored at 0 (option 1)".into(),
+                values: history.iter().map(|u| (-u.level).max(0) as f64).collect(),
             },
             Series {
                 option: Some(R001::DpTally as u8),

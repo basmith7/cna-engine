@@ -39,32 +39,32 @@
   "series": [
     {
       "option": 1,
-      "label": "Minus the cohesion level (option 1)",
+      "label": "Minus the cohesion level, floored at 0 (option 1)",
       "values": [
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0,
+        0.0,
         4.0,
-        -0.0
+        0.0
       ]
     },
     {
@@ -98,5 +98,5 @@
       ]
     }
   ],
-  "finding": "A unit that pushes 4 CP over its CPA and then rests, stage after stage, never collapses in 24 stages under option 1 (its level never falls below -4) but collapses at stage 13 under option 2, because a DP tally with no reset only grows. Option 2 turns routine over-exertion into eventual surrender."
+  "finding": "A unit that pushes 4 CP over its CPA and then rests, stage after stage, never collapses in 24 stages under option 1 (its level never falls below -4) but collapses at stage 13 under option 2, because a DP tally with no reset only grows. The rules give option 2 no reset, and the ruling notes one would have to be invented; any reset rule would move its collapse later."
 }
