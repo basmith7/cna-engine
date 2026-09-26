@@ -21,8 +21,10 @@ cargo run -p cna-probe -- run
 
 | File | Question |
 |---|---|
+| `probes/R-009.json` | How often the non-phasing reply barrage pins or destroys phasing infantry in a fortification, with and without the terrain shift |
 | `probes/R-011.json` | Loss as a share of each side's own strength, by size ratio, under each loss base |
 | `probes/R-012.json` | The defender's expected close-assault loss when fighting, against withholding everything |
+| `probes/R-015.json` | Defensive anti-armour damage against armour assaulting out of rough ground up a slope, under each option |
 | `probes/chart-oddities.json` | How often a roll lands on a printed oddity of the Close Assault Results Table |
 
 `cargo run -p cna-probe -- check` fails when a committed probe is stale (the

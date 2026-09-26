@@ -80,7 +80,7 @@ Global Constraints apply unchanged).
 **Interfaces:**
 - `barrage::{Barrage, Band, Cell}`, `Barrage::load()`, `Barrage::band_index(points: u32) -> Option<usize>` (None for 0 points).
 - `anti_armour::{AntiArmour, Row}`, `AntiArmour::load()`, `AntiArmour::row_index(reading: u8) -> usize`, `AntiArmour::damage(row: usize, column: usize) -> u32` (null reads 0).
-- `terrain::{Terrain, TerrainRow, Shift}` with `enum Shift { Cols(i32), Prohibited, Other(String) }`; `Terrain::load()`, `Terrain::find(kind, name) -> Option<&TerrainRow>`.
+- `terrain::{Terrain, TerrainRow, Shift}` with `enum Shift { Cols(i32), Prohibited, Other(String) }`; `Terrain::load()`, `Terrain::shifts(kind, name) -> Option<&Shifts>` (none for a row that refers elsewhere, such as major city).
 
 - [ ] **Step 1: Write the failing tests:** band of 12 points is `11-12` and of 40 is `17+`; reading 12 is row 0 and 66 row 17; `damage(row "11", column "16+") == 22`; `rough` has barrage shift `Cols(-1)` and `up-escarpment` anti-armour shift `Prohibited`; loading `terrain-effects` applies E-031 without error.
 - [ ] **Step 2: Run them.** `cargo test -p cna-data`. Expected: FAIL.
