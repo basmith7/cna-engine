@@ -15,3 +15,9 @@ Done: slice 1 merged (PR #1); slice 2 plan written and executed (PR #2): barrage
 Deviation: `Terrain::shifts` instead of the plan's `Terrain::find` (plan updated in the same PR).
 Next: merge PR #2, then slice 3 (plan drafted this run: cohesion ledger, R-001 switch, morale table, morale gap in chart-oddities).
 Blocked: none
+
+## 2026-09-26 11:13 MST — autopilot/slice-3
+Done: slice 2 merged (PR #2); slice 3 plan written and executed (PR #3): morale table with coverage test (no undeclared gaps), cohesion ledger, R-001 switch and probe, morale −4/56 gap in chart-oddities; review fixes.
+Deviation: R-001 probe plots positive measures (the board's chart has no negative axis); plan updated.
+Next: merge PR #3, then slice 4 (plan drafted: R-018 default option 3, chart-vs-text probe on the guarded-dump check).
+Blocked: none

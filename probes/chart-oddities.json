@@ -5,10 +5,11 @@
   "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
   "engine_commit": "see git log",
   "x": {
-    "label": "Close Assault Results Table oddity",
+    "label": "Printed oddity (close assault, morale modifier)",
     "values": [
       "defender +2: no row for 34-36",
-      "attacker -2: 20 % row reads 13-18"
+      "attacker -2: 20 % row reads 13-18",
+      "morale -4: no cell for 56"
     ]
   },
   "y": {
@@ -20,9 +21,10 @@
       "label": "% of rolls that land on the odd cell",
       "values": [
         8.333333333333334,
-        0.0
+        0.0,
+        2.7777777777777777
       ]
     }
   ],
-  "finding": "Comes up in play and needs a ruling: defender +2: no row for 34-36 (8.3 % of rolls in that column). Cannot occur, since the odd part is not a reading two dice can make: attacker -2: 20 % row reads 13-18. The Morale Modifier cell on this item is not measured yet."
+  "finding": "Comes up in play and needs a ruling: defender +2: no row for 34-36 (8.3 % of the rolls read there); morale -4: no cell for 56 (2.8 % of the rolls read there). Cannot occur, since the odd part is not a reading two dice can make: attacker -2: 20 % row reads 13-18."
 }
