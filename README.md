@@ -26,7 +26,9 @@ cargo run -p cna-probe -- run
 | `probes/R-011.json` | Loss as a share of each side's own strength, by size ratio, under each loss base |
 | `probes/R-012.json` | The defender's expected close-assault loss when fighting, against withholding everything |
 | `probes/R-015.json` | Defensive anti-armour damage against armour assaulting out of rough ground up a slope, under each option |
+| `probes/R-018.json` | What a supply dump costs under each option (text against charts) |
 | `probes/chart-oddities.json` | How often a roll lands on a printed oddity of the Close Assault Results Table or the Morale Modifier Table |
+| `probes/chart-vs-text.json` | The guarded-dump raid check, chart ("at least") against text ("above"), plus the repair-facility cost gaps |
 
 `cargo run -p cna-probe -- check` fails when a committed probe is stale (the
 `vendor/cna` commit moved, or the output changed); CI runs it. Rulings with

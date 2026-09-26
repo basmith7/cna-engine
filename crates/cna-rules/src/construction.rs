@@ -10,6 +10,13 @@ pub const TEXT_REAL_DUMP_STORES: u32 = 20;
 /// A dummy dump's CP by the text of SPI 24.9.
 pub const TEXT_DUMMY_DUMP_CP: u32 = 3;
 
+/// A temporary repair facility by the text of SPI 24.82: fuel, stores and
+/// time (the chart gives 1).
+pub const TEXT_TEMP_FACILITY: (u32, u32, u32) = (150, 250, 3);
+/// A repair facility's one-level rebuild by the text of SPI 24.84: fuel and
+/// stores.
+pub const TEXT_FACILITY_REBUILD: (u32, u32) = (30, 50);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DumpCost {
     pub cp: u32,

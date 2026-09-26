@@ -8,6 +8,7 @@ use cna_data::construction::Construction;
 use cna_data::morale::MoraleModifier;
 use cna_data::terrain::Terrain;
 
+pub mod chart_vs_text;
 pub mod oddities;
 pub mod r001;
 pub mod r009;
@@ -43,6 +44,7 @@ pub type ProbeFn = fn(&Ctx) -> Probe;
 pub fn all() -> Vec<(&'static str, ProbeFn)> {
     vec![
         ("chart-oddities", oddities::probe),
+        ("chart-vs-text", chart_vs_text::probe),
         ("R-001", r001::probe),
         ("R-009", r009::probe),
         ("R-011", r011::probe),
