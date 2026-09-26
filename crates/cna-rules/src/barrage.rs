@@ -1,7 +1,19 @@
 //! Barrage resolution (SPI 12.3, 12.4) as exact dice distributions.
 
 use crate::dice::{P, rolls};
+use crate::ruleset::{R009, Ruleset};
 pub use cna_data::barrage::Barrage;
+
+/// The band shift for a barrage at a target whose terrain gives
+/// `target_shift` (the best single in-hex benefit), fired by the phasing
+/// player or not (R-009).
+pub fn terrain_shift(rules: &Ruleset, target_shift: i32, firer_phasing: bool) -> i32 {
+    match rules.r009 {
+        R009::EitherSide => target_shift,
+        R009::NonPhasingOnly if firer_phasing => target_shift,
+        R009::NonPhasingOnly => 0,
+    }
+}
 
 /// One barrage against one target, over all 36 readings.
 #[derive(Debug, Clone, Copy)]
@@ -112,5 +124,23 @@ mod tests {
     fn a_shift_below_the_table_has_no_effect() {
         let o = outcome(&t(), "infantry", 2, -1);
         assert_eq!((o.p_effect, o.expected_loss), (0.0, 0.0));
+    }
+
+    #[test]
+    fn r009_decides_whose_barrage_is_shifted() {
+        use crate::ruleset::{R009, Ruleset};
+        let r = |r009| Ruleset {
+            r009,
+            ..Ruleset::default()
+        };
+        // (option, firer phasing) -> shift applied to a -2 target
+        for (o, phasing, want) in [
+            (R009::EitherSide, true, -2),
+            (R009::EitherSide, false, -2),
+            (R009::NonPhasingOnly, true, -2),
+            (R009::NonPhasingOnly, false, 0),
+        ] {
+            assert_eq!(terrain_shift(&r(o), -2, phasing), want, "{o:?} {phasing}");
+        }
     }
 }

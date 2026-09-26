@@ -13,11 +13,9 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-006 | interpretive: who may never react; a question of what the text means, not of numbers |
 | R-007 | interpretive: what a reacting unit may spend CP on |
 | R-008 | interpretive: "in combat or Engaged" and the break-off sentence |
-| R-009 | planned: slice 2 (barrage) |
 | R-010 | interpretive: retreat before assault direction; also needs the map |
 | R-013 | the difference is linear: ammunition scales with the pinned share; no probe adds information |
 | R-014 | interpretive: what may capture a destroyed-tank marker |
-| R-015 | planned: slice 2 (anti-armour) |
 | R-016 | interpretive: when a Tank Delivery Squadron moves |
 | R-017 | interpretive: what a Tank Delivery Squadron may do in combat and retreat |
 | R-018 | planned: slice 4 (construction costs) |

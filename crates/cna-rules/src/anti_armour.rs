@@ -1,7 +1,29 @@
 //! Anti-armour fire (SPI 14.3, 14.6) as exact expected damage.
 
 use crate::dice::{P, rolls};
+use crate::ruleset::{R015, Ruleset};
 pub use cna_data::anti_armour::AntiArmour;
+
+/// The column shift for anti-armour fire (R-015). For phasing fire the
+/// target hex is the defended hex; for non-phasing fire it is the hex the
+/// assaulting armour stands in. `hexside_shift` is the hexside the phasing
+/// points assault across. In-hex effects are the best single one; a
+/// hexside adds to it (SPI 14.32).
+pub fn terrain_shift(
+    rules: &Ruleset,
+    firer_phasing: bool,
+    target_hex_shift: i32,
+    hexside_shift: i32,
+) -> i32 {
+    if firer_phasing {
+        return target_hex_shift + hexside_shift;
+    }
+    match rules.r015 {
+        R015::OwnHexBoth => target_hex_shift,
+        R015::PhasingOnly => 0,
+        R015::HexAndHexsideBoth => target_hex_shift + hexside_shift,
+    }
+}
 
 /// Expected damage points from `points` actual anti-armour points, the
 /// column moved by `shift` (negative toward the defender; below column 0
@@ -59,5 +81,29 @@ mod tests {
             expected_damage(&t, 9, -1, false),
             expected_damage(&t, 8, 0, false)
         );
+    }
+
+    #[test]
+    fn r015_decides_which_fire_terrain_weakens() {
+        use crate::ruleset::{R015, Ruleset};
+        let r = |r015| Ruleset {
+            r015,
+            ..Ruleset::default()
+        };
+        // (option, firer phasing) -> shift, for a -1 target hex and a -1 hexside
+        for (o, phasing, want) in [
+            (R015::OwnHexBoth, true, -2),
+            (R015::OwnHexBoth, false, -1),
+            (R015::PhasingOnly, true, -2),
+            (R015::PhasingOnly, false, 0),
+            (R015::HexAndHexsideBoth, true, -2),
+            (R015::HexAndHexsideBoth, false, -2),
+        ] {
+            assert_eq!(
+                terrain_shift(&r(o), phasing, -1, -1),
+                want,
+                "{o:?} {phasing}"
+            );
+        }
     }
 }
