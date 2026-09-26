@@ -3,6 +3,17 @@
 //! default is the option the printed text supports, per the ruling's
 //! Rationale.
 
+/// R-001: what the −26 collapse threshold counts (SPI 6.26, 17.5).
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum R001 {
+    /// The cohesion level.
+    #[default]
+    CohesionLevel = 1,
+    /// Disorganisation points accumulated.
+    DpTally = 2,
+}
+
 /// R-009: whose barrages the target's terrain shifts (SPI 12.33, 14.0).
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -56,6 +67,7 @@ pub enum R015 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Ruleset {
+    pub r001: R001,
     pub r009: R009,
     pub r011: R011,
     pub r012: R012,
@@ -63,7 +75,7 @@ pub struct Ruleset {
 }
 
 /// Rulings with a switch. Every other ruling is listed in `NOT_SIMULATED.md`.
-pub const SWITCHED: &[&str] = &["R-009", "R-011", "R-012", "R-015"];
+pub const SWITCHED: &[&str] = &["R-001", "R-009", "R-011", "R-012", "R-015"];
 
 #[cfg(test)]
 mod tests {

@@ -5,7 +5,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 
 | Ruling | Why not (yet) |
 |---|---|
-| R-001 | planned: slice 3 (cohesion) |
 | R-002 | map art (road stubs): a question of what the map shows, not of numbers |
 | R-003 | interpretive: when a unit is in Contact is a question of what the text means, not of numbers |
 | R-004 | interpretive: terrain cost for a part-motorised formation; also needs movement, which slice 1 does not model |
