@@ -110,13 +110,10 @@ pub fn probe(ctx: &Ctx) -> Probe {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cna_data::close_assault::CloseAssault;
 
     #[test]
     fn buy_out_is_flat_30_and_fight_matches_outcome() {
-        let ctx = Ctx {
-            table: CloseAssault::load().unwrap(),
-        };
+        let ctx = Ctx::load().unwrap();
         let p = probe(&ctx);
         assert_eq!(p.x.values.len(), 18);
         let buy = p.series.iter().find(|s| s.option == Some(2)).unwrap();

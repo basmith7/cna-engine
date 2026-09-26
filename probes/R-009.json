@@ -1,0 +1,57 @@
+{
+  "id": "R-009",
+  "kind": "line",
+  "question": "Reply barrage against phasing infantry in a level-two fortification: how much does the terrain shift matter?",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Actual barrage points",
+    "values": [
+      "1-2",
+      "3-4",
+      "5-6",
+      "7-8",
+      "9-10",
+      "11-12",
+      "13-14",
+      "15-16",
+      "17+"
+    ]
+  },
+  "y": {
+    "label": "% of barrages that pin or destroy"
+  },
+  "series": [
+    {
+      "option": 1,
+      "label": "Terrain shifts the reply (option 1)",
+      "values": [
+        0.0,
+        0.0,
+        25.000000000000007,
+        38.8888888888889,
+        47.222222222222236,
+        55.55555555555557,
+        72.22222222222224,
+        83.33333333333336,
+        100.00000000000003
+      ]
+    },
+    {
+      "option": 2,
+      "label": "Reply at full strength (option 2)",
+      "values": [
+        25.000000000000007,
+        38.8888888888889,
+        47.222222222222236,
+        55.55555555555557,
+        72.22222222222224,
+        83.33333333333336,
+        100.00000000000003,
+        100.00000000000003,
+        100.00000000000003
+      ]
+    }
+  ],
+  "finding": "Against phasing infantry in a level-two fortification (shifted 2 bands under option 1), the reply barrage pins or destroys up to 39 percentage points more often under option 2, at 3-4 points (39 % against 0 %). Expected strength destroyed per barrage is up to 0.44 TOE points higher under option 2 (at 13-14 points)."
+}

@@ -3,6 +3,17 @@
 //! default is the option the printed text supports, per the ruling's
 //! Rationale.
 
+/// R-009: whose barrages the target's terrain shifts (SPI 12.33, 14.0).
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum R009 {
+    /// Every barrage, whichever side fires.
+    #[default]
+    EitherSide = 1,
+    /// Only barrages fired by the phasing player.
+    PhasingFireOnly = 2,
+}
+
 /// R-011: whose raw points form the percentage-loss base (SPI 15.83b).
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -27,14 +38,32 @@ pub enum R012 {
     NoPathNoWithhold = 3,
 }
 
+/// R-015: which side's anti-armour fire terrain weakens (SPI 14.0, 14.32,
+/// 14.33). Phasing fire is always shifted by the defended hex and the
+/// hexside crossed; the options differ on non-phasing fire at the
+/// assaulting armour.
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum R015 {
+    /// Shifted by the assaulting armour's own hex, not the hexside.
+    OwnHexBoth = 1,
+    /// Not shifted (the literal 14.32).
+    #[default]
+    PhasingOnly = 2,
+    /// Shifted by the assaulting armour's own hex and the hexside.
+    HexAndHexsideBoth = 3,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Ruleset {
+    pub r009: R009,
     pub r011: R011,
     pub r012: R012,
+    pub r015: R015,
 }
 
 /// Rulings with a switch. Every other ruling is listed in `NOT_SIMULATED.md`.
-pub const SWITCHED: &[&str] = &["R-011", "R-012"];
+pub const SWITCHED: &[&str] = &["R-009", "R-011", "R-012", "R-015"];
 
 #[cfg(test)]
 mod tests {

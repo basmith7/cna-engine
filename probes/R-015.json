@@ -1,0 +1,100 @@
+{
+  "id": "R-015",
+  "kind": "line",
+  "question": "Defensive anti-armour fire at armour assaulting out of rough ground, up a slope",
+  "rules_commit": "b6917b99767eb01f34d49852156e0f84451fbb58",
+  "engine_commit": "see git log",
+  "x": {
+    "label": "Actual anti-armour points (non-phasing)",
+    "values": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16"
+    ]
+  },
+  "y": {
+    "label": "Expected damage points"
+  },
+  "series": [
+    {
+      "option": 1,
+      "label": "Own hex shifts it (option 1)",
+      "values": [
+        0.38888888888888895,
+        1.6666666666666672,
+        2.888888888888889,
+        4.222222222222223,
+        5.722222222222222,
+        7.222222222222222,
+        8.83333333333333,
+        10.444444444444441,
+        12.05555555555555,
+        13.666666666666666,
+        15.33333333333334,
+        17.055555555555557,
+        18.777777777777786,
+        20.77777777777777,
+        22.555555555555554,
+        24.38888888888889
+      ]
+    },
+    {
+      "option": 2,
+      "label": "No shift (option 2)",
+      "values": [
+        1.6666666666666672,
+        2.888888888888889,
+        4.222222222222223,
+        5.722222222222222,
+        7.222222222222222,
+        8.83333333333333,
+        10.444444444444441,
+        12.05555555555555,
+        13.666666666666666,
+        15.33333333333334,
+        17.055555555555557,
+        18.777777777777786,
+        20.77777777777777,
+        22.555555555555554,
+        24.38888888888889,
+        26.444444444444446
+      ]
+    },
+    {
+      "option": 3,
+      "label": "Own hex and hexside shift it (option 3)",
+      "values": [
+        0.38888888888888895,
+        0.38888888888888895,
+        1.6666666666666672,
+        2.888888888888889,
+        4.222222222222223,
+        5.722222222222222,
+        7.222222222222222,
+        8.83333333333333,
+        10.444444444444441,
+        12.05555555555555,
+        13.666666666666666,
+        15.33333333333334,
+        17.055555555555557,
+        18.777777777777786,
+        20.77777777777777,
+        22.555555555555554
+      ]
+    }
+  ],
+  "finding": "For armour assaulting out of a rough hex up a slope, option 1 cuts the defender's expected anti-armour damage by 12 % summed over 1-16 points (at most 2.1 damage points), and option 3 by 24 % (at most 3.9). Option 2 leaves it unshifted. Phasing fire is the same under every option. Assumes the firing side has at least five raw points (actual points are a fraction of raw), so the starred 0 column is reached only by shifts (SPI 14.33)."
+}
