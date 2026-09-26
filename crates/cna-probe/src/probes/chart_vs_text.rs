@@ -4,19 +4,20 @@
 use super::Ctx;
 use crate::output::{Axis, Kind, Probe, Series};
 use cna_rules::construction::{TEXT_FACILITY_REBUILD, TEXT_TEMP_FACILITY};
-use cna_rules::dice::sums;
+use cna_rules::dice::rolls;
 
 pub fn probe(ctx: &Ctx) -> Probe {
     // Guarded supply dump (SPI 27.91 chart, 27.5x text): the raider gets
     // past the guards on a two-dice sum at least (chart) or above (text)
     // the guards' raw close-assault defence.
     let defences: Vec<u8> = (2..=12).collect();
+    // From whole counts of the 36 rolls, so the output carries no float
+    // noise.
     let survive = |d: u8, at_least: bool| {
-        100.0
-            * sums()
-                .filter(|(s, _)| if at_least { *s >= d } else { *s > d })
-                .map(|(_, p)| p)
-                .sum::<f64>()
+        let n = rolls()
+            .filter(|(a, b)| if at_least { a + b >= d } else { a + b > d })
+            .count();
+        100.0 * n as f64 / 36.0
     };
     let chart: Vec<f64> = defences.iter().map(|d| survive(*d, true)).collect();
     let text: Vec<f64> = defences.iter().map(|d| survive(*d, false)).collect();
@@ -92,6 +93,7 @@ mod tests {
             assert!((chart[i] - text[i] - 100.0 * prob).abs() < 1e-9);
         }
         assert!((chart[5] - text[5] - 100.0 / 6.0).abs() < 1e-9);
-        assert!(p.finding.contains("50 fuel") && p.finding.contains("10 fuel"));
+        assert!(p.finding.contains("chart asks 50 fuel and 250 stores"));
+        assert!(p.finding.contains("chart asks 10 fuel and 50 stores"));
     }
 }

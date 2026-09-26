@@ -49,6 +49,13 @@ fn render_all(rules: &str, engine: &str) -> Result<Vec<(String, String)>> {
         .map(|(id, f)| {
             let mut p = f(&ctx);
             assert_eq!(p.id, id, "probe registered under the wrong id");
+            // Six decimals is ample for a chart and drops float noise
+            // such as 0.30000000000000004 and -0.0 from the files.
+            for s in &mut p.series {
+                for v in &mut s.values {
+                    *v = (*v * 1e6).round() / 1e6 + 0.0;
+                }
+            }
             p.rules_commit = rules.to_string();
             p.engine_commit = engine.to_string();
             Ok((

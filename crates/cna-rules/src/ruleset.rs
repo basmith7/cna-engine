@@ -67,8 +67,8 @@ pub enum R015 {
 
 /// R-018: what a supply dump costs (SPI 24.9 text against the 24.17 and
 /// 6.3 charts). The default follows the ruling's Rationale: the charts' CP
-/// (two charts agree), the text's stores (tied, and what the restated rules
-/// use).
+/// (two charts agree), the text's stores (a tie the Rationale defers to the
+/// Logistics Game; the text is what the restated rules use until then).
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum R018 {
