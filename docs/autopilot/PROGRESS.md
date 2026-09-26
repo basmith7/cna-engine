@@ -12,19 +12,17 @@ writes is **Feedback**.
 
 ## Status
 
-Slice 1 merged 2026-09-26: Rust workspace, close-assault table with errata,
-exact dice distributions, switches for R-011 and R-012, and probes
-`R-011`, `R-012` and `chart-oddities` (they render on the board with
-`--probes`). Slice 2 merged: barrage, anti-armour and terrain tables,
-switches and probes for R-009 and R-015. Slice 3 merged: cohesion ledger,
-Morale Modifier Table, R-001 switch and probe. Slice 4 in progress.
+**MISSION 1 COMPLETE** (2026-09-26). All four slices merged: a Rust rules
+core with switches for R-001, R-009, R-011, R-012, R-015 and R-018, and
+eight probes in `probes/` that render on the decision board with
+`python3 tools/decisions_page.py --probes <cna-engine>/probes`.
 
 | Part | What | State | PR |
 |---|---|---|---|
 | 1 | Slice 1: close assault (R-011, R-012, oddities) | merged | #1 |
 | 2 | Slice 2: barrage and anti-armour (R-009, R-015) | merged | #2 |
 | 3 | Slice 3: cohesion (R-001) | merged | #3 |
-| 4 | Slice 4: construction costs (R-018) | in progress | |
+| 4 | Slice 4: construction costs (R-018, chart vs text) | merged | #4 |
 
 **Found (slice 1):** under R-012 option 2, fighting costs the defender less
 than the 30 % buy-out on average in every column, but only by 0.6 points at
@@ -45,10 +43,20 @@ at stage 13 under option 2 with no reset rule. The Morale Modifier gap
 (level −4, reading 56) is 2.8 % of rolls at that level. No undeclared gaps
 in the morale table.
 
+**Found (slice 4):** R-018's options differ only on a dummy dump's CP (3 or
+2) and a real dump's stores (20 or 10); the engine defaults to option 3
+(charts' CP, text's stores), following the ruling's Rationale. On the
+guarded-dump raid check the chart's "at least" beats the text's "above" by
+up to 16.7 points (defence 7). The text's temporary repair facility costs
+3x the chart's fuel and time; its facility rebuild 3x the fuel.
+
 ## Next steps
 
-For the autopilot: continue slice 4 on `autopilot/slice-4` (plan
-`docs/plans/2026-09-26-slice-4-construction-costs.md`).
+Mission 1 is done; the autopilot does nothing further until a new mission
+is issued. Candidates for Brian: (a) the spec's `cna`-side decision policy
+(the autopilot writing Decisions for the probed rulings in `cna`), which
+Mission 1 kept read-only; (b) R-001 already has a Decision in `cna` but its
+status is still `proposed`.
 
 ## Runs and quota
 
