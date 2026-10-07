@@ -30,5 +30,6 @@ Blocked: none
 
 ## 2026-10-07 — main (interactive session)
 Done: AUTOPILOT.md gains **The goal** (shared with cna) and a mission queue, 2–9, from map and game state to the full campaign. Requests to cna go in PROGRESS **Requests for cna**; the old "small PR on cna" exception is gone.
-Next: Mission 2 Part 0, branch `autopilot/m2-spec`: write the map and game state spec and plan.
+Next: Mission 2 Part 0, branch `autopilot/m2-spec`: write the spec and plan, PR labelled `needs-brian`, then wait for Feedback approval.
+Update: queue realigned to Brian's agreed path (small scenario, headless game state, minimal UI; the rest later in no fixed order).
 Blocked: none.

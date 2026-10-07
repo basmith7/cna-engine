@@ -52,9 +52,10 @@ up to 16.7 points (defence 7). The text's temporary repair facility costs
 
 ## Next steps
 
-For the autopilot: **Mission 2, map and game state**, from the mission
-queue in `AUTOPILOT.md` (issued 2026-10-07). Start with Part 0: write its
-spec and plan. The shared goal (a playable, self-hostable digital CNA) is at
+For the autopilot: **Mission 2, game state for one small scenario**, from
+the mission queue in `AUTOPILOT.md` (issued 2026-10-07). Start with Part 0:
+write its spec and plan, open the PR labelled `needs-brian`, and wait for
+Brian's approval in **Feedback** before building. The shared goal (a playable, self-hostable digital CNA) is at
 the top of `AUTOPILOT.md`.
 
 Earlier candidates, now settled: cna's autopilot decided every probed

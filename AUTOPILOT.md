@@ -40,24 +40,30 @@ writes in **Feedback** wins.
 
 ### Queue
 
+This follows the *Path to a playable game* Brian agreed on 2026-10-07: one
+small scenario in cna, a headless game state for it here, then a minimal UI.
+
 | # | Mission | Needs from cna | State |
 |---|---|---|---|
 | 1 | Rules core and ruling probes (combat, cohesion, construction) | | done |
-| 2 | **Map and game state**: load `vendor/cna/data/map/` (hexes, hexsides, places); units, formations and markers as typed state; a whole game state that serialises to JSON and back | map (done) | next |
-| 3 | **Movement**: CP and CPA (§6), movement and terrain costs (§8), stacking and ZOC (§9–10, §18), legal-move generation on the real map. Switches for R-002–R-005 and R-010 where they change a number or a legal move | | queued |
-| 4 | **One Land Game turn**: the sequence of play (§5, §7) as a state machine; combat (§11–16) wired to the rules core; organisation, engineering and special rules (§19–31); abstract supply (§32). A whole Game-Turn runs from scripted orders, rejects illegal ones, and writes a replayable log. Plan it as several slices | | queued |
-| 5 | **First playable scenario, headless**: load the smallest scenario from cna's data, place every unit, play it to its victory check from scripted orders; save and load | scenarios and OA (cna Mission 6) | queued |
-| 6 | **Server and browser client**: one self-hosted server (one binary or one container) and a browser client, so two people play that scenario hotseat or turn by turn, with legal moves shown from the rules core | | queued |
-| 7 | **The Logistics Game** (§48–58) as a module behind one switch; the water and fuel probes; switches for the logistics rulings | logistics (done) | queued |
-| 8 | **The Air Game** (§33–47) as a module behind one switch | Air Game (cna Mission 7) | queued |
-| 9 | **The full campaign**: every scenario and campaign game set-up, and a whole campaign played start to finish from scripted orders | | queued |
+| 2 | **Game state, headless, for one small scenario.** Load `vendor/cna/data/map/`; place the scenario's units as typed state; enforce the turn sequence (§5, §7) and movement (CP and CPA §6, terrain §8, stacking and ZOC §9–10, §18); combat from the existing rules core. Scripted orders in, illegal ones rejected, a replayable log out; the state serialises to JSON and back. No AI, no UI. **Brian reviews the spec before any building** (below) | one small scenario: set-up, OA, victory conditions (cna Mission 6, Part 1) | next |
+| 3 | **A minimal UI** on top of Mission 2's game state: the map, the units, legal moves shown from the rules core, orders entered by clicking. Local only | | queued |
+
+**Later, in no fixed order.** When Mission 3 is done, take the one that
+moves the game closest to **The goal**, add it as a row with its own spec,
+and go on: the rest of the Land Game turn (organisation, engineering,
+special rules, abstract supply §19–32); the Logistics Game (§48–58) as a
+module behind one switch, with the water and fuel probes; the Air Game
+(§33–47), once cna has restated it; the remaining scenarios and the
+campaign games; a server for two players at a distance; AI players. A
+mission that Brian would call large gets the same review as Mission 2.
 
 The current mission is the first row not marked `done`. If it needs cna
-data that is not there yet, post a request (below) and take the next row
-that can start; come back when the data lands. When a mission's last part
-merges: log `MISSION n COMPLETE` in the journal and `PROGRESS.md`, set its
-row to `done` and the next to `next`, and go straight on to the next
-mission's Part 0.
+data that is not there yet, post a request (below); Mission 2's spec and
+its map and state slices do not need the scenario and can start now. When a
+mission's last part merges: log `MISSION n COMPLETE` in the journal and
+`PROGRESS.md`, set its row to `done` and the next to `next`, and go straight
+on to the next mission's Part 0.
 
 ### Every mission's parts
 
@@ -66,10 +72,19 @@ mission's Part 0.
    `docs/plans/YYYY-MM-DD-slug.md`, in the shape of
    `docs/designs/2026-09-26-engine-probes-design.md` and the slice plans:
    goal (how it moves **The goal** forward), non-goals, a decisions table,
-   crates touched, testing, slices one PR each. Every decision is yours under
+   crates touched, testing, slices one PR each. Decisions are yours under
    the delegation and must be reversible; say so in the spec's header.
-   Merge it once the gates pass, then follow the plans task by task. Where a
-   plan and its spec disagree, follow the spec and say so in the journal.
+   Then follow the plans task by task. Where a plan and its spec disagree,
+   follow the spec and say so in the journal.
+   - **Brian's review (Mission 2, and any mission marked for it).** Mark the
+     spec PR ready, label it `needs-brian`, and do not merge it. Put one line
+     in `PROGRESS.md` **Next steps**: "Review the Mission N spec: PR #n".
+     Merge only when Brian's **Feedback** approves it; if he asks for
+     changes, make them on the same PR and wait again. Until then, build
+     nothing for that mission; post any **Requests for cna** it needs, then
+     stop. GitHub approval cannot work here (the autopilot pushes as Brian),
+     so Feedback is the only signal.
+   - Every other spec: merge it once the gates pass.
 1. **Slices**, one PR each, TDD, until the mission's spec is met.
 2. **Docs**: README, `NOT_SIMULATED.md`, design Status, this queue.
 
@@ -83,14 +98,10 @@ what is needed, why, and which mission it blocks. cna's autopilot reads
 that section every run and answers with a PR on cna. When it lands, bump
 `vendor/cna` and delete the bullet. Do not edit cna's rules yourself.
 
-### After the queue
+### Limits
 
-When Mission 9 is complete the game is playable end to end. Until then, if
-the queue runs dry because the rows above turn out smaller than expected,
-add the next mission yourself: the largest gap left between this repo and
-**The goal** (a rule that is not enforced, a part of play the client cannot
-do), one row and one spec. Stay inside this repo; do not deploy or host
-anything; hosting is Brian's call.
+Stay inside this repo. Do not deploy or host anything: hosting is Brian's
+call.
 
 ## Picking up where the last run left off
 
@@ -104,7 +115,8 @@ to `origin/main`. In order:
 3. `gh pr list --state open --label autopilot` — if an autopilot PR is open,
    check out its branch, read the last entry of `docs/autopilot/JOURNAL.md`
    on it, and continue. If its gates and CI already pass, merge it
-   (`gh pr merge --merge`) and move on.
+   (`gh pr merge --merge`) and move on, unless it is labelled
+   `needs-brian` and **Feedback** has not approved it.
 4. Otherwise start the next unfinished part, branching from `origin/main`.
 
 ## Working rules
