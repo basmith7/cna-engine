@@ -27,3 +27,8 @@ Done: slice 3 merged (PR #3); slice 4 plan written and executed (PR #4): Constru
 MISSION 1 COMPLETE (all four parts merged once PR #4 lands).
 Next: nothing under Mission 1; await a new mission in AUTOPILOT.md or PROGRESS Feedback.
 Blocked: none
+
+## 2026-10-07 — main (interactive session)
+Done: AUTOPILOT.md gains **The goal** (shared with cna) and a mission queue, 2–9, from map and game state to the full campaign. Requests to cna go in PROGRESS **Requests for cna**; the old "small PR on cna" exception is gone.
+Next: Mission 2 Part 0, branch `autopilot/m2-spec`: write the map and game state spec and plan.
+Blocked: none.

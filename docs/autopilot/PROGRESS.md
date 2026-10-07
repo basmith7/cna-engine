@@ -52,11 +52,19 @@ up to 16.7 points (defence 7). The text's temporary repair facility costs
 
 ## Next steps
 
-Mission 1 is done; the autopilot does nothing further until a new mission
-is issued. Candidates for Brian: (a) the spec's `cna`-side decision policy
-(the autopilot writing Decisions for the probed rulings in `cna`), which
-Mission 1 kept read-only; (b) R-001 already has a Decision in `cna` but its
-status is still `proposed`.
+For the autopilot: **Mission 2, map and game state**, from the mission
+queue in `AUTOPILOT.md` (issued 2026-10-07). Start with Part 0: write its
+spec and plan. The shared goal (a playable, self-hostable digital CNA) is at
+the top of `AUTOPILOT.md`.
+
+Earlier candidates, now settled: cna's autopilot decided every probed
+ruling under the delegation (Mission 4), and R-001 is `accepted`.
+
+## Requests for cna
+
+What this repo needs from cna, one bullet each: what, why, which mission it
+blocks. cna's autopilot reads this every run and answers with a PR; delete
+the bullet once it lands and `vendor/cna` is bumped.
 
 ## Runs and quota
 
