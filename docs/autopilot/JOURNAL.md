@@ -39,3 +39,9 @@ Done: Mission 2 Part 0 started. Bumped `vendor/cna` to 39b9ad7 (Graziani's Offen
 In flight: spec `docs/designs/2026-10-08-game-state-design.md` and slice plans.
 Next: finish the spec, mark PR #5 ready with `needs-brian`, wait for Feedback.
 Blocked: none
+
+## 2026-10-08 14:05 MST — autopilot/m2-spec
+Done: spec `docs/designs/2026-10-08-game-state-design.md` (c3a8c3a) and slice plans 1–6 (075897e); gates pass. PR #5 ready, labelled `needs-brian`.
+In flight: nothing; Mission 2 building waits for Brian's Feedback.
+Next: if Feedback approves, merge PR #5 and start slice 1 (map) on `autopilot/m2-slice-1`; if it asks for changes, make them on PR #5.
+Blocked: Brian's review of PR #5. Four Requests for cna posted (cross-sheet join, weapon systems, victory supply, track cost).

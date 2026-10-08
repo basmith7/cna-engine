@@ -53,7 +53,7 @@ sequence.
 - [ ] **Step 1: Write the failing tests:** from GT1 stage 1 phase A,
   repeated `next` visits A–E once, then F–L for Player A, then F–L for
   Player B, then stage 2; after stage 3 comes the next Game-Turn's
-  initiative; the 108 OpStage-halves of Graziani are visited exactly once.
+  initiative; the 36 OpStage halves of Graziani (18 OpStages) are visited exactly once.
 - [ ] **Step 2–5:** run (FAIL), implement, run (PASS), commit `Clock`.
 
 ### Task 2: state, orders, events, RNG
