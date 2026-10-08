@@ -97,7 +97,7 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 | Initiative | The Axis holds it through Game-Turn 1 (60.6); from Game-Turn 2 it is rolled with `initiative-ratings.json` | Data-driven |
 | Reinforcements | Arrive from `reinforcement-schedule.json` in phase D of their stage (20.11–20.15): Commonwealth at Cairo, Axis at Tripoli, within stacking; a listed parent brings its OA sheet less units with a later arrival of their own (4.42). The Benghazi diversion (55.1) waits for the Logistics Game | cna states the entry points; the schedule needs no hexes |
 | Combat | Strengths are TOE points × ratings from `unit-characteristics.json` (per ID code) and, for tanks and guns, from the weapon-systems table cna is asked for. Resolution calls the Mission 1 rules core, sampling one result with the game's RNG. Until the weapon table lands, tanks and guns use their ID-code row and the gap is listed in `NOT_SIMULATED.md` | Combat is already in the core; this mission wires it to pieces and the map |
-| Stacking points | From the unit's equivalent (division 5 … company 0, 9.4); the equivalent read from `unit_type` (`…Bn-Eq` is a battalion). If that proves ambiguous for any Graziani unit, a request goes to cna for an explicit field | cna has no per-counter stacking value |
+| Stacking points | From the unit's equivalent (division 5 … company 0, 9.4), read from `unit_type` (`…Bn-Eq`/`Battalion-Eq` battalion, `Coy-Eq`/`Company-Eq` company, `Bde-Eq` brigade; an HQ by 9.11–9.15). Two rows do not say (`Engineer Bn/Coy-Eq`, `Construction (Road/RR)`): a request asks cna for an explicit equivalent per characteristics row; until then those two count as companies and a test lists them | cna has no per-counter stacking value |
 | Victory | Evaluated after Game-Turn 6 OpStage 3 from `victory.levels`: `hold` conditions are checked; the supply clause is reported as `unchecked` until §32 supply exists | The scenario still has a winner by position; the report says what was not checked |
 
 ## Crates touched
@@ -170,6 +170,10 @@ Posted to `PROGRESS.md` **Requests for cna** with this PR:
 3. **The Land-Game-only meaning of "suppliable by convoy" and "a
    truck-convoy route"** in 60.8's victory conditions, as structured data or
    a ruling. Blocks the supply half of slice 6's victory check.
-4. **The track cost:** `rules/40-movement.md` gives a track as 1 CP per hex
+4. **A stacking equivalent per unit-characteristics row** (9.4): two
+   `unit_type`s (`Engineer Bn/Coy-Eq`, `Construction (Road/RR)`) do not
+   say whether they are battalions or companies. Slice 4 counts them as
+   companies until then.
+5. **The track cost:** `rules/40-movement.md` gives a track as 1 CP per hex
    while E-031 makes it half the hex cost. Which governs? Slice 4 follows
    the errata.
