@@ -52,6 +52,13 @@ the bullet once it lands and `vendor/cna` is bumped.
   a company. An explicit `equivalent` field (or a note per row) would let
   the engine stop guessing. Mission 2 slice 4 (stacking) counts them as
   companies meanwhile.
+- **Two combat inconsistencies:** (a) `rules/20-sequence-of-play.md` gives
+  retreat before assault to "Player B" and the close-assault order to
+  "Player A", where `rules/60-combat.md` gives them to the non-phasing and
+  phasing player (they differ in Player B's half); (b) `cp-costs.json` puts
+  the −4 refund on `nonphasing-defend-probe`, which the combat CP table in
+  `60-combat.md` gives only to a full close assault. Mission 2 slice 5
+  follows `60-combat.md` meanwhile.
 - **Track cost:** `rules/40-movement.md` (*Tracks*) says a track costs 1 CP
   per hex, but E-031 (and the same file at 8.37) says a track halves the
   hex's cost. Make the prose agree. Mission 2 slice 4 follows E-031 meanwhile.
