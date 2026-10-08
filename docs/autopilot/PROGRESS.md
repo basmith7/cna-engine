@@ -46,6 +46,12 @@ the bullet once it lands and `vendor/cna` is bumped.
   Tobruk / map D" and "a truck-convoy route to Cairo or Alexandria" have no
   §32 meaning; state one (structured in `victory`, or a ruling). Blocks the
   supply half of Mission 2 slice 6's victory check.
+- **Stacking equivalent per unit-characteristics row** (9.4): two
+  `unit_type`s in `unit-characteristics.json`, `Engineer Bn/Coy-Eq` and
+  `Construction (Road/RR)`, do not say whether they count as a battalion or
+  a company. An explicit `equivalent` field (or a note per row) would let
+  the engine stop guessing. Mission 2 slice 4 (stacking) counts them as
+  companies meanwhile.
 - **Track cost:** `rules/40-movement.md` (*Tracks*) says a track costs 1 CP
   per hex, but E-031 (and the same file at 8.37) says a track halves the
   hex's cost. Make the prose agree. Mission 2 slice 4 follows E-031 meanwhile.
