@@ -23,7 +23,8 @@ engine on a scripted game, and close Mission 2's docs.
 1. **Victory evaluation.** `victory::evaluate(&GameState, &Scenario) ->
    VictoryReport { axis: Option<Level>, cw: Option<Level>, checked,
    unchecked }`. Tests: hand-built states for each Axis and Commonwealth
-   level; Alexandria counted by either of its two hexes.
+   level; the Axis strategic level met by any one of
+   E3613, E3714 (Alexandria) or E1730 (Cairo).
 2. **Game end.** After GT6 OS3 the state is `Over(report)` and every
    order is `Illegal("60.22")`.
 3. **The golden game.** `tests/games/graziani-short.json`: set-up, then

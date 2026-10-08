@@ -18,7 +18,8 @@ A headless engine that loads **Graziani's Offensive** (SPI 60.22, Land Game
 only per 60.92) from `vendor/cna`, places every unit as typed state, and
 plays it: scripted orders go in, the engine enforces the turn sequence,
 movement, stacking, zones of control, reserves and combat, rejects illegal
-orders with the case number they break, and writes a log from which the
+orders with the case number (or case group, where cna maps only the
+group) they break, and writes a log from which the
 whole game replays exactly. The state serialises to JSON and back.
 
 How this moves **the goal** (two players, a browser, every rule enforced):
@@ -70,7 +71,7 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 3. `cna-play replay log.json` rebuilds the same final state, byte for byte.
 4. For every illegal-order case the spec lists below there is a test that
    the order is rejected, the state is unchanged, and the error names the
-   case (`8.15`, `10.22`, …).
+   case (`8.1x`, `10.2x`, …).
 5. At the end of Game-Turn 6 the engine reports each side's victory level
    (60.8) with the conditions it checked.
 
@@ -86,7 +87,7 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 | Clock | `Clock { game_turn, stage, phase, half: A/B, segment }` with phases A–L as cna's `phase` enum, and the movement-combat cycle's segments (movement, breakdown, combat steps 1–6, reserve release) as an enum | The letters match SPI 5.2 so logs and errors cite the printed sequence |
 | Orders | One `Order` enum, each with the player who gives it: `Place`, `DeclareInitiative`, `DesignateReserve`, `Move { pieces, path }`, `EndSegment`, `DeclareZoc`, `React`, `Barrage`, `RetreatBeforeAssault`, `AssignForces` (sealed), `Assault`, `ReleaseReserve`, `Pass`. JSON via serde, externally tagged | A closed enum is what a UI and a server send; serde gives the JSON form free |
 | Decisions the opponent owes | The state has a `pending: Option<Pending>` naming the player who must answer and what (ZOC declaration 10.16, reaction 8.51, retreat before assault, a sealed plot from both sides). While it is set, only that player's answer is legal | Turns SPI's interrupts into a strict turn order a headless driver and a server can both follow |
-| Legality | `fn apply(&mut self, order) -> Result<Vec<Event>, Illegal>` validates fully before changing anything; `Illegal { case: "8.15", reason }`. Rejected orders never enter the log | "Illegal ones rejected" with the reason a player can look up |
+| Legality | `fn apply(&mut self, order) -> Result<Vec<Event>, Illegal>` validates fully before changing anything; `Illegal { case: "8.1x", reason }`. Rejected orders never enter the log | "Illegal ones rejected" with the reason a player can look up |
 | Log and replay | The log is the scenario id, ruleset, seed, `vendor/cna` commit, and the accepted orders. Replay re-applies them; events are derived, not stored as truth. A test replays every golden game | Small, and a replay that disagrees with the state is a bug the test catches |
 | Randomness | `rand_chacha::ChaCha8Rng` seeded per game, held in the state (serialised as seed plus draw count). Every die roll is an event | Reproducible; the Mission 1 rule (seeded ChaCha8 where sampling is needed) |
 | Serialisation | `GameState` derives `Serialize`/`Deserialize`; static data (map, OA, tables) is not in the state, only the scenario id and the `vendor/cna` commit; loading checks the commit | A save is a few hundred kB, not the map |
@@ -95,8 +96,8 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 | Movement costs | From `terrain-effects.json` with errata (E-031: a track halves the hex cost). Roads and tracks are hexside features; their rate applies only along a connected road or track hexside (8.33). Motorised or not from the CPA mark (`+`, `*`) and unit type | The data says it; the code does not retype a cost |
 | Weather | Rolled each stage in phase B from `weather.json` (E-025 applied); sandstorm and rain change movement (§29) | Cheap, and it changes legal moves |
 | Initiative | The Axis holds it through Game-Turn 1 (60.6); from Game-Turn 2 it is rolled with `initiative-ratings.json` | Data-driven |
-| Reinforcements | Arrive from `reinforcement-schedule.json` in phase D of their stage (20.11–20.15): Commonwealth at Cairo, Axis at Tripoli, within stacking; a listed parent brings its OA sheet less units with a later arrival of their own (4.42). The Benghazi diversion (55.1) waits for the Logistics Game | cna states the entry points; the schedule needs no hexes |
-| Combat | Strengths are TOE points × ratings from `unit-characteristics.json` (per ID code) and, for tanks and guns, from the weapon-systems table cna is asked for. Resolution calls the Mission 1 rules core, sampling one result with the game's RNG. Until the weapon table lands, tanks and guns use their ID-code row and the gap is listed in `NOT_SIMULATED.md` | Combat is already in the core; this mission wires it to pieces and the map |
+| Reinforcements | Arrive from `reinforcement-schedule.json` in phase D of their stage (20.11–20.15): Commonwealth at Cairo, Axis at Tripoli; a listed parent brings its OA sheet less units with a later arrival of their own (4.42). The Benghazi diversion (55.1) waits for the Logistics Game | cna states the entry points; the schedule needs no hexes |
+| Combat | Raw strengths are TOE points × ratings from `unit-characteristics.json` (per ID code) and, for tanks and guns, from the weapon-systems table cna is asked for. Actual strength follows `60-combat.md` (raw ÷ 10, rounded). Resolution calls the Mission 1 rules core, sampling one result with the game's RNG. Until the weapon table lands, tanks and guns use their ID-code row and the gap is listed in `NOT_SIMULATED.md` | Combat is already in the core; this mission wires it to pieces and the map |
 | Stacking points | From the unit's equivalent (division 5 … company 0, 9.4), read from `unit_type` (`…Bn-Eq`/`Battalion-Eq` battalion, `Coy-Eq`/`Company-Eq` company, `Bde-Eq` brigade; an HQ by 9.11–9.15). Two rows do not say (`Engineer Bn/Coy-Eq`, `Construction (Road/RR)`): a request asks cna for an explicit equivalent per characteristics row; until then those two count as companies and a test lists them | cna has no per-counter stacking value |
 | Victory | Evaluated after Game-Turn 6 OpStage 3 from `victory.levels`: `hold` conditions are checked; the supply clause is reported as `unchecked` until §32 supply exists | The scenario still has a winner by position; the report says what was not checked |
 
@@ -174,6 +175,11 @@ Posted to `PROGRESS.md` **Requests for cna** with this PR:
    `unit_type`s (`Engineer Bn/Coy-Eq`, `Construction (Road/RR)`) do not
    say whether they are battalions or companies. Slice 4 counts them as
    companies until then.
-5. **The track cost:** `rules/40-movement.md` gives a track as 1 CP per hex
+5. **Two combat inconsistencies inside cna:** `rules/20-sequence-of-play.md`
+   gives retreat before assault to "Player B" and the assault order to
+   "Player A", where `rules/60-combat.md` says non-phasing and phasing; and
+   `cp-costs.json` gives the −4 refund to a defended probe, which the
+   combat CP table does not. Slice 5 follows `60-combat.md`.
+6. **The track cost:** `rules/40-movement.md` gives a track as 1 CP per hex
    while E-031 makes it half the hex cost. Which governs? Slice 4 follows
    the errata.

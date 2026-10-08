@@ -82,10 +82,10 @@ sequence.
 ### Task 3: set-up orders and the start of play
 
 - [ ] **Step 1: Write the failing tests:** `GameState::new(scenario,
-  seed)` leaves pending pieces and `pending = SetUp { side }` (Axis first,
-  as 59.x orders it; if unstated, the Axis); a `Place` on a hex outside
+  seed)` leaves pending pieces and `pending = SetUp { side }`, the Axis first
+  (our choice: §59 and §60 do not say who sets up first); a `Place` on a hex outside
   the placement area is `Illegal("59.2")`; a `Place` breaking the hex's
-  stacking ceiling is `Illegal("9.1")`; `not_within` of an enemy unit is
+  stacking ceiling is `Illegal("9.14")`; `not_within` of an enemy unit is
   checked; once nothing is pending the clock is GT1 stage 1 phase A.
 - [ ] **Step 2–5:** as Task 1; commit `Set-up orders`.
 

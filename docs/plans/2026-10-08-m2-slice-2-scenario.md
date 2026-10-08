@@ -90,10 +90,11 @@ above; `UnitEntry`; `Schedule::load()`, `Schedule::arrivals(side, turn, stage)`.
 
 - [ ] **Step 1: Write the failing tests:** Graziani loads with 26 + 16
   deployments; the Italian Campaign loads through `extends` and keeps
-  Graziani's sides; `land_only` swaps the Axis `supply` for the 10
-  supply-unit blocks and adds the Commonwealth's 6; every `Placement`
-  variant used in the file deserialises; the schedule has the eight GT 1–6
-  rows above.
+  Graziani's sides; `land_only` swaps the Axis `supply` for its 10
+  supply-unit blocks and the Commonwealth's for its 4, then adds the
+  Commonwealth's 2 `adds` blocks; every `Placement`
+  variant used in the file deserialises; the schedule has the six GT 1–6
+  rows above (2 RTR, 7 RTR and 6 NZ Fld share one row).
 - [ ] **Step 2–5:** as Task 1; commit `Scenario and schedule loaders`.
 
 ### Task 3: deployments to pieces

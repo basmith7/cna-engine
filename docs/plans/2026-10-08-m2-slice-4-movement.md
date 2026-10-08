@@ -51,7 +51,7 @@ in `cna-game::{movement, zoc, reserve}`. Terrain costs come from
   escarpment hexsides, nor into hexes it could not enter. The non-phasing
   player declares whether it is exerted (10.16): a `Pending::DeclareZoc`.
   Entering an enemy ZOC costs nothing and ends the move; no ZOC-to-ZOC; a
-  friendly unit in the hex cancels it. A lone non-combat unit or bare HQ
+  friendly *combat* unit in the hex cancels it. A lone non-combat unit or bare HQ
   in an enemy ZOC is captured.
 - **Contact** (8.6x, R-003): a unit is in contact if in an enemy ZOC at the
   start of either side's movement segment. Leaving costs 2 CP (break
@@ -61,7 +61,9 @@ in `cna-game::{movement, zoc, reserve}`. Terrain costs come from
   reserves, may move again.
 - **Reaction** (8.5x, R-006, R-007, R-008): when a phasing unit moves
   adjacent, motorised non-phasing combat units not in an enemy ZOC, contact
-  or Engaged may react: a `Pending::Reaction` offer. Reaction moves never
+  or Engaged may react: a `Pending::Reaction` offer. A unit may not react
+  to an enemy whose CPA is 6 or more higher than its own and who declares
+  an assault on it (pinning, 8.5x). Reaction moves never
   enter an enemy ZOC and spend CP only on movement.
 - **Reserves** (§18): designated in phase F by the phasing player;
   Reserve I may shift one hex per movement segment (not into an enemy
@@ -72,7 +74,9 @@ in `cna-game::{movement, zoc, reserve}`. Terrain costs come from
 - **Off-map boxes** (8.8x, `off-map-distances.json`): Axis only; moving
   between a box and the map takes whole OpStages.
 - **Reinforcements** (20.1x): in phase D of their stage; Commonwealth at
-  Cairo, Axis at Tripoli; no CP to land or for the first hex.
+  Cairo, Axis at Tripoli; no CP to land or for the first hex. Stacking
+  binds only returning withdrawn units (which choose Cairo or Alexandria)
+  and the Benghazi diversion (out of scope).
 
 ## Tasks
 
@@ -84,17 +88,17 @@ commit. Every rejection test asserts the case number and an unchanged state.
    to, hexside, weather) -> Result<Cost, Prohibited>`. Tests: hand-priced
    steps on the real map: clear, rough, up and down a slope, down the
    Halfaya escarpment by track (C3922 side), along the coast road, a
-   track halving rough, a vehicle refused up an escarpment (8.42), light
+   track halving rough, a vehicle refused up an escarpment (8.4x), light
    trucks refused desert, sandstorm doubling.
 2. **Move orders.** `Order::Move { pieces, path }` in the movement
    segment: path adjacency, ownership, the stack's lowest CPA, CP charged,
-   overspend DP, the 150 % cap, never into an enemy-occupied hex (8.15),
+   overspend DP, the 150 % cap, never into an enemy-occupied hex (8.1x),
    Marble Arch. Commit `Move orders`.
 3. **Stacking.** `cna_rules::stacking::points`; checked at `EndSegment`
    (9.14); rejection names 9.1x. Requests for cna if any Graziani unit's
    equivalent is ambiguous.
 4. **ZOC and contact.** Eligibility, reach, `DeclareZoc` pending,
-   stop-on-entry, no ZOC-to-ZOC (10.22), break contact and disengage
+   stop-on-entry, no ZOC-to-ZOC (10.2x), break contact and disengage
    costs, captures of lone non-combat units.
 5. **Continuation.** The two-hex rule for later movement segments.
 6. **Reaction.** `Pending::Reaction`, `Order::React`, the R-006/R-008
@@ -102,7 +106,7 @@ commit. Every rejection test asserts the case number and an unchanged state.
 7. **Reserves.** `DesignateReserve` in F, the Reserve I shift, release or
    flip at the first release segment, release limits.
 8. **Off-map boxes and reinforcements.** Box-to-map moves by whole stages;
-   schedule arrivals in phase D at Cairo / Tripoli within stacking.
+   schedule arrivals in phase D at Cairo / Tripoli.
 9. **Cross-sheet movement.** If cna's join table has landed, load it in
    `Map` and un-ignore slice 1's seam test; otherwise leave the ignore and
    say so in the journal.
