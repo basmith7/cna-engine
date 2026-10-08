@@ -12,60 +12,43 @@ writes is **Feedback**.
 
 ## Status
 
-**MISSION 1 COMPLETE** (2026-09-26). All four slices merged: a Rust rules
-core with switches for R-001, R-009, R-011, R-012, R-015 and R-018, and
-eight probes in `probes/` that render on the decision board with
-`python3 tools/decisions_page.py --probes <cna-engine>/probes`.
+**Mission 2 (headless game state for Graziani's Offensive) Part 0 is up
+for review** (2026-10-08): spec and six slice plans in PR #5, labelled
+`needs-brian`. Nothing for Mission 2 is built until **Feedback** approves
+it. The PR also bumps `vendor/cna` to 39b9ad7, which has the scenario, OA
+and schedule data cna landed for this mission.
 
-| Part | What | State | PR |
-|---|---|---|---|
-| 1 | Slice 1: close assault (R-011, R-012, oddities) | merged | #1 |
-| 2 | Slice 2: barrage and anti-armour (R-009, R-015) | merged | #2 |
-| 3 | Slice 3: cohesion (R-001) | merged | #3 |
-| 4 | Slice 4: construction costs (R-018, chart vs text) | merged | #4 |
-
-**Found (slice 1):** under R-012 option 2, fighting costs the defender less
-than the 30 % buy-out on average in every column, but only by 0.6 points at
-+17 (table percentage only). Under R-011 option 2 a 1:4 attacker's expected
-loss goes from 10 % to 51 % of its strength. The defender +2 gap (34–36) is
-8.3 % of rolls in that column; the attacker −2 "13-18" cell cannot occur.
-No undeclared gaps or overlaps in the close-assault table.
-
-**Found (slice 2):** under R-009 option 2 the reply barrage against phasing
-infantry in a level-two fortification pins or destroys up to 39 points
-more often (3-4 points: 39 % against 0 %). Under R-015, for armour
-assaulting out of rough ground up a slope, option 1 cuts defensive
-anti-armour damage by 12 % and option 3 by 24 % against option 2.
-
-**Found (slice 3):** a unit alternating a 4-DP push with a stage of rest
-never collapses under R-001 option 1 (level never below −4) but collapses
-at stage 13 under option 2 with no reset rule. The Morale Modifier gap
-(level −4, reading 56) is 2.8 % of rolls at that level. No undeclared gaps
-in the morale table.
-
-**Found (slice 4):** R-018's options differ only on a dummy dump's CP (3 or
-2) and a real dump's stores (20 or 10); the engine defaults to option 3
-(charts' CP, text's stores), following the ruling's Rationale. On the
-guarded-dump raid check the chart's "at least" beats the text's "above" by
-up to 16.7 points (defence 7). The text's temporary repair facility costs
-3x the chart's fuel and time; its facility rebuild 3x the fuel.
+**MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
+R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-For the autopilot: **Mission 2, game state for one small scenario**, from
-the mission queue in `AUTOPILOT.md` (issued 2026-10-07). Start with Part 0:
-write its spec and plan, open the PR labelled `needs-brian`, and wait for
-Brian's approval in **Feedback** before building. The shared goal (a playable, self-hostable digital CNA) is at
-the top of `AUTOPILOT.md`.
+- **Review the Mission 2 spec: PR #5.** Approve (or ask for changes) under
+  **Feedback**.
 
-Earlier candidates, now settled: cna's autopilot decided every probed
-ruling under the delegation (Mission 4), and R-001 is `accepted`.
+For the autopilot: once Feedback approves, merge PR #5 and start slice 1
+(map). Until then, nothing to build.
 
 ## Requests for cna
 
 What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
+
+- **Cross-sheet hex adjacency** in `data/map/`: which hexes face each other
+  across each sheet edge ("join along printed hex numbers"), with the
+  features of those hexsides (today's `a|SIDE` edge records). Without it a
+  unit cannot move from sheet C to D. Blocks Mission 2 slice 4 (movement).
+- **Weapon systems** (4.47–4.49) as `data/tables/weapon-systems.json`, which
+  `common.schema.json`'s `toe` already refers to: per-weapon ratings for
+  tanks and guns. Blocks Mission 2 slice 5 (combat) for tank and gun units.
+- **Victory supply in a Land-only game:** 60.8's "suppliable by convoy from
+  Tobruk / map D" and "a truck-convoy route to Cairo or Alexandria" have no
+  §32 meaning; state one (structured in `victory`, or a ruling). Blocks the
+  supply half of Mission 2 slice 6's victory check.
+- **Track cost:** `rules/40-movement.md` (*Tracks*) says a track costs 1 CP
+  per hex, but E-031 (and the same file at 8.37) says a track halves the
+  hex's cost. Make the prose agree. Mission 2 slice 4 follows E-031 meanwhile.
 
 ## Runs and quota
 
