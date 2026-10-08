@@ -33,3 +33,9 @@ Done: AUTOPILOT.md gains **The goal** (shared with cna) and a mission queue, 2â€
 Next: Mission 2 Part 0, branch `autopilot/m2-spec`: write the spec and plan, PR labelled `needs-brian`, then wait for Feedback approval.
 Update: queue realigned to Brian's agreed path (small scenario, headless game state, minimal UI; the rest later in no fixed order).
 Blocked: none.
+
+## 2026-10-08 13:54 MST â€” autopilot/m2-spec
+Done: Mission 2 Part 0 started. Bumped `vendor/cna` to 39b9ad7 (Graziani's Offensive, OA sheets, schedule landed in cna), 47 new rulings listed in NOT_SIMULATED (0c1bf9d). Draft PR #5.
+In flight: spec `docs/designs/2026-10-08-game-state-design.md` and slice plans.
+Next: finish the spec, mark PR #5 ready with `needs-brian`, wait for Feedback.
+Blocked: none
