@@ -42,7 +42,8 @@ and the case numbers there govern.
   zero, with the exception there for both sides under 10. Tanks and guns rate by weapon
   system (4.47–4.49): each TOE entry's `weapon` maps through
   `weapon-systems.json`'s `oa_names[nation]` to a row whose ratings apply
-  to those points (an unmapped name is a load error).
+  to those points (an unmapped name is read as an ID code if one
+  matches, as the RECAM HQ's `vv`; otherwise a load error).
 - **CP** (6.3; `60-combat.md` CP table, `cp-costs.json`): phasing unit
   that barrages, fires anti-armour or close assaults 5; probes only 2; is
   only barraged 3. Non-phasing unit that barrages, is assaulted or takes a
