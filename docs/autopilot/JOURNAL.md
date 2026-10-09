@@ -57,3 +57,9 @@ Done: cna answered all six requests. Bumped `vendor/cna` to 18ed96e, probes rege
 In flight: nothing. Feedback still empty, so Mission 2 builds nothing.
 Next: on approval, merge PR #5 and start slice 1 (map) on `autopilot/m2-slice-1`.
 Blocked: Brian's review of PR #5.
+
+## 2026-10-08 22:53 MST — autopilot/m2-spec
+Done: checked Feedback (empty) and PR #5 (no review). cna main is 45 commits past 18ed96e, all Air Game (Mission 7, R-111–R-116); nothing the spec uses changed, so no bump. Noted on main (a3a4446).
+In flight: nothing.
+Next: on approval, merge PR #5 and start slice 1 (map), bumping vendor/cna at its start.
+Blocked: Brian's review of PR #5.
