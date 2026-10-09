@@ -23,6 +23,11 @@ of enemy units and unoccupied enemy ZOC, so victory is now fully checked),
 stacking equivalents per row, and the probe CP refund as `cp-costs.json`
 has it. No open requests remain.
 
+cna main has since moved 45 commits on (its Mission 7, the Air Game:
+air tables and R-111–R-116). None of it touches the map, the scenario or
+the Land Game data the spec uses, so PR #5 stays on 18ed96e; the bump
+waits for the first slice.
+
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
