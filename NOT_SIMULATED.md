@@ -55,12 +55,12 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-094 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-095 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-096 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-097 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-097 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-098 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-099 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-100 | scenario ruling, still `proposed` in cna: which arrival wins; reinforcements follow the schedule until it is decided |
-| R-101 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-102 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-099 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-100 | which arrival wins (schedule over OA sheet): no game state yet; Mission 2 slice 2 follows the schedule, which is the accepted option (spec, PR #5) |
+| R-101 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-102 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-103 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-104 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-105 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |

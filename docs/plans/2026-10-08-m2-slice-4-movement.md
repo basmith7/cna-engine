@@ -95,8 +95,8 @@ commit. Every rejection test asserts the case number and an unchanged state.
    overspend DP, the 150 % cap, never into an enemy-occupied hex (8.1x),
    Marble Arch. Commit `Move orders`.
 3. **Stacking.** `cna_rules::stacking::points`; checked at `EndSegment`
-   (9.14); rejection names 9.1x. Requests for cna if any Graziani unit's
-   equivalent is ambiguous.
+   (9.14); rejection names 9.1x. Equivalents from the characteristics row's
+   `equivalent`, or the OA unit's for a `by-unit` row.
 4. **ZOC and contact.** Eligibility, reach, `DeclareZoc` pending,
    stop-on-entry, no ZOC-to-ZOC (10.2x), break contact and disengage
    costs, captures of lone non-combat units.
@@ -107,6 +107,5 @@ commit. Every rejection test asserts the case number and an unchanged state.
    flip at the first release segment, release limits.
 8. **Off-map boxes and reinforcements.** Box-to-map moves by whole stages;
    schedule arrivals in phase D at Cairo / Tripoli.
-9. **Cross-sheet movement.** If cna's join table has landed, load it in
-   `Map` and un-ignore slice 1's seam test; otherwise leave the ignore and
-   say so in the journal.
+9. **Cross-sheet movement.** A move from C to D across a seam pair (slice
+   1's `seams.json`) costs and is refused like any other hexside.

@@ -47,7 +47,8 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
   unlimited ammunition and fuel; supply units are placed but inert;
   motorisation points are not tracked. This is the "rest of the Land Game
   turn" mission in the queue. `NOT_SIMULATED.md` gains a *Systems* table
-  listing it.
+  listing it. Victory's supply clause is not §32 supply: it is
+  R-110's route trace (Decisions, *Victory*).
 - **Breakdown (§21), organisation (§20), engineering and construction
   (§24–26), repair (phase K), patrols (phase L), rail (phase J), the naval
   convoy and fleet (phases II, D, E), training.** Each phase still exists in
@@ -80,7 +81,7 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 | Topic | Decision | Why |
 |---|---|---|
 | Crates | `cna-data` gains loaders for the map, scenarios, OA sheets, unit characteristics and the reinforcement schedule. A new **`cna-game`** library holds the state, orders, sequence of play, movement and combat glue. A new **`cna-play`** binary drives it. `cna-rules` stays pure functions | Keeps I/O, rules and state apart, as Mission 1 did; `cna-game` compiles to WebAssembly for Mission 3 if it never touches the file system itself |
-| Map | Hex ids stay cna's strings (`C3922`) in a `HexId` newtype; adjacency computed from `sheets.json` as `tools/map_geom.py` does; hexsides with no record are plain. Cross-sheet adjacency from a join table cna is asked to add (**Requests for cna**); until it lands, a hex on a sheet edge has only same-sheet neighbours and the test that a unit can cross from sheet C to D is marked `#[ignore]` | cna's data is the authority on the map; computing the join here would be a second copy of a map fact |
+| Map | Hex ids stay cna's strings (`C3922`) in a `HexId` newtype; adjacency computed from `sheets.json` as `tools/map_geom.py` does; hexsides with no record are plain. Cross-sheet adjacency from cna's `data/map/seams.json` (359 pairs across A|B … D|E, with the hexside features of each pair); a seam pair is a hexside like any other | cna's data is the authority on the map; computing the join here would be a second copy of a map fact |
 | Pieces | Every OA unit a deployment names (the counter plus the OA subtree it stands for, adjusted by `less`, `detached`, `attached`, `alone`) becomes one **piece** with a `UnitId`, its side, nation, `id_code`, parent, TOE points (printed, or `max_toe` for `N`), CPA, basic morale and location | The OA unit is the counter; the engine needs per-counter CP, cohesion and losses |
 | Location | `Location::Hex(HexId)`, `Location::Box(Box)` (Tripoli, Tripolitania…), `Location::Pending(Placement)` for a free set-up, `Location::Eliminated` | Off-map boxes are where some Axis units start (8.8x) |
 | Free set-up | A deployment whose placement is not a list of hexes or a place leaves its pieces `Pending`; the owner's `Place` orders put them on legal hexes (placement area, stacking, `not_within`). Play starts when no piece is pending. `constraint` text the grammar cannot check is logged as unchecked | 59.2 leaves these choices to the player |
@@ -97,9 +98,9 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
 | Weather | Rolled each stage in phase B from `weather.json` (E-025 applied); sandstorm and rain change movement (§29) | Cheap, and it changes legal moves |
 | Initiative | The Axis holds it through Game-Turn 1 (60.6); from Game-Turn 2 it is rolled with `initiative-ratings.json` | Data-driven |
 | Reinforcements | Arrive from `reinforcement-schedule.json` in phase D of their stage (20.11–20.15): Commonwealth at Cairo, Axis at Tripoli; a listed parent brings its OA sheet less units with a later arrival of their own (4.42). The Benghazi diversion (55.1) waits for the Logistics Game | cna states the entry points; the schedule needs no hexes |
-| Combat | Raw strengths are TOE points × ratings from `unit-characteristics.json` (per ID code) and, for tanks and guns, from the weapon-systems table cna is asked for. Actual strength follows `60-combat.md` (raw ÷ 10, rounded). Resolution calls the Mission 1 rules core, sampling one result with the game's RNG. Until the weapon table lands, tanks and guns use their ID-code row and the gap is listed in `NOT_SIMULATED.md` | Combat is already in the core; this mission wires it to pieces and the map |
-| Stacking points | From the unit's equivalent (division 5 … company 0, 9.4), read from `unit_type` (`…Bn-Eq`/`Battalion-Eq` battalion, `Coy-Eq`/`Company-Eq` company, `Bde-Eq` brigade; an HQ by 9.11–9.15). Two rows do not say (`Engineer Bn/Coy-Eq`, `Construction (Road/RR)`): a request asks cna for an explicit equivalent per characteristics row; until then those two count as companies and a test lists them | cna has no per-counter stacking value |
-| Victory | Evaluated after Game-Turn 6 OpStage 3 from `victory.levels`: `hold` conditions are checked; the supply clause is reported as `unchecked` until §32 supply exists | The scenario still has a winner by position; the report says what was not checked |
+| Combat | Raw strengths are TOE points × ratings from `unit-characteristics.json` (per ID code) and, for tanks and guns, from `weapon-systems.json` (4.47–4.49): each TOE entry's `weapon` name maps through `oa_names[nation]` to a weapon row, whose ratings replace the ID-code row's for those points. An OA weapon name with no mapping is a load error. Actual strength follows `60-combat.md` (raw ÷ 10, rounded). Resolution calls the Mission 1 rules core, sampling one result with the game's RNG | Combat is already in the core; this mission wires it to pieces and the map |
+| Stacking points | From the unit's equivalent (division 5 … company 0, 9.4): the `equivalent` field of its `unit-characteristics.json` row (brigade, battalion, company, hq); for the two `by-unit` rows, the OA unit's own `equivalent`. HQs by 9.11–9.15 | cna states it per row since 18ed96e; the engine does not parse `unit_type` |
+| Victory | Evaluated after Game-Turn 6 OpStage 3 from `victory.levels`: `hold` conditions are checked, and each holding unit's `supply_trace` (R-110): a path of any length a medium truck may enter, from the unit's hex to any hex of the named places, hexes or sheet, through no hex holding an enemy unit and no enemy-ZOC hex without a friendly unit | R-110 gives the Land-only meaning; it reuses slice 4's terrain prohibitions and ZOC, so no §32 supply is needed |
 
 ## Crates touched
 
@@ -119,8 +120,8 @@ Logistics Games. It landed in cna on 2026-10-08 and this PR bumps
   counts per side are pinned; every placement hex exists; `extends` loads
   the Italian Campaign.
 - **Map tests:** neighbours of a few hand-checked hexes on each sheet;
-  hexside lookup both ways; the cross-sheet test (ignored until cna's join
-  table lands).
+  hexside lookup both ways; a seam pair from `seams.json` (C0633–D0701)
+  is adjacent both ways with its slope.
 - **Rule tests, one per case enforced:** a small state built in the test,
   one order, the expected result or the expected `Illegal` case. Movement
   costs are checked against hand-computed paths on the real map.
@@ -160,7 +161,14 @@ One PR each, in order; each has a plan in `docs/plans/`.
 
 ## Requests for cna this mission makes
 
-Posted to `PROGRESS.md` **Requests for cna** with this PR:
+Posted to `PROGRESS.md` **Requests for cna** with this PR. **All six were
+answered on cna main by 18ed96e** (2026-10-08), which this PR now vendors:
+(1) `data/map/seams.json`; (2) `data/tables/weapon-systems.json`; (3)
+R-110, `victory.levels[].supply_trace`; (4) `equivalent` per
+characteristics row; (5) the sequence now says phasing/non-phasing, and
+the probe refund is right (6.3's asterisk: a defended probe costs 2 − 2 =
+0, 15.9), so slice 5 follows `cp-costs.json`; (6) the track halves the
+hex cost (E-031). The decisions above use the answers.
 
 1. **Cross-sheet adjacency** for `data/map/`: which hexes face each other
    across each sheet edge, and the features of those hexsides (the `a|SIDE`

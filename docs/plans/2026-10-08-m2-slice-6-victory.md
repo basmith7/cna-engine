@@ -15,14 +15,19 @@ engine on a scripted game, and close Mission 2's docs.
   highest level whose every `all_of` objective holds. `hold` is a
   placement (`place` or `hexes`, with `any_hex` meaning one of them
   suffices) occupied by that side's combat unit and not by the enemy's.
-  Each level's `supply` clause is English until cna answers the request;
-  report it as `unchecked`.
+  Each level's `supply_trace` (R-110: `places`, `hexes` or `sheet`) is
+  checked per holding unit: a path of any length through hexes a medium
+  truck may enter (slice 4's prohibitions), none holding an enemy unit,
+  none in enemy ZOC unless a friendly unit is there, to any hex of the
+  source; the source hex must not hold an enemy unit.
 
 ## Tasks
 
 1. **Victory evaluation.** `victory::evaluate(&GameState, &Scenario) ->
    VictoryReport { axis: Option<Level>, cw: Option<Level>, checked,
-   unchecked }`. Tests: hand-built states for each Axis and Commonwealth
+   unchecked }`, `unchecked` holding only `constraint` text. Tests,
+   including a holder cut off by an enemy ZOC and one traced around it:
+   hand-built states for each Axis and Commonwealth
    level; the Axis strategic level met by any one of
    E3613, E3714 (Alexandria) or E1730 (Cairo).
 2. **Game end.** After GT6 OS3 the state is `Over(report)` and every

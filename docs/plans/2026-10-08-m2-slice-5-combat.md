@@ -33,25 +33,24 @@ and the case numbers there govern.
   phasing player decides privately which assaults are probes; 5
   anti-armour fire, both sides at once, all losses land before step 6
   (§14); 6 close assaults by the **phasing** player, in the order they
-  choose, revealing after each whether it was a probe (§15). (The
-  sequence file's "Player A / Player B" wording is a request to cna.)
+  choose, revealing after each whether it was a probe (§15).
 - **Strength** (`60-combat.md`, *Raw and actual strength*): raw points
   are TOE points × the rating on the unit's characteristics row
   (`barrage`, `anti_armour`, `close_assault_offence`/`defence`,
   `armour_protection`, `vulnerability`), summed over the units first;
   actual strength is raw ÷ 10 rounded to nearest (.5 up), 4 raw or less is
   zero, with the exception there for both sides under 10. Tanks and guns rate by weapon
-  system (4.47–4.49), not yet in cna (**Requests for cna**); until it
-  lands they use their ID-code row and `NOT_SIMULATED.md` says so.
+  system (4.47–4.49): each TOE entry's `weapon` maps through
+  `weapon-systems.json`'s `oa_names[nation]` to a row whose ratings apply
+  to those points (an unmapped name is a load error).
 - **CP** (6.3; `60-combat.md` CP table, `cp-costs.json`): phasing unit
   that barrages, fires anti-armour or close assaults 5; probes only 2; is
   only barraged 3. Non-phasing unit that barrages, is assaulted or takes a
-  holding-off barrage 3; is probed 2; defends a full (non-probe) close
-  assault at a final differential of −4 or worse 1. Ceilings per combat
+  holding-off barrage 3; is probed 2; defends a close assault or a probe
+  at a final differential of −4 or worse: 2 back (6.3's asterisk, as
+  `cp-costs.json` has it; a defended probe costs 0, 15.9). Ceilings per combat
   segment: phasing 5, non-phasing 3. The charge falls on **every unit in
-  the hex**, taking part or not. (`cp-costs.json` also gives the refund
-  for a probe; that disagreement is a request to cna; follow the rules
-  text.)
+  the hex**, taking part or not.
 - **Losses** are TOE points; a 30 % or greater close-assault loss is 3 DP;
   a successful assault that clears the hex gives 3 RP (6.2x).
 - **Must attack** (10.3x): every enemy hex putting a ZOC on a phasing
