@@ -46,9 +46,11 @@ and `piece` until slice 3).
   `basic_morale`, `attached[]`, `units[]`. Unit: `id`, `name`,
   `abbreviation`, `id_code` (or null), `parent`, `toe [{weapon, points}]`,
   `arrives` (`gameTime` | `"deployed"` | null), `toe_mark` (`N` means the
-  ID code's `max_toe`), `morale` (overrides the formation's).
+  ID code's `max_toe`), `morale` (overrides the formation's), `equivalent` (battalion or
+  company, only where the characteristics row says `by-unit`).
 - **Characteristics** `data/tables/unit-characteristics.json`, keyed by
-  `(nation, id_code)`: `unit_type`, `cpa`, `anti_air`, `barrage`,
+  `(nation, id_code)`: `unit_type`, `equivalent` (brigade, battalion,
+  company, hq, by-unit), `cpa`, `anti_air`, `barrage`,
   `anti_armour`, `vulnerability`, `armour_protection`,
   `close_assault_offence`, `close_assault_defence`, `max_toe`. Cells are
   `int | string | null`; strings carry printed marks (`"10+"` motorisable,
@@ -118,6 +120,6 @@ above; `UnitEntry`; `Schedule::load()`, `Schedule::arrivals(side, turn, stage)`.
   `Pending`; no unit is placed twice (R-094) and none appears in both the
   set-up and the GT 1–6 schedule (R-096).
 - [ ] **Step 2–5:** as Task 1; commit `Set-up expands to pieces`.
-- [ ] **Step 6:** if any Graziani `unit_type` does not map to a 9.4
-  equivalent, add a bullet to **Requests for cna** on `main` and list the
-  units in the PR.
+- [ ] **Step 6:** every Graziani piece has a stacking equivalent: its
+  characteristics row's `equivalent`, or, for a `by-unit` row, the OA
+  unit's own `equivalent` (a test asserts none is missing).
