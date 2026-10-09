@@ -23,10 +23,15 @@ of enemy units and unoccupied enemy ZOC, so victory is now fully checked),
 stacking equivalents per row, and the probe CP refund as `cp-costs.json`
 has it. No open requests remain.
 
-cna main has since moved 45 commits on (its Mission 7, the Air Game:
-air tables and R-111–R-116). None of it touches the map, the scenario or
-the Land Game data the spec uses, so PR #5 stays on 18ed96e; the bump
-waits for the first slice.
+cna main has since moved on (its Mission 7, the Air Game, now complete:
+air tables, schemas and R-111–R-116). Rechecked 2026-10-09 14:55Z: none of
+it touches the map, scenarios, OA or Land Game data the spec uses, so PR #5
+stays on 18ed96e; the bump waits for the first slice. cna's own queue is
+finished, so both autopilots are now idle until this review lands.
+
+CI on PR #5 was red from 2026-10-09 05:53Z: a journal commit bumped
+`vendor/cna` by accident without regenerating `probes/`. Restored to
+18ed96e (00ac7bd); the gates pass again.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -136,3 +141,5 @@ bumps `vendor/cna` to it.)
 | 2026-10-08 13:53 | 12 | 37→37 | 0→3 | $6.23 | 7 | The Mission 2 spec and its six slice plans are written and up for your review in **PR #5**, which is marked ready and labelled `needs-brian`. Per the standing o |
 | 2026-10-08 19:53 | 3 | 40→40 | 0→1 | $1.60 | 45 | PR #5 (the Mission 2 spec) is updated with cna's answers to all six of our requests, and it is still waiting for your review. Nothing for Mission 2 has been bui |
 | 2026-10-08 22:53 | 0 | 42→42 | 8→8 | $0.43 | 10 | Nothing was built this run. The Mission 2 spec (PR #5) is still waiting on your review, and the standing orders don't allow building until you approve it under  |
+| 2026-10-09 01:53 | 1 | 43→43 | 8→8 | $0.43 | 11 | PR #5's CI was failing, and it's green again. Nothing else was built, because Mission 2 is still waiting on your review of the spec. - **Cause:** the previous r |
+| 2026-10-09 04:53 | 0 | 43→43 | 0→0 | $0.32 | 6 | Nothing was built this run. Mission 2 is still waiting for your review of PR #5, and the standing orders don't let me build anything until you approve it under  |
