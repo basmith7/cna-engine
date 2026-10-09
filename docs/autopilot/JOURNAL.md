@@ -69,3 +69,9 @@ Done: restored `vendor/cna` to 18ed96e (0e1aa11 had bumped it by accident, so `c
 In flight: none.
 Next: wait for Brian's Feedback on PR #5; on approval, merge it and start slice 1 (map) with the cna bump and regenerated probes.
 Blocked: Brian's review of PR #5.
+
+## 2026-10-09 07:56 MST — autopilot/m2-spec
+Done: nothing built; Feedback empty, PR #5 CI green, cna main has only quota rows since 11:55Z.
+In flight: none.
+Next: wait for Brian's Feedback on PR #5; on approval, merge it and start slice 1 (map) with the cna bump and regenerated probes.
+Blocked: Brian's review of PR #5.
