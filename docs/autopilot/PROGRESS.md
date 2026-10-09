@@ -13,10 +13,20 @@ writes is **Feedback**.
 ## Status
 
 **Mission 2 (headless game state for Graziani's Offensive) Part 0 is up
-for review** (2026-10-08): spec and six slice plans in PR #5, labelled
-`needs-brian`. Nothing for Mission 2 is built until **Feedback** approves
-it. The PR also bumps `vendor/cna` to 39b9ad7, which has the scenario, OA
-and schedule data cna landed for this mission.
+for review** in PR #5, labelled `needs-brian`. Nothing for Mission 2 is
+built until **Feedback** approves it.
+
+cna answered all six requests (2026-10-08). PR #5 now vendors cna 18ed96e
+and the spec uses the answers: cross-sheet seams, weapon-system ratings
+for tanks and guns, R-110's Land-only victory supply (a truck route free
+of enemy units and unoccupied enemy ZOC, so victory is now fully checked),
+stacking equivalents per row, and the probe CP refund as `cp-costs.json`
+has it. No open requests remain.
+
+cna main has since moved 45 commits on (its Mission 7, the Air Game:
+air tables and R-111–R-116). None of it touches the map, the scenario or
+the Land Game data the spec uses, so PR #5 stays on 18ed96e; the bump
+waits for the first slice.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -24,7 +34,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 ## Next steps
 
 - **Review the Mission 2 spec: PR #5.** Approve (or ask for changes) under
-  **Feedback**.
+  **Feedback**. Updated 2026-10-09 with cna's answers; the decisions table
+  is the part worth reading.
 
 For the autopilot: once Feedback approves, merge PR #5 and start slice 1
 (map). Until then, nothing to build.
@@ -35,33 +46,8 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Cross-sheet hex adjacency** in `data/map/`: which hexes face each other
-  across each sheet edge ("join along printed hex numbers"), with the
-  features of those hexsides (today's `a|SIDE` edge records). Without it a
-  unit cannot move from sheet C to D. Blocks Mission 2 slice 4 (movement).
-- **Weapon systems** (4.47–4.49) as `data/tables/weapon-systems.json`, which
-  `common.schema.json`'s `toe` already refers to: per-weapon ratings for
-  tanks and guns. Blocks Mission 2 slice 5 (combat) for tank and gun units.
-- **Victory supply in a Land-only game:** 60.8's "suppliable by convoy from
-  Tobruk / map D" and "a truck-convoy route to Cairo or Alexandria" have no
-  §32 meaning; state one (structured in `victory`, or a ruling). Blocks the
-  supply half of Mission 2 slice 6's victory check.
-- **Stacking equivalent per unit-characteristics row** (9.4): two
-  `unit_type`s in `unit-characteristics.json`, `Engineer Bn/Coy-Eq` and
-  `Construction (Road/RR)`, do not say whether they count as a battalion or
-  a company. An explicit `equivalent` field (or a note per row) would let
-  the engine stop guessing. Mission 2 slice 4 (stacking) counts them as
-  companies meanwhile.
-- **Two combat inconsistencies:** (a) `rules/20-sequence-of-play.md` gives
-  retreat before assault to "Player B" and the close-assault order to
-  "Player A", where `rules/60-combat.md` gives them to the non-phasing and
-  phasing player (they differ in Player B's half); (b) `cp-costs.json` puts
-  the −4 refund on `nonphasing-defend-probe`, which the combat CP table in
-  `60-combat.md` gives only to a full close assault. Mission 2 slice 5
-  follows `60-combat.md` meanwhile.
-- **Track cost:** `rules/40-movement.md` (*Tracks*) says a track costs 1 CP
-  per hex, but E-031 (and the same file at 8.37) says a track halves the
-  hex's cost. Make the prose agree. Mission 2 slice 4 follows E-031 meanwhile.
+(None open. The six from Mission 2's spec landed in cna 18ed96e; PR #5
+bumps `vendor/cna` to it.)
 
 ## Runs and quota
 
@@ -148,3 +134,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-06 19:53 | 0 | 51→51 | 0→0 | $0.23 | 2 | I did nothing this run, because Mission 1 is already complete. All four slices are merged (PRs #1–#4), and `PROGRESS.md` already says `MISSION 1 COMPLETE`. The  |
 | 2026-10-06 22:53 | 0 | 55→55 | 49→49 | $0.22 | 2 | I did nothing this run, because Mission 1 is already complete. All four slices are merged (PRs #1–#4), `PROGRESS.md` already says `MISSION 1 COMPLETE`, and the  |
 | 2026-10-08 13:53 | 12 | 37→37 | 0→3 | $6.23 | 7 | The Mission 2 spec and its six slice plans are written and up for your review in **PR #5**, which is marked ready and labelled `needs-brian`. Per the standing o |
+| 2026-10-08 19:53 | 3 | 40→40 | 0→1 | $1.60 | 45 | PR #5 (the Mission 2 spec) is updated with cna's answers to all six of our requests, and it is still waiting for your review. Nothing for Mission 2 has been bui |
