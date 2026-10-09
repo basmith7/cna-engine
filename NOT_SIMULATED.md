@@ -61,10 +61,14 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-100 | scenario ruling, still `proposed` in cna: which arrival wins; reinforcements follow the schedule until it is decided |
 | R-101 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-102 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-103 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-104 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-105 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-103 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-104 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-105 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-106 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-107 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-108 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-109 | scenario ruling, still `proposed` in cna; the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-108 | scenario ruling (El Alamein scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-109 | scenario ruling (campaign games); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-110 | Land-only victory supply in Graziani's Offensive: no game state yet; Mission 2 slice 6 implements it as a route trace (spec, PR #5) |
+| R-111 | Air Game: not in the engine yet |
+| R-112 | Air Game: not in the engine yet |
+| R-113 | Air Game: not in the engine yet |
