@@ -23,10 +23,11 @@ of enemy units and unoccupied enemy ZOC, so victory is now fully checked),
 stacking equivalents per row, and the probe CP refund as `cp-costs.json`
 has it. No open requests remain.
 
-cna main has since moved 45 commits on (its Mission 7, the Air Game:
-air tables and R-111–R-116). None of it touches the map, the scenario or
-the Land Game data the spec uses, so PR #5 stays on 18ed96e; the bump
-waits for the first slice.
+cna main has since moved on (its Mission 7, the Air Game, now complete:
+air tables, schemas and R-111–R-116). Rechecked 2026-10-09 11:55Z: none of
+it touches the map, scenarios, OA or Land Game data the spec uses, so PR #5
+stays on 18ed96e; the bump waits for the first slice. cna's own queue is
+finished, so both autopilots are now idle until this review lands.
 
 CI on PR #5 was red from 2026-10-09 05:53Z: a journal commit bumped
 `vendor/cna` by accident without regenerating `probes/`. Restored to
