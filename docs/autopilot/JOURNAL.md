@@ -63,3 +63,9 @@ Done: checked Feedback (empty) and PR #5 (no review). cna main is 45 commits pas
 In flight: nothing.
 Next: on approval, merge PR #5 and start slice 1 (map), bumping vendor/cna at its start.
 Blocked: Brian's review of PR #5.
+
+## 2026-10-09 01:58 MST — autopilot/m2-spec
+Done: restored `vendor/cna` to 18ed96e (0e1aa11 had bumped it by accident, so `cna-probe check` failed in CI); gates pass locally.
+In flight: none.
+Next: wait for Brian's Feedback on PR #5; on approval, merge it and start slice 1 (map) with the cna bump and regenerated probes.
+Blocked: Brian's review of PR #5.
