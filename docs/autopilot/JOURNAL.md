@@ -51,3 +51,9 @@ Done: fact-checked spec and plans against cna and fixed six errors (combat step 
 In flight: nothing. Stopped as AUTOPILOT.md requires: Mission 2 builds nothing before Brian's Feedback.
 Next: on approval, merge PR #5 and start slice 1 (map). On change requests, edit PR #5.
 Blocked: Brian's review of PR #5.
+
+## 2026-10-08 19:55 MST — autopilot/m2-spec
+Done: cna answered all six requests. Bumped `vendor/cna` to 18ed96e, probes regenerated, R-097–R-113 rows fixed in `NOT_SIMULATED.md` (07cae55). Spec and plans now use seams.json, weapon-systems.json (`vv` falls back to an ID code), R-110 supply trace, per-row equivalents, the probe refund as cp-costs.json has it (2306cc8, b3e9393, 59b88ce). Gates pass.
+In flight: nothing. Feedback still empty, so Mission 2 builds nothing.
+Next: on approval, merge PR #5 and start slice 1 (map) on `autopilot/m2-slice-1`.
+Blocked: Brian's review of PR #5.
