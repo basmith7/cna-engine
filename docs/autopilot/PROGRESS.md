@@ -144,3 +144,4 @@ bumps `vendor/cna` to it.)
 | 2026-10-09 01:53 | 1 | 43→43 | 8→8 | $0.43 | 11 | PR #5's CI was failing, and it's green again. Nothing else was built, because Mission 2 is still waiting on your review of the spec. - **Cause:** the previous r |
 | 2026-10-09 04:53 | 0 | 43→43 | 0→0 | $0.32 | 6 | Nothing was built this run. Mission 2 is still waiting for your review of PR #5, and the standing orders don't let me build anything until you approve it under  |
 | 2026-10-09 07:53 | 0 | 44→44 | 0→1 | $0.31 | 6 | Nothing was built this run. Mission 2 is still waiting on your review of the spec in PR #5, and the standing orders don't let me build anything for it until you |
+| 2026-10-09 10:53 | 0 | 44→44 | 0→0 | $0.27 | 4 | I built nothing this run because PR #5, the Mission 2 spec, is still waiting on your review. The standing orders don't let me build anything for Mission 2 until |
