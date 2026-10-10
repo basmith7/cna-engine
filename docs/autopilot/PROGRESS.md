@@ -151,3 +151,4 @@ bumps `vendor/cna` to it.)
 | 2026-10-09 22:53 | 0 | 48→48 | 7→7 | $0.29 | 5 | I built nothing this run. The Mission 2 spec (PR #5) is still waiting on your review, and the standing orders say nothing for Mission 2 gets built until you app |
 | 2026-10-10 01:53 | 0 | 49→49 | 0→0 | $0.28 | 4 | Nothing got built this run. The Mission 2 spec in PR #5 is still waiting on your review, and the standing orders don't let any Mission 2 work start until you ap |
 | 2026-10-10 04:53 | 0 | 49→49 | 0→0 | $0.28 | 4 | Nothing was built this run: the Mission 2 spec (PR #5) is still waiting for your review. The standing orders say nothing for Mission 2 gets built until you appr |
+| 2026-10-10 07:53 | 0 | 49→49 | 0→0 | $0.29 | 5 | I built nothing this run. The Mission 2 spec (PR #5) is still waiting for your review, and the standing orders don't let me build anything for Mission 2 until y |
