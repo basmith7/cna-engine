@@ -24,7 +24,7 @@ stacking equivalents per row, and the probe CP refund as `cp-costs.json`
 has it. No open requests remain.
 
 cna main has since moved on (its Mission 7, the Air Game, now complete:
-air tables, schemas and R-111–R-116). Rechecked 2026-10-10 08:55Z (only quota rows since 2026-10-09 20:55Z): none of
+air tables, schemas and R-111–R-116). Rechecked 2026-10-10 11:55Z (only quota rows since 2026-10-09 20:55Z): none of
 it touches the map, scenarios, OA or Land Game data the spec uses, so PR #5
 stays on 18ed96e; the bump waits for the first slice. cna's own queue is
 finished, so both autopilots are now idle until this review lands.
