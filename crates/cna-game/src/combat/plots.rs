@@ -3,6 +3,7 @@
 //! given, never against the other player's answer.
 
 use crate::combat::strength::Kind;
+use crate::combat::terrain::hexside_shift;
 use crate::data::Data;
 use crate::event::Illegal;
 use crate::order::{Assignment, Fire};
@@ -359,29 +360,22 @@ impl GameState {
         Ok(())
     }
 
-    /// 14.35: no anti-armour fire across a ridge without road or track,
-    /// down a slope without road or track, or down an escarpment without
-    /// a track.
+    /// 14.35 as the Terrain Effects Chart has it: anti-armour fire never
+    /// climbs an escarpment; every other hexside only shifts the column.
+    /// (cna's prose for 14.35 prohibits ridges and *downward* slopes and
+    /// escarpments instead, with road and track exceptions; the chart is
+    /// the data this engine follows, and the difference is recorded in
+    /// the slice's PR.)
     fn check_anti_armour_hexside(
         &self,
         data: &Data,
         from: &HexId,
         to: &HexId,
     ) -> Result<(), Illegal> {
-        let hs = data.map.hexside(from, to);
-        let has = |f| hs.is_some_and(|h| h.has(f));
-        let climbs = hs.is_some_and(|h| h.climbs(from, to));
-        let road_or_track = has(HexsideFeature::Road)
-            || has(HexsideFeature::Track)
-            || has(HexsideFeature::UnfinishedRoad);
-        let track = has(HexsideFeature::Track) || has(HexsideFeature::UnfinishedRoad);
-        let blocked = (has(HexsideFeature::Ridge) && !road_or_track)
-            || (has(HexsideFeature::Slope) && !climbs && !road_or_track)
-            || (has(HexsideFeature::Escarpment) && !climbs && !track);
-        if blocked {
+        if hexside_shift(data, from, to, Kind::AntiArmour).is_none() {
             return Err(Illegal::new(
                 "14.35",
-                format!("no anti-armour fire crosses the {from}|{to} hexside"),
+                format!("no anti-armour fire climbs the escarpment from {from} into {to}"),
             ));
         }
         Ok(())
@@ -423,5 +417,34 @@ impl GameState {
             ));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::segment::test_support::at_sollum;
+    use super::*;
+    use crate::movement::test_support::hex;
+
+    #[test]
+    fn anti_armour_fire_never_climbs_an_escarpment() {
+        // 14.35 as the Terrain Effects Chart has it: fire up an
+        // escarpment is prohibited; down it is allowed at -2. A3933 is
+        // below the escarpment to A4033.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = at_sollum(&data);
+        let up = state.check_anti_armour_hexside(&data, &hex("A3933"), &hex("A4033"));
+        assert_eq!(up.unwrap_err().case, "14.35");
+        assert!(
+            state
+                .check_anti_armour_hexside(&data, &hex("A4033"), &hex("A3933"))
+                .is_ok()
+        );
+        // The Sollum front is level ground.
+        assert!(
+            state
+                .check_anti_armour_hexside(&data, &hex("C4021"), &hex("C4020"))
+                .is_ok()
+        );
     }
 }
