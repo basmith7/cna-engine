@@ -10,6 +10,7 @@ pub mod movement;
 pub mod order;
 mod phases;
 pub mod piece;
+mod reaction;
 mod place;
 pub mod rng;
 pub mod setup;

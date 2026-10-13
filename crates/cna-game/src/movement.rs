@@ -23,10 +23,12 @@ const MARBLE_ARCH_COL: u8 = 9;
 /// for a ZOC declaration (the hex it was about to enter, the hexes to
 /// ask about).
 #[derive(Debug, Default)]
-struct Plan {
-    steps: Vec<(HexId, Cp)>,
-    break_off: bool,
-    interrupt: Option<(HexId, Vec<HexId>)>,
+pub(crate) struct Plan {
+    pub(crate) steps: Vec<(HexId, Cp)>,
+    pub(crate) break_off: bool,
+    pub(crate) interrupt: Option<(HexId, Vec<HexId>)>,
+    /// The last step enters an enemy ZOC (10.2x).
+    pub(crate) ends_in_zoc: bool,
 }
 
 impl GameState {
@@ -94,7 +96,12 @@ impl GameState {
 
     /// The hex a stack to move stands on, after checking it is the
     /// player's, together, and able to move.
-    fn moving_stack(&self, player: Side, pieces: &[PieceId]) -> Result<HexId, Illegal> {
+    pub(crate) fn moving_stack(
+        &self,
+        player: Side,
+        pieces: &[PieceId],
+        phasing: bool,
+    ) -> Result<HexId, Illegal> {
         let Some(first) = pieces.first() else {
             return Err(Illegal::new("8.1x", "no pieces to move"));
         };
@@ -124,7 +131,7 @@ impl GameState {
                 Some(_) => {}
             }
             self.able_to_move(p)?;
-            if !self.may_continue(id) {
+            if phasing && !self.may_continue(id) {
                 return Err(Illegal::new(
                     "8.2x",
                     format!(
@@ -178,7 +185,7 @@ impl GameState {
     /// never into one unoccupied (10.29). The plan stops short of a hex
     /// next to enemy units that have not said whether they exert a ZOC
     /// (10.16).
-    fn plan(
+    pub(crate) fn plan(
         &self,
         data: &Data,
         pieces: &[PieceId],
@@ -198,22 +205,26 @@ impl GameState {
             .collect();
         let mut plan = Plan::default();
         // Where the stack stands: in an enemy ZOC it either breaks off
-        // (contact or engaged, 8.6x) or is stopped (10.22).
+        // (contact or engaged, 8.6x) or is stopped (10.22), unless another
+        // friendly combat unit there cancels the ZOC (10.26), as it did
+        // when the stack entered.
         let mut at_in_zoc = match self.zoc_at(data, from, side) {
             Zoc::Exerts => {
-                for id in pieces {
-                    let p = &self.pieces[id];
-                    if !(p.contact || p.engaged) {
-                        return Err(Illegal::new(
-                            "10.2x",
-                            format!(
-                                "{id} entered an enemy ZOC at {from} this segment and stays until a later one"
-                            ),
-                        ));
-                    }
+                let tied = pieces
+                    .iter()
+                    .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
+                let cancelled = self.friendly_combat_in(from, side, pieces);
+                if !tied && !cancelled {
+                    return Err(Illegal::new(
+                        "10.2x",
+                        format!(
+                            "{} entered an enemy ZOC at {from} this segment and stays until a later one",
+                            pieces[0]
+                        ),
+                    ));
                 }
-                plan.break_off = true;
-                !self.friendly_combat_in(from, side, pieces)
+                plan.break_off = tied;
+                !cancelled
             }
             Zoc::Clear => false,
             Zoc::Undeclared(hexes) => {
@@ -295,6 +306,7 @@ impl GameState {
                         ));
                     }
                     plan.steps.push((to.clone(), Cp::ZERO));
+                    plan.ends_in_zoc = true;
                     if path.last() != Some(to) {
                         return Err(Illegal::new(
                             "10.2x",
@@ -347,6 +359,7 @@ impl GameState {
         player: Side,
         pieces: &[PieceId],
         path: &[HexId],
+        assault: bool,
     ) -> Result<Vec<Event>, Illegal> {
         if self.clock.phase != Phase::MovementCombat
             || self.clock.segment != Some(Segment::Movement)
@@ -359,7 +372,7 @@ impl GameState {
                 ),
             ));
         }
-        let from = self.moving_stack(player, pieces)?;
+        let from = self.moving_stack(player, pieces, true)?;
         let plan = self.plan(data, pieces, &from, path)?;
         let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
         let break_off = |p: &Piece| {
@@ -411,7 +424,11 @@ impl GameState {
                 p.engaged = false;
             }
         }
+        let combat = pieces
+            .iter()
+            .any(|id| self.pieces[id].kind == PieceKind::Combat);
         let mut at = from.clone();
+        let mut reaction = None;
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
@@ -427,9 +444,29 @@ impl GameState {
                 self.charge(id, cost, false, &mut events);
             }
             at = to;
+            // Next to enemy units that may react: the move waits here
+            // (8.5x). Only a combat unit's arrival asks the question.
+            if combat {
+                let eligible = self.reactors_next_to(data, &at, pieces, assault);
+                if !eligible.is_empty() {
+                    reaction = Some(eligible);
+                    break;
+                }
+            }
         }
         if at != from {
             self.release_contact_around(data, &from, player);
+        }
+        if let Some(eligible) = reaction {
+            events.push(Event::ReactionOffered {
+                pieces: eligible.clone(),
+                at,
+            });
+            self.pending = Some(Pending::Reaction {
+                side: player.other(),
+                eligible,
+            });
+            return Ok(events);
         }
         if let Some((before, declare)) = plan.interrupt {
             events.push(Event::MoveInterrupted {
@@ -487,6 +524,7 @@ pub(crate) mod test_support {
         Order::Move {
             pieces: pieces.iter().map(|s| pid(s)).collect(),
             path: path(p),
+            assault: false,
         }
     }
 }
@@ -620,6 +658,7 @@ mod tests {
                 Order::Move {
                     pieces: vec![PieceId::supply(Side::Cw, 1)],
                     path: path(&["C3923"]),
+                    assault: false,
                 },
                 "32.x",
             ),

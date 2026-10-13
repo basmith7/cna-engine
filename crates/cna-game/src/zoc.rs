@@ -421,6 +421,10 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
             .unwrap();
+        // The motorised guns at C4020 are offered a reaction (8.5x) and
+        // the Axis declines.
+        assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
         let krrc = &state.pieces[&pid("unit:cw:1-krrc")];
         assert_eq!(krrc.hex(), Some(&hex("C4021")));
         assert_eq!(krrc.cp_spent, Cp::ZERO);
@@ -496,16 +500,24 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
             .unwrap();
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
         // 3 Coldstream Guards pass through C4021 (1 KRRC is there) on to
         // C4121, which no ZOC reaches: up the escarpment by the unfinished
-        // road, a track, (2 + 6) / 2, then 2.
-        state
+        // road, a track, (2 + 6) / 2, then 2. At C4021 the two battalions
+        // exert a ZOC over C4020, so its guns may not react (8.5x); at
+        // C4121 the 63rd Cirene's vehicles at C4120 are offered one.
+        let events = state
             .apply(
                 &data,
                 Side::Cw,
                 mv(&["unit:cw:3-cldgds"], &["C4021", "C4121"]),
             )
             .unwrap();
+        assert!(matches!(
+            events.last(),
+            Some(Event::ReactionOffered { at, .. }) if at == &hex("C4121")
+        ));
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
         let guards = &state.pieces[&pid("unit:cw:3-cldgds")];
         assert_eq!(guards.hex(), Some(&hex("C4121")));
         assert_eq!(guards.cp_spent, Cp::whole(6));

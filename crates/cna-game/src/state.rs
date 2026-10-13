@@ -42,12 +42,16 @@ pub enum Pending {
         hexes: Vec<HexId>,
         at_start: bool,
     },
+    /// The non-phasing side may react with these units (8.5x).
+    Reaction { side: Side, eligible: Vec<PieceId> },
 }
 
 impl Pending {
     pub fn side(&self) -> Side {
         match self {
-            Pending::SetUp { side } | Pending::DeclareZoc { side, .. } => *side,
+            Pending::SetUp { side }
+            | Pending::DeclareZoc { side, .. }
+            | Pending::Reaction { side, .. } => *side,
         }
     }
 }
@@ -187,13 +191,29 @@ impl GameState {
             (None, Order::DeclareZoc { .. }) => {
                 Err(Illegal::new("10.16", "no ZOC declaration is pending"))
             }
+            (Some(Pending::Reaction { .. }), Order::React { pieces, path }) => {
+                self.react(data, player, pieces, path)
+            }
+            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
+            (Some(Pending::Reaction { side, .. }), _) => Err(Illegal::new(
+                "8.5x",
+                format!("{side} is reacting: only React or Pass"),
+            )),
+            (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
             (None, Order::DeclareInitiative { player_a }) => {
                 self.declare_initiative(data, *player_a)
             }
-            (None, Order::Move { pieces, path }) => self.move_pieces(data, player, pieces, path),
+            (
+                None,
+                Order::Move {
+                    pieces,
+                    path,
+                    assault,
+                },
+            ) => self.move_pieces(data, player, pieces, path, *assault),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

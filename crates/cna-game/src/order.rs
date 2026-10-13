@@ -21,6 +21,18 @@ pub enum Order {
     Move {
         pieces: Vec<PieceId>,
         path: Vec<HexId>,
+        /// The mover means to assault whoever it ends next to: with a
+        /// CPA 6 or more higher it pins them (8.5x). Combat itself is
+        /// slice 5's.
+        #[serde(default)]
+        assault: bool,
+    },
+    /// The non-phasing player, offered a reaction (8.5x): some of the
+    /// units offered move along `path`, never into an enemy ZOC. `Pass`
+    /// declines for the rest.
+    React {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
     },
     /// The non-phasing player, asked which of its hexes exert a ZOC
     /// (10.16): these do; the rest asked about do not.

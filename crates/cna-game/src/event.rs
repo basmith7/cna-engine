@@ -70,6 +70,12 @@ pub enum Event {
         hex: HexId,
         exerts: bool,
     },
+    /// A move stopped at `at`, next to non-phasing units that may react
+    /// (8.5x); the mover may go on once they have answered.
+    ReactionOffered {
+        pieces: Vec<PieceId>,
+        at: HexId,
+    },
     /// A unit in contact or engaged paid to leave (8.6x).
     ContactBroken {
         piece: PieceId,
