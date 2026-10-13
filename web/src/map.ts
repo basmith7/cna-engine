@@ -107,12 +107,15 @@ function placeAreaSvg(p: Place): string {
   return p.hexes.map((h) => `<polygon class="place-area" data-hex="${h}" points="${polygonPoints(h)}"/>`).join("");
 }
 
-function labelsSvg(h: Hex): string {
+function hexnumSvg(h: Hex): string {
   const [cx, cy] = centre(h.id);
-  let out = `<text class="hexnum" x="${f(cx)}" y="${f(cy + SIZE * 0.75)}">${h.id.slice(1)}</text>`;
-  const p = PLACE_AT.get(h.id);
-  if (p) out += `<text class="place" x="${f(cx)}" y="${f(cy - SIZE * 0.35)}">${esc(p.name)}</text>`;
-  return out;
+  return `<text class="hexnum" x="${f(cx)}" y="${f(cy + SIZE * 0.75)}">${h.id.slice(1)}</text>`;
+}
+
+/** The name sits at the top of its hex, clear of a counter on it, and after every hex number so its halo wins. */
+function placeNameSvg(p: Place): string {
+  const [cx, cy] = centre(p.hex);
+  return `<text class="place" x="${f(cx)}" y="${f(cy - SIZE * 0.88)}">${esc(p.name)}</text>`;
 }
 
 /** The whole base layer: hexes, place areas, hexsides, settlements, labels, in cna's order. */
@@ -122,6 +125,6 @@ export function baseSvg(): string {
     `<g class="place-areas">${PLACES.map(placeAreaSvg).join("")}</g>`,
     `<g class="hexsides">${HEXSIDES.map(hexsideSvg).join("")}</g>`,
     `<g class="settlements">${HEXES.map(settlementSvg).join("")}</g>`,
-    `<g class="labels">${HEXES.map(labelsSvg).join("")}</g>`,
+    `<g class="labels">${HEXES.map(hexnumSvg).join("")}${PLACES.map(placeNameSvg).join("")}</g>`,
   ].join("");
 }

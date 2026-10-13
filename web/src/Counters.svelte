@@ -3,8 +3,9 @@
 <script lang="ts">
   // The counters layer: one group per occupied hex, rebuilt from the view
   // alone (spec, *State sync*). Every piece has its own `data-unit`
-  // element at its hex; under the top counter the rest show as offset
-  // edges, and a badge gives the count.
+  // element at its hex; the top counter sits on the hex centre, the rest
+  // fan out beneath it as offset edges, and a badge at the foot of the
+  // fan gives the count.
   import Counter from "./Counter.svelte";
   import { COUNTER, markers, stacks } from "./counters";
   import { centre } from "./geom";
@@ -24,8 +25,7 @@
 
 {#each groups as [hex, pieces] (hex)}
   {@const [cx, cy] = centre(hex)}
-  {@const shown = Math.min(pieces.length, MAX_SHOWN)}
-  <g class="stack" class:selected={hex === selected} data-stack={hex} data-count={pieces.length} transform="translate({cx} {cy}) scale({grow}) translate({-S / 2} {-S / 2 - (shown - 1) * STEP * 0.5})">
+  <g class="stack" class:selected={hex === selected} data-stack={hex} data-count={pieces.length} transform="translate({cx} {cy}) scale({grow}) translate({-S / 2} {-S / 2})">
     {#each pieces.slice(1).reverse() as p, i (p.id)}
       {@const depth = pieces.length - 1 - i}
       {@const k = Math.min(depth, MAX_SHOWN - 1)}
@@ -37,7 +37,7 @@
       <Counter piece={pieces[0]} markers={markers(pieces[0], view)} />
     </g>
     {#if pieces.length > 1}
-      <g class="badge" transform="translate({S * 0.98} {S * 0.02})">
+      <g class="badge" transform="translate({S * 1.02} {S * 1.02})">
         <circle r={S * 0.17} />
         <text y={S * 0.06}>{pieces.length}</text>
       </g>

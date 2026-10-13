@@ -7,7 +7,7 @@
 .map .hex { stroke: #8a8a8a; stroke-width: 0.4; }
 .map .hexside { fill: none; stroke-linecap: round; }
 .map .hexnum { font: 5px sans-serif; fill: #666; text-anchor: middle; pointer-events: none; }
-.map .place { font: 7px sans-serif; fill: #222; text-anchor: middle; pointer-events: none; }
+.map .place { font: 7px sans-serif; fill: #222; text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: #fbf8f0; stroke-width: 2px; stroke-linejoin: round; }
 .map .settlement.village, .map .settlement.bir, .map .settlement.oasis { fill: #222; }
 .map .settlement.major-city { fill: #444; }
 .map .settlement, .map .hexside, .map .place-area { pointer-events: none; }
