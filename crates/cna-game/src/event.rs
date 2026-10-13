@@ -135,6 +135,11 @@ pub enum Event {
         reading: u8,
         result: BarrageResult,
     },
+    /// A non-phasing stack retreated before assault (13.2x).
+    RetreatedBeforeAssault {
+        pieces: Vec<PieceId>,
+        to: HexId,
+    },
     /// TOE points destroyed; `toe` is what is left.
     Losses {
         piece: PieceId,
