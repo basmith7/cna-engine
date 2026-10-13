@@ -738,6 +738,21 @@ mod tests {
     }
 
     #[test]
+    fn a_collapsed_unit_cannot_move() {
+        // 6.26: at the collapse level a unit stays where it is.
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().cohesion.level = -cna_rules::cohesion::COLLAPSE;
+        let before = snapshot(&state);
+        let err = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
+            .unwrap_err();
+        assert_eq!(err.case, "6.26");
+        assert_eq!(snapshot(&state), before);
+    }
+
+    #[test]
     fn a_foot_battalion_pays_the_chart_and_overspend_is_dp() {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
