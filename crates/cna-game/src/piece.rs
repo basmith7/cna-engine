@@ -3,6 +3,7 @@
 //! 2).
 
 use cna_data::characteristics::{Equivalent, Rating};
+use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::oa::{Nation, UnitId};
 use cna_data::scenario::{OffMapBox, Placement, Side, Status};
@@ -96,6 +97,17 @@ pub struct Piece {
     /// `by-unit` row.
     pub equivalent: Option<Equivalent>,
     pub location: Location,
+    /// CP spent this OpStage, both halves (6.14).
+    #[serde(default)]
+    pub cp_spent: Cp,
+    /// The part of `cp_spent` spent in the enemy's half (reaction,
+    /// retreat before assault): it does not count toward the 150 % cap
+    /// (8.1x).
+    #[serde(default)]
+    pub cp_enemy_half: Cp,
+    /// The cohesion level and DP tally (6.2x).
+    #[serde(default)]
+    pub cohesion: cna_rules::cohesion::Unit,
 }
 
 impl Piece {
@@ -108,5 +120,10 @@ impl Piece {
 
     pub fn is_pending(&self) -> bool {
         matches!(self.location, Location::Pending(_))
+    }
+
+    /// CP spent voluntarily, in the unit's own half.
+    pub fn cp_own_half(&self) -> Cp {
+        self.cp_spent.saturating_sub(self.cp_enemy_half)
     }
 }

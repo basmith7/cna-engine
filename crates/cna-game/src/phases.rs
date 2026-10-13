@@ -8,6 +8,7 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceKind};
 use crate::state::{GameState, Weather};
+use cna_data::cp::Cp;
 use cna_data::initiative::AxisSituation;
 use cna_data::oa::Nation;
 use cna_data::scenario::Side;
@@ -76,6 +77,7 @@ impl GameState {
             }
             match clock.phase {
                 Phase::InitiativeDeclaration => {
+                    self.start_stage();
                     self.determine_initiative(data, events);
                     events.push(Event::PhaseStarted { clock });
                     return;
@@ -94,6 +96,18 @@ impl GameState {
                 | Phase::Patrol => events.push(Event::PhaseSkipped { clock }),
             }
             self.clock = self.clock.next();
+        }
+    }
+
+    /// The bookkeeping between OpStages: unspent CP are lost (6.16) and a
+    /// unit that spent none rests (6.24).
+    fn start_stage(&mut self) {
+        for p in self.pieces.values_mut() {
+            if p.cp_spent == Cp::ZERO {
+                p.cohesion.rest();
+            }
+            p.cp_spent = Cp::ZERO;
+            p.cp_enemy_half = Cp::ZERO;
         }
     }
 

@@ -15,6 +15,13 @@ pub enum Order {
     /// Phase A: the initiative holder names who acts first this OpStage
     /// (7.1x).
     DeclareInitiative { player_a: Side },
+    /// A movement segment: these pieces, stacked together, move along
+    /// `path` (adjacent hexes from where they stand) as one body (8.1x,
+    /// 6.15).
+    Move {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
+    },
     /// Nothing more this phase: ends F or G for the phasing player.
     Pass,
 }

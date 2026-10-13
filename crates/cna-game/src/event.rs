@@ -5,6 +5,7 @@
 use crate::clock::Clock;
 use crate::piece::PieceId;
 use crate::state::Weather;
+use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,19 @@ pub enum Event {
     },
     /// Every piece is on the map; play begins.
     SetUpComplete,
+    /// One step of a move: what it cost each piece (8.3x).
+    Moved {
+        pieces: Vec<PieceId>,
+        from: HexId,
+        to: HexId,
+        cost: Cp,
+    },
+    /// CP over the CPA earned DP at once (6.21); the level after.
+    Disorganised {
+        piece: PieceId,
+        dp: u32,
+        level: i32,
+    },
     /// The scenario's last OpStage is over.
     GameOver,
 }

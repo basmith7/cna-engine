@@ -2,6 +2,7 @@
 //! raised by RP the moment they are earned.
 
 use crate::ruleset::{R001, Ruleset};
+use serde::{Deserialize, Serialize};
 
 /// No cohesion level may exceed this (SPI 6.23).
 pub const MAX_LEVEL: i32 = 10;
@@ -12,7 +13,7 @@ pub const VICTORY_RP: i32 = 3;
 /// The collapse threshold, a level or a DP count by R-001 (SPI 6.26).
 pub const COLLAPSE: i32 = 26;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Unit {
     pub level: i32,
     /// Every DP ever earned, never reduced: the count R-001 option 2 needs.

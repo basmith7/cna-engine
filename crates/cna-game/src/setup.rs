@@ -15,6 +15,7 @@
 use crate::piece::{Location, Piece, PieceId, PieceKind};
 use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Row};
+use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Oa, ToeMark, Unit, UnitId};
 use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
@@ -113,6 +114,9 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     status: None,
                     equivalent: None,
                     location: location.clone(),
+                    cp_spent: Cp::ZERO,
+                    cp_enemy_half: Cp::ZERO,
+                    cohesion: Default::default(),
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -279,6 +283,9 @@ fn piece(
         status: entry.status,
         equivalent,
         location,
+        cp_spent: Cp::ZERO,
+        cp_enemy_half: Cp::ZERO,
+        cohesion: Default::default(),
     }
 }
 

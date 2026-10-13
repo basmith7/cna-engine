@@ -5,6 +5,7 @@ pub mod clock;
 pub mod data;
 pub mod event;
 pub mod log;
+pub mod movement;
 pub mod order;
 mod phases;
 pub mod piece;

@@ -154,6 +154,7 @@ impl GameState {
             (None, Order::DeclareInitiative { player_a }) => {
                 self.declare_initiative(data, *player_a)
             }
+            (None, Order::Move { pieces, path }) => self.move_pieces(data, player, pieces, path),
             (None, Order::Pass) => self.pass(data),
         }
     }
