@@ -196,6 +196,17 @@ pub enum Event {
         points: u32,
         toe: u32,
     },
+    /// A supply unit paid fuel for a piece's land move (32.22).
+    FuelSpent {
+        piece: PieceId,
+        from: PieceId,
+        fuel: u32,
+    },
+    /// A supply unit with no ammunition and no fuel left was removed
+    /// (32.1x).
+    SupplyUnitSpent {
+        piece: PieceId,
+    },
     /// A piece whose last TOE point went.
     Eliminated {
         piece: PieceId,

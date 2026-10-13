@@ -8,6 +8,7 @@ mod cycle;
 pub mod data;
 mod determinism;
 pub mod event;
+mod fuel;
 mod golden;
 pub mod log;
 pub mod movement;

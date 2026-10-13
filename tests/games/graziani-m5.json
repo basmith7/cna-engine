@@ -735,24 +735,6 @@
     },
     {
       "player": "cw",
-      "order": {
-        "move": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3922"
-          ],
-          "assault": false
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
       "order": "end-segment"
     },
     {

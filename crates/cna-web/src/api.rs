@@ -816,6 +816,7 @@ mod tests {
                             pieces: pieces.clone(),
                             path: r.path.clone(),
                             assault: false,
+                            fuel_from: None,
                         },
                     )
                     .ok()?;

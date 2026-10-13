@@ -536,6 +536,7 @@ mod tests {
                     pieces: krrc.clone(),
                     path: c3929.path.clone(),
                     assault: false,
+                    fuel_from: None,
                 },
             )
             .unwrap();
@@ -1083,6 +1084,7 @@ mod tests {
                                     pieces: stack.clone(),
                                     path: vec![n[0].clone()],
                                     assault: false,
+                                    fuel_from: None,
                                 },
                             )
                             .unwrap_err();
@@ -1180,6 +1182,7 @@ mod tests {
                 pieces: stack.to_vec(),
                 path,
                 assault: false,
+                fuel_from: None,
             },
             Purpose::React => Order::React {
                 pieces: stack.to_vec(),
