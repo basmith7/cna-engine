@@ -486,6 +486,56 @@ mod tests {
     }
 
     #[test]
+    fn swamp_costs_the_road_rate_only_across_a_constructed_railroad_hexside() {
+        // R-117: a swamp hex entered from a railroad hex across a
+        // constructed railroad hexside is priced as the road; hexside
+        // features on the same step are charged as off a road, and an
+        // unconstructed railroad opens nothing.
+        let (map, chart) = fixtures();
+        let foot = |a, b| cost(&map, &chart, Mobility::Foot, a, b, Weather::Normal);
+        let mot = |a, b| cost(&map, &chart, Mobility::Vehicle, a, b, Weather::Normal);
+        // E3413|E3414: swamp to swamp along the railroad across a minor
+        // river: 1 + 3 for a foot unit, ½ + 6 for a vehicle.
+        assert_eq!(foot("E3413", "E3414"), Ok(Cp::whole(4)));
+        assert_eq!(mot("E3413", "E3414"), Ok(Cp::halves(13)));
+        // The map has no unconstructed railroad into swamp, nor a slope
+        // under one, so those hexsides are made up on E3211 (clear) to
+        // E3312 (swamp).
+        let (a, b) = (
+            HexId::parse("E3211").unwrap(),
+            HexId::parse("E3312").unwrap(),
+        );
+        let step = |hs: &Hexside| {
+            let step = Step {
+                from: map.hex(&a).unwrap(),
+                to: map.hex(&b).unwrap(),
+                hexside: Some(hs),
+                climbs: hs.climbs(&a, &b),
+                weather: Weather::Normal,
+            };
+            (
+                step_cost(&chart, Mobility::Foot, &step),
+                step_cost(&chart, Mobility::Vehicle, &step),
+            )
+        };
+        let unbuilt = Hexside {
+            features: vec![HexsideFeature::UnfinishedRailroad],
+            up: None,
+        };
+        let (f, m) = step(&unbuilt);
+        assert_eq!(f.unwrap_err().case, "8.37");
+        assert_eq!(m.unwrap_err().case, "8.37");
+        let up_slope = Hexside {
+            features: vec![HexsideFeature::Railroad, HexsideFeature::Slope],
+            up: Some(b.clone()),
+        };
+        assert_eq!(
+            step(&up_slope),
+            (Ok(Cp::whole(1) + Cp::whole(2)), Ok(Cp::HALF + Cp::whole(4)))
+        );
+    }
+
+    #[test]
     fn a_railroad_opens_swamp_and_major_river_hexsides() {
         let (map, chart) = fixtures();
         let foot = |a, b, w| cost(&map, &chart, Mobility::Foot, a, b, w);
