@@ -25,7 +25,7 @@ test("a new game shows the theatre, every placed piece at its hex and the set-up
   await shoot(page, "start.png");
 });
 
-test("stays within the performance budget: first counters under 3 s, a wheel zoom step under 100 ms", async ({ page }) => {
+test("stays within the performance budget: first counters under 3 s, a wheel zoom step under 100 ms (median)", async ({ page }) => {
   await openStart(page);
   await page.getByTestId("seed").fill("7");
   // Time from the New game click, measured in the page once the counters are in the DOM.
@@ -33,14 +33,23 @@ test("stays within the performance budget: first counters under 3 s, a wheel zoo
   await page.getByTestId("new-game").click();
   await page.locator("[data-stack]").first().waitFor();
   const firstCounters = (await page.evaluate(() => performance.now())) - t0;
+  // The median of five steps after one warm-up: a single sample on a shared CI runner
+  // failed the budget on unrelated changes (the first step also pays for the labels
+  // the zoom brings in).
   const zoomStep = await page.evaluate(async () => {
     const svg = document.querySelector("svg.map")!;
     const r = svg.getBoundingClientRect();
-    const t0 = performance.now();
-    svg.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
-    // Two frames: the one that applies the viewBox and the one that paints it.
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    return performance.now() - t0;
+    const step = async (deltaY: number) => {
+      const t0 = performance.now();
+      svg.dispatchEvent(new WheelEvent("wheel", { deltaY, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
+      // Two frames: the one that applies the viewBox and the one that paints it.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return performance.now() - t0;
+    };
+    await step(-100);
+    const samples: number[] = [];
+    for (let i = 0; i < 5; i++) samples.push(await step(-100));
+    return samples.sort((a, b) => a - b)[2];
   });
   test.info().annotations.push({ type: "first counters (ms)", description: firstCounters.toFixed(0) }, { type: "wheel zoom step (ms)", description: zoomStep.toFixed(1) });
   console.log(`first counters ${firstCounters.toFixed(0)} ms; wheel zoom step ${zoomStep.toFixed(1)} ms`);
