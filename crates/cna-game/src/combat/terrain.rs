@@ -34,12 +34,15 @@ pub fn hex_shift(data: &Data, hex: &HexId, kind: Kind) -> Option<i32> {
 }
 
 /// The shift for fire from `from` into `to` across their hexside; none
-/// where that fire is prohibited (an escarpment climbed, 14.35).
+/// where that fire is prohibited (an escarpment climbed, 14.35). A
+/// hexside carrying two features gives both (15.3x: a wadi along a
+/// slope), and assaulting down a slope or escarpment is the attacker's
+/// +1.
 pub fn hexside_shift(data: &Data, from: &HexId, to: &HexId, kind: Kind) -> Option<i32> {
     let Some(side) = data.map.hexside(from, to) else {
         return Some(0);
     };
-    let mut best = 0;
+    let mut total = 0;
     for f in &side.features {
         let name = match f {
             HexsideFeature::Ridge => "ridge",
@@ -55,9 +58,9 @@ pub fn hexside_shift(data: &Data, from: &HexId, to: &HexId, kind: Kind) -> Optio
         let Some(s) = data.terrain.shifts("hexside", name) else {
             continue;
         };
-        best = best.min(pick(s, kind)?);
+        total += pick(s, kind)?;
     }
-    Some(best)
+    Some(total)
 }
 
 #[cfg(test)]
@@ -95,5 +98,49 @@ mod tests {
         assert_eq!(hexside_shift(&data, down, up, Kind::Barrage), Some(0));
         assert_eq!(hexside_shift(&data, down, up, Kind::Offence), Some(-3));
         assert_eq!(hexside_shift(&data, up, down, Kind::AntiArmour), Some(-2));
+    }
+
+    #[test]
+    fn assaulting_down_a_slope_favours_the_attacker() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        // A0822 is the top of the slope to A0923.
+        assert_eq!(
+            hexside_shift(&data, &hex("A0822"), &hex("A0923"), Kind::Offence),
+            Some(1)
+        );
+        assert_eq!(
+            hexside_shift(&data, &hex("A0923"), &hex("A0822"), Kind::Offence),
+            Some(-2)
+        );
+        // Anti-armour fire down a slope is -1 either way.
+        assert_eq!(
+            hexside_shift(&data, &hex("A0822"), &hex("A0923"), Kind::AntiArmour),
+            Some(-1)
+        );
+    }
+
+    #[test]
+    fn a_hexside_carrying_two_features_gives_both() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        // B3801|B3901: a wadi along a slope, B3801 above. Down the slope
+        // (+1) across the wadi (-1); up it (-2) across the wadi (-1).
+        assert_eq!(
+            hexside_shift(&data, &hex("B3801"), &hex("B3901"), Kind::Offence),
+            Some(0)
+        );
+        assert_eq!(
+            hexside_shift(&data, &hex("B3901"), &hex("B3801"), Kind::Offence),
+            Some(-3)
+        );
+        // A4630|A4730: a wadi along an escarpment; climbing it still
+        // prohibits anti-armour fire.
+        assert_eq!(
+            hexside_shift(&data, &hex("A4730"), &hex("A4630"), Kind::AntiArmour),
+            None
+        );
+        assert_eq!(
+            hexside_shift(&data, &hex("A4630"), &hex("A4730"), Kind::AntiArmour),
+            Some(-2)
+        );
     }
 }
