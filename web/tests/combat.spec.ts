@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import type { Condition, Gun } from "../src/types.ts";
+import type { Condition, Gun, View } from "../src/types.ts";
 import { clickHex, expectDomMatchesView, here, openFixture, shoot as shootInto, shotsDir, throughCurtain } from "./helpers.ts";
 
 // Slice 5's proving screenshots.
@@ -179,17 +179,46 @@ test("a retreat before assault goes along a reachable path from the panel", asyn
   await expect(pending(page)).toContainText("Sealed force assignment · Axis");
 });
 
-test("a forced retreat shows the order and takes a reachable hex, with the cost of standing spelled out", async ({ page }) => {
+test("a forced retreat shows the order, says what standing costs as the engine then charges it, and takes a reachable hex", async ({ page }) => {
   await openFixture(page, "forced-retreat");
   await expect(pending(page)).toHaveAttribute("data-kind", "forced-retreat");
-  await expect(page.getByTestId("retreat-order")).toHaveText("Commonwealth must retreat 1 hex from C4021 for the assault result.");
+  await expect(page.getByTestId("retreat-order")).toHaveText("Commonwealth must retreat 3 hexes from C4021 for committing nothing.");
   await expect(pending(page).locator("li[data-unit]")).toHaveCount(3);
-  await expect(page.getByTestId("pass-consequence")).toContainText("Pass stands where it is and pays 10 % of its 24 raw points per hex short");
-  await expect(pending(page).locator('[data-order="pass"]')).toHaveText("Pass: stand and pay");
-  // The ordered stack is ticked by itself and the overlay is up.
+  // The ordered stack is ticked by itself, the map has come to it and the overlay is up.
   await expect(page.getByTestId("stack-panel").locator("input.tick:checked")).toHaveCount(3);
+  await expect(page.getByTestId("hex")).toHaveText("hex C3922");
+  await expect(page.locator('[data-stack="C3922"]')).toBeInViewport();
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
-  // An empty hex the full distance away; a hex of one's own would be selected, not retreated to.
+  // The cost of standing is the engine's preview of Pass, not a formula:
+  // the stack is one hex from its attackers, so two short.
+  const consequence = page.getByTestId("pass-consequence");
+  const text = (await consequence.textContent())!;
+  const said = text.match(/^Pass stands where it is, 2 hexes short of the order, and (?:(.+) loses (\d+) points? for it|loses (\d+) points for it: (.+))\.$/);
+  expect(said, text).toBeTruthy();
+  const [, one, oneN, manyN, many] = said!;
+  const total = Number(one ? oneN : manyN);
+  expect(total).toBeGreaterThan(0);
+  const each: [string, number][] = one ? [[one, total]] : many.split(", ").map((part) => [part.replace(/ \d+$/, ""), Number(part.match(/(\d+)$/)![1])]);
+  expect(each.reduce((a, [, n]) => a + n, 0)).toBe(total);
+  await expect(pending(page).locator('[data-order="pass"]')).toHaveText("Pass: stand and pay");
+  await shoot(page, "forced-retreat.png");
+  // Pass does exactly what the line said: the log carries the shortfall
+  // and each named loss, and the TOE went down by the total.
+  const toe = (v: View) => Object.values(v.pieces).reduce((n, p) => n + p.toe, 0);
+  const before = toe(await page.evaluate(() => window.__cna.view()));
+  await pending(page).locator('[data-order="pass"]').click();
+  await expect(log(page).filter({ hasText: "stand 2 hexes short of the ordered retreat and pay for it." })).toHaveCount(1);
+  for (const [who, n] of each) {
+    await expect(log(page).filter({ hasText: `${who} loses ${n} point` })).toHaveCount(1);
+  }
+  expect(before - toe(await page.evaluate(() => window.__cna.view()))).toBe(total);
+  await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
+  await expectDomMatchesView(page);
+
+  // Or the retreat is made: an empty hex the full distance away (a hex
+  // of one's own would be selected, not retreated to).
+  await openFixture(page, "forced-retreat");
+  await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
   const to = await page.evaluate(() =>
     [...document.querySelectorAll('polygon.reach[data-short="0"]')].map((p) => p.getAttribute("data-hex")!).find((h) => !document.querySelector(`[data-stack="${h}"]`)),
   );
@@ -199,6 +228,17 @@ test("a forced retreat shows the order and takes a reachable hex, with the cost 
   expect(await page.evaluate(() => window.__cna.view().pieces["unit:cw:1-krrc"].location)).toEqual({ hex: to });
   await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
   await expectDomMatchesView(page);
+});
+
+test("the forced retreat panel reads whole at a phone width", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFixture(page, "forced-retreat");
+  await expect(pending(page)).toHaveAttribute("data-kind", "forced-retreat");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await pending(page).scrollIntoViewIfNeeded();
+  await expect(pending(page).locator('[data-order="pass"]')).toBeInViewport();
+  await shoot(page, "forced-retreat-390.png");
 });
 
 test("the end of the game is the engine's report, with every order control gone", async ({ page }) => {

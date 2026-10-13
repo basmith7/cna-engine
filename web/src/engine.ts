@@ -51,6 +51,11 @@ export class Engine {
     return JSON.parse(this.game.sealedOptions(side)) as SealedOptionsResult;
   }
 
+  /** What `apply` would answer `order` with, the game untouched (dice included: exactly the order's events). */
+  preview(side: Side, order: Order): ApplyResult {
+    return JSON.parse(this.game.preview(side, JSON.stringify(order))) as ApplyResult;
+  }
+
   apply(side: Side, order: Order): ApplyResult {
     return JSON.parse(this.game.apply(side, JSON.stringify(order))) as ApplyResult;
   }

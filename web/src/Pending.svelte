@@ -6,12 +6,12 @@
   // are `SealedPanel`'s, remounted for each side and step; retreat
   // before assault picks a stack and a shaded hex, or passes; a forced
   // retreat shows the order and its pieces, a shaded hex answers it, or
-  // Pass with its consequence spelled out.
+  // Pass with what the engine's preview says it does.
   import { label } from "./counters";
   import { pendingKind, pendingTitle, zocQuestion } from "./pending";
   import { passConsequence, retreatOrderWords } from "./sealed";
   import SealedPanel from "./SealedPanel.svelte";
-  import type { HexId, Illegal, Order, PieceId, Reach, SealedOptions, View } from "./types";
+  import type { ApplyResult, HexId, Illegal, Order, PieceId, Reach, SealedOptions, View } from "./types";
 
   let {
     view,
@@ -20,6 +20,7 @@
     onorder,
     sealed = null,
     reaches = [],
+    pass = null,
   }: {
     view: View;
     ticked: PieceId[];
@@ -29,6 +30,8 @@
     sealed?: { ok: SealedOptions } | { ok: null; illegal: Illegal } | null;
     /** The hexes the ticked stack may retreat to, for the counts. */
     reaches?: Reach[];
+    /** The engine's preview of Pass while a forced retreat is pending. */
+    pass?: ApplyResult | null;
   } = $props();
 
   const pending = $derived(view.pending!);
@@ -98,8 +101,11 @@
         {/each}
       </ul>
       <p class="count" data-testid="retreat-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} shaded; click one to retreat there{reaches.some((r) => r.short > 0) ? " (an amber one stops short and pays)" : ""}.</p>
-      <p class="consequence" data-testid="pass-consequence">{passConsequence(d.reason, d.hexes, d.raw)}</p>
-      <p class="buttons"><button type="button" data-order="pass" onclick={() => onorder("pass")}>{d.reason === "must-attack" ? "Pass: surrender" : "Pass: stand and pay"}</button></p>
+      {#if pass}
+        {@const c = passConsequence(pass, name)}
+        <p class="consequence" data-testid="pass-consequence">{c.text}</p>
+        <p class="buttons"><button type="button" data-order="pass" onclick={() => onorder("pass")}>{c.button}</button></p>
+      {/if}
     {/if}
   </section>
 {/if}

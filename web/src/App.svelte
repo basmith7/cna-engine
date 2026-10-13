@@ -22,7 +22,7 @@
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
+  import type { ApplyResult, HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -71,9 +71,16 @@
     const r = engine.sealedOptions(view.to_act);
     return "ok" in r ? r : { ok: null, illegal: r.illegal };
   });
+  /** The engine's preview of Pass while a forced retreat is pending: what standing still costs (spec, *Interrupts*). */
+  const passPreview: ApplyResult | null = $derived.by(() => {
+    if (!engine || !view || !view.to_act || !view.pending || !("forced-retreat" in view.pending)) return null;
+    return engine.preview(view.to_act, "pass");
+  });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
   const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
-  // A forced retreat is the ordered stack's, nobody else's: it stands ticked.
+  let map: Map | undefined = $state();
+  // A forced retreat is the ordered stack's, nobody else's: it stands
+  // ticked and the map comes to it.
   $effect(() => {
     if (!view?.pending || !("forced-retreat" in view.pending)) return;
     const pieces = view.pending["forced-retreat"].pieces.filter((id) => {
@@ -83,7 +90,7 @@
     if (pieces.join(",") !== ticked.join(",")) {
       ticked = pieces;
       const l = pieces.length > 0 ? view.pieces[pieces[0]].location : null;
-      if (l && typeof l === "object" && "hex" in l) hex = l.hex;
+      if (l && typeof l === "object" && "hex" in l) map?.goTo(l.hex);
     }
   });
   /** Whether the ticked stack stands on a hex (the overlay applies) or could go off-map (8.8x). */
@@ -298,7 +305,7 @@
     <TopBar {view} {hex} />
     <div class="body">
       <main class="board">
-        <Map {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
+        <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
             <Placements hexes={placements} />
             <Marks hexes={asked} kind="zoc" />
@@ -326,7 +333,7 @@
           <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
-            <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} />
+            <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
           {#if purpose}
             <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />

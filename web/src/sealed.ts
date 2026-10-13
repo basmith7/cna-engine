@@ -2,7 +2,8 @@
 // player has typed against the engine's options, and the order it
 // becomes. Pure functions; the engine alone judges the points.
 import { sideName } from "./clock";
-import type { Allocation, Assignment, Committer, Fire, Firer, HexId, Order, PieceId, RetreatReason } from "./types";
+import { formatEvent, type Namer } from "./format";
+import type { Allocation, Assignment, ApplyResult, Committer, Fire, Firer, HexId, Order, PieceId, RetreatReason } from "./types";
 
 /** One row of the barrage panel: a firer's points at a target, as typed. */
 export interface FireRow {
@@ -58,12 +59,40 @@ export function committed(rows: RoleRow[], piece: PieceId): number {
   return rows.filter((r) => r.piece === piece).reduce((n, r) => n + r.points, 0);
 }
 
-/** What answering a forced retreat with Pass does, from its reason (15.82, 10.36, R-012). */
-export function passConsequence(reason: RetreatReason, hexes: number, raw: number): string {
-  if (reason === "must-attack") return `Pass surrenders the stack: a must-attack retreat goes the full ${hexes} hexes or not at all (10.36).`;
-  const pct = 10 * hexes;
-  const lost = Math.floor((raw * pct) / 100);
-  return `Pass stands where it is and pays 10 % of its ${raw} raw points per hex short: about ${lost} point${lost === 1 ? "" : "s"} for all ${hexes} (15.82, R-012).`;
+/**
+ * What answering a forced retreat with Pass does, from the engine's
+ * preview of it: the shortfall and losses it would take, a surrender,
+ * nothing at all, or a refusal. Each as the panel's line and its button.
+ */
+export function passConsequence(preview: ApplyResult, name: Namer): { text: string; button: string } {
+  if ("illegal" in preview) {
+    return { text: `Pass would be refused: ${preview.illegal.reason} (${preview.illegal.case}).`, button: "Pass" };
+  }
+  // `set-up-complete` is the one bare-string event; it never follows a Pass here.
+  const events = preview.ok.filter((e) => typeof e === "object");
+  const surrendered = events.find((e) => "surrendered" in e);
+  if (surrendered && "surrendered" in surrendered) {
+    return { text: `Pass surrenders ${surrendered.surrendered.pieces.map(name).join(", ")}.`, button: "Pass: surrender" };
+  }
+  const bought = events.find((e) => "retreat-bought-out" in e);
+  if (bought && "retreat-bought-out" in bought) {
+    const short = bought["retreat-bought-out"].short;
+    const losses = events.flatMap((e) => ("losses" in e ? [e.losses] : []));
+    const total = losses.reduce((n, l) => n + l.points, 0);
+    const gone = events.flatMap((e) => ("eliminated" in e ? [`; ${name(e.eliminated.piece)} eliminated`] : [])).join("");
+    const points = `${total} point${total === 1 ? "" : "s"}`;
+    // One loser is named outright; several are listed with their shares.
+    const loss =
+      losses.length === 1
+        ? `${name(losses[0].piece)} loses ${points} for it`
+        : `loses ${points} for it${losses.length > 1 ? `: ${losses.map((l) => `${name(l.piece)} ${l.points}`).join(", ")}` : ""}`;
+    return {
+      text: `Pass stands where it is, ${short} hex${short === 1 ? "" : "es"} short of the order, and ${loss}${gone}.`,
+      button: "Pass: stand and pay",
+    };
+  }
+  if (events.length === 0) return { text: "Pass stands where it is at no cost: the stack already meets the order.", button: "Pass: stand" };
+  return { text: `Pass stands where it is: ${events.map((e) => formatEvent(e, name)).join(" ")}`, button: "Pass: stand" };
 }
 
 /** The forced retreat's order, in words. */
