@@ -81,6 +81,14 @@ impl Game {
         Ok(serde_json::to_string(&v)?)
     }
 
+    /// What `apply` would answer `order_json` from `side` with, the game
+    /// untouched (see `api::Game::preview`). Throws only on malformed
+    /// input.
+    pub fn preview(&self, side: &str, order_json: &str) -> Result<String, JsError> {
+        let v = self.0.preview(side, order_json).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
     /// The `vendor/cna` commit the embedded data came from.
     #[wasm_bindgen(js_name = rulesCommit)]
     pub fn rules_commit() -> String {

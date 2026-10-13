@@ -18,7 +18,7 @@
   },
   "initiative": "axis",
   "player_a": "axis",
-  "weather": "normal",
+  "weather": "hot",
   "pieces": {
     "supply:axis:1": {
       "id": "supply:axis:1",
@@ -1347,7 +1347,7 @@
       "nation": "cw",
       "id_code": "n",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 5,
+      "toe": 6,
       "cpa": "10+",
       "morale": 2,
       "status": null,
@@ -1358,8 +1358,8 @@
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
-        "level": 0,
-        "dp_tally": 0
+        "level": -3,
+        "dp_tally": 3
       },
       "contact": false,
       "engaged": false
@@ -2180,8 +2180,8 @@
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
-        "level": 0,
-        "dp_tally": 0
+        "level": -3,
+        "dp_tally": 3
       },
       "contact": false,
       "engaged": false
@@ -2648,8 +2648,8 @@
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
-        "level": 0,
-        "dp_tally": 0
+        "level": -3,
+        "dp_tally": 3
       },
       "contact": false,
       "engaged": false
@@ -8152,7 +8152,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
-      "toe": 3,
+      "toe": 5,
       "cpa": "10",
       "morale": -2,
       "status": null,
@@ -8790,14 +8790,14 @@
         "unit:cw:3-cldgds",
         "unit:cw:7-med"
       ],
-      "hexes": 1,
+      "hexes": 3,
       "from": [
         "C4021",
         "C4021",
         "C4021",
         "C4021"
       ],
-      "reason": "assault-result",
+      "reason": "withheld",
       "raw": 24,
       "overrun": false
     }
@@ -8887,20 +8887,10 @@
       ],
       "cw": [
         {
-          "piece": "unit:cw:1-krrc",
-          "close_assault": [
-            {
-              "points": 6
-            }
-          ]
+          "piece": "unit:cw:1-krrc"
         },
         {
-          "piece": "unit:cw:3-cldgds",
-          "close_assault": [
-            {
-              "points": 6
-            }
-          ]
+          "piece": "unit:cw:3-cldgds"
         }
       ]
     },
@@ -8932,15 +8922,15 @@
     "assaults": {
       "C3922": {
         "probe": false,
-        "basic": 0,
-        "column": "-2"
+        "basic": 2,
+        "column": "+2"
       }
     }
   },
   "over": null,
   "rng": {
-    "seed": 3,
-    "draws": 12
+    "seed": 7,
+    "draws": 4
   },
   "log": [
     {
@@ -9650,20 +9640,10 @@
         "assign-forces": {
           "assignments": [
             {
-              "piece": "unit:cw:1-krrc",
-              "close_assault": [
-                {
-                  "points": 6
-                }
-              ]
+              "piece": "unit:cw:1-krrc"
             },
             {
-              "piece": "unit:cw:3-cldgds",
-              "close_assault": [
-                {
-                  "points": 6
-                }
-              ]
+              "piece": "unit:cw:3-cldgds"
             }
           ]
         }

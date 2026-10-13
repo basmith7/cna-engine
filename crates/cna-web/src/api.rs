@@ -12,6 +12,7 @@ use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::combat::SealedStep;
+use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
 use cna_game::reach::Purpose;
@@ -176,12 +177,25 @@ impl Game {
     pub fn apply(&mut self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
-        Ok(match self.state.apply(data(), side, order) {
+        Ok(Self::answer(self.state.apply(data(), side, order)))
+    }
+
+    /// What `apply` would answer `order` from `side` with, on a copy:
+    /// the same `{"ok": [Event]}` or `{"illegal": ...}`, the game
+    /// untouched. Dice included, so the events are exactly the order's.
+    pub fn preview(&self, side: &str, order: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        let order: Order = serde_json::from_str(order).context("parsing the order")?;
+        Ok(Self::answer(self.state.clone().apply(data(), side, order)))
+    }
+
+    fn answer(r: std::result::Result<Vec<Event>, cna_game::event::Illegal>) -> Value {
+        match r {
             Ok(events) => json!({ "ok": events }),
             Err(illegal) => {
                 json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
             }
-        })
+        }
     }
 }
 
@@ -536,6 +550,34 @@ mod tests {
         assert_eq!(r["illegal"]["case"], "15.82", "{r}");
     }
 
+    /// The `forced-retreat` fixture: standing still is two hexes short,
+    /// and the preview says so with the loss `apply` then takes, the
+    /// game unchanged in between.
+    #[test]
+    fn preview_of_pass_in_a_forced_retreat_is_what_apply_does() {
+        let fixture = std::fs::read_to_string(fixtures_dir().join("forced-retreat.json")).unwrap();
+        let mut game = Game::load(&fixture).unwrap();
+        // A refusal previews as one, and bad input is an error.
+        let refused = game.preview("axis", "\"pass\"").unwrap();
+        assert!(refused["illegal"]["case"].is_string(), "{refused}");
+        assert!(game.preview("cw", "{}").is_err());
+        let previewed = game.preview("cw", "\"pass\"").unwrap();
+        assert_eq!(game.save().unwrap(), fixture, "a preview changes nothing");
+        assert_eq!(
+            previewed["ok"][0],
+            json!({ "retreat-bought-out": { "pieces": ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"], "short": 2 } }),
+            "{previewed}"
+        );
+        assert!(
+            previewed["ok"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|e| e.get("losses").is_some())
+        );
+        assert_eq!(game.apply("cw", "\"pass\"").unwrap(), previewed);
+    }
+
     #[test]
     fn load_of_a_save_round_trips_byte_for_byte() {
         let mut game = Game::new(7).unwrap();
@@ -599,12 +641,11 @@ mod tests {
     ///   answer.
     /// - `retreat-before-assault`: orders 0–69, the Commonwealth asked to
     ///   retreat before assault; 4 RHA at C3923 may.
-    /// - `forced-retreat`: orders 0–72 replayed under the first seed
-    ///   whose assault on Halfaya (order 73) orders the defenders back,
-    ///   that assault applied, so the Commonwealth must retreat.
+    /// - `forced-retreat`: orders 0–71, the Commonwealth withholding
+    ///   its Halfaya infantry in place of order 72, the assault (order
+    ///   73) applied: the defenders must retreat three hexes or pay.
     /// - `game-over`: the whole golden game, the report in.
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
-        use std::ops::Not;
         let set_up_done = golden_prefix(59);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
         assert!(set_up_done.pending.is_none());
@@ -742,38 +783,62 @@ mod tests {
                 .is_empty()
         );
 
-        // A bounded seed search: the assault result is a die roll.
-        let forced_retreat = (0..200u64)
-            .find_map(|seed| {
-                let mut log = golden_log();
-                log.orders.truncate(73);
-                log.seed = seed;
-                let mut state = replay(data(), &log).ok()?;
-                let Order::Assault { .. } = &golden_log().orders[73].order else {
-                    panic!("order 73 is the assault");
-                };
-                state
-                    .apply(data(), Side::Axis, golden_log().orders[73].order.clone())
-                    .ok()?;
-                match &state.pending {
-                    Some(Pending::ForcedRetreat {
-                        side: Side::Cw,
-                        reason: cna_game::combat::RetreatReason::AssaultResult,
-                        pieces,
-                        ..
-                    }) => {
-                        let pieces = pieces.clone();
-                        state
-                            .reachable(data(), Side::Cw, &pieces, Purpose::ForcedRetreat)
-                            .ok()?
-                            .is_empty()
-                            .not()
-                            .then_some(state)
-                    }
-                    _ => None,
-                }
+        // Orders 0–71, the Commonwealth then listing its infantry at
+        // Halfaya with no points (unlisted infantry would defend the hex
+        // by default), so the assault (order 73) orders a three-hex
+        // retreat without a die (15.29): the stack stands one hex from
+        // its attackers, so Pass is two short and pays.
+        let mut forced_retreat = golden_prefix(72);
+        let withheld = ["unit:cw:1-krrc", "unit:cw:3-cldgds"]
+            .into_iter()
+            .map(|id| cna_game::order::Assignment {
+                piece: PieceId::from(cna_data::oa::UnitId::parse(id).unwrap()),
+                anti_armour: vec![],
+                close_assault: vec![],
             })
-            .expect("some seed's assault on Halfaya orders a retreat");
+            .collect();
+        forced_retreat
+            .apply(
+                data(),
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: withheld,
+                },
+            )
+            .unwrap();
+        forced_retreat
+            .apply(data(), Side::Axis, golden_log().orders[73].order.clone())
+            .unwrap();
+        let Some(Pending::ForcedRetreat {
+            side: Side::Cw,
+            reason: cna_game::combat::RetreatReason::Withheld,
+            pieces,
+            hexes: 3,
+            ..
+        }) = &forced_retreat.pending
+        else {
+            panic!(
+                "the assault on an undefended Halfaya orders a three-hex retreat, not {:?}",
+                forced_retreat.pending
+            );
+        };
+        assert!(
+            forced_retreat
+                .reachable(data(), Side::Cw, pieces, Purpose::ForcedRetreat)
+                .unwrap()
+                .iter()
+                .any(|r| r.short == 0),
+            "the full retreat can be made"
+        );
+        assert!(
+            forced_retreat
+                .clone()
+                .apply(data(), Side::Cw, Order::Pass)
+                .unwrap()
+                .iter()
+                .any(|e| matches!(e, Event::RetreatBoughtOut { short: 2, .. })),
+            "standing still is two hexes short"
+        );
 
         let game_over = replay(data(), &golden_log()).unwrap();
         assert!(game_over.is_over());
