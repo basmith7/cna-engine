@@ -95,7 +95,7 @@ mod tests {
                 Pending::DeclareZoc { hexes, .. } => Order::DeclareZoc {
                     exerting: hexes
                         .into_iter()
-                        .filter(|_| rng.next_u32() % 2 == 0)
+                        .filter(|_| rng.next_u32() & 1 == 0)
                         .collect(),
                 },
                 Pending::Reaction { .. } => Order::Pass,
