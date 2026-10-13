@@ -509,6 +509,32 @@ mod tests {
         assert!(game.sealed_options("allies").is_err());
     }
 
+    /// Golden order 70 is the Commonwealth's pass in retreat before
+    /// assault: the query names where 4 RHA at C3923 could have gone
+    /// instead, with `short` 0 throughout.
+    #[test]
+    fn reachable_for_a_retreat_before_assault_at_golden_order_70() {
+        let (game, _) = golden_before(70);
+        assert_eq!(
+            game.view().unwrap()["pending"],
+            json!({ "retreat-before-assault": { "side": "cw" } })
+        );
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "retreat-before-assault")
+            .unwrap();
+        let reaches = r["ok"].as_array().unwrap_or_else(|| panic!("{r}"));
+        assert!(!reaches.is_empty());
+        assert!(
+            reaches
+                .iter()
+                .all(|x| x["short"] == 0 && x["may_be_interrupted"] == false)
+        );
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "forced-retreat")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "15.82", "{r}");
+    }
+
     #[test]
     fn load_of_a_save_round_trips_byte_for_byte() {
         let mut game = Game::new(7).unwrap();

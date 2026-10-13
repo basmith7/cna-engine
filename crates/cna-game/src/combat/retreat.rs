@@ -6,7 +6,7 @@ use super::strength::Kind;
 use crate::clock::Segment;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, Piece, PieceId, PieceKind};
+use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use crate::state::Pending;
 use crate::zoc::Zoc;
@@ -30,25 +30,7 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
     ) -> Result<Vec<Event>, Illegal> {
-        let from = self.moving_stack(player, pieces, false)?;
-        for id in pieces {
-            let p = &self.pieces[id];
-            if self.combat.pinned.contains(id) {
-                return Err(Illegal::new("12.44", format!("{id} is pinned")));
-            }
-            if self.combat.retreated.contains(id) {
-                return Err(Illegal::new(
-                    "13.28",
-                    format!("{id} has retreated before assault this segment"),
-                ));
-            }
-            if p.cohesion.collapsed(&self.ruleset) {
-                return Err(Illegal::new(
-                    "13.1",
-                    format!("{id} has collapsed: it cannot move"),
-                ));
-            }
-        }
+        let from = self.retreating_stack(player, pieces)?;
         let plan = self.plan(data, pieces, &from, path)?;
         if let Some((before, _)) = &plan.interrupt {
             return Err(Illegal::new(
@@ -56,15 +38,7 @@ impl GameState {
                 format!("{before}: an undeclared enemy ZOC on a retreat path is not supported"),
             ));
         }
-        let break_off = |p: &Piece| {
-            if p.engaged {
-                Cp::whole(4)
-            } else if p.contact {
-                Cp::whole(2)
-            } else {
-                Cp::ZERO
-            }
-        };
+        let break_off = Self::break_off_cost;
         let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
         if plan.break_off {
             total += pieces
@@ -73,11 +47,7 @@ impl GameState {
                 .max()
                 .unwrap_or(Cp::ZERO);
         }
-        let adjacent = data.map.neighbours(&from).iter().any(|n| {
-            self.pieces
-                .values()
-                .any(|q| q.side != player && q.kind == PieceKind::Combat && q.hex() == Some(n))
-        });
+        let adjacent = self.next_to_enemy_combat_unit(data, &from, player);
         if !adjacent && plan.steps.len() > 1 && total > Cp::whole(4) {
             return Err(Illegal::new(
                 "13.22",
@@ -131,8 +101,58 @@ impl GameState {
         Ok(events)
     }
 
+    /// The hex a stack that would retreat before assault stands on,
+    /// after the checks of 13.2x that need no path: the player's stack,
+    /// able to move, nobody pinned (12.44), retreated already (13.28) or
+    /// collapsed (13.1).
+    pub(crate) fn retreating_stack(
+        &self,
+        player: Side,
+        pieces: &[PieceId],
+    ) -> Result<HexId, Illegal> {
+        let from = self.moving_stack(player, pieces, false)?;
+        for id in pieces {
+            let p = &self.pieces[id];
+            if self.combat.pinned.contains(id) {
+                return Err(Illegal::new("12.44", format!("{id} is pinned")));
+            }
+            if self.combat.retreated.contains(id) {
+                return Err(Illegal::new(
+                    "13.28",
+                    format!("{id} has retreated before assault this segment"),
+                ));
+            }
+            if p.cohesion.collapsed(&self.ruleset) {
+                return Err(Illegal::new(
+                    "13.1",
+                    format!("{id} has collapsed: it cannot move"),
+                ));
+            }
+        }
+        Ok(from)
+    }
+
+    /// Whether `hex` is next to an enemy combat unit of `player`'s
+    /// (13.22's test).
+    pub(crate) fn next_to_enemy_combat_unit(&self, data: &Data, hex: &HexId, player: Side) -> bool {
+        data.map.neighbours(hex).iter().any(|n| {
+            self.pieces
+                .values()
+                .any(|q| q.side != player && q.kind == PieceKind::Combat && q.hex() == Some(n))
+        })
+    }
+
+    /// Whether a forced retreat from `start` has a path at all (R-012):
+    /// an empty neighbour free of enemy ZOC.
+    pub(crate) fn retreat_path_exists(&self, data: &Data, start: &HexId, side: Side) -> bool {
+        data.map.neighbours(start).iter().any(|n| {
+            !self.pieces.values().any(|q| q.hex() == Some(n))
+                && self.zoc_at(data, n, side) == Zoc::Clear
+        })
+    }
+
     /// Hexes from `a` to `b`, up to `limit`; `limit + 1` beyond it.
-    fn distance(data: &Data, a: &HexId, b: &HexId, limit: u32) -> u32 {
+    pub(crate) fn distance(data: &Data, a: &HexId, b: &HexId, limit: u32) -> u32 {
         (0..=limit)
             .find(|n| data.map.within(a, *n).contains(b))
             .unwrap_or(limit + 1)
@@ -226,10 +246,7 @@ impl GameState {
                     }
                 }
                 _ => {
-                    let path_exists = data.map.neighbours(&start).iter().any(|n| {
-                        !self.pieces.values().any(|q| q.hex() == Some(n))
-                            && self.zoc_at(data, n, side) == Zoc::Clear
-                    });
+                    let path_exists = self.retreat_path_exists(data, &start, side);
                     if !may_buy_out(&self.ruleset, path_exists) {
                         return Err(Illegal::new(
                             "15.82",
@@ -240,15 +257,7 @@ impl GameState {
             }
         }
         if let Some(plan) = plan {
-            let break_off = |p: &Piece| {
-                if p.engaged {
-                    Cp::whole(4)
-                } else if p.contact {
-                    Cp::whole(2)
-                } else {
-                    Cp::ZERO
-                }
-            };
+            let break_off = Self::break_off_cost;
             if plan.break_off {
                 for id in &pieces {
                     let cost = break_off(&self.pieces[id]);

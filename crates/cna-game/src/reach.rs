@@ -1,10 +1,11 @@
 //! The legal-move query (M3 spec, *Legal moves*): every hex a stack can
-//! end a voluntary move in, with the cheapest path there and what it
-//! costs, from the same per-step pricing `apply` uses (`step_into`), so
-//! the overlay never shows a move the engine would refuse nor hides one
-//! it would take. Numbers the engine charges on the way (DP) are
-//! reported; nothing here changes the state.
+//! end a voluntary move, a reaction or a retreat in, with the cheapest
+//! path there and what it costs, from the same per-step pricing `apply`
+//! uses (`step_into`), so the overlay never shows a move the engine
+//! would refuse nor hides one it would take. Numbers the engine charges
+//! on the way (DP) are reported; nothing here changes the state.
 
+use crate::combat::RetreatReason;
 use crate::data::Data;
 use crate::event::Illegal;
 use crate::movement::Start;
@@ -14,9 +15,14 @@ use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::close_assault::may_buy_out;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BinaryHeap};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
+
+/// The most a stack not next to an enemy combat unit spends retreating
+/// before assault over more than one hex (13.22).
+const RETREAT_BEFORE_ASSAULT_CAP: Cp = Cp::whole(4);
 
 /// What the move is for: the order it will be sent as.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,6 +32,10 @@ pub enum Purpose {
     Move,
     /// `Order::React` by the non-phasing player (8.5x).
     React,
+    /// `Order::RetreatBeforeAssault` by the non-phasing player (13.2x).
+    RetreatBeforeAssault,
+    /// `Order::Retreat` answering a `forced-retreat` (15.82, 10.36).
+    ForcedRetreat,
 }
 
 /// A hex the stack can end in.
@@ -45,6 +55,12 @@ pub struct Reach {
     /// cost from there on assumes they exert none) or next to units that
     /// may react (8.5x); after the answer the rest is a new order.
     pub may_be_interrupted: bool,
+    /// A forced retreat only: the hexes this stops short of the ordered
+    /// distance, each paid for at 10 % of the raw points (15.82). Only
+    /// where `apply` lets the stack stop short (R-012); never for a
+    /// must-attack retreat.
+    #[serde(default)]
+    pub short: u32,
 }
 
 /// A settled hex of the search.
@@ -81,12 +97,47 @@ impl GameState {
             }
             Some(_) => {}
         }
+        let mut forced: Option<(u32, Vec<HexId>, RetreatReason)> = None;
         let (from, shift) = match purpose {
             Purpose::Move => {
                 if let Some(e) = self.pending_refusal() {
                     return Err(e);
                 }
                 self.stack_to_move(side, pieces)?
+            }
+            Purpose::RetreatBeforeAssault => {
+                if !matches!(self.pending, Some(Pending::RetreatBeforeAssault { .. })) {
+                    return Err(Illegal::new("13.1", "no retreat before assault is pending"));
+                }
+                (self.retreating_stack(side, pieces)?, false)
+            }
+            Purpose::ForcedRetreat => {
+                let Some(Pending::ForcedRetreat {
+                    pieces: ordered,
+                    hexes,
+                    from,
+                    reason,
+                    ..
+                }) = &self.pending
+                else {
+                    return Err(Illegal::new("15.82", "no retreat is pending"));
+                };
+                let ordered: BTreeSet<&PieceId> = ordered
+                    .iter()
+                    .filter(|id| self.pieces[*id].hex().is_some())
+                    .collect();
+                if ordered != pieces.iter().collect() {
+                    return Err(Illegal::new(
+                        "15.82",
+                        format!("the stack ordered to retreat is {ordered:?}, not {pieces:?}"),
+                    ));
+                }
+                forced = Some((*hexes, from.clone(), *reason));
+                let start = pieces
+                    .first()
+                    .and_then(|id| self.pieces[id].hex().cloned())
+                    .ok_or_else(|| Illegal::new("15.82", "nothing is left to retreat"))?;
+                (start, false)
             }
             Purpose::React => {
                 let Some(Pending::Reaction { eligible, .. }) = &self.pending else {
@@ -104,7 +155,12 @@ impl GameState {
             }
         };
         let mover = self.mover(data, pieces);
-        let (start_in_zoc, start_flagged) = match self.start(data, &mover, &from, false)? {
+        let (start_in_zoc, start_flagged) = match self.start(
+            data,
+            &mover,
+            &from,
+            purpose == Purpose::ForcedRetreat,
+        )? {
             Start::In(in_zoc) => (in_zoc, false),
             Start::Undeclared(hexes) => match purpose {
                 // The move is parked on the declaration (10.16); the
@@ -119,6 +175,24 @@ impl GameState {
                         ),
                     ));
                 }
+                // A retreat path that meets an undeclared ZOC is
+                // refused, not paused (13.2x, 15.82, 10.36).
+                Purpose::RetreatBeforeAssault => {
+                    return Err(Illegal::new(
+                        "13.2x",
+                        format!(
+                            "{from}: an undeclared enemy ZOC on a retreat path is not supported"
+                        ),
+                    ));
+                }
+                Purpose::ForcedRetreat => {
+                    return Err(Illegal::new(
+                        "15.82",
+                        format!(
+                            "{from}: an undeclared enemy ZOC on a retreat path is not supported"
+                        ),
+                    ));
+                }
             },
         };
         if shift && let Some(id) = pieces.iter().find(|id| self.shifted.contains(id)) {
@@ -127,14 +201,19 @@ impl GameState {
                 format!("{id} has made its reserve shift this segment"),
             ));
         }
-        // A move pays break-off once (8.6x) and the first hex of a
-        // reinforcement's move is free (20.1x); a reaction pays neither.
+        // A move or a retreat pays break-off once (8.6x) and the first
+        // hex of a reinforcement's move is free (20.1x); a reaction pays
+        // neither.
         let break_off = match purpose {
-            Purpose::Move if mover.break_off => pieces
-                .iter()
-                .map(|id| Self::break_off_cost(&self.pieces[id]))
-                .max()
-                .unwrap_or(Cp::ZERO),
+            Purpose::Move | Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat
+                if mover.break_off =>
+            {
+                pieces
+                    .iter()
+                    .map(|id| Self::break_off_cost(&self.pieces[id]))
+                    .max()
+                    .unwrap_or(Cp::ZERO)
+            }
             _ => Cp::ZERO,
         };
         let first_free =
@@ -148,11 +227,19 @@ impl GameState {
                         .map(|(cap, _, _)| cap.saturating_sub(self.pieces[id].cp_own_half()))
                 })
                 .min(),
-            Purpose::React => None,
+            Purpose::React | Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => None,
         };
         if margin.is_some_and(|m| break_off > m) {
             return Ok(Vec::new());
         }
+        // A stack retreating before assault from no enemy combat unit's
+        // side moves one hex, or further for 4 CP at most (13.22).
+        let cap = match purpose {
+            Purpose::RetreatBeforeAssault if !self.next_to_enemy_combat_unit(data, &from, side) => {
+                Some(RETREAT_BEFORE_ASSAULT_CAP)
+            }
+            _ => None,
+        };
 
         let mut nodes: BTreeMap<HexId, Node> = BTreeMap::new();
         let mut heap = BinaryHeap::new();
@@ -195,7 +282,7 @@ impl GameState {
                         Cp::ZERO
                     }
                     Zoc::Undeclared(_) => {
-                        if purpose == Purpose::React {
+                        if purpose != Purpose::Move {
                             continue;
                         }
                         flagged = true;
@@ -210,6 +297,7 @@ impl GameState {
                 let total = cost + step;
                 if margin.is_some_and(|m| total + break_off > m)
                     || self.would_collapse(pieces, total + break_off)
+                    || (len > 0 && cap.is_some_and(|c| total + break_off > c))
                 {
                     continue;
                 }
@@ -264,9 +352,26 @@ impl GameState {
                         .unwrap_or(0),
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
+                    short: 0,
                 }
             })
             .collect();
+        if let Some((hexes, from_hexes, reason)) = forced {
+            // How far short of the order each end is (15.82); a short
+            // hex is kept only where `apply` lets the stack stand and
+            // pay (R-012), never for a must-attack retreat (10.36).
+            let buy_out = reason != RetreatReason::MustAttack
+                && may_buy_out(&self.ruleset, self.retreat_path_exists(data, &from, side));
+            reaches.retain_mut(|r| {
+                let reached = from_hexes
+                    .iter()
+                    .map(|f| Self::distance(data, f, &r.hex, hexes))
+                    .min()
+                    .unwrap_or(hexes);
+                r.short = hexes.saturating_sub(reached);
+                r.short == 0 || buy_out
+            });
+        }
         if purpose == Purpose::React {
             // The ceiling binds where a reaction ends (9.14), never on
             // the way.
@@ -744,6 +849,193 @@ mod tests {
         assert_eq!(err.case, "18.2x");
     }
 
+    /// Commonwealth phasing at Sollum (C4021), steps 1 and 2 answered
+    /// with nothing: the Axis may retreat before assault.
+    fn retreating(data: &Data) -> GameState {
+        let mut state = crate::combat::segment::test_support::at_sollum(data);
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+        ] {
+            state.apply(data, side, order).unwrap();
+        }
+        assert_eq!(
+            state.pending,
+            Some(Pending::RetreatBeforeAssault { side: Side::Axis })
+        );
+        state
+    }
+
+    fn stack_at(state: &GameState, hex: &str, side: Side) -> Vec<PieceId> {
+        state
+            .pieces
+            .values()
+            .filter(|p| p.side == side && p.hex() == Some(&crate::movement::test_support::hex(hex)))
+            .map(|p| p.id.clone())
+            .collect()
+    }
+
+    /// `Purpose::RetreatBeforeAssault`: the stack next to the enemy at
+    /// Fort Capuzzo (C4020) retreats as it likes; XVII Libyan at C3617,
+    /// next to no enemy, goes one hex or up to 4 CP (13.22); a pinned
+    /// unit gets the case `apply` gives; the Commonwealth may not ask.
+    #[test]
+    fn every_returned_retreat_before_assault_is_accepted_and_every_accepted_one_is_returned() {
+        let data = graziani();
+        let mut rng = ChaCha8Rng::seed_from_u64(13);
+        let state = retreating(&data);
+        let err = state
+            .reachable(
+                &data,
+                Side::Cw,
+                &ids(&["unit:cw:1-krrc"]),
+                Purpose::RetreatBeforeAssault,
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "5.2");
+        let err = state
+            .reachable(
+                &data,
+                Side::Axis,
+                &ids(&["unit:it:viii-libyan-bn"]),
+                Purpose::Move,
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "13.1");
+        // The whole Fort Capuzzo stack is held: it is in the enemy ZOC
+        // and would leave nobody to cancel it (10.2x), as `apply` says.
+        let capuzzo = stack_at(&state, "C4020", Side::Axis);
+        let err = state
+            .reachable(&data, Side::Axis, &capuzzo, Purpose::RetreatBeforeAssault)
+            .unwrap_err();
+        assert_eq!(err.case, "10.2x");
+        let mut walks = 0;
+        for (stack, cap) in [
+            (ids(&["unit:it:viii-libyan-bn"]), None),
+            (stack_at(&state, "C3617", Side::Axis), Some(Cp::whole(4))),
+        ] {
+            assert!(!stack.is_empty());
+            let reaches = state
+                .reachable(&data, Side::Axis, &stack, Purpose::RetreatBeforeAssault)
+                .unwrap();
+            assert!(!reaches.is_empty(), "{stack:?}");
+            assert!(
+                reaches
+                    .iter()
+                    .all(|r| !r.may_be_interrupted && r.short == 0)
+            );
+            if let Some(cap) = cap {
+                assert!(
+                    reaches.iter().all(|r| r.path.len() == 1 || r.cp <= cap),
+                    "{reaches:?}"
+                );
+                assert!(
+                    reaches.iter().any(|r| r.path.len() > 1),
+                    "some two-hex retreat within 4 CP"
+                );
+            }
+            walks += check_both_ways(
+                &data,
+                &state,
+                Side::Axis,
+                &stack,
+                Purpose::RetreatBeforeAssault,
+                &reaches,
+                &mut rng,
+            );
+        }
+        assert!(walks >= 10, "only {walks} random retreats were accepted");
+        // Pinned: refused as the order is.
+        let mut pinned = state.clone();
+        let bn = pid("unit:it:viii-libyan-bn");
+        pinned.combat.pinned.insert(bn.clone());
+        let err = pinned
+            .reachable(
+                &data,
+                Side::Axis,
+                std::slice::from_ref(&bn),
+                Purpose::RetreatBeforeAssault,
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "12.44");
+    }
+
+    /// `Purpose::ForcedRetreat`: the Fort Capuzzo stack ordered two
+    /// hexes back from Sollum. By R-012's default it may stop short and
+    /// pay, so a short hex is returned flagged; a must-attack retreat
+    /// never stops short; under R-012's `MustRetreat` neither does an
+    /// assault result.
+    #[test]
+    fn every_returned_forced_retreat_is_accepted_and_every_accepted_one_is_returned() {
+        let data = graziani();
+        let mut rng = ChaCha8Rng::seed_from_u64(15);
+        let base = retreating(&data);
+        let stack = stack_at(&base, "C4020", Side::Axis);
+        let order = |reason| Pending::ForcedRetreat {
+            side: Side::Axis,
+            pieces: stack.clone(),
+            hexes: 2,
+            from: vec![hex("C4021")],
+            reason,
+            raw: 40,
+            overrun: false,
+        };
+        let err = base
+            .reachable(&data, Side::Axis, &stack, Purpose::ForcedRetreat)
+            .unwrap_err();
+        assert_eq!(err.case, "15.82");
+        let mut walks = 0;
+        for (reason, r012, shorts) in [
+            (
+                RetreatReason::AssaultResult,
+                cna_rules::ruleset::R012::BuyOut,
+                true,
+            ),
+            (
+                RetreatReason::AssaultResult,
+                cna_rules::ruleset::R012::MustRetreat,
+                false,
+            ),
+            (
+                RetreatReason::MustAttack,
+                cna_rules::ruleset::R012::BuyOut,
+                false,
+            ),
+        ] {
+            let mut state = base.clone();
+            state.ruleset.r012 = r012;
+            state.pending = Some(order(reason));
+            // The whole ordered stack, or nothing.
+            let err = state
+                .reachable(&data, Side::Axis, &stack[..1], Purpose::ForcedRetreat)
+                .unwrap_err();
+            assert_eq!(err.case, "15.82");
+            let reaches = state
+                .reachable(&data, Side::Axis, &stack, Purpose::ForcedRetreat)
+                .unwrap();
+            assert!(!reaches.is_empty());
+            assert_eq!(
+                reaches.iter().any(|r| r.short > 0),
+                shorts,
+                "{reason:?} {r012:?}: {reaches:?}"
+            );
+            assert!(reaches.iter().any(|r| r.short == 0 && r.path.len() == 2));
+            assert!(reaches.iter().all(|r| !r.may_be_interrupted));
+            walks += check_both_ways(
+                &data,
+                &state,
+                Side::Axis,
+                &stack,
+                Purpose::ForcedRetreat,
+                &reaches,
+                &mut rng,
+            );
+        }
+        assert!(walks >= 10, "only {walks} random retreats were accepted");
+    }
+
     /// Random stacks of the phasing player, `Purpose::Move`: every path
     /// the query returns is accepted by `apply` on a clone at the cost
     /// it names (unless it is flagged and the engine does stop it), and
@@ -893,6 +1185,11 @@ mod tests {
                 pieces: stack.to_vec(),
                 path,
             },
+            Purpose::RetreatBeforeAssault => Order::RetreatBeforeAssault {
+                pieces: stack.to_vec(),
+                path,
+            },
+            Purpose::ForcedRetreat => Order::Retreat { path },
         }
     }
 
@@ -923,21 +1220,39 @@ mod tests {
                 }
             }
             let dp = per_piece.values().copied().max().unwrap_or(0);
-            if probe.pieces[&stack[0]].hex() == Some(&x.hex) {
-                assert_eq!((cp, dp), (x.cp, x.dp), "{x:?}");
+            let must_attack = matches!(
+                state.pending,
+                Some(Pending::ForcedRetreat {
+                    reason: RetreatReason::MustAttack,
+                    ..
+                })
+            );
+            // A stack that stood short may have lost its first piece to
+            // the 10 % (15.82): any piece still on the map says where it is.
+            let end = stack.iter().find_map(|id| probe.pieces[id].hex().cloned());
+            if end.as_ref() == Some(&x.hex) {
+                assert_eq!(cp, x.cp, "{x:?}");
+                // A must-attack retreat adds 3 DP of its own (10.36).
+                if !must_attack {
+                    assert_eq!(dp, x.dp, "{x:?}");
+                }
+                if purpose == Purpose::ForcedRetreat {
+                    let short = events.iter().find_map(|e| match e {
+                        Event::RetreatBoughtOut { short, .. } => Some(*short),
+                        _ => None,
+                    });
+                    assert_eq!(short.unwrap_or(0), x.short, "{x:?}");
+                }
             } else {
                 // Stopped short, for a declaration or a reaction.
-                assert!(
-                    x.may_be_interrupted,
-                    "{x:?}: stopped at {:?}",
-                    probe.pieces[&stack[0]].hex()
-                );
+                assert!(x.may_be_interrupted, "{x:?}: stopped at {end:?}");
             }
         }
         let from = state.pieces[&stack[0]].hex().unwrap().clone();
         let (walks, max_len) = match purpose {
             Purpose::Move => (40, 6),
             Purpose::React => (300, 12),
+            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => (200, 5),
         };
         let mut accepted = 0;
         for _ in 0..walks {
@@ -956,7 +1271,9 @@ mod tests {
                 continue;
             };
             let (cp, _) = charged(&events);
-            let end = probe.pieces[&stack[0]].hex().unwrap();
+            let Some(end) = stack.iter().find_map(|id| probe.pieces[id].hex()) else {
+                continue;
+            };
             if end == &from || end != path.last().unwrap() {
                 // Stopped short: the walk did not end where it meant to.
                 continue;
