@@ -15,6 +15,9 @@ use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::close_assault::may_buy_out;
 
+/// The DP a must-attack retreat adds (10.36).
+const MUST_ATTACK_DP: u32 = 3;
+
 impl GameState {
     /// `Order::RetreatBeforeAssault` (13.2x): ordinary voluntary movement
     /// by an unpinned, uncollapsed non-phasing stack, paid in the enemy
@@ -140,7 +143,9 @@ impl GameState {
     /// leave an enemy ZOC, ending at least the ordered hexes from every
     /// hex that forced it; each hex short costs 10 % of its raw points
     /// where the ruleset lets it stand (R-012). A must-attack retreat
-    /// may not stop short; with no path the stack surrenders.
+    /// may not stop short; with no path the stack surrenders. It is paid
+    /// from the CP the unit has left, the rest is forfeited without DP,
+    /// and 3 DP follow (R-118).
     pub(crate) fn forced_retreat(
         &mut self,
         data: &Data,
@@ -282,6 +287,9 @@ impl GameState {
             }
         }
         self.pending = None;
+        if reason == RetreatReason::MustAttack && short == 0 {
+            self.forfeit_cp_and_disorganise(&pieces, &mut events);
+        }
         if short > 0 {
             if reason == RetreatReason::MustAttack {
                 let toe: Vec<(PieceId, u32)> = pieces
@@ -328,6 +336,23 @@ impl GameState {
             self.open_step(data, Segment::ReserveRelease, &mut events);
         }
         Ok(events)
+    }
+
+    /// 10.36 after the retreat is walked (R-118): all the unit's CP are
+    /// played, so what is left under its CPA is forfeited, earning no
+    /// DP for the difference; then 3 DP whatever the retreat cost.
+    fn forfeit_cp_and_disorganise(&mut self, pieces: &[PieceId], events: &mut Vec<Event>) {
+        for id in pieces {
+            let cpa = Cp::whole(self.cpa(&self.pieces[id]).unwrap_or(0));
+            let p = self.pieces.get_mut(id).expect("checked");
+            p.cp_spent = p.cp_spent.max(cpa);
+            p.cohesion.earn_dp(MUST_ATTACK_DP);
+            events.push(Event::Disorganised {
+                piece: id.clone(),
+                dp: MUST_ATTACK_DP,
+                level: p.cohesion.level,
+            });
+        }
     }
 }
 
