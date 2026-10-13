@@ -3,9 +3,9 @@
   // (spec, *Phase controls*: an illegal click is a toast).
   let { text, ondone }: { text: string; ondone: () => void } = $props();
 
+  // The app keys each toast, so a repeat of the same text is a new one.
   const SHOWN_MS = 6000;
   $effect(() => {
-    void text;
     const t = setTimeout(ondone, SHOWN_MS);
     return () => clearTimeout(t);
   });

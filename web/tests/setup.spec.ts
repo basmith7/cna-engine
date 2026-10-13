@@ -99,8 +99,8 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
     }
   }
 
-  // Set-up complete: GT1 OpStage 1 phase A, the Axis to act, no curtain
-  // (the Commonwealth placed last; the Axis holds the initiative).
+  // Set-up complete: GT1 OpStage 1 phase A, the Axis to act. The
+  // Commonwealth placed last, so the curtain is down for the Axis.
   await expect(page.getByTestId("curtain")).toHaveAttribute("data-side", "axis");
   await page.getByTestId("curtain").click();
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · A · initiative");
@@ -110,7 +110,7 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
   const log = page.getByTestId("log-entries");
   await expect(log.locator("li.header").first()).toHaveText("Game-Turn 1 · set-up");
   await expect(log.locator("li.event", { hasText: "Set-up complete; play begins." })).toHaveCount(1);
-  await expect(log.locator("li.event").last()).toContainText("Game-Turn 1 OpStage 1: initiative-declaration begins.");
+  await expect(log.locator("li.event").last()).toContainText("Game-Turn 1 OpStage 1: A · initiative begins.");
 
   // The state is what `cna-play replay` makes of the same 59 orders.
   const view = await page.evaluate(() => window.__cna.view());

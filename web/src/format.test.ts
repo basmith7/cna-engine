@@ -8,7 +8,7 @@ const roll = { reading: 4, pct: 10, raw_lost: 3, toe_lost: 1, engaged: false, re
 
 /** One sample per variant of `Event`, with what its line must say. */
 const cases: [Event, string][] = [
-  [{ "phase-started": { clock } }, "Game-Turn 2 OpStage 3: movement-combat (Player A), movement begins."],
+  [{ "phase-started": { clock } }, "Game-Turn 2 OpStage 3: G · movement and combat (Player A), movement begins."],
   [{ "phase-skipped": { clock: { ...clock, segment: "barrage" } } }, "barrage: nothing to do, skipped."],
   [{ "die-rolled": { purpose: "initiative", value: 5 } }, "Die for initiative: 5."],
   [{ "initiative-determined": { holder: "axis", rolled: true } }, "Axis holds the initiative (by die roll)."],

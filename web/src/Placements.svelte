@@ -18,10 +18,11 @@
 
 <style>
   .placement {
-    /* Light enough that the terrain under it still reads at the fitted view. */
-    fill: #ffb703;
-    fill-opacity: 0.32;
-    stroke: #c77d00;
+    /* A cool hue, so it reads over the sand-coloured terrain; light enough
+       that the terrain under it still shows at the fitted view. */
+    fill: #7b4fd1;
+    fill-opacity: 0.3;
+    stroke: #4c2a9a;
     stroke-width: 0.6;
     pointer-events: none;
   }

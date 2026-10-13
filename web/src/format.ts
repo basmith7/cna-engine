@@ -1,7 +1,7 @@
 // One English line per engine Event for the log panel (spec, *Log*).
 // Exhaustive: a new variant in `types.ts` fails `tsc` at the `never`.
 // Our own words, never the rulebook's.
-import { sideName } from "./clock";
+import { PHASE_NAMES, SEGMENT_NAMES, sideName } from "./clock";
 import type { BarrageResult, Event, Location, PieceId, RetreatReason, Weather } from "./types";
 
 /** How a piece is named in a line; the app passes the view's labels. */
@@ -44,7 +44,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;
-    return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${c.phase}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${c.segment}` : ""} begins.`;
+    return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${PHASE_NAMES[c.phase]}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${SEGMENT_NAMES[c.segment]}` : ""} begins.`;
   }
   if ("phase-skipped" in e) {
     const c = e["phase-skipped"].clock;

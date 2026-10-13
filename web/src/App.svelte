@@ -25,6 +25,8 @@
   let picked: PieceId | null = $state(null);
   /** The engine's last refusal, until the toast goes or the next order. */
   let illegal: string | null = $state(null);
+  /** Counts refusals so a repeat of the same text is still a new toast. */
+  let refusals = $state(0);
   /** The log panel: event lines under clock headers, refusals in red. */
   let log: LogEntry[] = $state([]);
   /** The side the curtain is down for, until they click it away. */
@@ -47,11 +49,12 @@
     if ("illegal" in r) {
       illegal = `Illegal (${r.illegal.case}): ${r.illegal.reason}`;
       log = withIllegal(log, illegal);
+      refusals++;
       return false;
     }
     illegal = null;
     const before = view;
-    const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).short : id);
+    const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
     view = engine.view();
     log = withEvents(
       log,
@@ -104,7 +107,9 @@
     <Curtain side={curtain} ondismiss={() => (curtain = null)} />
   {/if}
   {#if illegal}
-    <Toast text={illegal} ondone={() => (illegal = null)} />
+    {#key refusals}
+      <Toast text={illegal} ondone={() => (illegal = null)} />
+    {/key}
   {/if}
   {#if view}
     <TopBar {view} {hex} />
