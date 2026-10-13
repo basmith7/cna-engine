@@ -3,6 +3,9 @@
   import type { View } from "./types";
 
   let { view, hex }: { view: View; hex: string | null } = $props();
+
+  /** A side, or a dash before the game has set it. */
+  const unset = (side: View["initiative"]) => (side ? sideName(side) : "–");
 </script>
 
 <header class="topbar">
@@ -10,8 +13,8 @@
   <span class="clock" data-testid="clock">{clockLine(view)}</span>
   <span class="to-act" data-testid="to-act">{toActLine(view)}</span>
   <span class="detail">weather {weatherName(view.weather)}</span>
-  <span class="detail">initiative {sideName(view.initiative)}</span>
-  <span class="detail">Player A {sideName(view.player_a)}</span>
+  <span class="detail">initiative {unset(view.initiative)}</span>
+  <span class="detail">Player A {unset(view.player_a)}</span>
   <span class="detail hex" data-testid="hex">{hex ? `hex ${hex}` : ""}</span>
 </header>
 
