@@ -16,7 +16,7 @@ use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
 use cna_game::reach::Purpose;
-use cna_game::state::{GameState, Pending};
+use cna_game::state::{GameState, Modules, Pending};
 use serde_json::{Value, json};
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl Game {
     /// A new Graziani game, the Axis to place first.
     pub fn new(seed: u64) -> Result<Game> {
         Ok(Game {
-            state: GameState::new(data(), seed)?,
+            state: GameState::with_modules(data(), seed, Modules::ALL)?,
         })
     }
 
@@ -98,6 +98,32 @@ impl Game {
                                 .is_some_and(|p| p.side == acting)
                         });
                     }
+                }
+            }
+        }
+        // 3.61: loads and motorisation points are the owner's secret.
+        if let Some(acting) = self.state.to_act() {
+            let other = serde_json::to_value(acting.other())?
+                .as_str()
+                .unwrap_or_default()
+                .to_owned();
+            if let Some(m) = v.get_mut("motorisation").and_then(Value::as_object_mut) {
+                m.remove(&other);
+            }
+            if let Some(m) = v
+                .get_mut("pending_motorisation")
+                .and_then(Value::as_object_mut)
+            {
+                m.retain(|id, _| {
+                    self.state
+                        .pieces
+                        .values()
+                        .any(|p| p.id.as_str() == id && p.side == acting)
+                });
+            }
+            for p in self.state.pieces.values().filter(|p| p.side != acting) {
+                if let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() {
+                    o.remove("load");
                 }
             }
         }
@@ -263,6 +289,32 @@ mod tests {
         );
         let supply = &pieces["supply:axis:1"];
         assert!(supply["name"].is_null() && supply["abbreviation"].is_null());
+    }
+
+    // 3.61: the other side's loads and motorisation points are not in the
+    // view; the acting side's own are, and the save keeps both.
+    #[test]
+    fn the_view_hides_the_other_side_s_loads_and_motorisation() {
+        let game = Game::new(7).unwrap();
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(
+            view["pieces"]["supply:axis:1"]["load"],
+            json!({"ammo": 15, "fuel": 50})
+        );
+        assert!(view["pieces"]["supply:cw:1"].get("load").is_none());
+        assert!(view["motorisation"]["axis"].is_object());
+        assert!(view["motorisation"].get("cw").is_none());
+        // Only the Commonwealth's Alexandria deployment is pending: hidden.
+        assert!(
+            view["pending_motorisation"]
+                .as_object()
+                .is_none_or(|m| m.is_empty())
+        );
+        let save: Value = serde_json::from_str(&game.save().unwrap()).unwrap();
+        assert!(save["pieces"]["supply:cw:1"]["load"].is_object());
+        assert!(save["motorisation"]["cw"].is_object());
+        assert!(save["pending_motorisation"].is_object());
     }
 
     #[test]
@@ -914,7 +966,11 @@ mod tests {
     fn the_scripted_set_up_through_apply_matches_replay() {
         let log = setup_log();
         assert_eq!(log.orders.len(), 76);
-        let mut game = Game::new(log.seed).unwrap();
+        // The scripted set-up predates the module (it stacks supply units
+        // past 32.1x's cap), so it plays without it.
+        let mut game = Game {
+            state: GameState::new(data(), log.seed).unwrap(),
+        };
         for (i, o) in log.orders.iter().enumerate() {
             let side = serde_json::to_value(o.player).unwrap();
             let r = game
