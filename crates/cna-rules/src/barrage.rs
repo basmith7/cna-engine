@@ -15,6 +15,49 @@ pub fn terrain_shift(rules: &Ruleset, target_shift: i32, firer_phasing: bool) ->
     }
 }
 
+/// What one barrage does to its target on one reading (12.4x).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BarrageResult {
+    NoEffect,
+    Pinned,
+    /// TOE points destroyed.
+    Lose(u32),
+    /// The reading falls in no cell, or in several.
+    Unresolved,
+}
+
+/// The band a barrage of `points` reads after `shift`; none below the
+/// lowest band (no effect, 12.33).
+fn band(t: &Barrage, points: u32, shift: i32) -> Option<&str> {
+    let i = t
+        .band_index(points)
+        .map(|i| i as i32 + shift)
+        .filter(|i| *i >= 0)?;
+    Some(&t.bands[(i as usize).min(t.bands.len() - 1)].id)
+}
+
+/// One barrage on one sequential reading (11..=66): the game's sampling
+/// entry point, which `outcome` enumerates over.
+pub fn resolve(t: &Barrage, class: &str, points: u32, shift: i32, reading: u8) -> BarrageResult {
+    let Some(band) = band(t, points, shift) else {
+        return BarrageResult::NoEffect;
+    };
+    let hits: Vec<&str> = t
+        .cells
+        .iter()
+        .filter(|c| c.class == class && c.column == band && c.dice.contains(reading))
+        .map(|c| c.result.as_str())
+        .collect();
+    match hits.as_slice() {
+        ["no-effect"] => BarrageResult::NoEffect,
+        ["pinned"] => BarrageResult::Pinned,
+        ["lose-1"] => BarrageResult::Lose(1),
+        ["lose-2"] => BarrageResult::Lose(2),
+        _ => BarrageResult::Unresolved,
+    }
+}
+
 /// One barrage against one target, over all 36 readings.
 #[derive(Debug, Clone, Copy)]
 pub struct BarrageOutcome {
@@ -124,6 +167,66 @@ mod tests {
     fn a_shift_below_the_table_has_no_effect() {
         let o = outcome(&t(), "infantry", 2, -1);
         assert_eq!((o.p_effect, o.expected_loss), (0.0, 0.0));
+    }
+
+    #[test]
+    fn resolve_agrees_with_the_exact_outcome() {
+        let t = t();
+        for class in ["infantry", "armor", "gun"] {
+            for points in [1, 3, 7, 9, 12, 20] {
+                for shift in [-2, 0] {
+                    let o = outcome(&t, class, points, shift);
+                    let (mut effect, mut loss) = (0.0, 0.0);
+                    for (a, b) in rolls() {
+                        match resolve(&t, class, points, shift, a * 10 + b) {
+                            BarrageResult::NoEffect => {}
+                            BarrageResult::Pinned => effect += P,
+                            BarrageResult::Lose(n) => {
+                                effect += P;
+                                loss += P * n as f64;
+                            }
+                            BarrageResult::Unresolved => panic!("{class} {points}"),
+                        }
+                    }
+                    assert!(
+                        (effect - o.p_effect).abs() < 1e-12,
+                        "{class} {points} {shift}"
+                    );
+                    assert!(
+                        (loss - o.expected_loss).abs() < 1e-12,
+                        "{class} {points} {shift}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn ten_thousand_seeded_samples_match_the_distribution() {
+        use crate::dice::sample;
+        let t = t();
+        let o = outcome(&t, "infantry", 9, 0);
+        let mut rng = sample::rng(9);
+        let n = 10_000;
+        let (mut effect, mut loss) = (0u32, 0u32);
+        for _ in 0..n {
+            match resolve(&t, "infantry", 9, 0, sample::reading(&mut rng)) {
+                BarrageResult::NoEffect => {}
+                BarrageResult::Pinned => effect += 1,
+                BarrageResult::Lose(k) => {
+                    effect += 1;
+                    loss += k;
+                }
+                BarrageResult::Unresolved => panic!(),
+            }
+        }
+        assert!((effect as f64 / n as f64 - o.p_effect).abs() < 0.02);
+        assert!((loss as f64 / n as f64 - o.expected_loss).abs() < 0.02);
+        // One seeded sample, pinned.
+        let mut rng = sample::rng(9);
+        let r = sample::reading(&mut rng);
+        assert_eq!(r, 46);
+        assert_eq!(resolve(&t, "infantry", 9, 0, r), BarrageResult::Pinned);
     }
 
     #[test]

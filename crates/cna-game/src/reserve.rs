@@ -105,7 +105,9 @@ impl GameState {
                 Some(f) if f != r => {
                     return Err(Illegal::new(
                         "18.2x",
-                        format!("{id} is in Reserve {r}, not {f} like the rest: release them apart"),
+                        format!(
+                            "{id} is in Reserve {r}, not {f} like the rest: release them apart"
+                        ),
                     ));
                 }
                 Some(_) => {}
@@ -210,9 +212,7 @@ mod tests {
             .apply(
                 data,
                 Side::Axis,
-                Order::DeclareInitiative {
-                    player_a: Side::Cw,
-                },
+                Order::DeclareInitiative { player_a: Side::Cw },
             )
             .unwrap();
         assert_eq!(state.clock.phase, Phase::ReserveDesignation);
@@ -229,10 +229,7 @@ mod tests {
             (designate(&["unit:it:lxiil-tank-bn"]), Side::Cw),
             (designate(&["unit:cw:nobody"]), Side::Cw),
             (designate(&[]), Side::Cw),
-            (
-                designate(&["unit:cw:1-krrc", "unit:cw:1-krrc"]),
-                Side::Cw,
-            ),
+            (designate(&["unit:cw:1-krrc", "unit:cw:1-krrc"]), Side::Cw),
             (
                 Order::DesignateReserve {
                     pieces: vec![PieceId::supply(Side::Cw, 1)],
@@ -245,7 +242,11 @@ mod tests {
         }
         assert_eq!(snapshot(&state), before);
         let events = state
-            .apply(&data, Side::Cw, designate(&["unit:cw:1-krrc", "unit:cw:7-med"]))
+            .apply(
+                &data,
+                Side::Cw,
+                designate(&["unit:cw:1-krrc", "unit:cw:7-med"]),
+            )
             .unwrap();
         assert_eq!(
             events,
@@ -279,7 +280,11 @@ mod tests {
         let data = graziani();
         let mut state = in_phase_f(&data);
         state
-            .apply(&data, Side::Cw, designate(&["unit:cw:1-krrc", "unit:cw:7-med"]))
+            .apply(
+                &data,
+                Side::Cw,
+                designate(&["unit:cw:1-krrc", "unit:cw:7-med"]),
+            )
             .unwrap();
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::Movement));
@@ -288,11 +293,19 @@ mod tests {
         // C4020 exerts), is no shift.
         let before = snapshot(&state);
         let err = state
-            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]))
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]),
+            )
             .unwrap_err();
         assert_eq!(err.case, "18.2x");
         let err = state
-            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc", "unit:cw:4-rha"], &["C3923"]))
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:1-krrc", "unit:cw:4-rha"], &["C3923"]),
+            )
             .unwrap_err();
         assert_eq!(err.case, "18.2x");
         assert_eq!(snapshot(&state), before);
@@ -333,7 +346,7 @@ mod tests {
         assert_eq!(err.case, "18.2x");
         // The first release segment: 1 KRRC comes out of Reserve I; 7 Med
         // stays and flips to Reserve II as the segment closes.
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
         let err = state
             .apply(&data, Side::Cw, release(&["unit:cw:4-rha"]))
@@ -383,12 +396,15 @@ mod tests {
             .apply(
                 &data,
                 Side::Cw,
-                mv(&["unit:cw:1-krrc"], &["C3924", "C3925", "C3926", "C3927", "C3928"]),
+                mv(
+                    &["unit:cw:1-krrc"],
+                    &["C3924", "C3925", "C3926", "C3927", "C3928"],
+                ),
             )
             .unwrap();
         assert_eq!(state.pieces[&krrc].cp_spent, Cp::whole(9));
         // A later release segment lets Reserve II out, at half its CPA.
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         let events = state
             .apply(&data, Side::Cw, release(&["unit:cw:7-med"]))
             .unwrap();
@@ -424,10 +440,10 @@ mod tests {
             .apply(&data, Side::Cw, designate(&["unit:cw:1-rnf"]))
             .unwrap();
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
         assert_eq!(state.pieces[&rnf].reserve, Some(Reserve::II));
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         state
             .apply(&data, Side::Cw, release(&["unit:cw:1-rnf"]))
             .unwrap();
@@ -450,7 +466,7 @@ mod tests {
             .apply(&data, Side::Cw, designate(&["unit:cw:7-med"]))
             .unwrap();
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert!(events.contains(&Event::ReserveFlipped {
             pieces: vec![pid("unit:cw:7-med")]

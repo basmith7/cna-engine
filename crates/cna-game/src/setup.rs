@@ -101,6 +101,7 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     id_code: None,
                     parent: None,
                     toe: 0,
+                    weapons: Vec::new(),
                     cpa: None,
                     morale: None,
                     status: None,
@@ -256,9 +257,9 @@ fn piece(
         .as_deref()
         .and_then(|code| chars.row(unit.id.nation(), code));
     let is_head = matches!(&entry.subject, Subject::Unit(u) if u == &unit.id);
-    let toe = match (&entry.toe, is_head) {
-        (Some(toe), true) => toe.iter().map(|t| t.points).sum(),
-        _ => toe_points(unit, row),
+    let (toe, weapons) = match (&entry.toe, is_head) {
+        (Some(toe), true) => (toe.iter().map(|t| t.points).sum(), toe.clone()),
+        _ => (toe_points(unit, row), unit.toe.clone()),
     };
     let equivalent = row.and_then(|r| match r.equivalent {
         Equivalent::ByUnit => unit.equivalent,
@@ -276,6 +277,7 @@ fn piece(
         id_code: unit.id_code.clone(),
         parent,
         toe,
+        weapons,
         cpa: row.and_then(|r| r.cpa.clone()),
         morale: oa.morale(&unit.id),
         status: entry.status,
@@ -324,7 +326,15 @@ pub fn reinforcement(
             if unit.id_code.is_none() && unit.toe.is_empty() {
                 return None;
             }
-            Some(piece(side, unit, m.parent, &entry, chars, oa, location.clone()))
+            Some(piece(
+                side,
+                unit,
+                m.parent,
+                &entry,
+                chars,
+                oa,
+                location.clone(),
+            ))
         })
         .collect())
 }

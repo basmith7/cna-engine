@@ -212,6 +212,19 @@ impl GameState {
         from: &HexId,
         path: &[HexId],
     ) -> Result<Plan, Illegal> {
+        self.plan_with(data, pieces, from, path, false)
+    }
+
+    /// `plan`, where `forced` lets a stack leave an enemy ZOC it entered
+    /// this segment: a forced retreat (15.82) is no voluntary move.
+    pub(crate) fn plan_with(
+        &self,
+        data: &Data,
+        pieces: &[PieceId],
+        from: &HexId,
+        path: &[HexId],
+        forced: bool,
+    ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
@@ -234,7 +247,7 @@ impl GameState {
                     .iter()
                     .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
                 let cancelled = self.friendly_combat_in(from, side, pieces);
-                if !tied && !cancelled {
+                if !tied && !cancelled && !forced {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(
@@ -416,7 +429,10 @@ impl GameState {
             if plan.ends_in_zoc {
                 return Err(Illegal::new(
                     "18.2x",
-                    format!("{}: a unit in reserve never shifts into an enemy ZOC", path[0]),
+                    format!(
+                        "{}: a unit in reserve never shifts into an enemy ZOC",
+                        path[0]
+                    ),
                 ));
             }
             for step in &mut plan.steps {
@@ -840,7 +856,7 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
             .unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         assert!(state.continuing.contains(&pid("unit:cw:11-hus")));
         assert!(!state.continuing.contains(&pid("unit:cw:1-krrc")));
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
@@ -856,6 +872,7 @@ mod tests {
             .unwrap();
         // A new phase starts afresh: in the Axis half every Axis unit may
         // make its first move.
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         state.apply(&data, Side::Axis, Order::Pass).unwrap();
         assert_eq!(state.cycle, 0);

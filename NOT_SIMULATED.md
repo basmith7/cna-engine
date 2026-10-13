@@ -7,17 +7,14 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 |---|---|
 | R-002 | map art (road stubs): a question of what the map shows, not of numbers |
 | R-005 | interpretive: what one rail stack may carry; also needs movement |
-| R-010 | interpretive: retreat before assault direction; also needs the map |
-| R-013 | the difference is linear: ammunition scales with the pinned share; no probe adds information |
-| R-014 | interpretive: what may capture a destroyed-tank marker |
+| R-013 | ammunition is not in the engine yet (Mission 2 has no supply states); when it is, pinned, retreated-in and withheld units spend none (the Decision) |
+| R-014 | destroyed-tank markers are not in the engine yet (slice 5 removes destroyed armour outright); when they are, only a battalion-size combat unit captures one (the Decision) |
 | R-016 | interpretive: when a Tank Delivery Squadron moves |
 | R-017 | interpretive: what a Tank Delivery Squadron may do in combat and retreat |
 | R-019 | interpretive: the fleet's western limit; a map question, not one of numbers |
 | R-020 | needs the Logistics Game (§47–58) restated in cna |
 | R-021 | needs the Logistics Game (§47–58) restated in cna |
 | R-022 | needs the Logistics Game (§47–58) restated in cna |
-| R-023 | printed chart gap, decided in cna; the `chart-oddities` probe already measures how often it comes up |
-| R-024 | printed chart gap, decided in cna; the `chart-oddities` probe already measures how often it comes up |
 | R-025 | Logistics Game (§48–58): not in the engine yet |
 | R-026 | Logistics Game (§48–58): not in the engine yet |
 | R-027 | Logistics Game (§48–58): port efficiency; not in the engine yet |
@@ -84,3 +81,24 @@ rulings*). Each names where it is enforced.
 | R-006 | non-motorised units never react, whatever they stack with (`cna-game::reaction::reactors_next_to`); truck convoys are not in the engine yet |
 | R-007 | a reaction spends CP on movement only: `Order::React` is a path and nothing else |
 | R-008 | a unit in an enemy ZOC, in contact or engaged never reacts; no break-off fee arises in a reaction |
+| R-010 | retreat before assault is ordinary movement in any direction under the 13.2x limits (`cna-game::combat::retreat::retreat_before_assault`) |
+| R-023 | a defender reading of 34–36 on the +2 column inflicts 5 % (`cna-rules::close_assault::loss_pct_decided`) |
+| R-024 | a morale reading of 56 at cohesion −4 is −2 (`cna-game::combat::assault::adjusted_morale`) |
+
+# Combat systems not simulated (Mission 2 slice 5)
+
+The combat segment runs on pieces without these; each is a later slice or
+mission, and the engine neither models nor approximates them.
+
+| System | What the engine does instead |
+|---|---|
+| Ammunition and fuel (SPI 6.4, 47–58) | nothing is deducted; no unit is ever out of ammunition |
+| Trucks, halftracks and mounted infantry (12.46, 14.48) | no truck roll after a barrage; no halftrack cap |
+| Destroyed-tank markers and their capture (14.4x, 14.5) | destroyed armour leaves the map |
+| Dummy tank formations (16.4) | none exist |
+| Prisoners and captured equipment (15.89, 28.0) | the captured share is logged (`Event::Prisoners`) and nothing changes hands |
+| Advance after combat | none: cna's 50-stacking-and-zoc.md says movement in the next segment is not an advance |
+| The owner's choice of which TOE points die (12.45, 14.4x, 15.83) | the engine removes the points that absorb most per point first (`cna-game::combat::losses`) |
+| The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |
+| Patrol identification of barrage targets (12.2x) | the firer names any target in the hex |
+| Divisions in the size table (15.53) | the largest unit is a brigade at most, so no division shift arises |

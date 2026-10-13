@@ -3,11 +3,14 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
+use crate::combat::{RetreatReason, SealedStep};
+use crate::order::{Assignment, Fire};
 use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::barrage::BarrageResult;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -104,6 +107,108 @@ pub enum Event {
     ReserveFlipped {
         pieces: Vec<PieceId>,
     },
+    /// A sealed combat answer was accepted; its content waits for the
+    /// other side's (11.0).
+    Sealed {
+        side: Side,
+        step: SealedStep,
+    },
+    /// Step 1 revealed: this side's forward guns (12.1x).
+    GunPositionsSet {
+        side: Side,
+        forward: Vec<PieceId>,
+    },
+    /// Step 2 revealed: this side's barrages (12.2x).
+    BarragePlotted {
+        side: Side,
+        fires: Vec<Fire>,
+    },
+    /// One barrage rolled (12.4x): the firers' points pooled against one
+    /// target, after the terrain shift.
+    Barrage {
+        side: Side,
+        firers: Vec<PieceId>,
+        target: PieceId,
+        /// Actual barrage points, before the shift.
+        points: u32,
+        shift: i32,
+        reading: u8,
+        result: BarrageResult,
+    },
+    /// A non-phasing stack retreated before assault (13.2x).
+    RetreatedBeforeAssault {
+        pieces: Vec<PieceId>,
+        to: HexId,
+    },
+    /// One anti-armour attack rolled (14.0): phasing fire at a hex, or
+    /// non-phasing fire at the armour assaulting `target`.
+    AntiArmour {
+        side: Side,
+        target: HexId,
+        points: u32,
+        shift: i32,
+        reading: u8,
+        damage: u32,
+    },
+    /// One close assault or probe resolved (15.x).
+    Assault {
+        target: HexId,
+        attackers: Vec<PieceId>,
+        probe: bool,
+        attacker_raw: u32,
+        defender_raw: u32,
+        basic: i32,
+        /// Column shifts applied: terrain, size, morale and the rest.
+        shifts: i32,
+        column: String,
+        attacker: AssaultRoll,
+        defender: AssaultRoll,
+    },
+    /// A side's losses were partly prisoners (15.89).
+    Prisoners {
+        side: Side,
+        points: u32,
+    },
+    /// Pieces that surrendered when assaulted (15.88, E-009).
+    Surrendered {
+        pieces: Vec<PieceId>,
+    },
+    /// Units locked to the enemy by an assault (15.81).
+    Engaged {
+        pieces: Vec<PieceId>,
+    },
+    /// A stack must retreat (15.82, 15.29, 10.36).
+    RetreatOrdered {
+        pieces: Vec<PieceId>,
+        hexes: u32,
+        reason: RetreatReason,
+    },
+    /// A forced retreat stood (or stopped) `short` hexes short, at 10 %
+    /// of its raw points per hex (15.82, R-012).
+    RetreatBoughtOut {
+        pieces: Vec<PieceId>,
+        short: u32,
+    },
+    /// TOE points destroyed; `toe` is what is left.
+    Losses {
+        piece: PieceId,
+        points: u32,
+        toe: u32,
+    },
+    /// A piece whose last TOE point went.
+    Eliminated {
+        piece: PieceId,
+    },
+    /// Step 4 revealed: this side's roles (14.1x).
+    ForcesAssigned {
+        side: Side,
+        assignments: Vec<Assignment>,
+    },
+    /// Combat CP charged to a unit by its hex's role this segment (11.2x).
+    CombatCp {
+        piece: PieceId,
+        cost: Cp,
+    },
     /// A non-combat unit alone in an enemy ZOC was taken (10.29).
     Captured {
         piece: PieceId,
@@ -111,6 +216,20 @@ pub enum Event {
     },
     /// The scenario's last OpStage is over.
     GameOver,
+}
+
+/// One side's reading of the Close Assault CRT (15.7x).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssaultRoll {
+    pub reading: u8,
+    pub pct: u8,
+    /// Raw points lost, before absorption.
+    pub raw_lost: u32,
+    /// TOE points removed.
+    pub toe_lost: u32,
+    pub engaged: bool,
+    pub retreat: u32,
+    pub captured: bool,
 }
 
 /// A rejected order: the case (or case group) it breaks and why.

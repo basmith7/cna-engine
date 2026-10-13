@@ -94,7 +94,8 @@ mod tests {
     }
 
     /// The scripted game `tests/games/setup.json` is: every set-up order,
-    /// then GT1 OpStage 1 passed through by both players. Regenerate it
+    /// then GT1 OpStage 1 passed through by both players, the combat
+    /// steps answered with nothing (six orders a half). Regenerate it
     /// with `cargo test -p cna-game -- --ignored regenerate_setup_fixture`
     /// after a change to the set-up or the orders.
     fn scripted_setup(data: &Data) -> GameState {
@@ -118,7 +119,7 @@ mod tests {
         let data = graziani();
         let text = std::fs::read_to_string(fixture()).unwrap();
         let log: Log = serde_json::from_str(&text).unwrap();
-        assert_eq!(log.orders.len(), 59 + 1 + 4);
+        assert_eq!(log.orders.len(), 59 + 1 + 2 * 8);
         let live = scripted_setup(&data);
         assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
         let replayed = replay(&data, &log).unwrap();

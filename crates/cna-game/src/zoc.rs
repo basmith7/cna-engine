@@ -8,7 +8,6 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceKind};
 use crate::state::{GameState, Pending};
-use cna_data::characteristics::Mark;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::movement::{Step, step_cost};
@@ -36,29 +35,15 @@ impl GameState {
     }
 
     /// Raw close-assault defence points in a hex (4.4x): TOE points
-    /// times each combat unit's defence rating. A parenthesised rating
-    /// counts only when no unit in the hex has a plain one. Tanks and
-    /// guns take their ratings from the weapon systems table, which
-    /// slice 5 wires in; until then they count nothing here.
+    /// times each combat unit's defence rating, tanks and guns by their
+    /// weapon systems (4.47–4.49); a parenthesised rating counts only
+    /// when no unit in the hex has a plain one.
     pub(crate) fn raw_defence(&self, data: &Data, hex: &HexId) -> u32 {
-        let ratings: Vec<(u32, &cna_data::characteristics::Rating)> = self
-            .pieces
+        self.pieces
             .values()
             .filter(|p| p.hex() == Some(hex) && p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
-            .filter_map(|p| {
-                let row = data.chars.row(p.nation?, p.id_code.as_deref()?)?;
-                Some((p.toe, row.close_assault_defence.as_ref()?))
-            })
-            .collect();
-        let plain = ratings
-            .iter()
-            .any(|(_, r)| r.mark != Some(Mark::Parenthesised) && r.value.is_some());
-        ratings
-            .iter()
-            .filter(|(_, r)| plain || r.mark != Some(Mark::Parenthesised))
-            .filter(|(_, r)| r.mark.is_none() || r.mark == Some(Mark::Parenthesised))
-            .map(|(toe, r)| toe * u32::try_from(r.value.unwrap_or(0)).unwrap_or(0))
+            .map(|p| self.raw_of(data, p, crate::combat::strength::Kind::Defence))
             .sum()
     }
 
@@ -135,6 +120,22 @@ impl GameState {
         } else {
             Zoc::Undeclared(undeclared)
         }
+    }
+
+    /// The enemy hexes whose declared ZOC covers `hex` for a unit of
+    /// `side` (10.16, 10.3x): the non-phasing player's declarations, so
+    /// a hex it was never asked about exerts nothing.
+    pub(crate) fn zoc_sources(&self, data: &Data, hex: &HexId, side: Side) -> Vec<HexId> {
+        data.map
+            .neighbours(hex)
+            .into_iter()
+            .filter(|n| {
+                self.holder(n) == Some(side.other())
+                    && self.could_exert(data, n)
+                    && self.reaches(data, n, hex)
+                    && self.zoc.get(n) == Some(&true)
+            })
+            .collect()
     }
 
     /// Whether a combat unit of `side` other than those in `except`
@@ -308,11 +309,13 @@ mod tests {
         let data = graziani();
         let state = moving(&data, 3, Side::Cw);
         // The 1st Libyan Division at C4020: six battalions of 5 TOE at
-        // defence 1 (30 points), 6 SP of combat units.
+        // defence 1 (30 points) and eight 75/27 guns at 1, 6 SP of combat
+        // units.
         assert!(state.could_exert(&data, &hex("C4020")));
-        assert_eq!(state.raw_defence(&data, &hex("C4020")), 30);
-        // C3922: 3 Coldstream Guards and 1 KRRC, 6 TOE at 2 each.
-        assert_eq!(state.raw_defence(&data, &hex("C3922")), 24);
+        assert_eq!(state.raw_defence(&data, &hex("C4020")), 38);
+        // C3922: 3 Coldstream Guards and 1 KRRC, 6 TOE at 2 each, plus 4
+        // RHA's six 18/25-pounders at 1 (7 Med's 60-pounders defend at 0).
+        assert_eq!(state.raw_defence(&data, &hex("C3922")), 30);
         assert!(state.could_exert(&data, &hex("C3922")));
         // The Fort Maddalena garrison: 2 TOE at 3, one battalion: neither.
         assert_eq!(state.raw_defence(&data, &hex("C3019")), 6);
@@ -434,10 +437,51 @@ mod tests {
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4121"]))
             .unwrap_err();
         assert_eq!(err.case, "10.2x");
-        // The next segment opens with the Axis asked again (the
-        // declarations are per segment), then 1 KRRC is in contact and
-        // pays 2 CP to leave, on top of the terrain.
+        // Under a declared ZOC, 1 KRRC must attack C4020 or retreat
+        // (10.3x): it probes with two points (basic −3, enough to hold
+        // the hex off) for 2 CP. The next segment then opens with the
+        // Axis asked again (the declarations are per segment), 1 KRRC is
+        // in contact and pays 2 CP to leave, on top of the terrain.
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![crate::order::Assignment {
+                        piece: pid("unit:cw:1-krrc"),
+                        anti_armour: vec![],
+                        close_assault: vec![crate::order::Allocation {
+                            target: Some(hex("C4020")),
+                            points: 2,
+                        }],
+                    }],
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+            (
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            ),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        if matches!(state.pending, Some(Pending::ForcedRetreat { .. })) {
+            state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        }
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cp_spent, Cp::whole(2));
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::Movement));
         assert_eq!(
@@ -478,7 +522,7 @@ mod tests {
             }
         );
         let krrc = &state.pieces[&pid("unit:cw:1-krrc")];
-        assert_eq!(krrc.cp_spent, Cp::whole(5));
+        assert_eq!(krrc.cp_spent, Cp::whole(7));
         assert!(!krrc.contact);
     }
 

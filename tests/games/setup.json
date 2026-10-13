@@ -556,11 +556,91 @@
     },
     {
       "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
       "order": "pass"
     },
     {
       "player": "cw",
       "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
     },
     {
       "player": "cw",

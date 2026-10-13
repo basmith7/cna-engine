@@ -9,15 +9,22 @@
 //! commit; another host fills the same struct by other means.
 
 use anyhow::Result;
+use cna_data::anti_armour::AntiArmour;
+use cna_data::assault_size::AssaultSizeShifts;
+use cna_data::barrage::Barrage;
 use cna_data::characteristics::Characteristics;
+use cna_data::close_assault::CloseAssault;
 use cna_data::initiative::InitiativeRatings;
 use cna_data::map::Map;
+use cna_data::morale::MoraleModifier;
 use cna_data::oa::Oa;
 use cna_data::off_map::OffMapDistances;
+use cna_data::prisoners::Prisoners;
 use cna_data::scenario::Scenario;
 use cna_data::schedule::Schedule;
 use cna_data::stacking::StackingPoints;
 use cna_data::terrain::Terrain;
+use cna_data::weapons::WeaponSystems;
 use cna_data::weather::Weather;
 
 pub struct Data {
@@ -27,6 +34,7 @@ pub struct Data {
     pub scenario: Scenario,
     pub oa: Oa,
     pub chars: Characteristics,
+    pub weapons: WeaponSystems,
     pub map: Map,
     pub terrain: Terrain,
     pub stacking: StackingPoints,
@@ -34,6 +42,12 @@ pub struct Data {
     pub initiative: InitiativeRatings,
     pub schedule: Schedule,
     pub off_map: OffMapDistances,
+    pub barrage: Barrage,
+    pub anti_armour: AntiArmour,
+    pub close_assault: CloseAssault,
+    pub morale: MoraleModifier,
+    pub size_shifts: AssaultSizeShifts,
+    pub prisoners: Prisoners,
 }
 
 impl Data {
@@ -45,6 +59,7 @@ impl Data {
             scenario: Scenario::load(slug)?,
             oa: Oa::load_all()?,
             chars: Characteristics::load()?,
+            weapons: WeaponSystems::load()?,
             map: Map::load()?,
             terrain: Terrain::load()?,
             stacking: StackingPoints::load()?,
@@ -52,6 +67,12 @@ impl Data {
             initiative: InitiativeRatings::load()?,
             schedule: Schedule::load()?,
             off_map: OffMapDistances::load()?,
+            barrage: Barrage::load()?,
+            anti_armour: AntiArmour::load()?,
+            close_assault: CloseAssault::load()?,
+            morale: MoraleModifier::load()?,
+            size_shifts: AssaultSizeShifts::load()?,
+            prisoners: Prisoners::load()?,
         })
     }
 
