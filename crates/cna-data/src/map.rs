@@ -114,7 +114,7 @@ pub struct Hex {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Sheet {
     pub zone: String,
-    pub odd_rows_shift: Shift,
+    pub odd_rows_shift: RowShift,
     /// Inclusive `[first, last]`.
     pub rows: [i32; 2],
     pub cols: [i32; 2],
@@ -122,7 +122,7 @@ pub struct Sheet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Shift {
+pub enum RowShift {
     West,
     East,
 }
@@ -130,7 +130,7 @@ pub enum Shift {
 impl Sheet {
     /// True when `row` sits half a hex east of the rows above and below it.
     fn row_shifted_east(&self, row: i32) -> bool {
-        (row % 2 == 1) == (self.odd_rows_shift == Shift::East)
+        (row % 2 == 1) == (self.odd_rows_shift == RowShift::East)
     }
 }
 
