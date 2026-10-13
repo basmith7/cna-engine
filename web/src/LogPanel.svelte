@@ -17,6 +17,8 @@
   <ol bind:this={list} data-testid="log-entries">
     {#each entries as e, i (i)}
       <li class={e.kind}>{e.text}</li>
+    {:else}
+      <li class="empty">Nothing yet: every accepted order is told here.</li>
     {/each}
   </ol>
 </section>
@@ -61,5 +63,9 @@
   }
   .illegal {
     color: #a4161a;
+  }
+  .empty {
+    color: #777;
+    font-style: italic;
   }
 </style>

@@ -18,8 +18,9 @@
 
 <style>
   .placement {
+    /* Light enough that the terrain under it still reads at the fitted view. */
     fill: #ffb703;
-    fill-opacity: 0.45;
+    fill-opacity: 0.32;
     stroke: #c77d00;
     stroke-width: 0.6;
     pointer-events: none;

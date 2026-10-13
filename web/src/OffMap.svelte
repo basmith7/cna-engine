@@ -129,8 +129,9 @@
     border-color: #e9c46a;
   }
   .pick.picked {
-    border-color: #ffb703;
+    border-color: #e07b00;
     background: #fff4d6;
+    box-shadow: 0 0 0 2px #ffb703;
   }
   .transit {
     margin: 0;
