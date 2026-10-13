@@ -237,17 +237,19 @@ impl GameState {
             .map(|id| self.mobility(data, &self.pieces[id]))
             .collect();
         let mut plan = Plan::default();
+        // A stack in contact or engaged breaks off before it moves (8.6x).
+        // Contact only exists in an enemy ZOC; an engaged unit need not
+        // be in one, so this is the pieces' state, not the hex's.
+        plan.break_off = pieces
+            .iter()
+            .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
         // Where the stack stands: in an enemy ZOC it either breaks off
-        // (contact or engaged, 8.6x) or is stopped (10.22), unless another
-        // friendly combat unit there cancels the ZOC (10.26), as it did
-        // when the stack entered.
+        // or is stopped (10.22), unless another friendly combat unit
+        // there cancels the ZOC (10.26), as it did when the stack entered.
         let mut at_in_zoc = match self.zoc_at(data, from, side) {
             Zoc::Exerts => {
-                let tied = pieces
-                    .iter()
-                    .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
                 let cancelled = self.friendly_combat_in(from, side, pieces);
-                if !tied && !cancelled && !forced {
+                if !plan.break_off && !cancelled && !forced {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(
@@ -256,7 +258,6 @@ impl GameState {
                         ),
                     ));
                 }
-                plan.break_off = tied;
                 !cancelled
             }
             Zoc::Clear => false,
@@ -965,5 +966,30 @@ mod tests {
                 cost: Cp::halves(1)
             }
         );
+    }
+
+    #[test]
+    fn an_engaged_unit_disengages_for_4_cp_whatever_the_zoc() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        // 1 KRRC at C3922 is engaged from an earlier close assault, but
+        // no enemy ZOC reaches C3922: it still pays 4 CP to disengage
+        // (8.6x) before the 2 for C3923.
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().engaged = true;
+        assert_eq!(state.zoc_at(&data, &hex("C3922"), Side::Cw), Zoc::Clear);
+        let events = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
+            .unwrap();
+        assert_eq!(
+            events[0],
+            Event::ContactBroken {
+                piece: krrc.clone(),
+                cost: Cp::whole(4)
+            }
+        );
+        let p = &state.pieces[&krrc];
+        assert_eq!(p.cp_spent, Cp::whole(6));
+        assert!(!p.engaged);
     }
 }
