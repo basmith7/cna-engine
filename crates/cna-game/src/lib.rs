@@ -2,5 +2,6 @@
 //! and the set-up that makes them; the state machine, orders and log
 //! follow in later slices.
 
+pub mod clock;
 pub mod piece;
 pub mod setup;
