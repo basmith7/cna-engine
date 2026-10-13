@@ -845,7 +845,9 @@ impl GameState {
 
     /// Actual points lost to unsupported tanks (15.4): per hex, tank
     /// points beyond the infantry points beside them, one per 1–3; at
-    /// most four for the assault as a whole.
+    /// most four for the assault as a whole. The 1–3 bands are taken
+    /// hex by hex, as the support must be: one unsupported point in each
+    /// of two hexes costs 2, not the 1 a pooled count would give.
     fn unsupported_tanks(&self, data: &Data, commits: &[Commit]) -> u32 {
         let mut by_hex: BTreeMap<&HexId, (u32, u32)> = BTreeMap::new();
         for c in commits {
@@ -919,7 +921,9 @@ impl GameState {
     /// The CP of one assault (6.3): the attacking hexes pay 5 (2 for a
     /// probe); the defended hex 3 (2 when probed), and for a final
     /// differential of −4 or worse every defender gets 2 back of all it
-    /// was charged this segment, step 5 included.
+    /// was charged this segment, step 5 included. Read as the CP table's
+    /// "2 back", so a probed hex that took anti-armour fire keeps 1,
+    /// though 15.9x's "no CP at all" could be read as 0.
     fn charge_assault_cp(
         &mut self,
         attackers: &[Commit],
@@ -1916,7 +1920,18 @@ mod tests {
     /// points to close assault; the anti-tank company returns fire, so
     /// the defended hex has paid 3 CP before the assault is made.
     fn after_return_fire(data: &Data, rtr_points: u32) -> GameState {
+        after_return_fire_with(data, rtr_points, |_| {})
+    }
+
+    /// `after_return_fire`, with `prepare` run on the state before the
+    /// combat segment opens.
+    fn after_return_fire_with(
+        data: &Data,
+        rtr_points: u32,
+        prepare: impl FnOnce(&mut GameState),
+    ) -> GameState {
         let mut state = with_tanks(data);
+        prepare(&mut state);
         assigning_against_the_anti_tank_coy(data, &mut state);
         state
             .apply(
@@ -1945,7 +1960,7 @@ mod tests {
             .unwrap();
         assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
         for id in c4020_ids(&state) {
-            assert_eq!(state.pieces[&id].cp_spent, Cp::whole(3), "{id}");
+            assert_eq!(state.combat.charged[&id], Cp::whole(3), "{id}");
         }
         state
     }
@@ -2010,12 +2025,55 @@ mod tests {
         assert!(events.contains(&Event::CombatCpRefunded {
             piece: bn.clone(),
             cp: BAD_ATTACK_REFUND,
+            dp: 0,
         }));
         for id in [&bn, &coy] {
             assert_eq!(state.pieces[id].cp_spent, Cp::whole(1), "{id}");
             assert_eq!(state.pieces[id].cp_enemy_half, Cp::whole(1), "{id}");
             assert_eq!(state.combat.charged[id], Cp::whole(1), "{id}");
+            assert_eq!(state.pieces[id].cohesion.dp_tally, 0, "{id}");
         }
+    }
+
+    #[test]
+    fn a_bad_attack_on_a_defender_at_its_cpa_costs_the_dp_of_the_net_cp() {
+        // 6.21 with 6.3: the Libyan battalion starts the segment at its
+        // CPA. Step 5 charges it 3 (3 DP), the −4 refund gives 2 back,
+        // and the 2 DP that CP earned go with it: 1 CP over, 1 DP, as if
+        // it had paid the table's net 1 outright. Two more CP in the
+        // stage make 3 DP, not 5.
+        let data = graziani();
+        let bn = pid("unit:it:viii-libyan-bn");
+        let mut state = after_return_fire_with(&data, 7, |s| {
+            let cpa = Cp::whole(s.cpa(&s.pieces[&bn]).unwrap());
+            s.pieces.get_mut(&bn).unwrap().cp_spent = cpa;
+        });
+        let cpa = Cp::whole(state.cpa(&state.pieces[&bn]).unwrap());
+        assert_eq!(state.pieces[&bn].cohesion.dp_tally, 3);
+        for id in ["unit:cw:1-krrc", "unit:cw:1-rtr"] {
+            state.pieces.get_mut(&pid(id)).unwrap().morale = Some(-20);
+        }
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        assert!(events.contains(&Event::CombatCpRefunded {
+            piece: bn.clone(),
+            cp: BAD_ATTACK_REFUND,
+            dp: 2,
+        }));
+        assert_eq!(state.pieces[&bn].cp_spent, cpa + Cp::whole(1));
+        assert_eq!(state.pieces[&bn].cohesion.dp_tally, 1);
+        assert_eq!(state.pieces[&bn].cohesion.level, -1);
+        let mut later = Vec::new();
+        state.charge(&bn, Cp::whole(2), true, &mut later);
+        assert_eq!(state.pieces[&bn].cohesion.dp_tally, 3);
+        assert_eq!(state.pieces[&bn].cohesion.level, -3);
     }
 
     #[test]
