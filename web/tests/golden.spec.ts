@@ -216,8 +216,11 @@ test("the golden game, all 446 orders by clicks, with a save, reload and load in
       await page.locator("[data-stack]").first().waitFor();
       expect(await page.evaluate(() => window.__cna.save())).toBe(saved);
       expect(await page.evaluate(() => window.__cna.orders())).toBe(SAVE_AFTER);
+      // A loaded game opens behind the curtain of the side to act.
+      await expect(curtain).toHaveAttribute("data-side", logged.player);
+      await curtain.click();
+      await expect(curtain).toHaveCount(0);
       await expectDomMatchesView(page);
-      await expect(page.getByTestId("curtain")).toHaveCount(0);
     }
     await expect(page.getByTestId("to-act")).toHaveText(`${sideName(logged.player)} to act`);
     await perform(page, i, logged);

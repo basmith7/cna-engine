@@ -93,6 +93,25 @@ the bullet once it lands and `vendor/cna` is bumped.
   second locator). Until then the engine trusts the owner, the UI shows
   the prose as "also: …", and Helwan is never offered. Not blocking:
   Mission 3 slice 3 ships with the prose.
+- **What a unit may do that cannot pay under abstract supply (32.21,
+  32.22).** Can a fuel-using unit with no fuel in range move at all (by
+  land, by rail, reacting, retreating)? Does a defender with no
+  ammunition fight at full strength, reduced, or not at all? Mission 5
+  slice 2 refuses the land move and the attack and lets the defence
+  stand until this is ruled (a switch if there are options).
+- **Ammunition for company-equivalents (32.21).** 32.22 exempts most
+  company-equivalents from fuel; 32.21 is silent for ammunition. Does a
+  company pay a fraction, one, or nothing? Mission 5 slice 2 charges
+  nothing.
+- **Supply-unit loads per unit or per block?** Graziani's
+  `abstractions.air_and_logistics` supply rows give `count`, `ammo` and
+  `fuel`; the schema does not say whether the figures are each unit's or
+  the block's total. Mission 5 slice 1 reads them per unit (every figure
+  fits 32.1x's 40/60). A schema description would settle it.
+- **Starting motorisation points as data (60.92).** The conversion is
+  prose (`abstractions.air_and_logistics.motorisation`); a typed count
+  per deployment or side would let the engine stop reading `trucks`.
+  Not blocking: Mission 5 slice 1 reads `trucks.medium`.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
