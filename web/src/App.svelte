@@ -1,13 +1,19 @@
 <script lang="ts">
+  import { clockLine } from "./clock";
   import Counters from "./Counters.svelte";
+  import { label } from "./counters";
   import Curtain from "./Curtain.svelte";
   import { curtainAfter } from "./curtain";
   import { Engine, initEngine } from "./engine";
+  import { formatEvent } from "./format";
+  import { withEvents, withIllegal, type LogEntry } from "./log";
+  import LogPanel from "./LogPanel.svelte";
   import Map from "./Map.svelte";
   import OffMap from "./OffMap.svelte";
   import Placements from "./Placements.svelte";
   import SetupPanel from "./SetupPanel.svelte";
   import StackPanel from "./StackPanel.svelte";
+  import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
   import type { HexId, Order, PieceId, Side, View } from "./types";
 
@@ -17,8 +23,10 @@
   let error: string | null = $state(null);
   /** The tray piece picked to place; UI-only state (spec, *State sync*). */
   let picked: PieceId | null = $state(null);
-  /** The engine's last refusal, until the next order. */
+  /** The engine's last refusal, until the toast goes or the next order. */
   let illegal: string | null = $state(null);
+  /** The log panel: event lines under clock headers, refusals in red. */
+  let log: LogEntry[] = $state([]);
   /** The side the curtain is down for, until they click it away. */
   let curtain: Side | null = $state(null);
 
@@ -29,20 +37,28 @@
 
   /**
    * Every order goes to the engine as the side it is waiting on; the UI
-   * never picks one. On `ok` the view is replaced whole; on `illegal`
-   * nothing changes but the notice.
+   * never picks one. On `ok` the events go to the log and the view is
+   * replaced whole; on `illegal` nothing changes but the toast and a red
+   * log line.
    */
   function send(order: Order): boolean {
     if (!engine || !view || !view.to_act) return false;
     const r = engine.apply(view.to_act, order);
     if ("illegal" in r) {
       illegal = `Illegal (${r.illegal.case}): ${r.illegal.reason}`;
+      log = withIllegal(log, illegal);
       return false;
     }
     illegal = null;
-    const before = view.to_act;
+    const before = view;
+    const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).short : id);
     view = engine.view();
-    curtain = curtainAfter(before, view.to_act);
+    log = withEvents(
+      log,
+      clockLine(before),
+      r.ok.map((e) => formatEvent(e, name)),
+    );
+    curtain = curtainAfter(before.to_act, view.to_act);
     if (curtain) picked = null;
     return true;
   }
@@ -87,6 +103,9 @@
   {#if curtain}
     <Curtain side={curtain} ondismiss={() => (curtain = null)} />
   {/if}
+  {#if illegal}
+    <Toast text={illegal} ondone={() => (illegal = null)} />
+  {/if}
   {#if view}
     <TopBar {view} {hex} />
     <div class="body">
@@ -99,10 +118,12 @@
         </Map>
       </main>
       <aside class="side">
-        <SetupPanel {view} picked={pickedPiece} hexes={placements} />
-        {#if illegal}<p class="illegal" data-testid="illegal">{illegal}</p>{/if}
-        <StackPanel {view} {hex} />
-        <OffMap {view} {picked} {onpick} />
+        <div class="panels">
+          <SetupPanel {view} picked={pickedPiece} hexes={placements} />
+          <StackPanel {view} {hex} />
+          <OffMap {view} {picked} {onpick} />
+        </div>
+        <LogPanel entries={log} />
       </aside>
     </div>
   {:else if error}
@@ -131,11 +152,25 @@
   .side {
     width: 340px;
     flex: none;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     padding: 0.6rem 0.8rem;
     box-sizing: border-box;
     background: #f4f0e6;
     border-left: 1px solid #d8d1c0;
+  }
+  /* The panels scroll above the log, which keeps its own strip at the foot. */
+  .panels {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .side :global(.log) {
+    flex: none;
+    height: 28%;
+    min-height: 120px;
+    margin-top: 0.6rem;
   }
   /* Narrow screens: the panel goes under the map and the page scrolls. */
   @media (max-width: 760px) {
@@ -152,21 +187,22 @@
     }
     .side {
       width: auto;
-      overflow: visible;
+      display: block;
       border-left: none;
       border-top: 1px solid #d8d1c0;
+    }
+    .panels {
+      overflow: visible;
+    }
+    .side :global(.log) {
+      height: 40vh;
     }
   }
   .status {
     padding: 1rem;
     font: 15px system-ui, sans-serif;
   }
-  .error,
-  .illegal {
+  .error {
     color: #a4161a;
-  }
-  .illegal {
-    margin: 0 0 0.6rem;
-    font: 14px/1.35 system-ui, sans-serif;
   }
 </style>
