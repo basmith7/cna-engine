@@ -744,13 +744,13 @@ mod tests {
         assert_eq!(err.case, "18.2x");
     }
 
-    /// Random stacks of the phasing player, both purposes: every path
+    /// Random stacks of the phasing player, `Purpose::Move`: every path
     /// the query returns is accepted by `apply` on a clone at the cost
     /// it names (unless it is flagged and the engine does stop it), and
     /// every random walk `apply` accepts ends in a hex the query named
     /// at no lower cost.
     #[test]
-    fn every_returned_path_is_accepted_and_every_accepted_walk_is_returned() {
+    fn every_returned_move_is_accepted_and_every_accepted_move_is_returned() {
         let data = graziani();
         let mut rng = ChaCha8Rng::seed_from_u64(61);
         let mut checked = 0;
@@ -798,34 +798,120 @@ mod tests {
                         continue;
                     }
                 };
-                check_both_ways(&data, &state, first, &stack, &reaches, &mut rng);
+                let walks = check_both_ways(
+                    &data,
+                    &state,
+                    first,
+                    &stack,
+                    Purpose::Move,
+                    &reaches,
+                    &mut rng,
+                );
+                assert!(walks > 0, "{stack:?}: no random move was accepted");
                 checked += 1;
             }
         }
         assert!(checked >= 12, "{checked}");
     }
 
+    /// The same contract for `Purpose::React`, from the golden game's
+    /// pending reaction (order 61 offers it): every non-empty subset of
+    /// the eligible reactors, random walks of up to twelve hexes.
+    #[test]
+    fn every_returned_reaction_is_accepted_and_every_accepted_reaction_is_returned() {
+        let data = graziani();
+        let log: crate::log::Log = serde_json::from_str(
+            &std::fs::read_to_string(cna_data::repo_root().join("tests/games/graziani-short.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let mut prefix = log.clone();
+        prefix.orders.truncate(62);
+        let state = crate::log::replay(&data, &prefix).unwrap();
+        let Some(Pending::Reaction { side, eligible }) = &state.pending else {
+            panic!("order 61 offers a reaction");
+        };
+        let side = *side;
+        let eligible = eligible.to_vec();
+        assert!(!eligible.is_empty());
+        let mut rng = ChaCha8Rng::seed_from_u64(62);
+        let mut walks = 0;
+        for mask in 1u32..(1 << eligible.len()) {
+            let stack: Vec<PieceId> = eligible
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| mask & (1 << i) != 0)
+                .map(|(_, id)| id.clone())
+                .collect();
+            // A reaction is one stack: pieces in different hexes are
+            // refused by the order, and so by the query.
+            let hexes: std::collections::BTreeSet<_> =
+                stack.iter().map(|id| state.pieces[id].hex()).collect();
+            let reaches = match state.reachable(&data, side, &stack, Purpose::React) {
+                Ok(r) => r,
+                Err(e) => {
+                    assert!(hexes.len() > 1, "{stack:?}: {}", e.reason);
+                    let mut probe = state.clone();
+                    let hex = state.pieces[&stack[0]].hex().unwrap();
+                    let err = probe
+                        .apply(
+                            &data,
+                            side,
+                            Order::React {
+                                pieces: stack.clone(),
+                                path: vec![data.map.neighbours(hex)[0].clone()],
+                            },
+                        )
+                        .unwrap_err();
+                    assert_eq!(err.case, e.case, "{stack:?}: {} / {}", err.reason, e.reason);
+                    continue;
+                }
+            };
+            assert_eq!(hexes.len(), 1);
+            assert!(!reaches.is_empty(), "{stack:?}");
+            walks += check_both_ways(
+                &data,
+                &state,
+                side,
+                &stack,
+                Purpose::React,
+                &reaches,
+                &mut rng,
+            );
+        }
+        assert!(walks >= 20, "only {walks} random reactions were accepted");
+    }
+
+    fn order_for(purpose: Purpose, stack: &[PieceId], path: Vec<HexId>) -> Order {
+        match purpose {
+            Purpose::Move => Order::Move {
+                pieces: stack.to_vec(),
+                path,
+                assault: false,
+            },
+            Purpose::React => Order::React {
+                pieces: stack.to_vec(),
+                path,
+            },
+        }
+    }
+
+    /// Checks the query against `apply` both ways for one stack and
+    /// returns how many random walks `apply` accepted to their last hex.
     fn check_both_ways(
         data: &Data,
         state: &GameState,
         side: Side,
         stack: &[PieceId],
+        purpose: Purpose,
         reaches: &[Reach],
         rng: &mut ChaCha8Rng,
-    ) {
+    ) -> usize {
         let r = by_hex(reaches);
         for x in reaches {
             let mut probe = state.clone();
             let events = probe
-                .apply(
-                    data,
-                    side,
-                    Order::Move {
-                        pieces: stack.to_vec(),
-                        path: x.path.clone(),
-                        assault: false,
-                    },
-                )
+                .apply(data, side, order_for(purpose, stack, x.path.clone()))
                 .unwrap_or_else(|e| panic!("{}: {e}", x.hex));
             let (cp, _) = charged(&events);
             // One `Disorganised` per charge: the stack's DP is the most
@@ -849,10 +935,15 @@ mod tests {
             }
         }
         let from = state.pieces[&stack[0]].hex().unwrap().clone();
-        for _ in 0..40 {
+        let (walks, max_len) = match purpose {
+            Purpose::Move => (40, 6),
+            Purpose::React => (300, 12),
+        };
+        let mut accepted = 0;
+        for _ in 0..walks {
             let mut path = Vec::new();
             let mut at = from.clone();
-            let len = 1 + rng.next_u64() % 6;
+            let len = 1 + rng.next_u64() % max_len;
             for _ in 0..len {
                 let n = data.map.neighbours(&at);
                 let next = n[(rng.next_u64() % n.len() as u64) as usize].clone();
@@ -860,15 +951,8 @@ mod tests {
                 at = next;
             }
             let mut probe = state.clone();
-            let Ok(events) = probe.apply(
-                data,
-                side,
-                Order::Move {
-                    pieces: stack.to_vec(),
-                    path: path.clone(),
-                    assault: false,
-                },
-            ) else {
+            let Ok(events) = probe.apply(data, side, order_for(purpose, stack, path.clone()))
+            else {
                 continue;
             };
             let (cp, _) = charged(&events);
@@ -881,6 +965,8 @@ mod tests {
                 .get(end.as_str())
                 .unwrap_or_else(|| panic!("{path:?} accepted to {end} for {cp}, not returned"));
             assert!(named.cp <= cp, "{path:?}: {cp} < {named:?}");
+            accepted += 1;
         }
+        accepted
     }
 }

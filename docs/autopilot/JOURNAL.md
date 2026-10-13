@@ -166,3 +166,9 @@ Done: Mission 3 slice 4 (movement), PR #21 ready: `cna_game::reach` — `GameSta
 In flight: nothing.
 Next: merge PR #21 once CI passes, then slice 5 (combat prompts). Deviations recorded in the PR: reaction triggers also flag may-stop-short; collapse bound for uncapped vehicles; `rand_chacha` not proptest; `set-up-done.json` and `reserve-release.json` state fixtures; phase controls hidden while anything is pending; a plain click on a friendly-held reachable hex selects; the critique was argued adversarially (no sub-agent tool). Accepted residue: the +/−/fit bar overlaps a top-row counter at 390 px (slice 2's layout).
 Blocked: none.
+
+## 2026-10-13 04:05 MST — autopilot/m3-slice-4-movement (review fixes)
+Done: PR #21 review. Blocking: the random-walk test only ever exercised `Purpose::Move`; split into one test per purpose (`check_both_ways` now takes the purpose and builds the matching order), the React one from golden prefix 62 over every subset of the eligible reactors, 300 walks of up to 12 hexes each, with a floor on accepted walks so it cannot pass vacuously; a mutation that hid one React hex failed it (`C3821 ... not returned`). Nonblocking: the spec's *Scripted games* claim that the golden game never moves with `assault: true` corrected (order 61 does). Two commits carry a `Claude Fable 5.1` trailer; left as is since fixing needs a force push.
+In flight: nothing.
+Next: merge PR #21 once CI passes, then slice 5. Accepted residue: selecting an uncapped motorised stack takes ~580 ms to shade ~2900 hexes (bounded by collapse only); M2's `react` has no CP cap (8.5x follow-up); `may_be_interrupted` is judged on the cheapest path with assault=false, so it over-flags on the safe side.
+Blocked: none.
