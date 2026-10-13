@@ -124,6 +124,14 @@ impl GameState {
                 Some(_) => {}
             }
             self.able_to_move(p)?;
+            if !self.may_continue(id) {
+                return Err(Illegal::new(
+                    "8.2x",
+                    format!(
+                        "{id} ended the last movement segment more than two hexes from any enemy combat unit and may not move again this phase"
+                    ),
+                ));
+            }
         }
         Ok(from.expect("at least one piece"))
     }
@@ -725,6 +733,44 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:11-hus"], &["A2109"]))
             .unwrap();
+    }
+
+    #[test]
+    fn after_the_first_segment_only_units_near_the_enemy_move_again() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        // 1 KRRC steps east, far from any Axis unit; 11 Hussars at C3020
+        // sit next to the Fort Maddalena garrison battalion.
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
+            .unwrap();
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        assert!(state.continuing.contains(&pid("unit:cw:11-hus")));
+        assert!(!state.continuing.contains(&pid("unit:cw:1-krrc")));
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::Movement));
+        let before = snapshot(&state);
+        let err = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3924"]))
+            .unwrap_err();
+        assert_eq!(err.case, "8.2x");
+        assert_eq!(snapshot(&state), before);
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:11-hus"], &["C3021"]))
+            .unwrap();
+        // A new phase starts afresh: in the Axis half every Axis unit may
+        // make its first move.
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert_eq!(state.cycle, 0);
+        assert!(state.continuing.is_empty());
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&["unit:it:xxi-corps-artillery-regt"], &["A0102"]),
+            )
+            .unwrap_or_else(|e| panic!("{e}"));
     }
 
     #[test]

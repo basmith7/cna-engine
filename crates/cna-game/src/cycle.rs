@@ -11,6 +11,7 @@ use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
 use cna_data::oa::UnitId;
+use cna_data::scenario::Side;
 use std::collections::BTreeSet;
 
 /// SP of a formation stacked with its HQ (9.4): a division, or a
@@ -142,14 +143,45 @@ impl GameState {
             .collect()
     }
 
-    /// What ending a movement segment requires and records.
+    /// Whether an enemy combat unit of `side` stands within two hexes of
+    /// `hex` (8.2x).
+    fn enemy_combat_within_two(&self, data: &Data, hex: &HexId, side: Side) -> bool {
+        let near = data.map.within(hex, 2);
+        self.pieces.values().any(|p| {
+            p.side != side
+                && p.kind == PieceKind::Combat
+                && p.hex().is_some_and(|h| near.contains(h))
+        })
+    }
+
+    /// What ending a movement segment requires and records: the ceiling
+    /// (9.14), and who may move in a later segment (8.2x).
     fn close_movement_segment(&mut self, data: &Data) -> Result<(), Illegal> {
         if let Some(e) = self.over_ceiling(data) {
             return Err(e);
         }
+        let phasing = self.phasing();
+        self.continuing = self
+            .pieces
+            .values()
+            .filter(|p| Some(p.side) == phasing)
+            .filter(|p| {
+                p.hex()
+                    .is_some_and(|h| self.enemy_combat_within_two(data, h, p.side))
+            })
+            .map(|p| p.id.clone())
+            .collect();
         self.cycle += 1;
         self.entered.clear();
         Ok(())
+    }
+
+    /// Whether a piece may move in this movement segment under the
+    /// two-hex rule (8.2x): always in the first segment of the phase,
+    /// later only if it ended the last one within two hexes of an enemy
+    /// combat unit.
+    pub(crate) fn may_continue(&self, id: &PieceId) -> bool {
+        self.cycle == 0 || self.continuing.contains(id)
     }
 
     /// `Order::EndSegment` in phase G.

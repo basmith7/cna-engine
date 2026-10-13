@@ -77,6 +77,11 @@ pub struct GameState {
     /// by its hex (10.16).
     #[serde(default)]
     pub zoc: BTreeMap<HexId, bool>,
+    /// Phasing pieces that ended the last movement segment within two
+    /// hexes of an enemy combat unit: the only ones (reserves apart)
+    /// that may move in a later segment of this phase (8.2x).
+    #[serde(default)]
+    pub continuing: BTreeSet<PieceId>,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -107,6 +112,7 @@ impl GameState {
             cycle: 0,
             entered: BTreeSet::new(),
             zoc: BTreeMap::new(),
+            continuing: BTreeSet::new(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),

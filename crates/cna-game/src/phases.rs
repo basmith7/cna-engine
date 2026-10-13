@@ -61,6 +61,7 @@ impl GameState {
         }
         self.before_leaving_g(data)?;
         self.cycle = 0;
+        self.continuing.clear();
         self.clock = self.clock.end_phase();
         let mut events = Vec::new();
         self.advance(data, &mut events);
