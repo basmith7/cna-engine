@@ -17,7 +17,8 @@ pub enum Mobility {
     /// Any other vehicle unit: tanks, guns, motorised infantry.
     Vehicle,
     /// Light trucks and motorcycle units: no desert (footnote 3), salt
-    /// marsh without a road (8.4x).
+    /// marsh without a road (8.4x). No row of `unit-characteristics.json`
+    /// is one yet, so `GameState::mobility` never produces it.
     LightVehicle,
     /// Recce units: salt marsh without a road (8.4x).
     Recce,
@@ -72,10 +73,12 @@ fn no(case: &'static str, reason: impl Into<String>) -> Prohibited {
     }
 }
 
-/// The surface a step moves along, from the hexside's features and the
+/// The rate a step is priced at, from the hexside's features and the
 /// weather: a road gives the road rate and ignores other terrain (8.33);
 /// a track halves it (E-031); an unfinished road is a track; in rain a
-/// road is a track (29.5x).
+/// road is priced as a track (29.5x). Whether the step is *by road* for
+/// the prohibitions that ask (swamp, delta, wadis and rivers in rain)
+/// is a fact of the hexside the weather does not change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Along {
     Road,
@@ -124,10 +127,11 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
     let mode = along(step.hexside, step.weather);
     let to = step.to.terrain;
     let from = step.from.terrain;
+    let road = step.hexside.is_some_and(|hs| hs.has(HexsideFeature::Road));
     let rail = step
         .hexside
         .is_some_and(|hs| hs.has(HexsideFeature::Railroad));
-    let road_or_rail = mode == Along::Road || rail;
+    let road_or_rail = road || rail;
 
     // The hex entered (8.37 and its footnotes).
     if to == Fill::Sea {
@@ -229,14 +233,14 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
                     Along::Track => price(chart, "hexside", "ridge", motorised)?.halved(),
                     Along::Country => price(chart, "hexside", "ridge", motorised)?,
                 },
-                HexsideFeature::Wadi => match (mode, step.weather) {
-                    (Along::Road, Weather::Rainstorm) => Cp::whole(2),
-                    (Along::Road, _) => continue,
-                    (_, Weather::Rainstorm) => {
+                HexsideFeature::Wadi => match (road, step.weather, mode) {
+                    (true, Weather::Rainstorm, _) => Cp::whole(2),
+                    (true, _, _) => continue,
+                    (false, Weather::Rainstorm, _) => {
                         return Err(no("29.5x", "a wadi in a rainstorm is crossed by road only"));
                     }
-                    (Along::Track, _) => price(chart, "hexside", "wadi", motorised)?.halved(),
-                    (Along::Country, _) => price(chart, "hexside", "wadi", motorised)?,
+                    (false, _, Along::Track) => price(chart, "hexside", "wadi", motorised)?.halved(),
+                    (false, _, _) => price(chart, "hexside", "wadi", motorised)?,
                 },
                 HexsideFeature::MajorRiver => {
                     if motorised && !road_or_rail {
@@ -251,13 +255,13 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
                             "a river in a rainstorm is crossed by road or rail only",
                         ));
                     }
-                    match (mode, motorised) {
-                        (Along::Road, true) => continue,
-                        (Along::Road, false) => price(chart, "hexside", "major-river", false)?,
-                        (Along::Track, _) => {
+                    match (road, motorised, mode) {
+                        (true, true, _) => continue,
+                        (true, false, _) => price(chart, "hexside", "major-river", false)?,
+                        (false, _, Along::Track) => {
                             price(chart, "hexside", "major-river", motorised)?.halved()
                         }
-                        (Along::Country, _) => price(chart, "hexside", "major-river", motorised)?,
+                        (false, _, _) => price(chart, "hexside", "major-river", motorised)?,
                     }
                 }
                 HexsideFeature::MinorRiver => {
@@ -421,6 +425,22 @@ mod tests {
             rain(Mobility::Foot, "C0821", "C0822").unwrap_err().case,
             "29.5x"
         );
+        // The road is still a road for the rain prohibitions: a wadi is
+        // crossed by it at +2 on top of the track rate (A2307|A2406: 1 +
+        // 2), a river too (E1330|E1430, foot: ½ + 1½), and vehicles
+        // enter delta by it (E3614|E3615: 4 halved).
+        assert_eq!(rain(Mobility::Vehicle, "A2307", "A2406"), Ok(Cp::whole(3)));
+        assert_eq!(rain(Mobility::Foot, "A2307", "A2406"), Ok(Cp::whole(3)));
+        assert_eq!(rain(Mobility::Foot, "E1330", "E1430"), Ok(Cp::whole(2)));
+        assert!(rain(Mobility::Vehicle, "E1330", "E1430").is_ok());
+        assert_eq!(rain(Mobility::Vehicle, "E3614", "E3615"), Ok(Cp::whole(2)));
+        // Off the road delta is closed to vehicles in rain, but not to
+        // foot units.
+        assert_eq!(
+            rain(Mobility::Vehicle, "E3614", "E3514").unwrap_err().case,
+            "29.5x"
+        );
+        assert_eq!(rain(Mobility::Foot, "E3614", "E3514"), Ok(Cp::whole(2)));
     }
 
     #[test]
