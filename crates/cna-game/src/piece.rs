@@ -73,6 +73,24 @@ pub enum Location {
     Eliminated,
 }
 
+/// The two reserve states (18.1x): I may shift a hex and be released at
+/// the first release segment; II waits for a later one and moves not at
+/// all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Reserve {
+    I,
+    II,
+}
+
+impl fmt::Display for Reserve {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Reserve::I => "I",
+            Reserve::II => "II",
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Piece {
     pub id: PieceId,
@@ -119,6 +137,13 @@ pub struct Piece {
     /// by combat (slice 5).
     #[serde(default)]
     pub engaged: bool,
+    /// In reserve this OpStage (18.1x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reserve: Option<Reserve>,
+    /// Released from reserve this OpStage (18.2x): its CP cap for the
+    /// rest of the stage, and the combat limits slice 5 reads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub released: Option<Reserve>,
 }
 
 impl Piece {

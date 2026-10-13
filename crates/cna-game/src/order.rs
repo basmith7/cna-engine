@@ -37,6 +37,11 @@ pub enum Order {
     /// The non-phasing player, asked which of its hexes exert a ZOC
     /// (10.16): these do; the rest asked about do not.
     DeclareZoc { exerting: Vec<HexId> },
+    /// Phase F: these units go into Reserve I (18.1x).
+    DesignateReserve { pieces: Vec<PieceId> },
+    /// A reserve release segment: these units, all in the same reserve
+    /// state, come out (18.2x).
+    ReleaseReserve { pieces: Vec<PieceId> },
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,

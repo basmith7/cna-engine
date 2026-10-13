@@ -112,6 +112,8 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     cohesion: Default::default(),
                     contact: false,
                     engaged: false,
+                    reserve: None,
+                    released: None,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -284,6 +286,8 @@ fn piece(
         cohesion: Default::default(),
         contact: false,
         engaged: false,
+        reserve: None,
+        released: None,
     }
 }
 

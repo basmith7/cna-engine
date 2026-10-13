@@ -11,6 +11,7 @@ pub mod order;
 mod phases;
 pub mod piece;
 mod reaction;
+mod reserve;
 mod place;
 pub mod rng;
 pub mod setup;

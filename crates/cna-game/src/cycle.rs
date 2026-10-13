@@ -198,6 +198,7 @@ impl GameState {
                 events.push(Event::PhaseStarted { clock: self.clock });
             }
             (Phase::MovementCombat, Some(Segment::ReserveRelease)) => {
+                self.close_release_segment(&mut events);
                 self.clock.segment = Some(Segment::Movement);
                 events.push(Event::PhaseStarted { clock: self.clock });
                 self.open_movement_segment(data, &mut events);
@@ -212,13 +213,22 @@ impl GameState {
         Ok(events)
     }
 
-    /// What `Pass` must settle before phase G ends from a movement
-    /// segment: the same as ending the segment.
-    pub(crate) fn before_leaving_g(&mut self, data: &Data) -> Result<(), Illegal> {
-        if self.clock.phase == Phase::MovementCombat
-            && self.clock.segment == Some(Segment::Movement)
-        {
-            self.close_movement_segment(data)?;
+    /// What `Pass` must settle before phase G ends: from a movement
+    /// segment the same as ending it; from a release segment the flip
+    /// to Reserve II (18.2x).
+    pub(crate) fn before_leaving_g(
+        &mut self,
+        data: &Data,
+        events: &mut Vec<Event>,
+    ) -> Result<(), Illegal> {
+        match (self.clock.phase, self.clock.segment) {
+            (Phase::MovementCombat, Some(Segment::Movement)) => {
+                self.close_movement_segment(data)?;
+            }
+            (Phase::MovementCombat, Some(Segment::ReserveRelease)) => {
+                self.close_release_segment(events);
+            }
+            _ => {}
         }
         Ok(())
     }

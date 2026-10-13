@@ -82,10 +82,15 @@ pub struct GameState {
     #[serde(default)]
     pub zoc: BTreeMap<HexId, bool>,
     /// Phasing pieces that ended the last movement segment within two
-    /// hexes of an enemy combat unit: the only ones (reserves apart)
-    /// that may move in a later segment of this phase (8.2x).
+    /// hexes of an enemy combat unit, or were just released from
+    /// reserve: the only ones that may move in a later segment of this
+    /// phase (8.2x, 18.25).
     #[serde(default)]
     pub continuing: BTreeSet<PieceId>,
+    /// Reserve I pieces that made their one-hex shift this movement
+    /// segment (18.2x).
+    #[serde(default)]
+    pub shifted: BTreeSet<PieceId>,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -117,6 +122,7 @@ impl GameState {
             entered: BTreeSet::new(),
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
+            shifted: BTreeSet::new(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),
@@ -214,6 +220,8 @@ impl GameState {
                     assault,
                 },
             ) => self.move_pieces(data, player, pieces, path, *assault),
+            (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
+            (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

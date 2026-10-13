@@ -7,7 +7,7 @@
 use crate::clock::{Phase, Segment};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, Piece, PieceId, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending, Weather};
 use crate::zoc::Zoc;
 use cna_data::cp::Cp;
@@ -175,7 +175,27 @@ impl GameState {
                 format!("{} is in training and may not move voluntarily", p.id),
             ));
         }
+        if p.reserve == Some(Reserve::II) {
+            return Err(Illegal::new(
+                "18.2x",
+                format!("{} is in Reserve II and may not move until released", p.id),
+            ));
+        }
         Ok(())
+    }
+
+    /// Whether a stack is making a Reserve I shift (18.2x): every piece
+    /// in Reserve I, or none of them.
+    fn reserve_shift(&self, pieces: &[PieceId]) -> Result<bool, Illegal> {
+        let in_reserve = |id: &PieceId| self.pieces[id].reserve == Some(Reserve::I);
+        let n = pieces.iter().filter(|id| in_reserve(id)).count();
+        if n != 0 && n != pieces.len() {
+            return Err(Illegal::new(
+                "18.2x",
+                "a unit in reserve moves only with units in reserve",
+            ));
+        }
+        Ok(n != 0)
     }
 
     /// Prices a path for a stack: the hexes entered and what each step
@@ -372,8 +392,37 @@ impl GameState {
                 ),
             ));
         }
-        let from = self.moving_stack(player, pieces, true)?;
-        let plan = self.plan(data, pieces, &from, path)?;
+        let shift = pieces
+            .iter()
+            .all(|id| self.pieces.get(id).is_some_and(|p| p.reserve.is_some()));
+        let from = self.moving_stack(player, pieces, !shift)?;
+        let shift = self.reserve_shift(pieces)?;
+        let mut plan = self.plan(data, pieces, &from, path)?;
+        if shift {
+            // A Reserve I unit shifts one hex a segment, free, never into
+            // an enemy ZOC (18.2x).
+            if path.len() != 1 {
+                return Err(Illegal::new(
+                    "18.2x",
+                    "a unit in reserve shifts one hex a movement segment",
+                ));
+            }
+            if let Some(id) = pieces.iter().find(|id| self.shifted.contains(id)) {
+                return Err(Illegal::new(
+                    "18.2x",
+                    format!("{id} has made its reserve shift this segment"),
+                ));
+            }
+            if plan.ends_in_zoc {
+                return Err(Illegal::new(
+                    "18.2x",
+                    format!("{}: a unit in reserve never shifts into an enemy ZOC", path[0]),
+                ));
+            }
+            for step in &mut plan.steps {
+                step.1 = Cp::ZERO;
+            }
+        }
         let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
         let break_off = |p: &Piece| {
             if p.engaged {
@@ -393,19 +442,16 @@ impl GameState {
         }
         for id in pieces {
             let p = &self.pieces[id];
-            let cpa = self.cpa(p).expect("able to move");
-            if cpa <= 10 {
-                // 150 % of the CPA, in half points.
-                let cap = Cp::halves(cpa * 3);
-                if p.cp_own_half() + total > cap {
-                    return Err(Illegal::new(
-                        "8.1x",
-                        format!(
-                            "{id} (CPA {cpa}) has spent {} and may not go past {cap} voluntarily; the path costs {total}",
-                            p.cp_own_half()
-                        ),
-                    ));
-                }
+            if let Some((cap, case, why)) = self.voluntary_cap(id)
+                && p.cp_own_half() + total > cap
+            {
+                return Err(Illegal::new(
+                    case,
+                    format!(
+                        "{id} has spent {} and the path costs {total}, past {cap}: {why}",
+                        p.cp_own_half()
+                    ),
+                ));
             }
         }
         let mut events = Vec::new();
@@ -456,6 +502,9 @@ impl GameState {
         }
         if at != from {
             self.release_contact_around(data, &from, player);
+            if shift {
+                self.shifted.extend(pieces.iter().cloned());
+            }
         }
         if let Some(eligible) = reaction {
             events.push(Event::ReactionOffered {

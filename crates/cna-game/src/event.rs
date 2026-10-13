@@ -3,7 +3,7 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
-use crate::piece::PieceId;
+use crate::piece::{PieceId, Reserve};
 use crate::state::Weather;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
@@ -80,6 +80,19 @@ pub enum Event {
     ContactBroken {
         piece: PieceId,
         cost: Cp,
+    },
+    ReserveDesignated {
+        pieces: Vec<PieceId>,
+    },
+    /// Released from Reserve I or II (18.2x).
+    ReserveReleased {
+        pieces: Vec<PieceId>,
+        from: Reserve,
+    },
+    /// Still in Reserve I as the first release segment closed: now
+    /// Reserve II (18.2x).
+    ReserveFlipped {
+        pieces: Vec<PieceId>,
     },
     /// A non-combat unit alone in an enemy ZOC was taken (10.29).
     Captured {
