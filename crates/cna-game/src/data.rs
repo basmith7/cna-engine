@@ -4,11 +4,13 @@
 
 use anyhow::Result;
 use cna_data::characteristics::Characteristics;
+use cna_data::initiative::InitiativeRatings;
 use cna_data::map::Map;
 use cna_data::oa::Oa;
 use cna_data::scenario::Scenario;
 use cna_data::stacking::StackingPoints;
 use cna_data::terrain::Terrain;
+use cna_data::weather::Weather;
 
 pub struct Data {
     pub scenario: Scenario,
@@ -17,6 +19,8 @@ pub struct Data {
     pub map: Map,
     pub terrain: Terrain,
     pub stacking: StackingPoints,
+    pub weather: Weather,
+    pub initiative: InitiativeRatings,
 }
 
 impl Data {
@@ -29,6 +33,8 @@ impl Data {
             map: Map::load()?,
             terrain: Terrain::load()?,
             stacking: StackingPoints::load()?,
+            weather: Weather::load()?,
+            initiative: InitiativeRatings::load()?,
         })
     }
 

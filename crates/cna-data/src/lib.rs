@@ -6,6 +6,7 @@ pub mod characteristics;
 pub mod close_assault;
 pub mod construction;
 pub mod errata;
+pub mod initiative;
 pub mod map;
 pub mod morale;
 pub mod oa;
@@ -14,6 +15,7 @@ pub mod schedule;
 pub mod stacking;
 pub mod terrain;
 pub mod time;
+pub mod weather;
 
 pub fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

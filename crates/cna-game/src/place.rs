@@ -92,6 +92,7 @@ impl GameState {
         self.pending = self.next_set_up();
         if self.pending.is_none() {
             events.push(Event::SetUpComplete);
+            events.extend(self.start_play(data));
         }
         Ok(events)
     }

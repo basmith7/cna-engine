@@ -78,7 +78,7 @@ impl GameState {
             scenario: data.slug().to_owned(),
             rules_commit: cna_data::rules_commit()?,
             ruleset: Ruleset::default(),
-            clock: Clock::start(data.scenario.start.game_turn),
+            clock: crate::phases::opening_clock(data.scenario.start),
             initiative: None,
             player_a: None,
             weather: Weather::Normal,
@@ -89,6 +89,9 @@ impl GameState {
             log: Vec::new(),
         };
         state.pending = state.next_set_up();
+        if state.pending.is_none() {
+            state.start_play(data);
+        }
         Ok(state)
     }
 
@@ -147,7 +150,10 @@ impl GameState {
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
-            (None, _) => todo!(),
+            (None, Order::DeclareInitiative { player_a }) => {
+                self.declare_initiative(data, *player_a)
+            }
+            (None, Order::Pass) => self.pass(data),
         }
     }
 }
@@ -193,6 +199,31 @@ pub(crate) mod test_support {
         }
         v.sort();
         v
+    }
+
+    /// A game with every piece placed, waiting on GT1 OpStage 1 phase A.
+    pub fn set_up(data: &Data, seed: u64) -> GameState {
+        let mut state = GameState::new(data, seed).unwrap();
+        auto_place(data, &mut state);
+        state
+    }
+
+    /// The holder declares itself Player A, then both players pass
+    /// through F and G, until the OpStage changes; the events of every
+    /// order, in order.
+    pub fn pass_stage(data: &Data, state: &mut GameState) -> Vec<Event> {
+        let (gt, stage) = (state.clock.game_turn, state.clock.stage);
+        let mut events = Vec::new();
+        while !state.over && (state.clock.game_turn, state.clock.stage) == (gt, stage) {
+            let player = state.to_act().unwrap();
+            let order = if state.clock.phase == crate::clock::Phase::InitiativeDeclaration {
+                Order::DeclareInitiative { player_a: player }
+            } else {
+                Order::Pass
+            };
+            events.extend(state.apply(data, player, order).unwrap());
+        }
+        events
     }
 
     /// Places every pending piece on the first hex the engine accepts,
@@ -398,6 +429,272 @@ mod tests {
         state.apply(&data, Side::Axis, near("C3410")).unwrap();
     }
 
+    fn skipped(events: &[Event]) -> Vec<char> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::PhaseSkipped { clock } => Some(clock.phase.letter()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn started(events: &[Event]) -> Vec<Clock> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::PhaseStarted { clock } => Some(*clock),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn in_game_turn_one_only_the_axis_declares_initiative() {
+        let data = graziani();
+        let mut state = test_support::set_up(&data, 3);
+        assert_eq!(state.initiative, Some(Side::Axis));
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        let before = serde_json::to_string(&state).unwrap();
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::DeclareInitiative { player_a: Side::Cw },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "5.2");
+        let err = state.apply(&data, Side::Axis, Order::Pass).unwrap_err();
+        assert_eq!(err.case, "7.1x");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative { player_a: Side::Cw },
+            )
+            .unwrap();
+        assert_eq!(state.player_a, Some(Side::Cw));
+        assert_eq!(events[0], Event::InitiativeDeclared { player_a: Side::Cw });
+        // Weather in B, then C, D, E skipped, then Player A's phase F.
+        assert!(events.iter().any(|e| matches!(e, Event::WeatherSet { .. })));
+        assert_eq!(skipped(&events), ['C', 'D', 'E']);
+        let f = started(&events);
+        assert_eq!(f.len(), 1);
+        assert_eq!(f[0].phase, Phase::ReserveDesignation);
+        assert_eq!(f[0].half, Some(crate::clock::Half::A));
+        assert_eq!(state.clock, f[0]);
+        assert_eq!(state.to_act(), Some(Side::Cw));
+    }
+
+    #[test]
+    fn weather_is_rolled_in_phase_b_and_logged() {
+        let data = graziani();
+        // Seed 3's first weather reading, pinned: the dice are the first
+        // two draws after set-up (set-up draws none).
+        let mut state = test_support::set_up(&data, 3);
+        let mut rng = state.rng.clone();
+        let reading = rng.two_dice_sequential();
+        let kind = data.weather.roll(1, reading).unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        let dice: Vec<u8> = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::DieRolled { purpose, value } if purpose == "weather" => Some(*value),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(dice[..2], [reading / 10, reading % 10]);
+        let set = events
+            .iter()
+            .find_map(|e| match e {
+                Event::WeatherSet { weather } => Some(weather.clone()),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(set, state.weather);
+        match (kind, &set) {
+            (cna_data::weather::WeatherKind::Normal, Weather::Normal)
+            | (cna_data::weather::WeatherKind::Hot, Weather::Hot) => assert_eq!(dice.len(), 2),
+            (cna_data::weather::WeatherKind::Sandstorm, Weather::Sandstorm { sheets })
+            | (cna_data::weather::WeatherKind::Rainstorm, Weather::Rainstorm { sheets }) => {
+                assert_eq!(dice.len(), 3);
+                assert_eq!(sheets, data.weather.storm_sheets(dice[2]).unwrap());
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_storm_names_its_sheets() {
+        // Search seeds for an autumn storm in GT1 OpStage 1 and pin one.
+        let data = graziani();
+        let base = test_support::set_up(&data, 0);
+        let mut found = None;
+        for seed in 0..200u64 {
+            let mut rng = GameRng::new(seed);
+            let reading = rng.two_dice_sequential();
+            if reading >= 55 {
+                found = Some(seed);
+                break;
+            }
+        }
+        let seed = found.expect("a storm within 200 seeds");
+        assert_eq!(seed, 1, "pinned");
+        let mut state = base.clone();
+        state.rng = GameRng::new(seed);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        match &state.weather {
+            Weather::Sandstorm { sheets } | Weather::Rainstorm { sheets } => {
+                assert!(!sheets.is_empty());
+                assert!(sheets.iter().all(|s| ('A'..='E').contains(s)));
+            }
+            w => panic!("expected a storm, got {w:?}"),
+        }
+    }
+
+    #[test]
+    fn pass_ends_f_and_g_and_the_rest_is_skipped() {
+        let data = graziani();
+        let mut state = test_support::set_up(&data, 3);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        // F: Pass moves to G, movement segment.
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert_eq!(skipped(&events), []);
+        assert_eq!(state.clock.phase, Phase::MovementCombat);
+        assert_eq!(state.clock.segment, Some(crate::clock::Segment::Movement));
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        // G: Pass ends the phase; H, J, K, L are skipped; Player B's F.
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert_eq!(skipped(&events), ['H', 'J', 'K', 'L']);
+        assert_eq!(state.clock.phase, Phase::ReserveDesignation);
+        assert_eq!(state.clock.half, Some(crate::clock::Half::B));
+        assert_eq!(state.to_act(), Some(Side::Cw));
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(skipped(&events), ['H', 'J', 'K', 'L']);
+        // Then OpStage 2's phase A, the Axis still holding initiative.
+        assert_eq!(state.clock.stage, 2);
+        assert_eq!(state.clock.phase, Phase::InitiativeDeclaration);
+        assert_eq!(state.initiative, Some(Side::Axis));
+        assert_eq!(state.to_act(), Some(Side::Axis));
+    }
+
+    #[test]
+    fn from_game_turn_two_initiative_is_rolled_with_the_ratings() {
+        let data = graziani();
+        // GT1 OpStage 3, Player B's phase G: the next Pass opens GT2.
+        let base = {
+            let mut s = test_support::set_up(&data, 0);
+            for _ in 0..2 {
+                test_support::pass_stage(&data, &mut s);
+            }
+            while (s.clock.phase, s.clock.half)
+                != (Phase::MovementCombat, Some(crate::clock::Half::B))
+            {
+                let player = s.to_act().unwrap();
+                let order = if s.clock.phase == Phase::InitiativeDeclaration {
+                    Order::DeclareInitiative { player_a: player }
+                } else {
+                    Order::Pass
+                };
+                s.apply(&data, player, order).unwrap();
+            }
+            assert_eq!((s.clock.game_turn, s.clock.stage), (1, 3));
+            s
+        };
+        // Seeds were searched for a tie on the first pair (Commonwealth 3
+        // + die equals Axis 1 + die): seed 2 is the first, pinned.
+        let mut tie_seed = None;
+        for seed in 0..100u64 {
+            let mut rng = GameRng::new(seed);
+            if 1 + rng.d6() == 3 + rng.d6() {
+                tie_seed = Some(seed);
+                break;
+            }
+        }
+        let seed = tie_seed.unwrap();
+        assert_eq!(seed, 2, "pinned");
+        for seed in [seed, 0] {
+            let mut state = base.clone();
+            state.rng = GameRng::new(seed);
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert_eq!(state.clock, Clock::start(2));
+            let dice: Vec<u8> = events
+                .iter()
+                .filter_map(|e| match e {
+                    Event::DieRolled { purpose, value } if purpose == "initiative" => Some(*value),
+                    _ => None,
+                })
+                .collect();
+            let mut rng = GameRng::new(seed);
+            let (mut axis, mut cw) = (rng.d6(), rng.d6());
+            let mut expect = vec![axis, cw];
+            while axis + 1 == cw + 3 {
+                axis = rng.d6();
+                cw = rng.d6();
+                expect.extend([axis, cw]);
+            }
+            assert_eq!(dice, expect);
+            let holder = if axis + 1 > cw + 3 {
+                Side::Axis
+            } else {
+                Side::Cw
+            };
+            assert_eq!(state.initiative, Some(holder));
+            assert!(events.contains(&Event::InitiativeDetermined {
+                holder,
+                rolled: true
+            }));
+            assert_eq!(state.to_act(), Some(holder));
+        }
+    }
+
+    #[test]
+    fn the_game_ends_after_game_turn_six() {
+        let data = graziani();
+        let mut state = test_support::set_up(&data, 11);
+        let mut stages = 0;
+        while !state.over {
+            let events = test_support::pass_stage(&data, &mut state);
+            stages += 1;
+            if state.over {
+                assert_eq!(events.last(), Some(&Event::GameOver));
+            }
+        }
+        assert_eq!(stages, 18);
+        assert_eq!(state.to_act(), None);
+        let err = state.apply(&data, Side::Axis, Order::Pass).unwrap_err();
+        assert_eq!(err.case, "60.8");
+        let json = serde_json::to_string(&state).unwrap();
+        let back: GameState = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, state);
+    }
+
     #[test]
     fn play_starts_when_nothing_is_pending() {
         let data = graziani();
@@ -408,6 +705,8 @@ mod tests {
         assert_eq!(state.pending, None);
         assert_eq!(state.clock, Clock::start(1));
         assert_eq!(state.clock.phase, Phase::InitiativeDeclaration);
+        assert_eq!(state.initiative, Some(Side::Axis));
+        assert_eq!(state.to_act(), Some(Side::Axis));
         assert_eq!(state.log.len(), 59);
         // The Axis placed first, then the Commonwealth.
         let first_cw = orders.iter().position(|o| o.player == Side::Cw).unwrap();
