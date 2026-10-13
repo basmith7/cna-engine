@@ -1102,6 +1102,7 @@ mod tests {
     use crate::movement::test_support::{hex, pid};
     use crate::order::{Allocation, Assignment, Order};
     use crate::piece::Location;
+    use crate::reach::Purpose;
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
@@ -1808,6 +1809,26 @@ mod tests {
             Event::PhaseStarted { clock } if clock.segment == Some(Segment::ReserveRelease)
         )));
         assert_eq!(state.pending, None);
+    }
+
+    #[test]
+    fn a_must_attack_stack_with_a_way_out_may_not_pass_and_surrender() {
+        // 10.36: the whole unit surrenders only when the route is forced
+        // into enemy ZOC; while a full retreat exists, Pass is refused
+        // and nothing changes.
+        let data = graziani();
+        let (mut state, before) = under_a_declared_zoc(&data);
+        assign_nothing(&data, &mut state);
+        assert!(
+            !state
+                .reachable(&data, Side::Cw, &before, Purpose::ForcedRetreat)
+                .unwrap()
+                .is_empty()
+        );
+        let saved = state.clone();
+        let err = state.apply(&data, Side::Cw, Order::Pass).unwrap_err();
+        assert_eq!(err.case, "10.36");
+        assert_eq!(state, saved);
     }
 
     #[test]
