@@ -9,16 +9,19 @@
   import { withEvents, withIllegal, type LogEntry } from "./log";
   import LogPanel from "./LogPanel.svelte";
   import Map from "./Map.svelte";
+  import Marks from "./Marks.svelte";
   import MovePanel from "./MovePanel.svelte";
-  import { defaultTicked, extendPath, toggle } from "./moves";
+  import { allOffMapCapable, allOnMap, defaultTicked, extendPath, toggle, toggleOffMap } from "./moves";
   import OffMap from "./OffMap.svelte";
+  import Pending from "./Pending.svelte";
+  import PhaseControls from "./PhaseControls.svelte";
   import Placements from "./Placements.svelte";
   import Reachable from "./Reachable.svelte";
   import SetupPanel from "./SetupPanel.svelte";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { HexId, Illegal, Order, PieceId, Purpose, Reach, Side, View } from "./types";
+  import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -55,14 +58,19 @@
     if (view.pending) return null;
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
+  /** Whether the ticked stack stands on a hex (the overlay applies) or could go off-map (8.8x). */
+  const onMap = $derived(view ? allOnMap(view, ticked) : false);
+  const offMap = $derived(view ? allOffMapCapable(view, ticked) : false);
   /** The engine's answer for the ticked stack: the hexes, or why it cannot move. */
   const reach: { ok: Reach[]; illegal: null } | { ok: []; illegal: Illegal } = $derived.by(() => {
-    if (!engine || !view || !view.to_act || !purpose || ticked.length === 0) return { ok: [], illegal: null };
+    if (!engine || !view || !view.to_act || !purpose || !onMap) return { ok: [], illegal: null };
     const r = engine.reachable(view.to_act, ticked, purpose);
     return "ok" in r ? { ok: r.ok, illegal: null } : { ok: [], illegal: r.illegal };
   });
   const reaches = $derived(reach.ok);
   const occupied = $derived(new Set(view ? stacks(view).keys() : []));
+  /** The hexes the ZOC declaration asks about, outlined on the map. */
+  const asked: HexId[] = $derived(view?.pending && "declare-zoc" in view.pending ? view.pending["declare-zoc"].hexes : []);
   /** Where the ticked stack stands, for drawing paths from it. */
   const from: HexId | null = $derived.by(() => {
     const p = view && ticked.length > 0 ? view.pieces[ticked[0]] : null;
@@ -162,6 +170,17 @@
     custom = [];
   }
 
+  /** A click on a piece in a box or in transit: ticks it with the others of its place. */
+  function ontick(id: PieceId) {
+    if (!view) return;
+    ticked = toggleOffMap(view, ticked, id);
+    custom = [];
+  }
+
+  function onoffmap(to: OffMapPlace) {
+    send({ "move-off-map": { pieces: ticked, to } });
+  }
+
   function onpick(id: PieceId) {
     picked = picked === id ? null : id;
   }
@@ -226,6 +245,7 @@
         <Map {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
             <Placements hexes={placements} />
+            <Marks hexes={asked} kind="zoc" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
             <Reachable {reaches} {from} hovered={hover} {custom} {occupied} part="labels" />
@@ -234,12 +254,16 @@
       </main>
       <aside class="side">
         <div class="panels">
+          <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
+          {#if view.pending}
+            <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} />
+          {/if}
           {#if purpose}
-            <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} onsend={() => sendPath(custom)} onclear={() => (custom = [])} />
+            <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
           {/if}
           <StackPanel {view} {hex} {ticked} {ontoggle} />
-          <OffMap {view} {picked} {onpick} />
+          <OffMap {view} {picked} {onpick} {ticked} {ontick} />
         </div>
         <LogPanel entries={log} />
       </aside>
