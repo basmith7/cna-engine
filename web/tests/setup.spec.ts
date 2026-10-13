@@ -9,8 +9,8 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 type Logged = { player: "axis" | "cw"; order: { place: { piece: string; hex: string } } };
 
-/** The golden game's 59 free placements: orders 0–58 of `tests/games/graziani-short.json`. */
-const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-short.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 59);
+/** The golden game's 59 free placements: orders 0–58 of `tests/games/graziani-m5.json`. */
+const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 59);
 /** `cna-play replay` of those 59 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
 const setUpDone = readFileSync(here("fixtures/set-up-done.sha256"), "utf8").trim();
 
