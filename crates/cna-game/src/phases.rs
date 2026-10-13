@@ -59,6 +59,9 @@ impl GameState {
                 ));
             }
         }
+        if self.clock.segment == Some(crate::clock::Segment::CloseAssault) {
+            return self.end_close_assault_step(data);
+        }
         let mut events = Vec::new();
         self.before_leaving_g(data, &mut events)?;
         self.cycle = 0;
@@ -74,8 +77,9 @@ impl GameState {
         loop {
             let clock = self.clock;
             if GameTime::new(clock.game_turn, clock.stage) > data.scenario.end {
-                self.over = true;
-                events.push(Event::GameOver);
+                let report = crate::victory::evaluate(data, self);
+                self.over = Some(report.clone());
+                events.push(Event::GameOver { report });
                 return;
             }
             match clock.phase {
@@ -112,7 +116,8 @@ impl GameState {
     }
 
     /// The bookkeeping between OpStages: unspent CP are lost (6.16), a
-    /// unit that spent none rests (6.24), and reserve ends (18.2x).
+    /// unit that spent none rests (6.24), reserve ends (18.2x), and
+    /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
@@ -123,6 +128,7 @@ impl GameState {
             p.reserve = None;
             p.released = None;
             p.landed = false;
+            p.engaged = false;
         }
     }
 

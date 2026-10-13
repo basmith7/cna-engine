@@ -7,17 +7,14 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 |---|---|
 | R-002 | map art (road stubs): a question of what the map shows, not of numbers |
 | R-005 | interpretive: what one rail stack may carry; also needs movement |
-| R-010 | interpretive: retreat before assault direction; also needs the map |
-| R-013 | the difference is linear: ammunition scales with the pinned share; no probe adds information |
-| R-014 | interpretive: what may capture a destroyed-tank marker |
+| R-013 | ammunition is not in the engine yet (Mission 2 has no supply states); when it is, pinned, retreated-in and withheld units spend none (the Decision) |
+| R-014 | destroyed-tank markers are not in the engine yet (slice 5 removes destroyed armour outright); when they are, only a battalion-size combat unit captures one (the Decision) |
 | R-016 | interpretive: when a Tank Delivery Squadron moves |
 | R-017 | interpretive: what a Tank Delivery Squadron may do in combat and retreat |
 | R-019 | interpretive: the fleet's western limit; a map question, not one of numbers |
 | R-020 | needs the Logistics Game (§47–58) restated in cna |
 | R-021 | needs the Logistics Game (§47–58) restated in cna |
 | R-022 | needs the Logistics Game (§47–58) restated in cna |
-| R-023 | printed chart gap, decided in cna; the `chart-oddities` probe already measures how often it comes up |
-| R-024 | printed chart gap, decided in cna; the `chart-oddities` probe already measures how often it comes up |
 | R-025 | Logistics Game (§48–58): not in the engine yet |
 | R-026 | Logistics Game (§48–58): not in the engine yet |
 | R-027 | Logistics Game (§48–58): port efficiency; not in the engine yet |
@@ -63,7 +60,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-107 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-108 | scenario ruling (El Alamein scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-109 | scenario ruling (campaign games); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-110 | Land-only victory supply in Graziani's Offensive: no game state yet; Mission 2 slice 6 implements it as a route trace (spec, PR #5) |
 | R-111 | Air Game: not in the engine yet |
 | R-112 | Air Game: not in the engine yet |
 | R-113 | Air Game: not in the engine yet |
@@ -84,3 +80,46 @@ rulings*). Each names where it is enforced.
 | R-006 | non-motorised units never react, whatever they stack with (`cna-game::reaction::reactors_next_to`); truck convoys are not in the engine yet |
 | R-007 | a reaction spends CP on movement only: `Order::React` is a path and nothing else |
 | R-008 | a unit in an enemy ZOC, in contact or engaged never reacts; no break-off fee arises in a reaction |
+| R-010 | retreat before assault is ordinary movement in any direction under the 13.2x limits (`cna-game::combat::retreat::retreat_before_assault`) |
+| R-023 | a defender reading of 34–36 on the +2 column inflicts 5 % (`cna-rules::close_assault::loss_pct_decided`) |
+| R-024 | a morale reading of 56 at cohesion −4 is −2 (`cna-game::combat::assault::adjusted_morale`) |
+| R-110 | Land-only victory supply is a route a medium truck could follow from the holding unit to the level's source, through no enemy hex and no enemy-ZOC hex without a friendly piece (`cna-game::victory`); every enemy hex able to exert a ZOC does, since 10.16's declarations belong to a movement segment |
+
+# Combat systems not simulated (Mission 2 slice 5)
+
+The combat segment runs on pieces without these; each is a later slice or
+mission, and the engine neither models nor approximates them.
+
+| System | What the engine does instead |
+|---|---|
+| Ammunition and fuel (SPI 6.4, 47–58) | nothing is deducted; no unit is ever out of ammunition |
+| Trucks, halftracks and mounted infantry (12.46, 14.48) | no truck roll after a barrage; no halftrack cap |
+| Destroyed-tank markers and their capture (14.4x, 14.5) | destroyed armour leaves the map |
+| Dummy tank formations (16.4) | none exist |
+| Prisoners and captured equipment (15.89, 28.0) | the captured share is logged (`Event::Prisoners`) and nothing changes hands |
+| Advance after combat | none: cna's 50-stacking-and-zoc.md says movement in the next segment is not an advance |
+| The owner's choice of which TOE points die (12.45, 14.4x, 15.83) | the engine removes the points that absorb most per point first (`cna-game::combat::losses`) |
+| The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |
+| Patrol identification of barrage targets (12.2x) | the firer names any target in the hex |
+| Divisions in the size table (15.53) | the largest unit is a brigade at most, so no division shift arises |
+
+# Systems not simulated (Mission 2)
+
+The game state plays Graziani's Offensive with the Land Game's movement
+and combat only. Each of these is a later mission; the sequence of play
+passes through its phase with a `PhaseSkipped` event, so adding one changes
+only that phase.
+
+| System | What the engine does instead |
+|---|---|
+| Abstract supply and supply units (§32) | every unit is supplied with unlimited ammunition and fuel; supply units are placed, captured when left alone in an enemy ZOC (10.29), and otherwise inert; motorisation points are not tracked |
+| Breakdown (§21) | the breakdown segment of phase G is skipped |
+| Organisation (§20): attachment, detachment, replacements | phase C is skipped; the set-up's attachments are fixed for the game |
+| Engineering and construction (§24–26) | no minefields, fortifications, roads or airfields are built or demolished; the scenario starts with none (60.7) |
+| Repair (phase K) and vehicle breakdown pools | skipped; destroyed armour leaves the map |
+| Patrols (phase L, §27) | skipped; barrage targets need no identification |
+| Rail (phase J, §31) | skipped; the railroad to Mersa Matruh carries nothing |
+| The Commonwealth fleet and the Axis convoy (phases E, II) | skipped; reinforcements arrive by the schedule at Cairo and Tripoli |
+| The Air Game (§33–47) | left out, as 60.9 allows |
+| The Logistics Game (§48–58) | left out, as 60.92 allows; victory's supply clause is R-110's route trace |
+| Limited intelligence (3.6x), dummy supply units as hidden information | the state holds everything; a per-player view waits for the server |

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 pub mod anti_armour;
+pub mod assault_size;
 pub mod barrage;
 pub mod characteristics;
 pub mod close_assault;
@@ -12,11 +13,13 @@ pub mod map;
 pub mod morale;
 pub mod oa;
 pub mod off_map;
+pub mod prisoners;
 pub mod scenario;
 pub mod schedule;
 pub mod stacking;
 pub mod terrain;
 pub mod time;
+pub mod weapons;
 pub mod weather;
 
 pub fn repo_root() -> PathBuf {

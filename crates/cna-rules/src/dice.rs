@@ -15,6 +15,35 @@ pub fn sums() -> impl Iterator<Item = (u8, f64)> {
     (2..=12u8).map(|s| (s, rolls().filter(|(a, b)| a + b == s).count() as f64 * P))
 }
 
+/// Seeded sampling for the tests that check a resolver against its
+/// exact distribution: ChaCha8, as the game's own dice are.
+#[cfg(test)]
+pub mod sample {
+    use rand_chacha::ChaCha8Rng;
+    use rand_core::{RngCore, SeedableRng};
+
+    pub fn rng(seed: u64) -> ChaCha8Rng {
+        ChaCha8Rng::seed_from_u64(seed)
+    }
+
+    pub fn d6(rng: &mut ChaCha8Rng) -> u8 {
+        const LIMIT: u32 = u32::MAX - (u32::MAX % 6);
+        loop {
+            let w = rng.next_u32();
+            if w < LIMIT {
+                return (w % 6) as u8 + 1;
+            }
+        }
+    }
+
+    /// Two dice read sequentially, 11..=66.
+    pub fn reading(rng: &mut ChaCha8Rng) -> u8 {
+        let a = d6(rng);
+        let b = d6(rng);
+        a * 10 + b
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

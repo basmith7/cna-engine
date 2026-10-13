@@ -14,38 +14,33 @@ writes is **Feedback**.
 
 ## Status
 
-**Mission 2 (headless game state for Graziani's Offensive) Part 0 is up
-for review** in PR #5, labelled `needs-brian`. Nothing for Mission 2 is
-built until **Feedback** approves it.
+**MISSION 2 COMPLETE** (2026-10-13): a headless game state for Graziani's
+Offensive in `cna-game`, driven by `cna-play`. Slices 1–6 merged as PRs
+#6, #8, #9, #11, #12 and #15: map, scenario and pieces, state and the
+sequence of play, movement, combat, victory. Two scripted games in
+`tests/games/` replay in CI; the short game's final state and victory
+report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
+(Status: built).
 
-cna answered all six requests (2026-10-08). PR #5 now vendors cna 18ed96e
-and the spec uses the answers: cross-sheet seams, weapon-system ratings
-for tanks and guns, R-110's Land-only victory supply (a truck route free
-of enemy units and unoccupied enemy ZOC, so victory is now fully checked),
-stacking equivalents per row, and the probe CP refund as `cp-costs.json`
-has it. No open requests remain.
-
-cna main has since moved on (its Mission 7, the Air Game, now complete:
-air tables, schemas and R-111–R-116). Rechecked 2026-10-12 23:53Z (since 2026-10-09 20:55Z only quota rows and a docs cleanup, 732056c): none of
-it touches the map, scenarios, OA or Land Game data the spec uses, so PR #5
-stays on 18ed96e; the bump waits for the first slice. cna's own queue is
-finished, so both autopilots are now idle until this review lands.
-
-CI on PR #5 was red from 2026-10-09 05:53Z: a journal commit bumped
-`vendor/cna` by accident without regenerating `probes/`. Restored to
-18ed96e (00ac7bd); the gates pass again.
+Nonblocking combat follow-ups from PR #12's review stay open for a later
+slice (listed in the journal entry of 2026-10-12 and PR #15's body): rule
+tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; the retreat-short 10 % taken
+after rounding rather than folded in (15.83); a must-attack `Pass`
+surrendering a stack that has a path (10.36); attacking forward guns and
+artillery in the anti-armour role (15.84, 14.14); a released unit's later
+combat segments (18.2x); a malformed save with an empty sealed `waiting`
+panics.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Review the Mission 2 spec: PR #5.** Approve (or ask for changes) under
-  **Feedback**. Updated 2026-10-09 with cna's answers; the decisions table
-  is the part worth reading.
-
-For the autopilot: once Feedback approves, merge PR #5 and start slice 1
-(map). Until then, nothing to build.
+- **Mission 3, Part 0:** write the UI spec (`docs/designs/`) and slice
+  plans on `autopilot/m3-spec`; it reads `cna-game`'s `GameState`,
+  `Order`, `Event` and `VictoryReport` (`state.over`). Brian's review is
+  not required by the queue, but the spec should say what runs where
+  (`cna-game` compiles without the file system; `Data::load` is native).
 
 ## Requests for cna
 
@@ -53,8 +48,22 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-(None open. The six from Mission 2's spec landed in cna 18ed96e; PR #5
-bumps `vendor/cna` to it.)
+- **8.37, swamp by railroad.** `terrain-effects.json` gives swamp's cp as
+  `road-or-railroad-only` and the railroad row as `as-hex-terrain`, so a
+  rail-only step into swamp (13 hexsides on sheet E near Alexandria and
+  Cairo, e.g. E3211|E3312) has no price. The engine charges the road rate
+  for now (`cna_rules::movement::step_cost`). What does the chart intend?
+  Mission 2 (movement) carries the guess.
+- **Seam slopes and escarpments need `up`.** `seams.json` records no `up`
+  hex for its 18 slope and 7 escarpment pairs, so the engine reads them as
+  climbing both ways; vehicles therefore cannot use the tracks at
+  A3933|B3901, A5433|B5501 and B4833|C4701 in either direction. Mission 2
+  (movement) is wrong at those three until cna records which side is up.
+- **Which loss base governs for withheld defenders?** `rules/60-combat.md`
+  under 15.1x says withheld TOE points count in the defender's loss base;
+  under 15.83 (percentage losses) the defender adds withheld units only in
+  an overrun. The engine follows 15.83 (`cna-game::combat::assault`). Not
+  blocking; Mission 2's follow-ups.
 
 ## Runs and quota
 

@@ -212,6 +212,19 @@ impl GameState {
         from: &HexId,
         path: &[HexId],
     ) -> Result<Plan, Illegal> {
+        self.plan_with(data, pieces, from, path, false)
+    }
+
+    /// `plan`, where `forced` lets a stack leave an enemy ZOC it entered
+    /// this segment: a forced retreat (15.82) is no voluntary move.
+    pub(crate) fn plan_with(
+        &self,
+        data: &Data,
+        pieces: &[PieceId],
+        from: &HexId,
+        path: &[HexId],
+        forced: bool,
+    ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
@@ -223,18 +236,22 @@ impl GameState {
             .iter()
             .map(|id| self.mobility(data, &self.pieces[id]))
             .collect();
-        let mut plan = Plan::default();
+        // A stack in contact or engaged breaks off before it moves (8.6x).
+        // Contact only exists in an enemy ZOC; an engaged unit need not
+        // be in one, so this is the pieces' state, not the hex's.
+        let mut plan = Plan {
+            break_off: pieces
+                .iter()
+                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            ..Plan::default()
+        };
         // Where the stack stands: in an enemy ZOC it either breaks off
-        // (contact or engaged, 8.6x) or is stopped (10.22), unless another
-        // friendly combat unit there cancels the ZOC (10.26), as it did
-        // when the stack entered.
+        // or is stopped (10.22), unless another friendly combat unit
+        // there cancels the ZOC (10.26), as it did when the stack entered.
         let mut at_in_zoc = match self.zoc_at(data, from, side) {
             Zoc::Exerts => {
-                let tied = pieces
-                    .iter()
-                    .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
                 let cancelled = self.friendly_combat_in(from, side, pieces);
-                if !tied && !cancelled {
+                if !plan.break_off && !cancelled && !forced {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(
@@ -243,42 +260,21 @@ impl GameState {
                         ),
                     ));
                 }
-                plan.break_off = tied;
                 !cancelled
             }
             Zoc::Clear => false,
             Zoc::Undeclared(hexes) => {
+                // The first step is checked before the move is parked on
+                // the declaration: an order that could never be taken is
+                // refused, not logged (8.1x).
+                self.entry(data, side, from, &path[0])?;
                 plan.interrupt = Some((path[0].clone(), hexes));
                 return Ok(plan);
             }
         };
         let mut at = from.clone();
         for to in path {
-            let Some(hex) = data.map.hex(to) else {
-                return Err(Illegal::new("8.1x", format!("{to}: not on the map")));
-            };
-            if !data.map.adjacent(&at, to) {
-                return Err(Illegal::new(
-                    "8.1x",
-                    format!("{to} is not adjacent to {at}"),
-                ));
-            }
-            if let Some(enemy) = self
-                .pieces
-                .values()
-                .find(|q| q.side != side && q.hex() == Some(to))
-            {
-                return Err(Illegal::new(
-                    "8.1x",
-                    format!("{to} holds the enemy unit {}", enemy.id),
-                ));
-            }
-            if side == Side::Cw && to.sheet() == 'A' && to.col() < MARBLE_ARCH_COL {
-                return Err(Illegal::new(
-                    "8.1x",
-                    format!("{to} is west of Marble Arch: no Commonwealth unit goes there"),
-                ));
-            }
+            let hex = self.entry(data, side, &at, to)?;
             let hexside = data.map.hexside(&at, to);
             let step = Step {
                 from: data.map.hex(&at).expect("on the map"),
@@ -342,6 +338,44 @@ impl GameState {
             at = to.clone();
         }
         Ok(plan)
+    }
+
+    /// Whether a unit of `side` may step from `at` into `to` at all
+    /// (8.1x): on the map, adjacent, not an enemy-held hex, and east of
+    /// Marble Arch for the Commonwealth. The terrain is the chart's.
+    fn entry<'a>(
+        &self,
+        data: &'a Data,
+        side: Side,
+        at: &HexId,
+        to: &HexId,
+    ) -> Result<&'a cna_data::map::Hex, Illegal> {
+        let Some(hex) = data.map.hex(to) else {
+            return Err(Illegal::new("8.1x", format!("{to}: not on the map")));
+        };
+        if !data.map.adjacent(at, to) {
+            return Err(Illegal::new(
+                "8.1x",
+                format!("{to} is not adjacent to {at}"),
+            ));
+        }
+        if let Some(enemy) = self
+            .pieces
+            .values()
+            .find(|q| q.side != side && q.hex() == Some(to))
+        {
+            return Err(Illegal::new(
+                "8.1x",
+                format!("{to} holds the enemy unit {}", enemy.id),
+            ));
+        }
+        if side == Side::Cw && to.sheet() == 'A' && to.col() < MARBLE_ARCH_COL {
+            return Err(Illegal::new(
+                "8.1x",
+                format!("{to} is west of Marble Arch: no Commonwealth unit goes there"),
+            ));
+        }
+        Ok(hex)
     }
 
     /// Charges a piece CP, earning a DP for every whole point over its
@@ -416,7 +450,10 @@ impl GameState {
             if plan.ends_in_zoc {
                 return Err(Illegal::new(
                     "18.2x",
-                    format!("{}: a unit in reserve never shifts into an enemy ZOC", path[0]),
+                    format!(
+                        "{}: a unit in reserve never shifts into an enemy ZOC",
+                        path[0]
+                    ),
                 ));
             }
             for step in &mut plan.steps {
@@ -840,7 +877,7 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
             .unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         assert!(state.continuing.contains(&pid("unit:cw:11-hus")));
         assert!(!state.continuing.contains(&pid("unit:cw:1-krrc")));
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
@@ -856,6 +893,7 @@ mod tests {
             .unwrap();
         // A new phase starts afresh: in the Axis half every Axis unit may
         // make its first move.
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         state.apply(&data, Side::Axis, Order::Pass).unwrap();
         assert_eq!(state.cycle, 0);
@@ -948,5 +986,66 @@ mod tests {
                 cost: Cp::halves(1)
             }
         );
+    }
+
+    #[test]
+    fn an_engaged_unit_disengages_for_4_cp_whatever_the_zoc() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        // 1 KRRC at C3922 is engaged from an earlier close assault, but
+        // no enemy ZOC reaches C3922: it still pays 4 CP to disengage
+        // (8.6x) before the 2 for C3923.
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().engaged = true;
+        assert_eq!(state.zoc_at(&data, &hex("C3922"), Side::Cw), Zoc::Clear);
+        let events = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
+            .unwrap();
+        assert_eq!(
+            events[0],
+            Event::ContactBroken {
+                piece: krrc.clone(),
+                cost: Cp::whole(4)
+            }
+        );
+        let p = &state.pieces[&krrc];
+        assert_eq!(p.cp_spent, Cp::whole(6));
+        assert!(!p.engaged);
+    }
+
+    #[test]
+    fn a_move_from_an_undeclared_hex_is_validated_before_the_interrupt() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        // 1 KRRC stands at C4021 next to the 1st Libyan Division at
+        // C4020, whose ZOC has not been declared this segment. A path
+        // that is not even adjacent is refused outright, not parked on
+        // the declaration.
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C4021"));
+        assert!(matches!(
+            state.zoc_at(&data, &hex("C4021"), Side::Cw),
+            Zoc::Undeclared(_)
+        ));
+        let before = snapshot(&state);
+        let err = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C0101"]))
+            .unwrap_err();
+        assert_eq!(err.case, "8.1x");
+        assert!(err.reason.contains("not adjacent"), "{}", err.reason);
+        assert_eq!(snapshot(&state), before);
+        assert_eq!(state.pending, None);
+        let err = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4020"]))
+            .unwrap_err();
+        assert_eq!(err.case, "8.1x");
+        assert!(err.reason.contains("enemy"), "{}", err.reason);
+        assert_eq!(snapshot(&state), before);
+        // A sound first step still waits for the declaration.
+        let events = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4121"]))
+            .unwrap();
+        assert!(matches!(events[0], Event::MoveInterrupted { .. }));
+        assert!(matches!(state.pending, Some(Pending::DeclareZoc { .. })));
     }
 }

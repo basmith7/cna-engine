@@ -355,6 +355,99 @@ pub struct Abstractions {
     pub logistics: Option<Abstraction>,
 }
 
+/// How a scenario is won: a ladder of levels, or points for places held.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VictoryKind {
+    Levels,
+    Points,
+}
+
+/// A level of victory, lowest first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VictoryLevel {
+    Tactical,
+    Decisive,
+    Strategic,
+}
+
+impl fmt::Display for VictoryLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            VictoryLevel::Tactical => "tactical",
+            VictoryLevel::Decisive => "decisive",
+            VictoryLevel::Strategic => "strategic",
+        })
+    }
+}
+
+/// A place to hold at the end: a placement (its `constraint` is a
+/// sentence the engine cannot check); `any_hex` means one hex of it is
+/// enough.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Objective {
+    pub hold: Placement,
+    #[serde(default)]
+    pub any_hex: bool,
+}
+
+/// Where a holding unit's route must reach (R-110): any hex of these
+/// places, these hexes, or this sheet.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupplyTrace {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub places: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hexes: Vec<HexId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<char>,
+}
+
+/// One rung of a levels ladder: every `all_of` objective, at least one
+/// `any_of` if any are listed, by units meeting the supply condition.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Level {
+    pub side: Side,
+    pub level: VictoryLevel,
+    pub all_of: Vec<Objective>,
+    #[serde(default)]
+    pub any_of: Vec<Objective>,
+    /// The supply sentence as cna wrote it.
+    pub supply: Option<String>,
+    pub supply_trace: Option<SupplyTrace>,
+}
+
+/// A place scored in a points victory, by whichever side holds it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PointsObjective {
+    pub place: Option<String>,
+    #[serde(default)]
+    pub hexes: Vec<HexId>,
+    pub axis: i32,
+    pub cw: i32,
+}
+
+/// A points victory's level by margin.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Margin {
+    pub min: i32,
+    pub level: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Victory {
+    pub kind: VictoryKind,
+    #[serde(default)]
+    pub levels: Vec<Level>,
+    #[serde(default)]
+    pub points: Vec<PointsObjective>,
+    #[serde(default)]
+    pub margins: Vec<Margin>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scenario {
     pub id: String,
@@ -366,8 +459,7 @@ pub struct Scenario {
     pub initiative: Option<Initiative>,
     /// Typed by the slice that reads it.
     pub construction: Option<Value>,
-    /// Typed by the slice that reads it.
-    pub victory: Option<Value>,
+    pub victory: Option<Victory>,
     #[serde(default)]
     pub sides: BTreeMap<Side, SideSetup>,
     pub abstractions: Option<Abstractions>,
@@ -488,8 +580,65 @@ mod tests {
         assert_eq!(s.sides, g.sides);
         assert_eq!(s.initiative, g.initiative);
         assert_eq!(s.abstractions, g.abstractions);
-        assert_eq!(s.victory.as_ref().unwrap()["kind"], "points");
-        assert_eq!(g.victory.as_ref().unwrap()["kind"], "levels");
+        assert_eq!(s.victory.as_ref().unwrap().kind, VictoryKind::Points);
+        assert_eq!(g.victory.as_ref().unwrap().kind, VictoryKind::Levels);
+    }
+
+    #[test]
+    fn graziani_victory_levels_are_typed() {
+        let v = graziani().victory.unwrap();
+        assert_eq!(v.kind, VictoryKind::Levels);
+        assert_eq!(v.levels.len(), 6);
+        let axis_strategic = &v.levels[0];
+        assert_eq!(
+            (axis_strategic.side, axis_strategic.level),
+            (Side::Axis, VictoryLevel::Strategic)
+        );
+        assert_eq!(axis_strategic.all_of.len(), 1);
+        assert!(axis_strategic.all_of[0].any_hex);
+        assert!(matches!(
+            &axis_strategic.all_of[0].hold.locator,
+            Locator::Hexes(h) if h.len() == 7
+        ));
+        assert_eq!(
+            axis_strategic.supply_trace,
+            Some(SupplyTrace {
+                places: vec![],
+                hexes: vec![],
+                sheet: Some('D'),
+            })
+        );
+        let cw_tactical = &v.levels[3];
+        assert_eq!(
+            (cw_tactical.side, cw_tactical.level),
+            (Side::Cw, VictoryLevel::Tactical)
+        );
+        assert_eq!(cw_tactical.all_of.len(), 3);
+        assert!(!cw_tactical.all_of[0].any_hex);
+        assert_eq!(
+            cw_tactical.all_of[0].hold.locator,
+            Locator::Place("sollum".into())
+        );
+        assert_eq!(
+            cw_tactical.supply_trace,
+            Some(SupplyTrace {
+                places: vec!["cairo".into()],
+                hexes: vec![
+                    HexId::parse("E3613").unwrap(),
+                    HexId::parse("E3714").unwrap()
+                ],
+                sheet: None,
+            })
+        );
+        assert!(cw_tactical.supply.is_some());
+        assert!(VictoryLevel::Strategic > VictoryLevel::Decisive);
+        assert!(VictoryLevel::Decisive > VictoryLevel::Tactical);
+        // Rommel's Arrival: a hold the grammar cannot check carries its sentence.
+        let r = Scenario::load("rommels-arrival").unwrap().victory.unwrap();
+        let region = &r.levels[2].all_of[3].hold;
+        assert_eq!(region.locator, Locator::Region(Country::Egypt));
+        assert!(region.constraint.is_some());
+        assert_eq!(r.levels[2].supply_trace, None);
     }
 
     #[test]

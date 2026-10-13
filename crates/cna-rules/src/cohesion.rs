@@ -16,8 +16,9 @@ pub const COLLAPSE: i32 = 26;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Unit {
     pub level: i32,
-    /// Every DP ever earned, never reduced: the count R-001 option 2 needs.
-    /// The rules give it no reset, so none is invented.
+    /// Every DP earned, less only those taken back with refunded CP
+    /// (6.3): the count R-001 option 2 needs. The rules give it no
+    /// reset, so none is invented.
     pub dp_tally: u32,
 }
 
@@ -25,6 +26,13 @@ impl Unit {
     pub fn earn_dp(&mut self, n: u32) {
         self.level -= n as i32;
         self.dp_tally += n;
+    }
+
+    /// Takes back DP that CP since refunded had earned (6.3): the CP
+    /// was never spent, so neither was the DP.
+    pub fn refund_dp(&mut self, n: u32) {
+        self.level += n as i32;
+        self.dp_tally -= n;
     }
 
     fn earn_rp(&mut self, n: i32, ceiling: i32) {

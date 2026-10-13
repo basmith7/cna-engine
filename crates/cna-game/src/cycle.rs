@@ -196,12 +196,10 @@ impl GameState {
         match (self.clock.phase, self.clock.segment) {
             (Phase::MovementCombat, Some(Segment::Movement)) => {
                 self.close_movement_segment(data)?;
-                self.clock = self.clock.next();
-                while self.clock.segment != Some(Segment::ReserveRelease) {
-                    events.push(Event::PhaseSkipped { clock: self.clock });
-                    self.clock = self.clock.next();
-                }
-                events.push(Event::PhaseStarted { clock: self.clock });
+                self.open_combat(data, &mut events);
+            }
+            (Phase::MovementCombat, Some(Segment::CloseAssault)) => {
+                return self.end_close_assault_step(data);
             }
             (Phase::MovementCombat, Some(Segment::ReserveRelease)) => {
                 self.close_release_segment(&mut events);
@@ -229,10 +227,25 @@ impl GameState {
     ) -> Result<(), Illegal> {
         match (self.clock.phase, self.clock.segment) {
             (Phase::MovementCombat, Some(Segment::Movement)) => {
+                if let Some(e) = self.over_ceiling(data) {
+                    return Err(e);
+                }
+                if self.sides_adjacent(data) {
+                    return Err(Illegal::new(
+                        "11.0",
+                        "units stand next to the enemy: the combat segment follows (EndSegment)",
+                    ));
+                }
                 self.close_movement_segment(data)?;
             }
             (Phase::MovementCombat, Some(Segment::ReserveRelease)) => {
                 self.close_release_segment(events);
+            }
+            (Phase::MovementCombat, Some(s)) if s != Segment::CloseAssault => {
+                return Err(Illegal::new(
+                    "11.0",
+                    format!("the combat segment is under way at {}", self.clock),
+                ));
             }
             _ => {}
         }
@@ -314,7 +327,7 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-rtr"], &["C3620"]))
             .unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
     }
 
     #[test]
@@ -326,7 +339,11 @@ mod tests {
         let krrc = pid("unit:cw:1-krrc");
         state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
         state
-            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1730", "E1731"]))
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:1-krrc"], &["E1730", "E1731"]),
+            )
             .unwrap();
         assert_eq!(state.stacked(&data, &hex("E1730")), 9);
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
@@ -355,6 +372,11 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         assert_eq!(state.cycle, 0);
+        // 11 Hussars at C3020 stand next to the Fort Maddalena garrison
+        // battalion: the combat segment opens. Neither is a gun unit, so
+        // step 1 is passed; the garrison has barrage points, so step 2
+        // waits on both players, the phasing player first; then retreat
+        // before assault waits on the Axis.
         let events = state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
         let skipped: Vec<Segment> = events
             .iter()
@@ -365,20 +387,60 @@ mod tests {
             .collect();
         assert_eq!(
             skipped,
-            [
-                Segment::Breakdown,
-                Segment::PositionDetermination,
-                Segment::Barrage,
-                Segment::RetreatBeforeAssault,
-                Segment::ForceAssignment,
-                Segment::AntiArmour,
-                Segment::CloseAssault,
-            ]
+            [Segment::Breakdown, Segment::PositionDetermination]
         );
-        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
-        assert_eq!(state.cycle, 1);
+        assert_eq!(state.clock.segment, Some(Segment::Barrage));
         assert_eq!(state.to_act(), Some(Side::Cw));
-        // No moving in reserve release.
+        state
+            .apply(&data, Side::Cw, Order::Barrage { fires: vec![] })
+            .unwrap();
+        state
+            .apply(&data, Side::Axis, Order::Barrage { fires: vec![] })
+            .unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::RetreatBeforeAssault));
+        assert_eq!(
+            state.pending,
+            Some(crate::state::Pending::RetreatBeforeAssault { side: Side::Axis })
+        );
+        assert_eq!(state.cycle, 1);
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        // No moving in a combat step.
+        let err = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
+            .unwrap_err();
+        assert_eq!(err.case, "5.2");
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        // Force assignment: the phasing player first, then the Axis; with
+        // nothing assigned anti-armour and close assault are passed.
+        assert_eq!(state.to_act(), Some(Side::Cw));
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let skipped: Vec<Segment> = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::PhaseSkipped { clock } => clock.segment,
+                _ => None,
+            })
+            .collect();
+        assert_eq!(skipped, [Segment::AntiArmour, Segment::CloseAssault]);
+        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
+        assert_eq!(state.to_act(), Some(Side::Cw));
         let err = state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
             .unwrap_err();
@@ -389,8 +451,12 @@ mod tests {
         assert_eq!(state.clock.segment, Some(Segment::Movement));
         assert_eq!(state.clock.half, Some(crate::clock::Half::A));
         assert_eq!(state.cycle, 1);
-        // Pass from reserve release ends the phase; Player B's F follows.
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        // Pass from a movement segment is refused while units stand next
+        // to the enemy: the combat segment is the enemy's too. From
+        // reserve release it ends the phase; Player B's F follows.
+        let err = state.apply(&data, Side::Cw, Order::Pass).unwrap_err();
+        assert_eq!(err.case, "11.0");
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(state.clock.phase, Phase::ReserveDesignation);
         assert_eq!(state.clock.half, Some(crate::clock::Half::B));
@@ -401,5 +467,103 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "5.2");
         let _ = pid;
+    }
+
+    /// Movement, every combat step with something in it, reserve
+    /// release, and the next movement segment with the slate clean.
+    #[test]
+    fn a_full_g_cycle_with_a_fight() {
+        use crate::combat::segment::test_support::at_sollum;
+        use crate::order::{Allocation, Assignment, Fire};
+        use cna_data::cp::Cp;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_sollum(&data);
+        assert_eq!(state.cycle, 1);
+        let rha = pid("unit:cw:4-rha");
+        let krrc = pid("unit:cw:1-krrc");
+        let c4020 = hex("C4020");
+        let orders = [
+            (
+                Side::Cw,
+                Order::GunPositions {
+                    forward: vec![rha.clone()],
+                },
+            ),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (
+                Side::Cw,
+                Order::Barrage {
+                    fires: vec![Fire {
+                        piece: rha.clone(),
+                        points: 6,
+                        target: pid("unit:it:viii-libyan-bn"),
+                    }],
+                },
+            ),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![Assignment {
+                        piece: krrc.clone(),
+                        anti_armour: vec![],
+                        close_assault: vec![Allocation {
+                            target: Some(c4020.clone()),
+                            points: 6,
+                        }],
+                    }],
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+            (
+                Side::Cw,
+                Order::Assault {
+                    target: c4020.clone(),
+                },
+            ),
+        ];
+        let mut all = Vec::new();
+        for (side, order) in orders {
+            all.extend(state.apply(&data, side, order).unwrap());
+        }
+        assert!(all.iter().any(|e| matches!(e, Event::Barrage { .. })));
+        assert!(all.iter().any(|e| matches!(e, Event::Assault { .. })));
+        assert!(state.combat.assaults.contains_key(&c4020));
+        assert_eq!(state.combat.barraged[&c4020], 5);
+        if matches!(
+            state.pending,
+            Some(crate::state::Pending::ForcedRetreat { .. })
+        ) {
+            state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        }
+        // The step ends; reserve release; the next movement segment.
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
+        assert_eq!(state.combat, crate::combat::CombatSegment::default());
+        let events = state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::Movement));
+        assert_eq!(state.cycle, 1);
+        // Both sides paid for the fight; the CP stand into the next cycle.
+        assert_eq!(state.pieces[&krrc].cp_spent, Cp::whole(5));
+        assert!(state.pieces[&pid("unit:it:ix-libyan-bn")].cp_spent >= Cp::whole(1));
+        // The Axis is asked about its ZOC again as the segment opens.
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::PhaseStarted { .. }))
+        );
+        assert!(matches!(
+            state.pending,
+            Some(crate::state::Pending::DeclareZoc {
+                side: Side::Axis,
+                ..
+            })
+        ));
     }
 }
