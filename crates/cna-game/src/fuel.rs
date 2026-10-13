@@ -7,7 +7,7 @@ use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
 use cna_data::cp::Cp;
-use cna_rules::supply::{Carrying, FuelClass, fuel_owed};
+use cna_rules::supply::{Carrying, FuelClass, components, fuel_owed};
 use std::collections::BTreeMap;
 
 /// One payment: `fuel` points from the supply unit `from` for `piece`.
@@ -55,11 +55,9 @@ impl GameState {
     /// first spending past its CPA (32.22). Returns the sum and whether
     /// each kind falls due now.
     fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
-        let each = fuel_owed(
-            self.fuel_class(data, piece),
-            piece.equivalent.unwrap_or(Equivalent::Hq),
-            Carrying::Nothing,
-        );
+        // A brigade counter pays by its battalion components.
+        let (eq, parts) = components(piece.equivalent.unwrap_or(Equivalent::Hq));
+        let each = parts * fuel_owed(self.fuel_class(data, piece), eq, Carrying::Nothing);
         if each == 0 {
             return (0, false, false);
         }
@@ -179,6 +177,7 @@ mod tests {
     use crate::order::Order;
     use crate::piece::{Load, Location, PieceId, PieceKind};
     use crate::state::{GameState, Modules};
+    use cna_data::characteristics::Equivalent;
     use cna_data::cp::Cp;
     use cna_data::scenario::Side;
     use cna_rules::supply::FuelClass;
@@ -290,6 +289,22 @@ mod tests {
         let events = state.apply(&data, Side::Axis, back).unwrap();
         assert!(!events.iter().any(|e| matches!(e, Event::FuelSpent { .. })));
         assert_eq!(state.pieces[&ids[0]].load.unwrap().fuel, 58);
+    }
+
+    #[test]
+    fn a_brigade_equivalent_tank_counter_pays_two_per_battalion_32_22() {
+        let data = graziani();
+        let mut state = game(&data);
+        let (tank, order) = tank_and_move(&data, &state);
+        state.pieces.get_mut(&tank).unwrap().equivalent = Some(Equivalent::Brigade);
+        let here = state.pieces[&tank].hex().unwrap().clone();
+        let ids = supply_at(&mut state, &here, 60);
+        let events = state.apply(&data, Side::Axis, order).unwrap();
+        assert!(events.contains(&Event::FuelSpent {
+            piece: tank,
+            from: ids[0].clone(),
+            fuel: 6
+        }));
     }
 
     #[test]
