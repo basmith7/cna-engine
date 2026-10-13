@@ -258,6 +258,29 @@ pub struct Map {
     edges: BTreeMap<(HexId, Side), Hexside>,
     places: BTreeMap<String, Place>,
     regions: Regions,
+    /// Cross-sheet neighbours from `seams.json`, both ways.
+    seams: BTreeMap<HexId, Vec<HexId>>,
+    seam_pairs: usize,
+}
+
+/// `seams.json`: every pair of hexes that touch across a sheet edge, with
+/// the features of that hexside. `up` is not known for seam slopes and
+/// escarpments, so they are read as the feature in both directions.
+#[derive(Deserialize)]
+struct SeamsFile {
+    seams: Vec<Seam>,
+}
+
+#[derive(Deserialize)]
+struct Seam {
+    pairs: Vec<SeamPair>,
+}
+
+#[derive(Deserialize)]
+struct SeamPair {
+    west: HexId,
+    east: HexId,
+    features: Vec<HexsideFeature>,
 }
 
 #[derive(Deserialize)]
@@ -338,6 +361,38 @@ impl Map {
                 bail!("regions.json names sheet {sheet}, which is not in sheets.json");
             }
         }
+        let mut seams: BTreeMap<HexId, Vec<HexId>> = BTreeMap::new();
+        let mut seam_pairs = 0;
+        for seam in read_json::<SeamsFile>("seams.json")?.seams {
+            for p in seam.pairs {
+                for h in [&p.west, &p.east] {
+                    if !hexes.contains_key(h) {
+                        bail!("seam {}-{}: {h} is not a hex", p.west, p.east);
+                    }
+                }
+                if p.west.sheet() == p.east.sheet() {
+                    bail!("seam {}-{}: same sheet", p.west, p.east);
+                }
+                seams
+                    .entry(p.west.clone())
+                    .or_default()
+                    .push(p.east.clone());
+                seams
+                    .entry(p.east.clone())
+                    .or_default()
+                    .push(p.west.clone());
+                seam_pairs += 1;
+                if !p.features.is_empty() {
+                    let hs = Hexside {
+                        features: p.features,
+                        up: None,
+                    };
+                    if hexsides.insert(pair_key(p.west, p.east), hs).is_some() {
+                        bail!("seam pair duplicates a hexsides.json record");
+                    }
+                }
+            }
+        }
         Ok(Map {
             sheets,
             hexes,
@@ -345,7 +400,14 @@ impl Map {
             edges,
             places,
             regions,
+            seams,
+            seam_pairs,
         })
+    }
+
+    /// How many cross-sheet pairs `seams.json` lists.
+    pub fn seam_pairs(&self) -> usize {
+        self.seam_pairs
     }
 
     pub fn place(&self, id: &str) -> Option<&Place> {
@@ -440,13 +502,17 @@ impl Map {
         .collect()
     }
 
-    /// The neighbouring hexes that exist, sorted.
+    /// The neighbouring hexes that exist, on this sheet and across a seam,
+    /// sorted.
     pub fn neighbours(&self, id: &HexId) -> Vec<HexId> {
         let mut n: Vec<HexId> = self
             .grid_neighbours(id)
             .into_iter()
             .filter(|h| self.hexes.contains_key(h))
             .collect();
+        if let Some(across) = self.seams.get(id) {
+            n.extend(across.iter().cloned());
+        }
         n.sort();
         n
     }
@@ -589,8 +655,12 @@ mod tests {
     #[test]
     fn feature_counts_match_cna() {
         let m = map();
+        // hexsides.json counts: pairs on one sheet plus edge records. Seam
+        // hexsides are unions of edge records, so they are left out.
         let count = |f: HexsideFeature| {
-            m.hexsides().filter(|(_, _, hs)| hs.has(f)).count()
+            m.hexsides()
+                .filter(|(a, b, hs)| a.sheet() == b.sheet() && hs.has(f))
+                .count()
                 + m.edges().filter(|(_, _, hs)| hs.has(f)).count()
         };
         assert_eq!(count(HexsideFeature::Track), 1808);
@@ -663,5 +733,40 @@ mod tests {
         // Sea is in no country: C4233 is sea on a row the frontier never
         // reaches.
         assert_eq!(m.country(&HexId::parse("C4233").unwrap()), None);
+    }
+
+    #[test]
+    fn c_to_d_is_adjacent() {
+        let m = map();
+        let (c, d) = (
+            HexId::parse("C0633").unwrap(),
+            HexId::parse("D0701").unwrap(),
+        );
+        assert!(m.adjacent(&c, &d));
+        assert!(m.adjacent(&d, &c));
+        assert!(m.neighbours(&c).contains(&d));
+        assert!(m.neighbours(&d).contains(&c));
+        assert!(m.hexside(&c, &d).unwrap().has(HexsideFeature::Slope));
+        assert!(m.hexside(&d, &c).unwrap().has(HexsideFeature::Slope));
+        assert_eq!(m.seam_pairs(), 359);
+        // Row 6 is shifted east on sheet C, so C0633's diagonals are column
+        // 33 on its own sheet and three hexes of sheet D (SE, E, NE).
+        assert_eq!(
+            m.neighbours(&c),
+            ids(&["C0533", "C0632", "C0733", "D0501", "D0601", "D0701"])
+        );
+    }
+
+    #[test]
+    fn seams_keep_adjacency_symmetric_and_hexsides_adjacent() {
+        let m = map();
+        for h in m.hexes().filter(|h| matches!(h.id.col(), 1 | 33)) {
+            for n in m.neighbours(&h.id) {
+                assert!(m.adjacent(&n, &h.id), "{n} -> {}", h.id);
+            }
+        }
+        for (a, b, _) in m.hexsides() {
+            assert!(m.adjacent(a, b), "{a}|{b} not adjacent");
+        }
     }
 }
