@@ -110,12 +110,12 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   expect(await hexOf(page, "unit:it:2nd-libyan-infantry-hq")).toBe("C4020");
   await expectDomMatchesView(page);
 
-  // 65: end the segment: gun positions are sealed first, the Axis to act,
-  // shown as slice 5's placeholder; the state is `replay`'s.
+  // 65: end the segment: gun positions are sealed first, the Axis to act
+  // (slice 5's panel); the state is `replay`'s.
   await controls.locator('[data-order="end-segment"]').click();
   await expect(page.getByTestId("pending")).toHaveAttribute("data-kind", "sealed");
   await expect(page.getByTestId("pending")).toContainText("Sealed gun positions · Axis");
-  await expect(page.getByTestId("pending")).toContainText("comes in slice 5");
+  await expect(page.getByTestId("sealed-panel")).toBeAttached();
   await expect(page.getByTestId("to-act")).toHaveText("Axis to act");
   await expect(page.getByTestId("phase-controls")).toHaveCount(0);
   await expect(page.getByTestId("curtain")).toHaveCount(0);
@@ -127,7 +127,7 @@ test("a ZOC declaration is answered from its panel", async ({ page }) => {
   const pending = page.getByTestId("pending");
   await expect(pending).toHaveAttribute("data-kind", "declare-zoc");
   await expect(pending).toContainText("An enemy stack is about to move next to you");
-  await expect(page.getByTestId("marks")).toHaveAttribute("data-count", "1");
+  await expect(page.locator('[data-testid="marks"][data-kind="zoc"]')).toHaveAttribute("data-count", "1");
   await expect(page.locator('polygon.mark[data-hex="C3721"]')).toBeAttached();
   await expect(pending.locator('input[data-hex="C3721"]')).toBeChecked();
   await expect(page.getByTestId("phase-controls")).toHaveCount(0);
@@ -135,7 +135,7 @@ test("a ZOC declaration is answered from its panel", async ({ page }) => {
   await expect(log(page).filter({ hasText: "C3721 exerts a ZOC." })).toHaveCount(1);
   await throughCurtain(page, "axis");
   await expect(page.getByTestId("pending")).toHaveCount(0);
-  await expect(page.getByTestId("marks")).toHaveAttribute("data-count", "0");
+  await expect(page.locator('[data-testid="marks"][data-kind="zoc"]')).toHaveAttribute("data-count", "0");
   expect((await page.evaluate(() => window.__cna.view())).zoc).toEqual({ C3721: true });
 });
 
