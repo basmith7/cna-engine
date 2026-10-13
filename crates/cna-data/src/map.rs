@@ -134,10 +134,78 @@ impl Sheet {
     }
 }
 
+/// A hexside feature (cna's `hexsideFeature`, SPI 8.4 and the Terrain Key).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HexsideFeature {
+    Escarpment,
+    Ridge,
+    Slope,
+    Wadi,
+    MajorRiver,
+    MinorRiver,
+    Road,
+    UnfinishedRoad,
+    Railroad,
+    UnfinishedRailroad,
+    Track,
+    Coast,
+    Lake,
+}
+
+/// A side of a pointy-top hex, for records on a sheet's edge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum Side {
+    E,
+    SE,
+    SW,
+    W,
+    NW,
+    NE,
+}
+
+/// A hexside with features. A hexside with no record is plain.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Hexside {
+    pub features: Vec<HexsideFeature>,
+    /// The higher hex of a slope or escarpment, where cna knows it.
+    pub up: Option<HexId>,
+}
+
+impl Hexside {
+    pub fn has(&self, f: HexsideFeature) -> bool {
+        self.features.contains(&f)
+    }
+
+    /// True when a move from `from` to `to` goes up the slope or
+    /// escarpment, that is when `to` is the recorded `up` hex.
+    pub fn climbs(&self, from: &HexId, to: &HexId) -> bool {
+        self.up.as_ref().is_some_and(|u| u == to && u != from)
+    }
+}
+
+/// One row of `hexsides.json`: a pair (`b` set) or an edge (`side` set).
+#[derive(Deserialize)]
+struct HexsideRecord {
+    a: HexId,
+    b: Option<HexId>,
+    side: Option<Side>,
+    #[serde(flatten)]
+    hexside: Hexside,
+}
+
+#[derive(Deserialize)]
+struct HexsidesFile {
+    hexsides: Vec<HexsideRecord>,
+}
+
 #[derive(Debug)]
 pub struct Map {
     sheets: BTreeMap<char, Sheet>,
     hexes: BTreeMap<HexId, Hex>,
+    /// Keyed `(a, b)` with `a < b`.
+    hexsides: BTreeMap<(HexId, HexId), Hexside>,
+    edges: BTreeMap<(HexId, Side), Hexside>,
 }
 
 #[derive(Deserialize)]
@@ -157,8 +225,12 @@ fn read_json<T: serde::de::DeserializeOwned>(name: &str) -> Result<T> {
     serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))
 }
 
+fn pair_key(a: HexId, b: HexId) -> (HexId, HexId) {
+    if a <= b { (a, b) } else { (b, a) }
+}
+
 impl Map {
-    /// Loads `sheets.json` and `hexes.json`. Map corrections are already
+    /// Loads `sheets.json`, `hexes.json` and `hexsides.json`. Map corrections are already
     /// applied in those files.
     pub fn load() -> Result<Map> {
         let sheets = read_json::<SheetsFile>("sheets.json")?.sheets;
@@ -171,7 +243,57 @@ impl Map {
                 bail!("duplicate hex in hexes.json");
             }
         }
-        Ok(Map { sheets, hexes })
+        let mut hexsides = BTreeMap::new();
+        let mut edges = BTreeMap::new();
+        for r in read_json::<HexsidesFile>("hexsides.json")?.hexsides {
+            if !hexes.contains_key(&r.a) {
+                bail!("hexside {}: {} is not a hex", r.a, r.a);
+            }
+            match (r.b, r.side) {
+                (Some(b), None) => {
+                    if !hexes.contains_key(&b) {
+                        bail!("hexside {}|{b}: {b} is not a hex", r.a);
+                    }
+                    if hexsides.insert(pair_key(r.a, b), r.hexside).is_some() {
+                        bail!("duplicate hexside in hexsides.json");
+                    }
+                }
+                (None, Some(side)) => {
+                    if edges.insert((r.a, side), r.hexside).is_some() {
+                        bail!("duplicate edge in hexsides.json");
+                    }
+                }
+                _ => bail!("hexside {}: needs exactly one of b and side", r.a),
+            }
+        }
+        Ok(Map {
+            sheets,
+            hexes,
+            hexsides,
+            edges,
+        })
+    }
+
+    /// The features between two hexes, in either order; `None` for a plain
+    /// hexside (or two hexes that are not adjacent).
+    pub fn hexside(&self, a: &HexId, b: &HexId) -> Option<&Hexside> {
+        self.hexsides.get(&pair_key(a.clone(), b.clone()))
+    }
+
+    /// A sheet-edge record: the features drawn up to the edge of the sheet
+    /// on `side` of `a`.
+    pub fn edge(&self, a: &HexId, side: Side) -> Option<&Hexside> {
+        self.edges.get(&(a.clone(), side))
+    }
+
+    /// Every recorded hexside between two hexes, `a < b`.
+    pub fn hexsides(&self) -> impl Iterator<Item = (&HexId, &HexId, &Hexside)> {
+        self.hexsides.iter().map(|((a, b), hs)| (a, b, hs))
+    }
+
+    /// Every sheet-edge record.
+    pub fn edges(&self) -> impl Iterator<Item = (&HexId, Side, &Hexside)> {
+        self.edges.iter().map(|((a, side), hs)| (a, *side, hs))
     }
 
     pub fn hex(&self, id: &HexId) -> Option<&Hex> {
@@ -303,5 +425,70 @@ mod tests {
         assert_eq!(json, "\"D0701\"");
         assert_eq!(serde_json::from_str::<HexId>(&json).unwrap(), id);
         assert!(serde_json::from_str::<HexId>("\"Z0000\"").is_err());
+    }
+
+    #[test]
+    fn halfaya_escarpment_climbs_south_west() {
+        let m = map();
+        let (plain, plateau) = (
+            HexId::parse("C3922").unwrap(),
+            HexId::parse("C3921").unwrap(),
+        );
+        let hs = m.hexside(&plain, &plateau).unwrap();
+        assert!(hs.has(HexsideFeature::Escarpment));
+        assert_eq!(hs.up.as_ref(), Some(&plateau));
+        assert!(hs.climbs(&plain, &plateau));
+        assert!(!hs.climbs(&plateau, &plain));
+        // Either order looks up the same record.
+        assert_eq!(m.hexside(&plateau, &plain), Some(hs));
+    }
+
+    #[test]
+    fn unfinished_road_either_way_round() {
+        let m = map();
+        let (a, b) = (
+            HexId::parse("C3822").unwrap(),
+            HexId::parse("C3922").unwrap(),
+        );
+        for (x, y) in [(&a, &b), (&b, &a)] {
+            let hs = m.hexside(x, y).unwrap();
+            assert_eq!(hs.features, vec![HexsideFeature::UnfinishedRoad]);
+            assert!(hs.up.is_none());
+            assert!(!hs.climbs(x, y));
+        }
+        // A plain hexside has no record.
+        assert!(m.hexside(&b, &HexId::parse("C3923").unwrap()).is_none());
+    }
+
+    #[test]
+    fn edge_records_are_kept_by_side() {
+        let m = map();
+        let a1233 = HexId::parse("A1233").unwrap();
+        assert!(m.edge(&a1233, Side::E).unwrap().has(HexsideFeature::Slope));
+        assert!(m.edge(&a1233, Side::W).is_none());
+    }
+
+    #[test]
+    fn every_hexside_joins_adjacent_hexes() {
+        let m = map();
+        let mut n = 0;
+        for (a, b, _) in m.hexsides() {
+            assert!(m.hex(a).is_some(), "{a} missing");
+            assert!(m.adjacent(a, b), "{a}|{b} not adjacent");
+            n += 1;
+        }
+        assert!(n > 4000, "{n} hexsides");
+    }
+
+    #[test]
+    fn feature_counts_match_cna() {
+        let m = map();
+        let count = |f: HexsideFeature| {
+            m.hexsides().filter(|(_, _, hs)| hs.has(f)).count()
+                + m.edges().filter(|(_, _, hs)| hs.has(f)).count()
+        };
+        assert_eq!(count(HexsideFeature::Track), 1808);
+        assert_eq!(count(HexsideFeature::Road), 354);
+        assert_eq!(count(HexsideFeature::Escarpment), 216);
     }
 }
