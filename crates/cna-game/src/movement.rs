@@ -484,7 +484,6 @@ impl GameState {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
-            self.entered.insert(to.clone());
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at,
@@ -506,6 +505,7 @@ impl GameState {
             }
         }
         if at != from {
+            self.moved.extend(pieces.iter().cloned());
             self.release_contact_around(data, &from, player);
             if shift {
                 self.shifted.extend(pieces.iter().cloned());

@@ -209,8 +209,8 @@ impl GameState {
             vec![Location::Transit { from, to, done }; pieces.len()]
         };
         for (id, location) in pieces.iter().zip(locations) {
-            if let Location::Hex(h) = &location {
-                self.entered.insert(h.clone());
+            if matches!(location, Location::Hex(_)) {
+                self.moved.insert(id.clone());
             }
             self.pieces.get_mut(id).expect("checked").location = location.clone();
             events.push(Event::MovedOffMap {
@@ -440,6 +440,6 @@ mod tests {
             assert_eq!(state.pieces[&pid(id)].hex(), Some(&hex("A2703")));
         }
         assert_eq!(state.pieces[&pid(ids[5])].hex(), Some(&hex("A2704")));
-        assert!(state.entered.contains(&hex("A2704")));
+        assert!(state.moved.contains(&pid(ids[5])));
     }
 }

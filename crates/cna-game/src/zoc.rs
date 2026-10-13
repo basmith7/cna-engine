@@ -159,7 +159,7 @@ impl GameState {
     /// fixed at once (R-003).
     pub(crate) fn open_movement_segment(&mut self, data: &Data, events: &mut Vec<Event>) {
         self.zoc.clear();
-        self.entered.clear();
+        self.moved.clear();
         self.shifted.clear();
         let Some(phasing) = self.phasing() else {
             return;

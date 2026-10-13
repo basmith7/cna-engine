@@ -73,10 +73,11 @@ pub struct GameState {
     /// Movement segments completed in the current phase G (8.2x).
     #[serde(default)]
     pub cycle: u8,
-    /// Hexes a piece has moved into this movement segment: where the
-    /// stacking ceiling binds when it ends (9.14, 9.31).
+    /// Pieces that have moved this movement segment: the hexes they
+    /// stand in when it ends are where the stacking ceiling binds (9.14,
+    /// 9.31).
     #[serde(default)]
-    pub entered: BTreeSet<HexId>,
+    pub moved: BTreeSet<PieceId>,
     /// The non-phasing player's ZOC declarations this movement segment,
     /// by its hex (10.16).
     #[serde(default)]
@@ -119,7 +120,7 @@ impl GameState {
             pieces,
             pending: None,
             cycle: 0,
-            entered: BTreeSet::new(),
+            moved: BTreeSet::new(),
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),

@@ -123,12 +123,18 @@ impl GameState {
         })
     }
 
-    /// The first hex a piece moved into this segment, in id order, that
-    /// is over its ceiling (9.14, 9.31). A hex the set-up overfilled is
-    /// not a violation until something ends a move there.
+    /// The first hex, in id order, that a piece moved this segment now
+    /// stands in and that is over its ceiling (9.14). The ceiling never
+    /// applies mid-move (9.31), so hexes only passed through are not
+    /// looked at, and a hex the set-up overfilled is not a violation
+    /// until something ends the segment there.
     fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
-        self.entered
+        let ends: BTreeSet<&HexId> = self
+            .moved
             .iter()
+            .filter_map(|id| self.pieces.get(id).and_then(Piece::hex))
+            .collect();
+        ends.into_iter()
             .find_map(|hex| self.over_ceiling_at(data, hex))
     }
 
@@ -172,7 +178,7 @@ impl GameState {
             .map(|p| p.id.clone())
             .collect();
         self.cycle += 1;
-        self.entered.clear();
+        self.moved.clear();
         Ok(())
     }
 
@@ -239,6 +245,7 @@ mod tests {
     use super::*;
     use crate::movement::test_support::{hex, moving, mv, pid};
     use crate::order::Order;
+    use crate::piece::Location;
     use cna_data::scenario::Side;
 
     fn graziani() -> Data {
@@ -306,6 +313,39 @@ mod tests {
         // Back out and the segment can end.
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-rtr"], &["C3620"]))
+            .unwrap();
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+    }
+
+    #[test]
+    fn the_ceiling_binds_only_where_a_move_ends() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        // Cairo (E1730) starts over its ceiling. 1 KRRC passes through it
+        // from E1629 to E1731: never a violation (9.31).
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1730", "E1731"]))
+            .unwrap();
+        assert_eq!(state.stacked(&data, &hex("E1730")), 9);
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+    }
+
+    #[test]
+    fn a_stop_over_the_ceiling_is_cleared_by_moving_on() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let krrc = pid("unit:cw:1-krrc");
+        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1730"]))
+            .unwrap();
+        let err = state.apply(&data, Side::Cw, Order::EndSegment).unwrap_err();
+        assert_eq!(err.case, "9.14");
+        assert!(err.reason.contains("E1730"), "{}", err.reason);
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1731"]))
             .unwrap();
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
     }
