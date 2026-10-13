@@ -31,7 +31,8 @@ pub enum Carrying {
 /// What a unit is doing when it spends ammunition (32.21).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
-    Defend,
+    /// Committed to a close assault, either side.
+    Assault,
     Barrage,
 }
 
@@ -58,7 +59,7 @@ pub fn ammo_owed(equivalent: Equivalent, role: Role, phasing: bool) -> u32 {
         return 0;
     }
     let base = match role {
-        Role::Defend => 1,
+        Role::Assault => 1,
         Role::Barrage => 2,
     };
     if phasing { base * 2 } else { base }
@@ -104,13 +105,13 @@ mod tests {
     #[test]
     fn ammunition_rows_of_32_21() {
         let rows = [
-            (Battalion, Role::Defend, false, 1),
+            (Battalion, Role::Assault, false, 1),
             (Battalion, Role::Barrage, false, 2),
-            (Battalion, Role::Defend, true, 2),
+            (Battalion, Role::Assault, true, 2),
             (Battalion, Role::Barrage, true, 4),
-            (Company, Role::Defend, false, 0),
+            (Company, Role::Assault, false, 0),
             (Company, Role::Barrage, true, 0),
-            (Brigade, Role::Defend, false, 0),
+            (Brigade, Role::Assault, false, 0),
         ];
         for (eq, role, phasing, owed) in rows {
             assert_eq!(
