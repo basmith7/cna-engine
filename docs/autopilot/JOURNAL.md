@@ -123,3 +123,10 @@ Done: PR #11's review landed after the merge, so the fixes are a follow-up branc
 In flight: nothing.
 Next: slice 6. Left from the review, not one-liners: 18.23/18.24 caps are checked against own-half CP only (arguable; Brian's call); 6.15 read per piece rather than the stack's lowest CPA (recorded deviation; Brian should confirm); 9.13 top-HQ stacking without shells (recorded); `Data::load` reads disk and shells to git (Mission 3 needs an in-memory constructor); a shared `CARGO_TARGET_DIR` across trees leaves stale rlibs (use one per tree).
 Blocked: none.
+
+## 2026-10-13 00:40 MST — autopilot/m2-slice-6-victory
+Done: Mission 2 slice 6 (victory and the golden game) complete, PR #15 ready: `victory` typed in cna-data (b4aa9a6); `cna_game::victory::evaluate` with the R-110 route trace and hand-built tests per level, a holder cut off by enemy ZOC and one traced around it (eed6ac7); `GameState::over: Option<VictoryReport>`, `Event::GameOver { report }`, orders refused with 60.22, `cna-play show` prints the report (e13e2fc); `tests/games/graziani-short.json`, 446 orders, final state SHA-256 and report pinned (ede3aec); the determinism property test (3588794, 1c1992b); README, NOT_SIMULATED.md *Systems* table, spec Status, AUTOPILOT queue, PROGRESS.md (this commit). 112 cna-game tests; all three gates pass.
+**MISSION 2 COMPLETE.**
+In flight: nothing.
+Next: Mission 3 Part 0, the UI spec, on `autopilot/m3-spec`. Slice 5's nonblocking follow-ups stay open (none touches the scripted games): 15.83's short percentage is rounded separately, a must-attack `Pass` surrenders a stack that has a path (10.36), withheld points in the defender's loss base (15.1x vs 15.83, asked of cna in PROGRESS.md), rule tests for 15.36, 6.26, 13.1, 15.1x, 13.2x, and the empty sealed `waiting` panic on a malformed save. Decisions this slice: the trace runs in normal weather (a route, not a move); an HQ alone holds nothing; a points victory (other scenarios) is reported unchecked.
+Blocked: none.

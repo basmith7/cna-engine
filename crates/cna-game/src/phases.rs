@@ -77,8 +77,9 @@ impl GameState {
         loop {
             let clock = self.clock;
             if GameTime::new(clock.game_turn, clock.stage) > data.scenario.end {
-                self.over = true;
-                events.push(Event::GameOver);
+                let report = crate::victory::evaluate(data, self);
+                self.over = Some(report.clone());
+                events.push(Event::GameOver { report });
                 return;
             }
             match clock.phase {

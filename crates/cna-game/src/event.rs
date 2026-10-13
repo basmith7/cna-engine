@@ -7,6 +7,7 @@ use crate::combat::{RetreatReason, SealedStep};
 use crate::order::{Assignment, Fire};
 use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
+use crate::victory::VictoryReport;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
@@ -214,8 +215,11 @@ pub enum Event {
         piece: PieceId,
         hex: HexId,
     },
-    /// The scenario's last OpStage is over.
-    GameOver,
+    /// The scenario's last OpStage is over (60.22): each side's level
+    /// and what was checked (60.8).
+    GameOver {
+        report: VictoryReport,
+    },
 }
 
 /// One side's reading of the Close Assault CRT (15.7x).

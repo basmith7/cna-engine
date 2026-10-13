@@ -64,7 +64,7 @@ impl GameState {
     /// Whether a ZOC from `src` reaches the adjacent `hex` (10.21): not
     /// across a major river, lake or escarpment, nor into a hex no
     /// combat unit in `src` could enter from there.
-    fn reaches(&self, data: &Data, src: &HexId, hex: &HexId) -> bool {
+    pub(crate) fn reaches(&self, data: &Data, src: &HexId, hex: &HexId) -> bool {
         let hexside = data.map.hexside(src, hex);
         if !cna_rules::zoc::crosses(hexside) {
             return false;
@@ -86,7 +86,7 @@ impl GameState {
     }
 
     /// The side holding a hex, if any.
-    fn holder(&self, hex: &HexId) -> Option<Side> {
+    pub(crate) fn holder(&self, hex: &HexId) -> Option<Side> {
         self.pieces
             .values()
             .find(|p| p.hex() == Some(hex))
