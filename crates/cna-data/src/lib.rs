@@ -5,6 +5,7 @@ pub mod barrage;
 pub mod close_assault;
 pub mod construction;
 pub mod errata;
+pub mod map;
 pub mod morale;
 pub mod terrain;
 
