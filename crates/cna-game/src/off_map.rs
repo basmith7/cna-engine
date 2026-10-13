@@ -1,5 +1,5 @@
 //! Off-map movement (SPI 8.8x, 8.89): Axis land units move between the
-//! Tunis, Gabes, Tripoli and Tripolitania boxes and the map by whole
+//! Tunis, Tripoli and Tripolitania boxes and the map by whole
 //! OpStages, one `MoveOffMap` a stage, spending the whole CPA each time;
 //! a journey longer than a stage is in transit between its ends, and may
 //! turn round. The map end is Nofilia, the road hex nearest the
@@ -22,13 +22,24 @@ const COLUMN_SP: u32 = 5;
 /// How far the arriving column may stretch.
 const COLUMN_HEXES: usize = 8;
 
-/// The box a journey ends in.
-fn box_of(place: OffMapPlace) -> Option<OffMapBox> {
+/// Where a journey ends: a box, or the map at Nofilia.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum End {
+    Box(OffMapBox),
+    Map,
+}
+
+/// The end of a journey to `place`, if the scenario model can hold a
+/// unit there. Gabes is on the 8.89 chart but is no box of the
+/// scenario schema, so a unit cannot stand there: it is refused rather
+/// than read as Tunis, whose chart rows differ.
+fn end_of(place: OffMapPlace) -> Option<End> {
     match place {
-        OffMapPlace::Tunis | OffMapPlace::Gabes => Some(OffMapBox::Tunisia),
-        OffMapPlace::Tripoli => Some(OffMapBox::Tripoli),
-        OffMapPlace::Tripolitania => Some(OffMapBox::Tripolitania),
-        OffMapPlace::Nofilia => None,
+        OffMapPlace::Tunis => Some(End::Box(OffMapBox::Tunisia)),
+        OffMapPlace::Tripoli => Some(End::Box(OffMapBox::Tripoli)),
+        OffMapPlace::Tripolitania => Some(End::Box(OffMapBox::Tripolitania)),
+        OffMapPlace::Nofilia => Some(End::Map),
+        OffMapPlace::Gabes => None,
     }
 }
 
@@ -112,6 +123,12 @@ impl GameState {
         let Some(first) = pieces.first() else {
             return Err(Illegal::new("8.8x", "no pieces to move"));
         };
+        let Some(end) = end_of(to) else {
+            return Err(Illegal::new(
+                "8.8x",
+                format!("{to} is on the distance chart but is no box of the scenario: no unit can be held there"),
+            ));
+        };
         let nofilia = Self::nofilia(data);
         let mut origin: Option<Origin> = None;
         let mut cpa = u32::MAX;
@@ -189,7 +206,7 @@ impl GameState {
                     (from, done + 1)
                 } else if to == from {
                     // Turning round: as far back as it has come.
-                    (heading, stages(from, heading)? - done + 1)
+                    (heading, stages(from, heading)?.saturating_sub(done) + 1)
                 } else {
                     return Err(Illegal::new(
                         "8.8x",
@@ -201,9 +218,9 @@ impl GameState {
         let needed = stages(from, to)?;
         let mut events = Vec::new();
         let locations: Vec<Location> = if done >= needed {
-            match box_of(to) {
-                Some(b) => vec![Location::Box(b); pieces.len()],
-                None => self.column_from(data, &nofilia, pieces),
+            match end {
+                End::Box(b) => vec![Location::Box(b); pieces.len()],
+                End::Map => self.column_from(data, &nofilia, pieces),
             }
         } else {
             vec![Location::Transit { from, to, done }; pieces.len()]
@@ -352,6 +369,37 @@ mod tests {
             .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["A2704"]))
             .unwrap_err();
         assert_eq!(err.case, "8.1x");
+    }
+
+    #[test]
+    fn gabes_is_refused_until_the_scenario_model_has_a_box_for_it() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let tanks = pid("unit:it:lxiil-tank-bn");
+        state.pieces.get_mut(&tanks).unwrap().location = Location::Box(OffMapBox::Tripoli);
+        let before = snapshot(&state);
+        // The chart has a Gabes row, but the scenario's boxes do not, so
+        // the engine cannot hold a unit there; sending it is refused and
+        // it is never mistaken for Tunis.
+        let err = state
+            .apply(&data, Side::Axis, off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Gabes))
+            .unwrap_err();
+        assert_eq!(err.case, "8.8x");
+        assert!(err.reason.contains("Gabes"), "{}", err.reason);
+        assert_eq!(snapshot(&state), before);
+        // Tunis itself is two stages away at CPA 30 (the tunis/tripoli
+        // row), not the one of gabes/tripoli.
+        state
+            .apply(&data, Side::Axis, off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Tunis))
+            .unwrap();
+        assert_eq!(
+            state.pieces[&tanks].location,
+            Location::Transit {
+                from: OffMapPlace::Tripoli,
+                to: OffMapPlace::Tunis,
+                done: 1
+            }
+        );
     }
 
     #[test]
