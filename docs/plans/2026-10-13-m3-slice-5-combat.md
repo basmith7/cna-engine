@@ -1,43 +1,62 @@
-# Mission 3, slice 5 (interrupts and combat) Implementation Plan
+# Mission 3, slice 5 (combat and the end) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Every decision the engine asks of the non-acting player, and
-all of combat, entered through the UI; the game's end shown.
+**Goal:** All of combat entered through the UI with sealed steps kept off
+screen from the other player, and the game's end shown.
 
 **Spec:** `docs/designs/2026-10-13-minimal-ui-design.md`
-**Previous plans:** slices 1–4; needs M2 slice 5 (combat) merged, and
-M2 slice 6 for the victory report.
+**Previous plans:** slices 1–4. **Needs M2 slice 5 merged.** Names below
+are from branch `autopilot/m2-slice-5-combat` at `08dbf3d`; first commit
+re-checks them and updates the spec and this plan.
+
+**Proving screenshots:** the barrage panel mid-entry; the second player's
+sealed panel after the curtain, showing none of the first player's
+choices; a result line in the log after an assault.
+
+## Rules for every task
+
+- Stage only your own files (`git add <paths>`, never `git add -A`).
+- Paste the output of each verification command into the PR body; do not
+  summarise it as "passes".
+- Stop any dev or preview server you start (`npm run dev`, `npm run
+  preview`) before finishing; Playwright's `webServer` stops its own.
+- On any visual change, capture the slice's proving screenshot and run
+  the **screenshot-critique** skill on it before calling the slice done;
+  paste its verdict in the PR.
 
 ## Tasks
 
-1. **Pending modal framework.** `Pending.svelte` switches on
-   `view.pending`'s variant (exhaustive, `never` check); each variant is a
-   component that builds its order from `answers()` plus map clicks
-   (the map stays interactive under the modal; only hexes and units the
-   answers mention are clickable). The curtain from slice 4 precedes it
-   when the player changes. Commit `web: pending modal`.
-2. **ZOC declaration (10.16) and reaction (8.51).** ZOC: yes/no per
-   listed unit. Reaction: choose reacting units from the list, then a hex
-   from `reachable` for them, or decline. Commit `web: ZOC and reaction`.
-3. **Barrage and assault orders.** In the combat segment the selection
-   panel shows "Barrage" / "Assault" for a target hex the attackers can
-   reach in M2's terms; probe vs full assault as M2's `Assault` fields.
-   Commit `web: combat orders`.
-4. **Retreat before assault.** The non-phasing player chooses to stay or
-   picks a retreat path (hexes from `answers()` or `reachable`). Commit
-   `web: retreat`.
-5. **Sealed force assignment.** First player assigns pieces to roles;
-   submit; curtain; second player assigns; the engine resolves when both
-   are in. The first entry is never displayed to the second. Commit
-   `web: sealed plots`.
-6. **Results.** Combat events in the log (rolls, results, TOE losses,
-   cohesion, retreats, captures); counters update from the view; a brief
-   highlight on hexes whose pieces changed. Commit `web: combat results`.
-7. **Victory.** When the view is over, a dialog with each side's level
-   and the checked conditions; the board stays viewable. Commit `web:
-   victory`.
-8. **e2e.** Playwright from a saved mid-game fixture (built by
-   `cna-play` from M2's golden game prefix): a Commonwealth reaction, a
-   barrage, a close assault with force assignment from both sides, and a
-   loss shown in the log. Commit `web: e2e combat`.
+1. **Sealed options and redaction.** If M2 does not expose the
+   `combat::plots` checks (`check_gun_positions`, `check_barrage`,
+   `check_assignments`, crate-private on the branch), add a read-only
+   `GameState::sealed_options(&self, &Data, Side) -> SealedOptions`
+   (gun-class units; for each firer the enemy units it may barrage;
+   units that may be assigned) built on them, with a test that each
+   option is accepted by `apply` on a clone. `view` redacts
+   `combat.plots`, `combat.assignments` and `combat.forward` for the
+   side not to act while `pending` is `sealed`; test it. Commit
+   `Sealed options and a redacted view`.
+2. **Sealed panels.** `gun-positions` (tick forward units), `barrage`
+   (per firer: TOE points and a target from the options, as `Fire`s),
+   `assign-forces` (per unit: split TOE between anti-armour and close
+   assault, as `Assignment`s). Submit → curtain → the other side. Commit
+   `web: sealed steps`.
+3. **Retreats.** `retreat-before-assault` (pick a stack, a `reachable`
+   path, or Pass) and `forced-retreat` (a path of `hexes` hexes from
+   `from`, or Pass to stand and pay where R-012 allows; the panel shows
+   `reason`). Commit `web: retreats`.
+4. **Assault.** In combat step 6, hexes with assigned assaults are
+   highlighted; clicking one sends `assault {target}`; Pass ends the
+   step. Commit `web: assault`.
+5. **Results.** Combat events in the log (rolls, results, TOE losses,
+   cohesion, retreats, captures); counters update from the view. Commit
+   `web: combat results`.
+6. **End of game.** When `view.over`, a dialog: M2 slice 6's victory
+   report if the engine exposes one, else "Game over" with the final
+   clock. Commit `web: end of game`.
+7. **e2e.** From a fixture state built by `cna-play apply` (checked in
+   under `web/tests/fixtures/`, regenerated by a script): a barrage, a
+   force assignment from both sides with a DOM assertion that the first
+   side's numbers are absent after the curtain, an assault, a loss in
+   the log. Commit `web: e2e combat`.
