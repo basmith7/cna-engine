@@ -33,7 +33,8 @@ impl Game {
     }
 
     /// A saved game, checked against the embedded scenario and
-    /// `rules_commit` only; invariants are checked from slice 6.
+    /// `rules_commit`, and for the invariants `apply` relies on
+    /// (`GameState::check_invariants`): a bad file is an `Err`.
     pub fn load(json: &str) -> Result<Game> {
         Ok(Game {
             state: GameState::from_json(json, data())?,

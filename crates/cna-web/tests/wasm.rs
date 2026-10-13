@@ -69,6 +69,23 @@ fn save_and_load_round_trip() {
 }
 
 #[wasm_bindgen_test]
+fn a_malformed_save_is_an_error_string_not_a_dead_page() {
+    // A sealed step with nobody waiting: `to_act` would have panicked
+    // on it before `from_json` checked invariants (slice 6).
+    let game = Game::new_game(7).unwrap();
+    let mut save: serde_json::Value = parse(&game.save().unwrap());
+    save["pending"] = serde_json::json!({"sealed": {"step": "barrage", "waiting": []}});
+    let err = Game::load(&save.to_string()).err().expect("refused");
+    let shown = format!("{:?}", wasm_bindgen::JsValue::from(err));
+    assert!(shown.contains("nobody waiting"), "{shown}");
+    let mut save: serde_json::Value = parse(&game.save().unwrap());
+    save["clock"]["stage"] = serde_json::json!(9);
+    let err = Game::load(&save.to_string()).err().expect("refused");
+    let shown = format!("{:?}", wasm_bindgen::JsValue::from(err));
+    assert!(shown.contains("OpStage"), "{shown}");
+}
+
+#[wasm_bindgen_test]
 fn reachable_answers_like_apply() {
     let game = Game::new_game(7).unwrap();
     // Set-up is pending: no move yet, with the case `apply` would give.
