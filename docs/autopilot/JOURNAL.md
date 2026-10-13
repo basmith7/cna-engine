@@ -77,7 +77,7 @@ Next: wait for Brian's Feedback on PR #5; on approval, merge it and start slice 
 Blocked: Brian's review of PR #5.
 
 ## 2026-10-12 19:50 MST — autopilot/m2-slice-1-map
-Done: Mission 2 slice 1 (map) complete in `cna_data::map`: hexes, sheets and adjacency (df0a5fe), hexsides (2d18d5f), places and regions (0fb4b82), cross-sheet seams (b2baedf), `RowShift` rename (f2e30af). 17 map tests; all three gates pass. PR #6 ready.
+Done: Mission 2 slice 1 (map) complete in `cna_data::map`: hexes, sheets and adjacency (ef435ff), hexsides (2d18d5f), places and regions (0fb4b82), cross-sheet seams (b2baedf), `RowShift` rename (f2e30af). 17 map tests; all three gates pass. PR #6 ready.
 In flight: nothing.
 Next: merge PR #6 once CI passes, then start slice 2 (scenario and pieces) on `autopilot/m2-slice-2-scenario` from the plan `docs/plans/2026-10-08-m2-slice-2-scenario.md`.
 Blocked: none. Note for slice 4: cna's `seams.json` has no `up` for seam slopes/escarpments (18 + 7 pairs), so `climbs()` is false across a seam until cna records it; request it when slice 4 needs the climb cost.
