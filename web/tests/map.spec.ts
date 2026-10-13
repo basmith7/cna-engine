@@ -34,16 +34,19 @@ test("stays within the performance budget: first counters under 3 s, a wheel zoo
   await page.locator("[data-stack]").first().waitFor();
   const firstCounters = (await page.evaluate(() => performance.now())) - t0;
   // The median of five steps after one warm-up: a single sample on a shared CI runner
-  // failed the budget on unrelated changes (the first step also pays for the labels
-  // the zoom brings in).
+  // failed the budget on unrelated changes.
   const zoomStep = await page.evaluate(async () => {
     const svg = document.querySelector("svg.map")!;
     const r = svg.getBoundingClientRect();
     const step = async (deltaY: number) => {
       const t0 = performance.now();
       svg.dispatchEvent(new WheelEvent("wheel", { deltaY, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
-      // Two frames: the one that applies the viewBox and the one that paints it.
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // The handler, Svelte's flush and a forced style and layout pass: the page's own
+      // work. Waiting on animation frames measured the runner's frame pacing instead
+      // (exactly 100.0 ms on a CI runner).
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      svg.getBoundingClientRect();
+      (document.body as HTMLElement).offsetHeight;
       return performance.now() - t0;
     };
     await step(-100);
