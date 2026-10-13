@@ -844,8 +844,8 @@ impl GameState {
     }
 
     /// Actual points lost to unsupported tanks (15.4): per hex, tank
-    /// points beyond the infantry points beside them, one per 1–3, at
-    /// most four.
+    /// points beyond the infantry points beside them, one per 1–3; at
+    /// most four for the assault as a whole.
     fn unsupported_tanks(&self, data: &Data, commits: &[Commit]) -> u32 {
         let mut by_hex: BTreeMap<&HexId, (u32, u32)> = BTreeMap::new();
         for c in commits {
@@ -861,8 +861,9 @@ impl GameState {
         }
         by_hex
             .values()
-            .map(|(tanks, infantry)| tanks.saturating_sub(*infantry).div_ceil(3).min(4))
-            .sum()
+            .map(|(tanks, infantry)| tanks.saturating_sub(*infantry).div_ceil(3))
+            .sum::<u32>()
+            .min(4)
     }
 
     /// Vulnerability losses on forward guns (15.84): enough gun points
@@ -1672,9 +1673,9 @@ mod tests {
         let data = graziani();
         let mut state = assigning(&data);
         state.zoc.insert(hex("C4020"), true);
-        // 6 raw against 30: 6 against 3 actual, a −3 probe? No: 6 raw is
-        // 1 actual against 3, basic −2, and half of six is a full assault.
-        // Three points probe at −3, enough to hold the hex off.
+        // Six points would be 1 actual against 3, basic −2, and a full
+        // assault. Two points (under the 5-raw floor) probe at −3,
+        // enough to hold the hex off.
         state
             .apply(
                 &data,
@@ -1947,6 +1948,30 @@ mod tests {
             assert_eq!(state.pieces[&id].cp_spent, Cp::whole(3), "{id}");
         }
         state
+    }
+
+    #[test]
+    fn unsupported_tanks_cost_at_most_four_for_the_whole_assault() {
+        // 15.4: 30 unsupported A9 points from C4021 (ten bands) and seven
+        // M 11/39 points from C4020 (three bands) cost four, not seven.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        set_points(&mut state, "unit:cw:1-rtr", 30);
+        let commits = vec![
+            Commit {
+                piece: pid("unit:cw:1-rtr"),
+                hex: hex("C4021"),
+                points: 30,
+            },
+            Commit {
+                piece: pid("unit:it:im-tank-bn"),
+                hex: hex("C4020"),
+                points: 7,
+            },
+        ];
+        assert_eq!(state.unsupported_tanks(&data, &commits[..1]), 4);
+        assert_eq!(state.unsupported_tanks(&data, &commits[1..]), 3);
+        assert_eq!(state.unsupported_tanks(&data, &commits), 4);
     }
 
     #[test]

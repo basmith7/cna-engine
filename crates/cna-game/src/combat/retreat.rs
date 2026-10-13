@@ -298,7 +298,8 @@ impl GameState {
                     pieces: pieces.clone(),
                     short,
                 });
-                let lost = (raw * 10 * short).div_ceil(100);
+                // The defender's loss, rounded down (15.83).
+                let lost = raw * 10 * short / 100;
                 let paren_ok = !self.plain_in_hex(data, &start, Kind::Defence);
                 let mut shares: Vec<Share> = pieces
                     .iter()

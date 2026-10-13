@@ -179,11 +179,15 @@ impl GameState {
         let Some(Pending::Sealed { step, waiting }) = self.pending.clone() else {
             return Err(Illegal::new("11.0", "no sealed combat step is pending"));
         };
-        if waiting[0] != player {
-            return Err(Illegal::new(
-                "11.0",
-                format!("{} answers before {player}", waiting[0]),
-            ));
+        match waiting.first() {
+            Some(next) if *next == player => {}
+            Some(next) => {
+                return Err(Illegal::new(
+                    "11.0",
+                    format!("{next} answers before {player}"),
+                ));
+            }
+            None => return Err(Illegal::new("11.0", "nobody is waiting to answer")),
         }
         match order {
             Order::GunPositions { forward } => {
