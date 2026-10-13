@@ -1030,9 +1030,10 @@ impl GameState {
 
     /// The close assault step is over: the must-attack rule (10.3x).
     /// The first phasing stack under a declared enemy ZOC whose source
-    /// was neither assaulted nor held off retreats three hexes with all
-    /// its CP spent and 3 DP; true when that retreat is now pending and
-    /// the clock waits. Called again as each retreat resolves.
+    /// was neither assaulted nor held off retreats three hexes; the
+    /// retreat itself takes its CP and the 3 DP (R-118, `forced_retreat`).
+    /// True when that retreat is now pending and the clock waits. Called
+    /// again as each retreat resolves.
     pub(crate) fn end_close_assault(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
         let Some(phasing) = self.phasing() else {
             return false;
@@ -1061,20 +1062,6 @@ impl GameState {
                 .filter(|p| p.side == phasing && p.hex() == Some(&h))
                 .map(|p| p.id.clone())
                 .collect();
-            for id in &pieces {
-                let cpa = Cp::whole(self.cpa(&self.pieces[id]).unwrap_or(0));
-                let left = cpa.saturating_sub(self.pieces[id].cp_spent);
-                if left > Cp::ZERO {
-                    self.charge(id, left, false, events);
-                }
-                let p = self.pieces.get_mut(id).expect("listed");
-                p.cohesion.earn_dp(DISORGANISING_DP);
-                events.push(Event::Disorganised {
-                    piece: id.clone(),
-                    dp: DISORGANISING_DP,
-                    level: p.cohesion.level,
-                });
-            }
             self.order_retreat(
                 phasing,
                 pieces,
@@ -1648,10 +1635,10 @@ mod tests {
         assert!(!state.pieces[&pid("unit:cw:1-krrc")].engaged);
     }
 
-    #[test]
-    fn a_unit_under_a_declared_zoc_that_attacks_nothing_must_retreat() {
-        let data = graziani();
-        let mut state = assigning(&data);
+    /// The assign step with C4020 declaring over C4021 and no other Axis
+    /// hex nearby exerting; returns the state and the stack at C4021.
+    fn under_a_declared_zoc(data: &Data) -> (GameState, Vec<PieceId>) {
+        let mut state = assigning(data);
         // C4020 exerts over C4021 and says so; every other Axis hex
         // nearby was asked earlier and declined.
         let nearby: Vec<HexId> = state
@@ -1665,32 +1652,82 @@ mod tests {
             state.zoc.insert(h, false);
         }
         state.zoc.insert(hex("C4020"), true);
-        let before: Vec<PieceId> = state
+        let stack: Vec<PieceId> = state
             .pieces
             .values()
             .filter(|p| p.hex() == Some(&hex("C4021")))
             .map(|p| p.id.clone())
             .collect();
+        (state, stack)
+    }
+
+    /// Both sides assign nothing: the step is skipped and the must-attack
+    /// rule bites at once.
+    fn assign_nothing(data: &Data, state: &mut GameState) -> Vec<Event> {
         state
             .apply(
-                &data,
+                data,
                 Side::Cw,
                 Order::AssignForces {
                     assignments: vec![],
                 },
             )
             .unwrap();
-        let events = state
+        state
             .apply(
-                &data,
+                data,
                 Side::Axis,
                 Order::AssignForces {
                     assignments: vec![],
                 },
             )
-            .unwrap();
-        // No assault assigned: the step is skipped and the rule bites at
-        // once: all CP, 3 DP, three hexes.
+            .unwrap()
+    }
+
+    /// A legal three-step path for `stack` from C4021 ending three hexes
+    /// from C4020, over empty land: a breadth-first search.
+    fn way_out(data: &Data, state: &GameState, stack: &[PieceId]) -> Vec<HexId> {
+        let legal = |from: &HexId, to: &HexId| {
+            data.map
+                .hex(to)
+                .is_some_and(|h| h.terrain != cna_data::map::Terrain::Sea)
+                && !state.pieces.values().any(|p| p.hex() == Some(to))
+                && state
+                    .plan_with(data, stack, from, std::slice::from_ref(to), true)
+                    .is_ok_and(|p| p.interrupt.is_none())
+        };
+        let mut frontier: Vec<Vec<HexId>> = vec![vec![hex("C4021")]];
+        loop {
+            let mut next = Vec::new();
+            for p in &frontier {
+                let at = p.last().unwrap();
+                for n in data.map.neighbours(at) {
+                    if p.contains(&n) || !legal(at, &n) {
+                        continue;
+                    }
+                    let mut q = p.clone();
+                    q.push(n.clone());
+                    if q.len() == 4 && !data.map.within(&hex("C4020"), 2).contains(&n) {
+                        return q[1..].to_vec();
+                    }
+                    next.push(q);
+                }
+            }
+            assert!(!next.is_empty(), "a way out");
+            frontier = next;
+        }
+    }
+
+    #[test]
+    fn a_unit_under_a_declared_zoc_that_attacks_nothing_must_retreat() {
+        let data = graziani();
+        let (mut state, before) = under_a_declared_zoc(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        let spent = state.pieces[&krrc].cp_spent;
+        let level = state.pieces[&krrc].cohesion.level;
+        let events = assign_nothing(&data, &mut state);
+        // Three hexes, no stopping short; the CP and the 3 DP come with
+        // the retreat itself (R-118), not with the order.
         assert!(events.contains(&Event::RetreatOrdered {
             pieces: before.clone(),
             hexes: 3,
@@ -1708,12 +1745,8 @@ mod tests {
                 overrun: false,
             })
         );
-        let krrc = pid("unit:cw:1-krrc");
-        assert_eq!(state.pieces[&krrc].cohesion.level, -3);
-        assert_eq!(
-            state.pieces[&krrc].cp_spent,
-            Cp::whole(state.cpa(&state.pieces[&krrc]).unwrap())
-        );
+        assert_eq!(state.pieces[&krrc].cp_spent, spent);
+        assert_eq!(state.pieces[&krrc].cohesion.level, level);
         // No stopping short.
         let err = state
             .apply(
@@ -1725,50 +1758,72 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "10.36");
-        // Three hexes away from C4020 over empty land: a breadth-first
-        // search for a legal three-step path.
-        let legal = |from: &HexId, to: &HexId| {
-            data.map
-                .hex(to)
-                .is_some_and(|h| h.terrain != cna_data::map::Terrain::Sea)
-                && !state.pieces.values().any(|p| p.hex() == Some(to))
-                && state
-                    .plan_with(&data, &before, from, std::slice::from_ref(to), true)
-                    .is_ok_and(|p| p.interrupt.is_none())
-        };
-        let mut frontier: Vec<Vec<HexId>> = vec![vec![hex("C4021")]];
-        let mut path: Option<Vec<HexId>> = None;
-        while path.is_none() {
-            let mut next = Vec::new();
-            for p in &frontier {
-                let at = p.last().unwrap();
-                for n in data.map.neighbours(at) {
-                    if p.contains(&n) || !legal(at, &n) {
-                        continue;
-                    }
-                    let mut q = p.clone();
-                    q.push(n.clone());
-                    if q.len() == 4 && !data.map.within(&hex("C4020"), 2).contains(&n) {
-                        path = Some(q[1..].to_vec());
-                        break;
-                    }
-                    next.push(q);
-                }
-            }
-            assert!(!next.is_empty(), "a way out");
-            frontier = next;
-        }
-        let path = path.unwrap();
+        let path = way_out(&data, &state, &before);
         let at = path.last().unwrap().clone();
         let events = state
             .apply(&data, Side::Cw, Order::Retreat { path: path.clone() })
             .unwrap();
         assert!(before.iter().all(|id| state.pieces[id].hex() == Some(&at)));
+        // The retreat was paid from the CP left and cost less than that,
+        // so the unit ends at its CPA with the rest forfeited: 3 DP, no
+        // more (R-118).
+        let cpa = Cp::whole(state.cpa(&state.pieces[&krrc]).unwrap());
+        let cost: Cp = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::Moved { cost, .. } => Some(*cost),
+                _ => None,
+            })
+            .sum();
+        assert!(
+            cost > Cp::ZERO && spent + cost < cpa,
+            "{spent} + {cost} < {cpa}"
+        );
+        assert_eq!(state.pieces[&krrc].cp_spent, cpa);
+        assert_eq!(state.pieces[&krrc].cohesion.level, level - 3);
+        assert!(events.contains(&Event::Disorganised {
+            piece: krrc.clone(),
+            dp: 3,
+            level: level - 3,
+        }));
         assert!(events.iter().any(|e| matches!(
             e,
             Event::PhaseStarted { clock } if clock.segment == Some(Segment::ReserveRelease)
         )));
         assert_eq!(state.pending, None);
+    }
+
+    #[test]
+    fn a_must_attack_retreat_overspends_only_what_it_costs_past_the_cpa() {
+        // R-118: a unit already at its CPA has nothing left, so every CP
+        // of the retreat is overspend and earns a DP per whole point, on
+        // top of the 3.
+        let data = graziani();
+        let (mut state, before) = under_a_declared_zoc(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        let cpa = Cp::whole(state.cpa(&state.pieces[&krrc]).unwrap());
+        for id in &before {
+            let cpa = Cp::whole(state.cpa(&state.pieces[id]).unwrap());
+            state.pieces.get_mut(id).unwrap().cp_spent = cpa;
+        }
+        let level = state.pieces[&krrc].cohesion.level;
+        assign_nothing(&data, &mut state);
+        assert_eq!(state.pieces[&krrc].cp_spent, cpa);
+        let path = way_out(&data, &state, &before);
+        let events = state
+            .apply(&data, Side::Cw, Order::Retreat { path })
+            .unwrap();
+        let cost: Cp = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::Moved { cost, .. } => Some(*cost),
+                _ => None,
+            })
+            .sum();
+        assert!(cost >= Cp::whole(1));
+        assert_eq!(state.pieces[&krrc].cp_spent, cpa + cost);
+        let overspend = i32::try_from(cost.floor()).unwrap();
+        assert_eq!(state.pieces[&krrc].cohesion.level, level - 3 - overspend);
     }
 
     #[test]

@@ -106,10 +106,11 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
 }
 
 /// The route trace of R-110 for one side: as a medium truck in normal
-/// weather, through no hex holding an enemy piece and no enemy-ZOC hex
-/// without a friendly piece in it. Every enemy hex that could exert a
-/// ZOC does: 10.16's declarations belong to a movement segment, and the
-/// game is over.
+/// weather, through no hex holding an enemy combat unit and no enemy-ZOC
+/// hex without a friendly combat unit in it. Every enemy hex that could
+/// exert a ZOC does: 10.16's declarations belong to a movement segment,
+/// and the game is over. Supply units, real or dummy, and HQs are not
+/// units here (R-119): they block, deny and lift nothing.
 struct Tracer<'a> {
     data: &'a Data,
     state: &'a GameState,
@@ -123,6 +124,9 @@ impl<'a> Tracer<'a> {
         let mut blocked = BTreeSet::new();
         let mut friendly = BTreeSet::new();
         for p in state.pieces.values() {
+            if p.kind != PieceKind::Combat {
+                continue;
+            }
             if let Some(h) = p.hex() {
                 if p.side == enemy {
                     blocked.insert(h.clone());
@@ -171,19 +175,18 @@ impl<'a> Tracer<'a> {
         }
     }
 
-    /// Combat units of this side in a hex, with no enemy there.
+    /// Combat units of this side in a hex, with no enemy combat unit
+    /// there (R-119).
     fn holders(&self, hex: &HexId) -> Vec<PieceId> {
         let mut ids: Vec<PieceId> = Vec::new();
         for p in self.state.pieces.values() {
-            if p.hex() != Some(hex) {
+            if p.hex() != Some(hex) || p.kind != PieceKind::Combat {
                 continue;
             }
             if p.side != self.side {
                 return Vec::new();
             }
-            if p.kind == PieceKind::Combat {
-                ids.push(p.id.clone());
-            }
+            ids.push(p.id.clone());
         }
         ids.sort();
         ids
@@ -453,6 +456,67 @@ mod tests {
         let fm_r = evaluate(&data, &state);
         let fm = condition(&fm_r, Side::Axis, VictoryLevel::Tactical, "fort-maddalena");
         assert!(!fm.met && fm.held.is_empty() && fm.unsupplied.is_empty());
+    }
+
+    #[test]
+    fn supply_units_real_or_dummy_are_not_units_in_the_trace_or_the_hold() {
+        // R-119: only combat units block a route, deny a hold or lift an
+        // enemy ZOC; a supply unit or a dummy does none of these.
+        let data = graziani();
+        let mut state = without(&data, Side::Cw);
+        put(&mut state, "unit:it:xvii-libyan-bn", "C4131");
+        put(&mut state, "unit:it:xix-libyan-bn", "C4021");
+        assert_eq!(evaluate(&data, &state).axis, Some(VictoryLevel::Tactical));
+        let place = |state: &mut GameState, id: &PieceId, h: &str| {
+            state.pieces.get_mut(id).unwrap().location = Location::Hex(hex(h));
+        };
+        let cw_supply = PieceId::supply(Side::Cw, 1);
+        let cw_dummy = PieceId::dummy_supply(Side::Cw, 1);
+        let axis_supply = PieceId::supply(Side::Axis, 1);
+        let axis_dummy = PieceId::dummy_supply(Side::Axis, 1);
+        for id in [&cw_supply, &cw_dummy, &axis_supply, &axis_dummy] {
+            assert!(state.pieces.contains_key(id), "{id}");
+        }
+        // A Commonwealth supply unit or dummy in Tobruk, the source, cuts
+        // nothing; a combat unit there does.
+        for id in [&cw_supply, &cw_dummy] {
+            let mut s = state.clone();
+            place(&mut s, id, "C4807");
+            assert_eq!(
+                evaluate(&data, &s).axis,
+                Some(VictoryLevel::Tactical),
+                "{id}"
+            );
+        }
+        // One in Fort Maddalena beside the garrison denies no hold
+        // (contrived: the capture of 10.29 would have taken it).
+        for id in [&cw_supply, &cw_dummy] {
+            let mut s = state.clone();
+            place(&mut s, id, "C3019");
+            let r = evaluate(&data, &s);
+            assert_eq!(r.axis, Some(VictoryLevel::Tactical), "{id}");
+            let fm = condition(&r, Side::Axis, VictoryLevel::Tactical, "fort-maddalena");
+            assert_eq!(fm.held, [hex("C3019")]);
+        }
+        // Two Commonwealth stacks blanket Fort Maddalena with ZOC; an
+        // Axis supply unit or dummy in C2919 lifts none of it, an Axis
+        // combat unit does.
+        for (id, h) in [
+            ("unit:cw:1-krrc", "C3018"),
+            ("unit:cw:3-cldgds", "C3018"),
+            ("unit:cw:1-buffs", "C3020"),
+            ("unit:cw:1-essex", "C3020"),
+        ] {
+            put(&mut state, id, h);
+        }
+        assert_eq!(evaluate(&data, &state).axis, None);
+        for id in [&axis_supply, &axis_dummy] {
+            let mut s = state.clone();
+            place(&mut s, id, "C2919");
+            assert_eq!(evaluate(&data, &s).axis, None, "{id}");
+        }
+        put(&mut state, "unit:it:sceferzen-oasis-garrison-bn", "C2919");
+        assert_eq!(evaluate(&data, &state).axis, Some(VictoryLevel::Tactical));
     }
 
     #[test]

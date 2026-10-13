@@ -467,31 +467,71 @@ mod tests {
     #[test]
     fn a_seam_hexside_is_priced_like_any_other() {
         let (map, chart) = fixtures();
-        // C0633 (rough) to D0701 (clear) across a seam slope; cna records
-        // no `up` for seam slopes and says to read them as the feature
-        // both ways, so it climbs in either direction: foot 2 + 2 into
-        // clear, a vehicle 4 + 4 into rough.
-        assert_eq!(
-            cost(
-                &map,
-                &chart,
-                Mobility::Foot,
-                "C0633",
-                "D0701",
-                Weather::Normal
-            ),
-            Ok(Cp::whole(4))
+        let foot = |a, b| cost(&map, &chart, Mobility::Foot, a, b, Weather::Normal);
+        let mot = |a, b| cost(&map, &chart, Mobility::Vehicle, a, b, Weather::Normal);
+        // C0633 (rough) to D0701 (clear) across a seam slope, D0701 the
+        // higher hex (cna #235): up it is 2 + 2 for a foot unit, 2 + 4 for
+        // a vehicle; back down it is 3 + 1 and 4 + 2.
+        assert_eq!(foot("C0633", "D0701"), Ok(Cp::whole(4)));
+        assert_eq!(mot("C0633", "D0701"), Ok(Cp::whole(6)));
+        assert_eq!(foot("D0701", "C0633"), Ok(Cp::whole(4)));
+        assert_eq!(mot("D0701", "C0633"), Ok(Cp::whole(6)));
+        // D2233|E2301 is a seam escarpment with no track, E2301 above: a
+        // vehicle climbs no escarpment and goes down one only by road or
+        // track; a foot unit pays the climb one way and the descent the
+        // other.
+        assert_eq!(mot("D2233", "E2301").unwrap_err().case, "8.4x");
+        assert_eq!(mot("E2301", "D2233").unwrap_err().case, "8.4x");
+        assert!(foot("D2233", "E2301").unwrap() > foot("E2301", "D2233").unwrap());
+    }
+
+    #[test]
+    fn swamp_costs_the_road_rate_only_across_a_constructed_railroad_hexside() {
+        // R-117: a swamp hex entered from a railroad hex across a
+        // constructed railroad hexside is priced as the road; hexside
+        // features on the same step are charged as off a road, and an
+        // unconstructed railroad opens nothing.
+        let (map, chart) = fixtures();
+        let foot = |a, b| cost(&map, &chart, Mobility::Foot, a, b, Weather::Normal);
+        let mot = |a, b| cost(&map, &chart, Mobility::Vehicle, a, b, Weather::Normal);
+        // E3413|E3414: swamp to swamp along the railroad across a minor
+        // river: 1 + 3 for a foot unit, ½ + 6 for a vehicle.
+        assert_eq!(foot("E3413", "E3414"), Ok(Cp::whole(4)));
+        assert_eq!(mot("E3413", "E3414"), Ok(Cp::halves(13)));
+        // The map has no unconstructed railroad into swamp, nor a slope
+        // under one, so those hexsides are made up on E3211 (clear) to
+        // E3312 (swamp).
+        let (a, b) = (
+            HexId::parse("E3211").unwrap(),
+            HexId::parse("E3312").unwrap(),
         );
+        let step = |hs: &Hexside| {
+            let step = Step {
+                from: map.hex(&a).unwrap(),
+                to: map.hex(&b).unwrap(),
+                hexside: Some(hs),
+                climbs: hs.climbs(&a, &b),
+                weather: Weather::Normal,
+            };
+            (
+                step_cost(&chart, Mobility::Foot, &step),
+                step_cost(&chart, Mobility::Vehicle, &step),
+            )
+        };
+        let unbuilt = Hexside {
+            features: vec![HexsideFeature::UnfinishedRailroad],
+            up: None,
+        };
+        let (f, m) = step(&unbuilt);
+        assert_eq!(f.unwrap_err().case, "8.37");
+        assert_eq!(m.unwrap_err().case, "8.37");
+        let up_slope = Hexside {
+            features: vec![HexsideFeature::Railroad, HexsideFeature::Slope],
+            up: Some(b.clone()),
+        };
         assert_eq!(
-            cost(
-                &map,
-                &chart,
-                Mobility::Vehicle,
-                "D0701",
-                "C0633",
-                Weather::Normal
-            ),
-            Ok(Cp::whole(8))
+            step(&up_slope),
+            (Ok(Cp::whole(1) + Cp::whole(2)), Ok(Cp::HALF + Cp::whole(4)))
         );
     }
 

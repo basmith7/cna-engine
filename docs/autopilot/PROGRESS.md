@@ -29,10 +29,7 @@ after rounding rather than folded in (15.83); a must-attack `Pass`
 surrendering a stack that has a path (10.36); attacking forward guns and
 artillery in the anti-armour role (15.84, 14.14); a released unit's later
 combat segments (18.2x); a malformed save with an empty sealed `waiting`
-panics. Two rulings landed after the slices they touch and are listed in
-`NOT_SIMULATED.md` as follow-ups: R-118 (a must-attack retreat is paid
-from the CP left, the rest forfeited) and R-119 (only combat units block
-or open a victory route trace).
+panics.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -51,14 +48,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Seam slopes and escarpments need `up`.** `seams.json` records no `up`
-  hex for its 18 slope and 7 escarpment pairs, so the engine reads them as
-  climbing both ways; vehicles therefore cannot use the tracks at
-  A3933|B3901, A5433|B5501 and B4833|C4701 in either direction, and no
-  anti-armour fire crosses a seam escarpment either way (14.34 bans it
-  upward) while a seam slope is never banned and shifts as up-slope.
-  Mission 2 (movement, combat) is wrong at those until cna records which
-  side is up.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
