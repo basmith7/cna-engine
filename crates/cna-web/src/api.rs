@@ -12,6 +12,7 @@ use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::order::Order;
+use cna_game::piece::PieceId;
 use cna_game::state::GameState;
 use serde_json::{Value, json};
 
@@ -76,6 +77,15 @@ impl Game {
             }
         }
         Ok(v)
+    }
+
+    /// The hexes `place` would accept for a pending piece of the side
+    /// setting up, as a JSON array of hex ids; empty for any other piece
+    /// (`GameState::placements`). A piece id that is not a string is an
+    /// `Err`.
+    pub fn placements(&self, piece: &str) -> Result<Value> {
+        let id: PieceId = serde_json::from_value(Value::String(piece.to_owned()))?;
+        Ok(json!(self.state.placements(data(), &id)))
     }
 
     /// One order from `side`.
@@ -190,6 +200,27 @@ mod tests {
     }
 
     #[test]
+    fn placements_lists_the_hexes_place_accepts_for_the_side_setting_up() {
+        let mut game = Game::new(7).unwrap();
+        let hexes = game.placements("supply:axis:16").unwrap();
+        let hexes = hexes.as_array().unwrap();
+        assert!(hexes.contains(&json!("C0101")), "{hexes:?}");
+        assert!(hexes.iter().all(|h| h.as_str().unwrap().starts_with('C')));
+        // The Commonwealth is not setting up yet; a placed piece and an
+        // unknown one have nowhere to go either.
+        assert_eq!(game.placements("supply:cw:7").unwrap(), json!([]));
+        assert_eq!(game.placements("unit:it:no-such").unwrap(), json!([]));
+        let r = game
+            .apply(
+                "axis",
+                r#"{"place":{"piece":"supply:axis:16","hex":"C0101"}}"#,
+            )
+            .unwrap();
+        assert!(r["ok"].is_array());
+        assert_eq!(game.placements("supply:axis:16").unwrap(), json!([]));
+    }
+
+    #[test]
     fn malformed_input_is_an_error_not_an_illegal_order() {
         let mut game = Game::new(7).unwrap();
         assert!(game.apply("allies", r#""pass""#).is_err());
@@ -219,6 +250,40 @@ mod tests {
         let err = Game::load(&other).unwrap_err().to_string();
         assert!(err.contains("vendor/cna"), "{err}");
         assert!(Game::load("{}").is_err());
+    }
+
+    /// The golden game's set-up (orders 0–58 of `graziani-short.json`)
+    /// replayed, as the hash of its save.
+    fn set_up_done_sha256() -> String {
+        use sha2::{Digest, Sha256};
+        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let mut log: Log =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        log.orders.truncate(59);
+        let state = replay(data(), &log).unwrap();
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        assert!(state.pending.is_none());
+        format!("{:x}", Sha256::digest(state.to_json().unwrap()))
+    }
+
+    fn set_up_done_fixture() -> std::path::PathBuf {
+        cna_data::repo_root().join("web/tests/fixtures/set-up-done.sha256")
+    }
+
+    /// The Playwright set-up e2e ends with `save()` hashing to this
+    /// fixture (`web/tests/setup.spec.ts`); regenerate it with
+    /// `cargo test -p cna-web -- --ignored regenerate_set_up_done_fixture`
+    /// after a deliberate change to the rules or the golden game.
+    #[test]
+    fn the_set_up_done_fixture_is_current() {
+        let pinned = std::fs::read_to_string(set_up_done_fixture()).unwrap();
+        assert_eq!(pinned.trim(), set_up_done_sha256());
+    }
+
+    #[test]
+    #[ignore]
+    fn regenerate_set_up_done_fixture() {
+        std::fs::write(set_up_done_fixture(), set_up_done_sha256() + "\n").unwrap();
     }
 
     #[test]

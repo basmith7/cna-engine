@@ -51,12 +51,19 @@ export type Weather =
 export type OffMapBox = "tripoli" | "tunisia" | "tripolitania" | "malta" | "italy-sicily" | "crete";
 export type OffMapPlace = "tunis" | "gabes" | "tripoli" | "tripolitania" | "nofilia";
 
+export type Country = "libya" | "egypt";
+
+/** A free placement (cna-data `Placement`): exactly one locator key, then the narrowing fields. */
 export interface Placement {
   hexes?: HexId[];
   place?: string;
   box?: OffMapBox;
+  within?: { of: HexId; hexes: number };
+  region?: Country;
   sheets?: string[];
+  air_facility?: boolean;
   not_within?: { of: string; hexes: number } | null;
+  /** Prose the engine cannot check; the owner honours it (59.2). */
   constraint?: string | null;
 }
 

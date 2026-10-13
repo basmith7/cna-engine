@@ -5,7 +5,13 @@
   import { centreOn, fit, isFar, panBy, scale, zoomAt, type Port, type ViewBox } from "./viewport";
   import type { Snippet } from "svelte";
 
-  let { onhex, overlays }: { onhex?: (hex: string) => void; overlays?: Snippet<[number]> } = $props();
+  // `onhex` is a click on a hex, which may be an order; `ongoto` is the
+  // go-to box, which only looks.
+  let {
+    onhex,
+    ongoto,
+    overlays,
+  }: { onhex?: (hex: string) => void; ongoto?: (hex: string) => void; overlays?: Snippet<[number]> } = $props();
 
   // Rendered once: a plain string, not reactive state.
   const base = baseSvg();
@@ -76,7 +82,7 @@
     let next = centreOn(vb, centre(id));
     if (isFar(next, port)) next = zoomAt(next, port, 3 / scale(next, port), port.width / 2, port.height / 2);
     vb = next;
-    onhex?.(id);
+    ongoto?.(id);
     return true;
   }
   function submitGoto(e: SubmitEvent) {

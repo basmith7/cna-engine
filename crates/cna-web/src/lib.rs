@@ -42,6 +42,13 @@ impl Game {
         Ok(serde_json::to_string(&v)?)
     }
 
+    /// The hexes a pending piece of the side setting up may be placed
+    /// on, as a JSON array of hex ids; `[]` for any other piece.
+    pub fn placements(&self, piece: &str) -> Result<String, JsError> {
+        let v = self.0.placements(piece).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
     /// One order from `side` (`axis` / `cw`) as `Order` JSON; the answer
     /// is `{"ok": [...]}` or `{"illegal": {...}}` JSON. Throws only on
     /// malformed input.

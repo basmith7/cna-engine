@@ -55,6 +55,22 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **Typed set-up constraints for Graziani's Offensive.** The scenario's
+  free placements carry `constraint` sentences the engine cannot check
+  and the UI can only show (`cna-game::place`, `web/src/SetupPanel.svelte`):
+  "Libyan part of sheet C only" and "Libyan part of sheet C; all units of
+  the group in one hex" (Axis supply, `sheets: ["C"]`, 59.2); "on sheet C
+  or D" (Commonwealth supply, `region: egypt`); "any one hex of map D that
+  lies west of Mersa Matruh (D3714); all three units in that one hex
+  (60.92)" (Commonwealth supply, `sheets: ["D"]`); and "or Helwan (E1430)"
+  on a fixed placement at Cairo, which the engine never offers. Wanted as
+  data an engine can check: a country filter on an area (`sheets` and
+  `region` together, or a `country` key), "the group in one hex"
+  (`together: true` or a group id), "west of a hex" (a column bound), and
+  an alternative to a fixed place (`place: ["cairo", "helwan"]` or a
+  second locator). Until then the engine trusts the owner, the UI shows
+  the prose as "also: …", and Helwan is never offered. Not blocking:
+  Mission 3 slice 3 ships with the prose.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in

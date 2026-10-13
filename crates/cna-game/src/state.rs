@@ -315,27 +315,16 @@ pub(crate) mod test_support {
     use cna_data::scenario::Locator;
 
     /// Hexes a pending piece's placement allows, in id order (the
-    /// placement area only; stacking and `not_within` are the engine's).
+    /// placement area only; stacking and `not_within` are the engine's),
+    /// narrowed by two hand filters that keep the scripted games tidy.
+    /// `GameState::placements` is the real query; this stays test-only
+    /// so the scripted games' pins do not move.
     pub fn candidates(data: &Data, piece: &Piece) -> Vec<HexId> {
         let Location::Pending(p) = &piece.location else {
             return Vec::new();
         };
         let map = &data.map;
-        let mut v: Vec<HexId> = match &p.locator {
-            Locator::Hexes(h) => h.clone(),
-            Locator::Within { of, hexes } => map.within(of, *hexes).into_iter().collect(),
-            Locator::Region(c) => map
-                .hexes()
-                .filter(|h| map.country(&h.id) == Some(*c))
-                .map(|h| h.id.clone())
-                .collect(),
-            Locator::Sheets(s) => map
-                .hexes()
-                .filter(|h| s.contains(&h.sheet))
-                .map(|h| h.id.clone())
-                .collect(),
-            _ => Vec::new(),
-        };
+        let mut v = crate::place::area(data, p);
         // The `constraint` sentences the grammar cannot check, honoured by
         // hand: Axis supply on sheet C stays in Libya; the Commonwealth's
         // on sheet D goes next to Mersa Matruh (D3714).
