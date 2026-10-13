@@ -15,7 +15,9 @@ export default defineConfig({
   webServer: {
     command: "npm run build -- --mode test && npm run preview -- --port 4173 --strictPort",
     url: "http://localhost:4173",
-    reuseExistingServer: !process.env.CI,
+    // Never reuse a server on 4173: another worktree's preview or a non-test
+    // build would have no `window.__cna`.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

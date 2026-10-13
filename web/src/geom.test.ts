@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import hexesFile from "../../vendor/cna/data/map/hexes.json";
+import seamsFile from "../../vendor/cna/data/map/seams.json";
 import { W, centre, corners, sheetOffset, type HexId } from "./geom";
 
 const svg = readFileSync(
@@ -31,15 +32,19 @@ describe("geometry", () => {
     }
   });
 
-  it("puts a seam pair one hex width apart", () => {
-    // Neighbours across a seam (seams.json): the same row straight
-    // across, and a diagonal pair where the row is shifted east.
+  it("puts every seam pair one hex width apart", () => {
+    // seams.json lists each pair of hexes that touch across a sheet
+    // join (straight across, and diagonal where the row is shifted).
+    // Real neighbours are exactly one hex width apart.
     const apart = (a: HexId, b: HexId) => Math.hypot(...centre(a).map((v, i) => v - centre(b)[i]));
-    expect(Math.abs(apart("C0633", "D0701") - W)).toBeLessThan(1e-6);
-    expect(Math.abs(apart("C0733", "D0701") - W)).toBeLessThan(1e-6);
-    // E's column 00 is not a hex: D's column 33 meets E's column 01.
-    expect(Math.abs(apart("D3733", "E3701") - W)).toBeLessThan(1e-6);
-    expect(centre("E3701")[0] - centre("D3733")[0]).toBeCloseTo(W, 6);
+    let n = 0;
+    for (const seam of seamsFile.seams) {
+      for (const p of seam.pairs) {
+        expect(Math.abs(apart(p.west as HexId, p.east as HexId) - W), `${p.west}|${p.east}`).toBeLessThan(1e-6);
+        n++;
+      }
+    }
+    expect(n).toBeGreaterThan(300);
   });
 
   it("keeps the Malta inset clear of sheet A", () => {
