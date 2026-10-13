@@ -348,37 +348,128 @@ mod tests {
         assert!(Game::load("{}").is_err());
     }
 
-    /// The golden game's set-up (orders 0–58 of `graziani-short.json`)
-    /// replayed, as the hash of its save.
-    fn set_up_done_sha256() -> String {
-        use sha2::{Digest, Sha256};
+    fn golden_log() -> Log {
         let path = cna_data::repo_root().join("tests/games/graziani-short.json");
-        let mut log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-        log.orders.truncate(59);
-        let state = replay(data(), &log).unwrap();
-        assert_eq!(state.to_act(), Some(Side::Axis));
-        assert!(state.pending.is_none());
-        format!("{:x}", Sha256::digest(state.to_json().unwrap()))
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
-    fn set_up_done_fixture() -> std::path::PathBuf {
-        cna_data::repo_root().join("web/tests/fixtures/set-up-done.sha256")
+    /// The golden game replayed through its first `n` orders.
+    fn golden_prefix(n: usize) -> GameState {
+        let mut log = golden_log();
+        log.orders.truncate(n);
+        replay(data(), &log).unwrap()
     }
 
-    /// The Playwright set-up e2e ends with `save()` hashing to this
-    /// fixture (`web/tests/setup.spec.ts`); regenerate it with
-    /// `cargo test -p cna-web -- --ignored regenerate_set_up_done_fixture`
-    /// after a deliberate change to the rules or the golden game.
+    fn sha256(s: &str) -> String {
+        use sha2::{Digest, Sha256};
+        format!("{:x}", Sha256::digest(s))
+    }
+
+    fn fixtures_dir() -> std::path::PathBuf {
+        cna_data::repo_root().join("web/tests/fixtures")
+    }
+
+    /// The e2e fixtures (spec, *Testing*): states the Playwright specs
+    /// start from, each built from a golden prefix through the public
+    /// API and checked to be what its name says.
+    ///
+    /// - `set-up-done`: orders 0–58, GT1 phase A, the Axis to act.
+    /// - `reserve`: orders 0–59, phase F, the Axis to designate.
+    /// - `off-map`: orders 0–60, the Axis movement segment, the Tripoli
+    ///   box full; a box stack's `move-off-map` is accepted.
+    /// - `declare-zoc`: orders 0–60 and then the cheapest flagged move of
+    ///   the 1st Libyan Division's stack that the engine stops for a ZOC
+    ///   declaration, so the Commonwealth is asked.
+    fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
+        use cna_game::reach::Purpose;
+        use cna_game::state::Pending;
+        let set_up_done = golden_prefix(59);
+        assert_eq!(set_up_done.to_act(), Some(Side::Axis));
+        assert!(set_up_done.pending.is_none());
+        assert_eq!(set_up_done.clock.phase, cna_game::clock::Phase::InitiativeDeclaration);
+
+        let reserve = golden_prefix(60);
+        assert_eq!(reserve.clock.phase, cna_game::clock::Phase::ReserveDesignation);
+        assert_eq!(reserve.to_act(), Some(Side::Axis));
+
+        let off_map = golden_prefix(61);
+        assert_eq!(off_map.clock.segment, Some(cna_game::clock::Segment::Movement));
+        let in_tripoli: Vec<PieceId> = off_map
+            .pieces
+            .values()
+            .filter(|p| p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli))
+            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .take(2)
+            .collect();
+        assert_eq!(in_tripoli.len(), 2);
+        let mut probe = off_map.clone();
+        probe
+            .apply(
+                data(),
+                Side::Axis,
+                Order::MoveOffMap { pieces: in_tripoli, to: cna_data::off_map::OffMapPlace::Tripolitania },
+            )
+            .expect("a Tripoli stack may leave for Tripolitania");
+
+        let Order::Move { pieces, .. } = &golden_log().orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let mut reaches = off_map
+            .reachable(data(), Side::Axis, pieces, Purpose::Move)
+            .unwrap();
+        reaches.sort_by_key(|r| (r.cp, r.path.len()));
+        let declare_zoc = reaches
+            .iter()
+            .filter(|r| r.may_be_interrupted)
+            .find_map(|r| {
+                let mut probe = off_map.clone();
+                probe
+                    .apply(data(), Side::Axis, Order::Move { pieces: pieces.clone(), path: r.path.clone(), assault: false })
+                    .ok()?;
+                matches!(probe.pending, Some(Pending::DeclareZoc { .. })).then_some(probe)
+            })
+            .expect("a flagged move of the Libyans is stopped for a declaration");
+        assert_eq!(declare_zoc.to_act(), Some(Side::Cw));
+
+        vec![
+            ("set-up-done", set_up_done),
+            ("reserve", reserve),
+            ("off-map", off_map),
+            ("declare-zoc", declare_zoc),
+        ]
+    }
+
+    /// The Playwright specs start from `web/tests/fixtures/<name>.json`
+    /// and end at states pinned by hash; regenerate all of them with
+    /// `cargo test -p cna-web -- --ignored regenerate_e2e_fixtures` after
+    /// a deliberate change to the rules or the golden game.
     #[test]
-    fn the_set_up_done_fixture_is_current() {
-        let pinned = std::fs::read_to_string(set_up_done_fixture()).unwrap();
-        assert_eq!(pinned.trim(), set_up_done_sha256());
+    fn the_e2e_fixtures_are_current() {
+        for (name, state) in e2e_fixtures() {
+            let pinned = std::fs::read_to_string(fixtures_dir().join(format!("{name}.json")))
+                .unwrap_or_else(|e| panic!("{name}.json: {e}"));
+            assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
+        }
+        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+            let pinned = std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
+            assert_eq!(pinned.trim(), sha256(&golden_prefix(n).to_json().unwrap()), "{name}.sha256");
+        }
     }
 
     #[test]
     #[ignore]
-    fn regenerate_set_up_done_fixture() {
-        std::fs::write(set_up_done_fixture(), set_up_done_sha256() + "\n").unwrap();
+    fn regenerate_e2e_fixtures() {
+        for (name, state) in e2e_fixtures() {
+            std::fs::write(fixtures_dir().join(format!("{name}.json")), state.to_json().unwrap()).unwrap();
+        }
+        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+            std::fs::write(
+                fixtures_dir().join(format!("{name}.sha256")),
+                sha256(&golden_prefix(n).to_json().unwrap()) + "\n",
+            )
+            .unwrap();
+        }
     }
 
     #[test]
