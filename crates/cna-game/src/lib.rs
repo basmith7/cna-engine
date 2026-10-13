@@ -7,6 +7,7 @@ pub mod combat;
 mod cycle;
 pub mod data;
 pub mod event;
+mod determinism;
 mod golden;
 pub mod log;
 pub mod movement;
