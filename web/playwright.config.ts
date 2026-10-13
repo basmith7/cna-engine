@@ -5,6 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
+  // One worker: the performance budget in `map.spec.ts` is a timing, and on
+  // CI's two cores it fails when a second worker runs the set-up e2e beside it.
+  workers: 1,
   retries: 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
