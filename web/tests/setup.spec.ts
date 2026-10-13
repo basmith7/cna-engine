@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { clickHex, expectDomMatchesView, here, shoot as shootInto, shotsDir } from "./helpers.ts";
+import { clickHex, expectDomMatchesView, here, newGame, shoot as shootInto, shotsDir } from "./helpers.ts";
 
 // Slice 3's proving screenshots.
 const shots = shotsDir("slice-3");
@@ -25,8 +25,7 @@ async function pick(page: Page, side: string, piece: string) {
 
 test("both sides place their free pieces by clicking, through the curtain, to GT1 phase A", async ({ page }) => {
   test.setTimeout(240_000);
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   await expect(page.getByTestId("setup")).toContainText("Set-up · Axis 36 to place");
   await expect(page.getByTestId("placements")).toHaveAttribute("data-count", "0");
 
@@ -110,8 +109,7 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
 
 test("stays usable at a phone width while placing", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   await page.getByTestId("off-map").scrollIntoViewIfNeeded();
   await pick(page, "axis", placements[0].order.place.piece);
   await expect(page.getByTestId("placements")).toHaveAttribute("data-count", /^[1-9]\d*$/);

@@ -14,6 +14,17 @@ writes is **Feedback**.
 
 ## Status
 
+**MISSION 3 COMPLETE** (2026-10-13): a minimal browser UI for Graziani's
+Offensive in `web/` on `cna-game` compiled to WebAssembly (`crates/cna-web`,
+the `vendor/cna` data built in). Slices 1–6 merged as PRs #18–#23: the
+engine in the browser, the map and counters, set-up, movement, combat
+and the end, then save/load/autosave with the golden game played through
+the UI by Playwright (`web/tests/golden.spec.ts`: 446 clicks' worth of
+orders, a save, a reload and a load in the middle, the final state
+byte-equal to `replay`). The spec is
+`docs/designs/2026-10-13-minimal-ui-design.md` (Status: built). Local
+only, nothing hosted; secrecy is hot-seat only (README).
+
 **MISSION 2 COMPLETE** (2026-10-13): a headless game state for Graziani's
 Offensive in `cna-game`, driven by `cna-play`. Slices 1–6 merged as PRs
 #6, #8, #9, #11, #12 and #15: map, scenario and pieces, state and the
@@ -36,15 +47,26 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Mission 3 is being built** (minimal browser UI). The spec merged as
-  PR #7 (`docs/designs/2026-10-13-minimal-ui-design.md`); slices follow
-  `docs/plans/2026-10-13-m3-slice-{1..6}-*.md`, one PR each on
-  `autopilot/m3-slice-N-<slug>`, worktrees under `~/Projects/cna-engine-m3/`.
-  An interactive session started them on 2026-10-13 and may run out of
-  quota mid-slice. The autopilot picks up from the open `autopilot` PR as
-  usual: read its body and the last journal entry, finish the slice, merge
-  once the gates and a review pass, then the next slice. Each UI slice
-  names the screenshot that proves it; take it and look at it.
+- **Mission 4, Part 0**: the rest of the Land Game turn (`AUTOPILOT.md`
+  queue, row 4) needs its spec on `autopilot/m4-spec`, in the shape of
+  the Mission 2 and 3 designs: which of §19–§32 come first, what each
+  needs from cna (post requests below for the gaps), and the slices.
+  Brian would call it large, so it gets the Mission 2 review: mark the
+  PR `needs-brian` and build nothing until **Feedback** approves it.
+- Mission 3's accepted residue, for a polish slice when it matters: the
+  count badge touches the top counter's CPA; frontier stacks overlap at
+  the fitted view; the 390 px layout is the slice 2 one (mobile is a
+  non-goal); ticks are offered in a sealed step though nothing moves;
+  selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
+  the end dialog's table clips its right-hand columns (it scrolls).
+- From PR #23's review, for the same polish slice: `check_invariants`
+  stops at the plan's list, so a hostile save can still panic the engine
+  later (a combat plot naming a ghost piece, a piece on a hex that does
+  not exist, a duplicate side in `waiting`, a reaction whose eligible
+  piece is the other side's); extend it to every piece and hex reference
+  in `combat`, `moved`/`continuing`/`shifted`/`zoc` and piece locations.
+  A Load or Continue opens with no curtain, so whoever loads sees
+  `to_act`'s (redacted) view; consider dropping the curtain on load.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
   cna 4184683.

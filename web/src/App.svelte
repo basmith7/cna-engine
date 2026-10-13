@@ -7,6 +7,7 @@
   import EndDialog from "./EndDialog.svelte";
   import { Engine, initEngine } from "./engine";
   import { formatEvent } from "./format";
+  import GamePanel from "./GamePanel.svelte";
   import { withEvents, withIllegal, type LogEntry } from "./log";
   import LogPanel from "./LogPanel.svelte";
   import Map from "./Map.svelte";
@@ -18,7 +19,9 @@
   import PhaseControls from "./PhaseControls.svelte";
   import Placements from "./Placements.svelte";
   import Reachable from "./Reachable.svelte";
+  import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
+  import StartScreen from "./StartScreen.svelte";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
@@ -28,6 +31,12 @@
   let view: View | undefined = $state();
   let hex: string | null = $state(null);
   let error: string | null = $state(null);
+  /** The wasm is in; without a game yet the start screen shows. */
+  let loaded = $state(false);
+  /** The autosave's clock line on the start screen, or null when there is none. */
+  let autosave: string | null = $state(null);
+  /** The engine's refusal of the last file given to Load, until the next Load. */
+  let loadError: string | null = $state(null);
   /** The tray piece picked to place; UI-only state (spec, *State sync*). */
   let picked: PieceId | null = $state(null);
   /** The engine's last refusal, until the toast goes or the next order. */
@@ -140,6 +149,7 @@
     );
     curtain = curtainAfter(before.to_act, view.to_act);
     custom = [];
+    autosaveNow();
     if (curtain) {
       picked = null;
       ticked = [];
@@ -257,27 +267,86 @@
     }
   }
 
+  /** Puts a game on the screen with the UI-only state cleared: a new game, a loaded save, the autosave. */
+  function start(e: Engine) {
+    engine = e;
+    view = e.view();
+    hex = null;
+    picked = null;
+    ticked = [];
+    custom = [];
+    log = [];
+    curtain = null;
+    reportOpen = true;
+    illegal = null;
+    autosaveNow();
+  }
+
+  /** The state JSON into `localStorage` (spec, *Save and load*), after every accepted order; a full store is not an error worth stopping play for. */
+  function autosaveNow() {
+    if (!engine) return;
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, engine.save());
+    } catch {
+      // Private mode or a full store: play goes on without the autosave.
+    }
+  }
+
+  /** Hands a save's text to the engine; on its refusal the current game, if any, is kept and the reason shown. */
+  function loadJson(json: string): boolean {
+    try {
+      start(Engine.load(json));
+      loadError = null;
+      return true;
+    } catch (e) {
+      loadError = `This file was not loaded: ${e instanceof Error ? e.message : String(e)}`;
+      return false;
+    }
+  }
+
+  function loadFile(file: File) {
+    file
+      .text()
+      .then((json) => loadJson(json))
+      .catch((e: unknown) => {
+        loadError = `This file could not be read: ${e instanceof Error ? e.message : String(e)}`;
+      });
+  }
+
+  /** Downloads the state JSON as `graziani-gt<N>-os<M>.json`. */
+  function saveFile() {
+    if (!engine || !view) return;
+    const blob = new Blob([engine.save()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = saveName(view);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function continueAutosave() {
+    const json = localStorage.getItem(AUTOSAVE_KEY);
+    if (json === null) return;
+    if (!loadJson(json)) autosave = null;
+  }
+
   initEngine()
     .then(() => {
-      engine = Engine.newGame(7);
-      view = engine.view();
+      loaded = true;
+      const stored = localStorage.getItem(AUTOSAVE_KEY);
+      autosave = stored === null ? null : describeSave(stored);
       if (import.meta.env.MODE === "test") {
         // Test builds only: lets Playwright compare the DOM with the engine
         // and start from a fixture state (what `save()` wrote).
         (window as unknown as { __cna: unknown }).__cna = {
           view: () => engine!.view(),
           save: () => engine!.save(),
+          /** How many orders the engine has accepted: the e2e driver's sync point after each click. */
+          orders: () => (JSON.parse(engine!.save()) as { log: unknown[] }).log.length,
           sealedOptions: () => engine!.sealedOptions(engine!.view().to_act!),
           load: (json: string) => {
-            engine = Engine.load(json);
-            view = engine.view();
-            hex = null;
-            picked = null;
-            ticked = [];
-            custom = [];
-            log = [];
-            curtain = null;
-            reportOpen = true;
+            if (!loadJson(json)) throw new Error(loadError ?? "not loaded");
           },
         };
       }
@@ -298,7 +367,7 @@
       <Toast text={illegal} ondone={() => (illegal = null)} />
     {/key}
   {/if}
-  {#if view}
+  {#if view && engine}
     {#if view.over && reportOpen}
       <EndDialog {view} onclose={() => (reportOpen = false)} />
     {/if}
@@ -318,6 +387,7 @@
       </main>
       <aside class="side">
         <div class="panels">
+          <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
           {#if view.over}
             <section class="panel over" data-testid="over">
               <h2>Game over</h2>
@@ -346,6 +416,8 @@
     </div>
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
+  {:else if loaded}
+    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} onnew={(seed) => start(Engine.newGame(seed))} onload={loadFile} />
   {:else}
     <p class="status">Loading the engine…</p>
   {/if}

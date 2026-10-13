@@ -3,7 +3,7 @@ import type { SealedOptionsResult, View } from "../src/types";
 
 declare global {
   interface Window {
-    __cna: { view(): View; save(): string; load(json: string): void; sealedOptions(): SealedOptionsResult };
+    __cna: { view(): View; save(): string; orders(): number; load(json: string): void; sealedOptions(): SealedOptionsResult };
   }
 }
 

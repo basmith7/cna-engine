@@ -33,7 +33,8 @@ impl Game {
     }
 
     /// A saved game, checked against the embedded scenario and
-    /// `rules_commit` only; invariants are checked from slice 6.
+    /// `rules_commit`, and for the invariants `apply` relies on
+    /// (`GameState::check_invariants`): a bad file is an `Err`.
     pub fn load(json: &str) -> Result<Game> {
         Ok(Game {
             state: GameState::from_json(json, data())?,
@@ -857,6 +858,17 @@ mod tests {
         ]
     }
 
+    /// The states the Playwright specs end at, as the SHA-256 of the
+    /// state JSON after that many golden orders: set-up (slice 3), the
+    /// movement stretch (slice 4), the combat stretch (slice 5) and the
+    /// whole game (slice 6), which `cna_game::golden` pins too.
+    const HASHED: [(&str, usize); 4] = [
+        ("set-up-done", 59),
+        ("movement-done", 66),
+        ("combat-done", 77),
+        ("golden-done", 446),
+    ];
+
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`
     /// and end at states pinned by hash; regenerate all of them with
     /// `cargo test -p cna-web -- --ignored regenerate_e2e_fixtures` after
@@ -868,7 +880,7 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{name}.json: {e}"));
             assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
         }
-        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+        for (name, n) in HASHED {
             let pinned =
                 std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
             assert_eq!(
@@ -889,11 +901,7 @@ mod tests {
             )
             .unwrap();
         }
-        for (name, n) in [
-            ("set-up-done", 59),
-            ("movement-done", 66),
-            ("combat-done", 77),
-        ] {
+        for (name, n) in HASHED {
             std::fs::write(
                 fixtures_dir().join(format!("{name}.sha256")),
                 sha256(&golden_prefix(n).to_json().unwrap()) + "\n",

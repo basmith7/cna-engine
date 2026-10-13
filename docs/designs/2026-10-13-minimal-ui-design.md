@@ -2,8 +2,11 @@
 
 **Date:** 2026-10-13 (revision 3, against Mission 2 complete)
 **Mission:** 3 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** proposed. Not marked for Brian's review in the queue, so it
-merges once its gates pass, unless Brian says otherwise.
+**Status:** built. The spec merged as PR #7 (2026-10-13, not marked for
+Brian's review); the six slices merged as PRs #18–#23 (2026-10-13), with
+their deviations in each PR's body and the journal. The golden game plays
+through the UI in CI (`web/tests/golden.spec.ts`) and ends byte-equal to
+`replay`.
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with
