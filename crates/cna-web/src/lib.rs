@@ -50,7 +50,8 @@ impl Game {
     }
 
     /// The hexes a stack of `side`'s (`pieces_json`, a JSON array of
-    /// piece ids) can end a `move` or `react` in, as
+    /// piece ids) can end a move of `purpose` (`move`, `react`,
+    /// `retreat-before-assault`, `forced-retreat`) in, as
     /// `{"ok": [Reach]}` or `{"illegal": {...}}` JSON (see
     /// `api::Game::reachable`). Throws only on malformed input.
     pub fn reachable(
@@ -60,6 +61,15 @@ impl Game {
         purpose: &str,
     ) -> Result<String, JsError> {
         let v = self.0.reachable(side, pieces_json, purpose).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
+    /// What `side` may answer the sealed step now pending with, as
+    /// `{"ok": SealedOptions}` or `{"illegal": {...}}` JSON (see
+    /// `api::Game::sealed_options`). Throws only on malformed input.
+    #[wasm_bindgen(js_name = sealedOptions)]
+    pub fn sealed_options(&self, side: &str) -> Result<String, JsError> {
+        let v = self.0.sealed_options(side).map_err(js)?;
         Ok(serde_json::to_string(&v)?)
     }
 

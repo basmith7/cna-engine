@@ -11,10 +11,11 @@
 use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
+use cna_game::combat::SealedStep;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
 use cna_game::reach::Purpose;
-use cna_game::state::GameState;
+use cna_game::state::{GameState, Pending};
 use serde_json::{Value, json};
 
 #[derive(Debug)]
@@ -46,13 +47,58 @@ impl Game {
     /// What the UI draws: the state minus `log` and `rng`, plus `to_act`
     /// and, per piece, `unit_type` from the characteristics chart (null
     /// for supply units and ID codes the chart lacks) and the OA unit's
-    /// `name` and `abbreviation` (null for supply units).
+    /// `name` and `abbreviation` (null for supply units);
+    /// `assaults_to_resolve`, the hexes the phasing player still has to
+    /// assault in the close assault step. While a sealed step is
+    /// pending, the answers already given to it by sides other than
+    /// `to_act` are redacted (spec, *Secrecy*): their `combat.plots` or
+    /// `combat.assignments` entry, and for gun positions their pieces in
+    /// the shared `combat.forward` set.
     pub fn view(&self) -> Result<Value> {
         let mut v = serde_json::to_value(&self.state)?;
         let obj = v.as_object_mut().context("state is an object")?;
         obj.remove("log");
         obj.remove("rng");
         obj.insert("to_act".into(), json!(self.state.to_act()));
+        obj.insert(
+            "assaults_to_resolve".into(),
+            json!(self.state.assaults_to_resolve()),
+        );
+        if let Some(Pending::Sealed { step, .. }) = &self.state.pending
+            && let Some(acting) = self.state.to_act()
+        {
+            let combat = v["combat"].as_object_mut().context("combat")?;
+            let others: Vec<String> = [Side::Axis, Side::Cw]
+                .into_iter()
+                .filter(|s| *s != acting)
+                .map(|s| serde_json::to_value(s).map(|x| x.as_str().unwrap_or_default().to_owned()))
+                .collect::<Result<_, _>>()?;
+            let key = match step {
+                SealedStep::GunPositions => None,
+                SealedStep::Barrage => Some("plots"),
+                SealedStep::AssignForces => Some("assignments"),
+            };
+            match key {
+                Some(key) => {
+                    if let Some(map) = combat.get_mut(key).and_then(Value::as_object_mut) {
+                        for s in &others {
+                            map.remove(s);
+                        }
+                    }
+                }
+                None => {
+                    if let Some(forward) = combat.get_mut("forward").and_then(Value::as_array_mut) {
+                        forward.retain(|id| {
+                            self.state
+                                .pieces
+                                .values()
+                                .find(|p| Some(p.id.as_str()) == id.as_str())
+                                .is_some_and(|p| p.side == acting)
+                        });
+                    }
+                }
+            }
+        }
         let labels: Vec<(String, Value)> = self
             .state
             .pieces
@@ -101,6 +147,20 @@ impl Game {
             .with_context(|| format!("purpose {purpose:?}"))?;
         Ok(match self.state.reachable(data(), side, &pieces, purpose) {
             Ok(reaches) => json!({ "ok": reaches }),
+            Err(illegal) => {
+                json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
+            }
+        })
+    }
+
+    /// What `side` may answer the sealed step now pending with
+    /// (`GameState::sealed_options`): `{"ok": SealedOptions}`, or
+    /// `{"illegal": {"case", "reason"}}` when no sealed step is pending
+    /// or `side` is not the one to answer.
+    pub fn sealed_options(&self, side: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        Ok(match self.state.sealed_options(data(), side) {
+            Ok(options) => json!({ "ok": options }),
             Err(illegal) => {
                 json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
             }
@@ -324,6 +384,131 @@ mod tests {
         assert_eq!(r["illegal"]["case"], "8.5x", "{r}");
     }
 
+    /// Golden orders 66–72 are the sealed steps: after the Axis has
+    /// answered (67, 69, 72 are the Commonwealth's turns) its answer is
+    /// not in the Commonwealth's view; once both are in, both are.
+    #[test]
+    fn a_sealed_answer_is_redacted_from_the_other_side_s_view_until_revealed() {
+        let axis_gun = json!("unit:it:1st-libyan-artillery-regt");
+        // 67: the Axis gun stands forward; the Commonwealth sees no forward gun.
+        let (game, _) = golden_before(67);
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "cw");
+        assert_eq!(view["pending"]["sealed"]["step"], "gun-positions");
+        assert!(
+            view["combat"]
+                .get("forward")
+                .is_none_or(|f| f.as_array().unwrap().is_empty()),
+            "{}",
+            view["combat"]
+        );
+        // The save keeps everything.
+        assert!(game.save().unwrap().contains("1st-libyan-artillery-regt\""));
+        // 68: revealed, both sides' positions are in the view.
+        let (game, _) = golden_before(68);
+        let view = game.view().unwrap();
+        assert!(
+            view["combat"]["forward"]
+                .as_array()
+                .unwrap()
+                .contains(&axis_gun),
+            "{}",
+            view["combat"]
+        );
+        // 69: the Axis barrage is plotted; the Commonwealth sees no plot.
+        let (game, _) = golden_before(69);
+        let view = game.view().unwrap();
+        assert_eq!(view["pending"]["sealed"]["step"], "barrage");
+        assert!(
+            view["combat"]
+                .get("plots")
+                .is_none_or(|p| p.as_object().unwrap().is_empty()),
+            "{}",
+            view["combat"]
+        );
+        assert!(
+            view["combat"]["forward"]
+                .as_array()
+                .unwrap()
+                .contains(&axis_gun),
+            "step 1 is revealed"
+        );
+        // 70: revealed.
+        let (game, _) = golden_before(70);
+        let view = game.view().unwrap();
+        assert_eq!(
+            view["combat"]["plots"]["axis"][0]["target"],
+            "unit:cw:1-krrc"
+        );
+        assert!(view["combat"]["plots"]["cw"].as_array().unwrap().is_empty());
+        // 72: the Axis assignments are in; the Commonwealth sees none.
+        let (game, _) = golden_before(72);
+        let view = game.view().unwrap();
+        assert_eq!(view["pending"]["sealed"]["step"], "assign-forces");
+        assert!(
+            view["combat"]
+                .get("assignments")
+                .is_none_or(|a| a.as_object().unwrap().is_empty()),
+            "{}",
+            view["combat"]
+        );
+        assert_eq!(
+            view["combat"]["plots"]["axis"][0]["points"], 6,
+            "step 2 is revealed"
+        );
+        assert_eq!(view["assaults_to_resolve"], json!([]));
+        // 73: revealed, and the close assault step waits on the Axis
+        // with C3922 to assault.
+        let (game, _) = golden_before(73);
+        let view = game.view().unwrap();
+        assert!(view["pending"].is_null());
+        assert_eq!(view["clock"]["segment"], "close-assault");
+        assert_eq!(
+            view["combat"]["assignments"]["axis"]
+                .as_array()
+                .unwrap()
+                .len(),
+            4
+        );
+        assert_eq!(
+            view["combat"]["assignments"]["cw"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(view["assaults_to_resolve"], json!(["C3922"]));
+        let (game, _) = golden_before(74);
+        assert_eq!(game.view().unwrap()["assaults_to_resolve"], json!([]));
+    }
+
+    #[test]
+    fn sealed_options_name_the_golden_barrage_and_nothing_at_other_moments() {
+        let (game, _) = golden_before(68);
+        let r = game.sealed_options("axis").unwrap();
+        let firers = r["ok"]["barrage"]["firers"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{r}"));
+        let gun = firers
+            .iter()
+            .find(|f| f["piece"] == "unit:it:1st-libyan-artillery-regt")
+            .unwrap();
+        assert!(
+            gun["targets"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("unit:cw:1-krrc"))
+        );
+        assert_eq!(gun["forward"], true);
+        assert_eq!(game.sealed_options("cw").unwrap()["illegal"]["case"], "5.2");
+        let (game, _) = golden_before(70);
+        assert_eq!(
+            game.sealed_options("cw").unwrap()["illegal"]["case"],
+            "11.0"
+        );
+        assert!(game.sealed_options("allies").is_err());
+    }
+
     #[test]
     fn load_of_a_save_round_trips_byte_for_byte() {
         let mut game = Game::new(7).unwrap();
@@ -389,28 +574,58 @@ mod tests {
         let set_up_done = golden_prefix(59);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
         assert!(set_up_done.pending.is_none());
-        assert_eq!(set_up_done.clock.phase, cna_game::clock::Phase::InitiativeDeclaration);
+        assert_eq!(
+            set_up_done.clock.phase,
+            cna_game::clock::Phase::InitiativeDeclaration
+        );
 
         let reserve = golden_prefix(60);
-        assert_eq!(reserve.clock.phase, cna_game::clock::Phase::ReserveDesignation);
+        assert_eq!(
+            reserve.clock.phase,
+            cna_game::clock::Phase::ReserveDesignation
+        );
         assert_eq!(reserve.to_act(), Some(Side::Axis));
-        let Order::Move { pieces: libyans, .. } = &golden_log().orders[61].order else {
+        let Order::Move {
+            pieces: libyans, ..
+        } = &golden_log().orders[61].order
+        else {
             panic!("order 61 is a move");
         };
         let mut reserve_release = reserve.clone();
         reserve_release
-            .apply(data(), Side::Axis, Order::DesignateReserve { pieces: libyans.clone() })
+            .apply(
+                data(),
+                Side::Axis,
+                Order::DesignateReserve {
+                    pieces: libyans.clone(),
+                },
+            )
             .unwrap();
-        reserve_release.apply(data(), Side::Axis, Order::Pass).unwrap();
-        reserve_release.apply(data(), Side::Axis, Order::EndSegment).unwrap();
+        reserve_release
+            .apply(data(), Side::Axis, Order::Pass)
+            .unwrap();
+        reserve_release
+            .apply(data(), Side::Axis, Order::EndSegment)
+            .unwrap();
         // The combat steps, answered with nothing (as the scripted games do).
         while reserve_release.clock.segment != Some(cna_game::clock::Segment::ReserveRelease) {
             use cna_game::combat::SealedStep;
             let player = reserve_release.to_act().unwrap();
             let order = match &reserve_release.pending {
-                Some(Pending::Sealed { step: SealedStep::GunPositions, .. }) => Order::GunPositions { forward: vec![] },
-                Some(Pending::Sealed { step: SealedStep::Barrage, .. }) => Order::Barrage { fires: vec![] },
-                Some(Pending::Sealed { step: SealedStep::AssignForces, .. }) => Order::AssignForces { assignments: vec![] },
+                Some(Pending::Sealed {
+                    step: SealedStep::GunPositions,
+                    ..
+                }) => Order::GunPositions { forward: vec![] },
+                Some(Pending::Sealed {
+                    step: SealedStep::Barrage,
+                    ..
+                }) => Order::Barrage { fires: vec![] },
+                Some(Pending::Sealed {
+                    step: SealedStep::AssignForces,
+                    ..
+                }) => Order::AssignForces {
+                    assignments: vec![],
+                },
                 _ => Order::Pass,
             };
             reserve_release.apply(data(), player, order).unwrap();
@@ -419,11 +634,16 @@ mod tests {
         assert!(reserve_release.pending.is_none());
 
         let off_map = golden_prefix(61);
-        assert_eq!(off_map.clock.segment, Some(cna_game::clock::Segment::Movement));
+        assert_eq!(
+            off_map.clock.segment,
+            Some(cna_game::clock::Segment::Movement)
+        );
         let in_tripoli: Vec<PieceId> = off_map
             .pieces
             .values()
-            .filter(|p| p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli))
+            .filter(|p| {
+                p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli)
+            })
             .filter(|p| p.kind == cna_game::piece::PieceKind::Combat)
             .map(|p| p.id.clone())
             .take(2)
@@ -434,7 +654,10 @@ mod tests {
             .apply(
                 data(),
                 Side::Axis,
-                Order::MoveOffMap { pieces: in_tripoli, to: cna_data::off_map::OffMapPlace::Tripolitania },
+                Order::MoveOffMap {
+                    pieces: in_tripoli,
+                    to: cna_data::off_map::OffMapPlace::Tripolitania,
+                },
             )
             .expect("a Tripoli stack may leave for Tripolitania");
 
@@ -451,7 +674,15 @@ mod tests {
             .find_map(|r| {
                 let mut probe = off_map.clone();
                 probe
-                    .apply(data(), Side::Axis, Order::Move { pieces: pieces.clone(), path: r.path.clone(), assault: false })
+                    .apply(
+                        data(),
+                        Side::Axis,
+                        Order::Move {
+                            pieces: pieces.clone(),
+                            path: r.path.clone(),
+                            assault: false,
+                        },
+                    )
                     .ok()?;
                 matches!(probe.pending, Some(Pending::DeclareZoc { .. })).then_some(probe)
             })
@@ -479,8 +710,13 @@ mod tests {
             assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
         }
         for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
-            let pinned = std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
-            assert_eq!(pinned.trim(), sha256(&golden_prefix(n).to_json().unwrap()), "{name}.sha256");
+            let pinned =
+                std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
+            assert_eq!(
+                pinned.trim(),
+                sha256(&golden_prefix(n).to_json().unwrap()),
+                "{name}.sha256"
+            );
         }
     }
 
@@ -488,7 +724,11 @@ mod tests {
     #[ignore]
     fn regenerate_e2e_fixtures() {
         for (name, state) in e2e_fixtures() {
-            std::fs::write(fixtures_dir().join(format!("{name}.json")), state.to_json().unwrap()).unwrap();
+            std::fs::write(
+                fixtures_dir().join(format!("{name}.json")),
+                state.to_json().unwrap(),
+            )
+            .unwrap();
         }
         for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
             std::fs::write(
