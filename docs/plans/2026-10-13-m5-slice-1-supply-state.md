@@ -84,8 +84,10 @@ stacking or AA removal touches it (re-pinned in one commit).
 - [ ] `view()` redacts `load` and the other side's `motorisation` for
   pieces not of `to_act`'s side (3.61: loads and truck numbers are
   secret); test in `api.rs`.
-- [ ] `StackPanel` shows a supply unit's load and the hex's motorisation
-  points for the owner; Vitest for the formatting, one Playwright check.
+- [ ] ~~`StackPanel` shows a supply unit's load and the hex's
+  motorisation points for the owner~~: moved to slice 2, Task 6. The
+  browser's new game stays module-off in this slice (the M3 golden e2e's
+  set-up stacks supply past 32.1x's cap), so there is nothing to show yet.
 - [ ] Commit; PR; gates (`cargo clippy --all-targets -- -D warnings`,
   `cargo test`, `cargo run -p cna-probe -- check`, `npm test`,
   Playwright).
