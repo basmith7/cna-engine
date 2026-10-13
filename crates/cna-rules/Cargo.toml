@@ -8,3 +8,6 @@ license.workspace = true
 cna-data = { path = "../cna-data" }
 serde.workspace = true
 anyhow.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

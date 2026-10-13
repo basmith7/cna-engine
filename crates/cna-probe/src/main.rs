@@ -1,7 +1,7 @@
 mod output;
 mod probes;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -26,19 +26,6 @@ const ENGINE_COMMIT: &str = "see git log";
 
 fn probes_dir() -> PathBuf {
     cna_data::repo_root().join("probes")
-}
-
-fn rules_commit() -> Result<String> {
-    let out = std::process::Command::new("git")
-        .arg("-C")
-        .arg(cna_data::cna_root())
-        .args(["rev-parse", "HEAD"])
-        .output()
-        .context("running git")?;
-    if !out.status.success() {
-        bail!("git rev-parse HEAD failed in vendor/cna");
-    }
-    Ok(String::from_utf8(out.stdout)?.trim().to_string())
 }
 
 /// Every probe as (file name, pretty JSON with a trailing newline).
@@ -101,7 +88,7 @@ fn stale_files(rendered: &[(String, String)]) -> Result<Vec<String>> {
 }
 
 fn main() -> Result<()> {
-    let rendered = render_all(&rules_commit()?, ENGINE_COMMIT)?;
+    let rendered = render_all(&cna_data::rules_commit()?, ENGINE_COMMIT)?;
     match Cli::parse().cmd {
         Cmd::Run => {
             std::fs::create_dir_all(probes_dir())?;
