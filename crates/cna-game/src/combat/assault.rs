@@ -906,9 +906,97 @@ impl GameState {
         });
     }
 
+    /// Whether the enemy hex `e` was attacked this segment as 10.3x
+    /// requires: close-assaulted, probed at a basic differential of −4
+    /// or better, or barraged with actual points at least the non-gun
+    /// battalion equivalents in it.
+    fn held_off(&self, data: &Data, e: &HexId) -> bool {
+        if let Some(a) = self.combat.assaults.get(e)
+            && (!a.probe || a.basic >= -4)
+        {
+            return true;
+        }
+        let equivalents = self
+            .pieces
+            .values()
+            .filter(|p| p.hex() == Some(e) && p.kind == PieceKind::Combat)
+            .filter(|p| !self.is_gun_unit(data, p))
+            .filter(|p| cna_rules::stacking::points(&data.stacking, p.equivalent) >= 1)
+            .count() as u32;
+        self.combat.barraged.get(e).copied().unwrap_or(0) >= equivalents
+    }
+
+    /// Whether a phasing hex owes an attack (10.32): it holds a combat
+    /// unit that is not a gun and not pinned.
+    fn owes_attack(&self, data: &Data, h: &HexId, phasing: Side) -> bool {
+        self.pieces.values().any(|p| {
+            p.side == phasing
+                && p.hex() == Some(h)
+                && p.kind == PieceKind::Combat
+                && p.toe > 0
+                && !self.is_gun_unit(data, p)
+                && !self.combat.pinned.contains(&p.id)
+        })
+    }
+
     /// The close assault step is over: the must-attack rule (10.3x).
-    /// True when a forced retreat is now pending and the clock waits.
-    pub(crate) fn end_close_assault(&mut self, _data: &Data, _events: &mut Vec<Event>) -> bool {
+    /// The first phasing stack under a declared enemy ZOC whose source
+    /// was neither assaulted nor held off retreats three hexes with all
+    /// its CP spent and 3 DP; true when that retreat is now pending and
+    /// the clock waits. Called again as each retreat resolves.
+    pub(crate) fn end_close_assault(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
+        let Some(phasing) = self.phasing() else {
+            return false;
+        };
+        let hexes: BTreeSet<HexId> = self
+            .pieces
+            .values()
+            .filter(|p| p.side == phasing)
+            .filter_map(|p| p.hex().cloned())
+            .collect();
+        for h in hexes {
+            if !self.owes_attack(data, &h, phasing) {
+                continue;
+            }
+            let sources: Vec<HexId> = self
+                .zoc_sources(data, &h, phasing)
+                .into_iter()
+                .filter(|e| !self.held_off(data, e))
+                .collect();
+            if sources.is_empty() {
+                continue;
+            }
+            let pieces: Vec<PieceId> = self
+                .pieces
+                .values()
+                .filter(|p| p.side == phasing && p.hex() == Some(&h))
+                .map(|p| p.id.clone())
+                .collect();
+            for id in &pieces {
+                let cpa = Cp::whole(self.cpa(&self.pieces[id]).unwrap_or(0));
+                let left = cpa.saturating_sub(self.pieces[id].cp_spent);
+                if left > Cp::ZERO {
+                    self.charge(id, left, false, events);
+                }
+                let p = self.pieces.get_mut(id).expect("listed");
+                p.cohesion.earn_dp(DISORGANISING_DP);
+                events.push(Event::Disorganised {
+                    piece: id.clone(),
+                    dp: DISORGANISING_DP,
+                    level: p.cohesion.level,
+                });
+            }
+            self.order_retreat(
+                phasing,
+                pieces,
+                3,
+                sources,
+                RetreatReason::MustAttack,
+                0,
+                events,
+            );
+            return true;
+        }
         false
     }
 }
@@ -1391,5 +1479,175 @@ mod tests {
         assert_eq!(basic, -3);
         assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cp_spent, Cp::whole(2));
         assert!(!state.pieces[&pid("unit:cw:1-krrc")].engaged);
+    }
+
+    #[test]
+    fn a_unit_under_a_declared_zoc_that_attacks_nothing_must_retreat() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        // C4020 exerts over C4021 and says so; every other Axis hex
+        // nearby was asked earlier and declined.
+        let nearby: Vec<HexId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis)
+            .filter_map(|p| p.hex().cloned())
+            .filter(|h| data.map.within(&hex("C4021"), 5).contains(h))
+            .collect();
+        for h in nearby {
+            state.zoc.insert(h, false);
+        }
+        state.zoc.insert(hex("C4020"), true);
+        let before: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.hex() == Some(&hex("C4021")))
+            .map(|p| p.id.clone())
+            .collect();
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        // No assault assigned: the step is skipped and the rule bites at
+        // once: all CP, 3 DP, three hexes.
+        assert!(events.contains(&Event::RetreatOrdered {
+            pieces: before.clone(),
+            hexes: 3,
+            reason: RetreatReason::MustAttack,
+        }));
+        assert_eq!(
+            state.pending,
+            Some(Pending::ForcedRetreat {
+                side: Side::Cw,
+                pieces: before.clone(),
+                hexes: 3,
+                from: vec![hex("C4020")],
+                reason: RetreatReason::MustAttack,
+                raw: 0,
+            })
+        );
+        let krrc = pid("unit:cw:1-krrc");
+        assert_eq!(state.pieces[&krrc].cohesion.level, -3);
+        assert_eq!(
+            state.pieces[&krrc].cp_spent,
+            Cp::whole(state.cpa(&state.pieces[&krrc]).unwrap())
+        );
+        // No stopping short.
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Retreat {
+                    path: vec![hex("C3922")],
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "10.36");
+        // Three hexes away from C4020 over empty land: a breadth-first
+        // search for a legal three-step path.
+        let legal = |from: &HexId, to: &HexId| {
+            data.map
+                .hex(to)
+                .is_some_and(|h| h.terrain != cna_data::map::Terrain::Sea)
+                && !state.pieces.values().any(|p| p.hex() == Some(to))
+                && state
+                    .plan_with(&data, &before, from, std::slice::from_ref(to), true)
+                    .is_ok_and(|p| p.interrupt.is_none())
+        };
+        let mut frontier: Vec<Vec<HexId>> = vec![vec![hex("C4021")]];
+        let mut path: Option<Vec<HexId>> = None;
+        while path.is_none() {
+            let mut next = Vec::new();
+            for p in &frontier {
+                let at = p.last().unwrap();
+                for n in data.map.neighbours(at) {
+                    if p.contains(&n) || !legal(at, &n) {
+                        continue;
+                    }
+                    let mut q = p.clone();
+                    q.push(n.clone());
+                    if q.len() == 4 && !data.map.within(&hex("C4020"), 2).contains(&n) {
+                        path = Some(q[1..].to_vec());
+                        break;
+                    }
+                    next.push(q);
+                }
+            }
+            assert!(!next.is_empty(), "a way out");
+            frontier = next;
+        }
+        let path = path.unwrap();
+        let at = path.last().unwrap().clone();
+        let events = state
+            .apply(&data, Side::Cw, Order::Retreat { path: path.clone() })
+            .unwrap();
+        assert!(before.iter().all(|id| state.pieces[id].hex() == Some(&at)));
+        assert!(events.iter().any(|e| matches!(
+            e,
+            Event::PhaseStarted { clock } if clock.segment == Some(Segment::ReserveRelease)
+        )));
+        assert_eq!(state.pending, None);
+    }
+
+    #[test]
+    fn a_probe_at_minus_four_or_better_holds_a_hex_off() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        state.zoc.insert(hex("C4020"), true);
+        // 6 raw against 30: 6 against 3 actual, a −3 probe? No: 6 raw is
+        // 1 actual against 3, basic −2, and half of six is a full assault.
+        // Three points probe at −3, enough to hold the hex off.
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        vec![],
+                        vec![alloc(Some("C4020"), 2)],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.combat.assaults[&hex("C4020")].basic, -3);
+        if matches!(state.pending, Some(Pending::ForcedRetreat { .. })) {
+            state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        }
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.pending, None);
+        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
     }
 }

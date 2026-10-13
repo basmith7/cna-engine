@@ -122,6 +122,22 @@ impl GameState {
         }
     }
 
+    /// The enemy hexes whose declared ZOC covers `hex` for a unit of
+    /// `side` (10.16, 10.3x): the non-phasing player's declarations, so
+    /// a hex it was never asked about exerts nothing.
+    pub(crate) fn zoc_sources(&self, data: &Data, hex: &HexId, side: Side) -> Vec<HexId> {
+        data.map
+            .neighbours(hex)
+            .into_iter()
+            .filter(|n| {
+                self.holder(n) == Some(side.other())
+                    && self.could_exert(data, n)
+                    && self.reaches(data, n, hex)
+                    && self.zoc.get(n) == Some(&true)
+            })
+            .collect()
+    }
+
     /// Whether a combat unit of `side` other than those in `except`
     /// stands in `hex`: it cancels an enemy ZOC there for movement
     /// (10.26).
@@ -421,10 +437,51 @@ mod tests {
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4121"]))
             .unwrap_err();
         assert_eq!(err.case, "10.2x");
-        // The next segment opens with the Axis asked again (the
-        // declarations are per segment), then 1 KRRC is in contact and
-        // pays 2 CP to leave, on top of the terrain.
-        crate::state::test_support::through_combat(&data, &mut state);
+        // Under a declared ZOC, 1 KRRC must attack C4020 or retreat
+        // (10.3x): it probes with two points (basic −3, enough to hold
+        // the hex off) for 2 CP. The next segment then opens with the
+        // Axis asked again (the declarations are per segment), 1 KRRC is
+        // in contact and pays 2 CP to leave, on top of the terrain.
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![crate::order::Assignment {
+                        piece: pid("unit:cw:1-krrc"),
+                        anti_armour: vec![],
+                        close_assault: vec![crate::order::Allocation {
+                            target: Some(hex("C4020")),
+                            points: 2,
+                        }],
+                    }],
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+            (
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            ),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        if matches!(state.pending, Some(Pending::ForcedRetreat { .. })) {
+            state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        }
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cp_spent, Cp::whole(2));
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::Movement));
         assert_eq!(
@@ -465,7 +522,7 @@ mod tests {
             }
         );
         let krrc = &state.pieces[&pid("unit:cw:1-krrc")];
-        assert_eq!(krrc.cp_spent, Cp::whole(5));
+        assert_eq!(krrc.cp_spent, Cp::whole(7));
         assert!(!krrc.contact);
     }
 

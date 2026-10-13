@@ -178,12 +178,20 @@ impl GameState {
             Some(path) => {
                 let plan = self.plan_with(data, &pieces, &start, path, true)?;
                 if let Some((before, _)) = &plan.interrupt {
-                    return Err(Illegal::new(
-                        "15.82",
-                        format!(
-                            "{before}: an undeclared enemy ZOC on a retreat path is not supported"
+                    return Err(match reason {
+                        RetreatReason::MustAttack => Illegal::new(
+                            "10.36",
+                            format!(
+                                "{before}: a must-attack retreat may not pass through enemy ZOC"
+                            ),
                         ),
-                    ));
+                        _ => Illegal::new(
+                            "15.82",
+                            format!(
+                                "{before}: an undeclared enemy ZOC on a retreat path is not supported"
+                            ),
+                        ),
+                    });
                 }
                 (
                     plan.steps
