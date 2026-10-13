@@ -623,7 +623,10 @@ mod tests {
             cw_tactical.supply_trace,
             Some(SupplyTrace {
                 places: vec!["cairo".into()],
-                hexes: vec![HexId::parse("E3613").unwrap(), HexId::parse("E3714").unwrap()],
+                hexes: vec![
+                    HexId::parse("E3613").unwrap(),
+                    HexId::parse("E3714").unwrap()
+                ],
                 sheet: None,
             })
         );

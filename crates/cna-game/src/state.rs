@@ -11,6 +11,7 @@ use crate::order::{LoggedOrder, Order};
 use crate::piece::{Piece, PieceId};
 use crate::rng::GameRng;
 use crate::setup;
+use crate::victory::VictoryReport;
 use anyhow::Result;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
@@ -120,8 +121,9 @@ pub struct GameState {
     /// The combat segment under way (11.0).
     #[serde(default)]
     pub combat: CombatSegment,
-    /// The scenario's last OpStage is over.
-    pub over: bool,
+    /// The scenario's last OpStage is over (60.22): the victory report
+    /// (60.8), and nothing more is legal.
+    pub over: Option<VictoryReport>,
     pub rng: GameRng,
     pub log: Vec<LoggedOrder>,
 }
@@ -153,7 +155,7 @@ impl GameState {
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),
             combat: CombatSegment::default(),
-            over: false,
+            over: None,
             rng: GameRng::new(seed),
             log: Vec::new(),
         };
@@ -165,9 +167,13 @@ impl GameState {
         Ok(state)
     }
 
+    pub fn is_over(&self) -> bool {
+        self.over.is_some()
+    }
+
     /// The player the engine is waiting on, or none when the game is over.
     pub fn to_act(&self) -> Option<Side> {
-        if self.over {
+        if self.is_over() {
             return None;
         }
         if let Some(p) = &self.pending {
@@ -190,7 +196,7 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.check(data).expect("the Data is this game's");
         match self.to_act() {
-            None => return Err(Illegal::new("60.8", "the game is over")),
+            None => return Err(Illegal::new("60.22", "the game is over")),
             Some(s) if s != player => {
                 return Err(Illegal::new(
                     "5.2",
@@ -354,7 +360,7 @@ pub(crate) mod test_support {
     pub fn pass_stage(data: &Data, state: &mut GameState) -> Vec<Event> {
         let (gt, stage) = (state.clock.game_turn, state.clock.stage);
         let mut events = Vec::new();
-        while !state.over && (state.clock.game_turn, state.clock.stage) == (gt, stage) {
+        while !state.is_over() && (state.clock.game_turn, state.clock.stage) == (gt, stage) {
             let player = state.to_act().unwrap();
             if state.clock.phase == crate::clock::Phase::MovementCombat
                 && state.clock.segment == Some(crate::clock::Segment::Movement)
@@ -903,22 +909,40 @@ mod tests {
         let data = graziani();
         let mut state = test_support::set_up(&data, 11);
         let mut stages = 0;
-        while !state.over {
+        assert_eq!(state.over, None);
+        while !state.is_over() {
             let events = test_support::pass_stage(&data, &mut state);
             stages += 1;
-            if state.over {
-                assert_eq!(events.last(), Some(&Event::GameOver));
+            if state.is_over() {
+                let report = crate::victory::evaluate(&data, &state);
+                assert_eq!(events.last(), Some(&Event::GameOver { report }));
             }
         }
         assert_eq!(stages, 18);
+        assert_eq!(state.clock, Clock::start(7));
         assert_eq!(state.to_act(), None);
+        // The state carries the report (60.8): nobody moved, so nobody
+        // holds a level, and every objective was checked.
+        let report = state.over.clone().unwrap();
+        assert_eq!(report, crate::victory::evaluate(&data, &state));
+        assert_eq!((report.axis, report.cw), (None, None));
+        assert_eq!(report.checked.len(), 16);
+        // Nothing more is legal (60.22), whoever asks.
         let before = serde_json::to_string(&state).unwrap();
-        let err = state.apply(&data, Side::Axis, Order::Pass).unwrap_err();
-        assert_eq!(err.case, "60.8");
+        for side in [Side::Axis, Side::Cw] {
+            let err = state.apply(&data, side, Order::Pass).unwrap_err();
+            assert_eq!(err.case, "60.22");
+            let err = state
+                .apply(&data, side, Order::DeclareInitiative { player_a: side })
+                .unwrap_err();
+            assert_eq!(err.case, "60.22");
+        }
         assert_eq!(serde_json::to_string(&state).unwrap(), before);
         let json = serde_json::to_string(&state).unwrap();
         let back: GameState = serde_json::from_str(&json).unwrap();
         assert_eq!(back, state);
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(v["over"]["checked"].is_array());
     }
 
     #[test]
