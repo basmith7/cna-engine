@@ -5,7 +5,7 @@
   import { centreOn, fit, isFar, panBy, scale, zoomAt, type Port, type ViewBox } from "./viewport";
   import type { Snippet } from "svelte";
 
-  let { onhex, overlays }: { onhex?: (hex: string) => void; overlays?: Snippet } = $props();
+  let { onhex, overlays }: { onhex?: (hex: string) => void; overlays?: Snippet<[number]> } = $props();
 
   // Rendered once: a plain string, not reactive state.
   const base = baseSvg();
@@ -26,6 +26,7 @@
 
   const viewBox = $derived(`${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
   const far = $derived(isFar(vb, port));
+  const px = $derived(scale(vb, port));
 
   // Drag to pan; a click that did not drag selects a hex.
   let drag: { x: number; y: number; moved: boolean } | null = null;
@@ -95,7 +96,7 @@
     role="application"
     aria-label="The theatre map"
     data-testid="map"
-    data-scale={scale(vb, port).toFixed(3)}
+    data-scale={px.toFixed(3)}
     {viewBox}
     preserveAspectRatio="xMidYMid meet"
     onpointerdown={down}
@@ -105,7 +106,7 @@
     onwheel={wheel}
   >
     <g class="base">{@html base}</g>
-    <g class="overlays">{@render overlays?.()}</g>
+    <g class="overlays">{@render overlays?.(px)}</g>
   </svg>
   <form class="controls" onsubmit={submitGoto}>
     <button type="button" title="Zoom in" aria-label="Zoom in" onclick={() => zoom(1.5)}>+</button>
