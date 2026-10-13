@@ -25,6 +25,22 @@ pub fn terrain_shift(
     }
 }
 
+/// The column `points` actual anti-armour points read after `shift`
+/// (below column 0 reads column 0, SPI 14.33).
+fn column(t: &AntiArmour, points: u32, shift: i32) -> usize {
+    let last = t.columns.len() as i32 - 1;
+    (points.min(last as u32) as i32 + shift).clamp(0, last) as usize
+}
+
+/// Damage points on one sequential reading (11..=66): the game's
+/// sampling entry point. The phasing player reads one row lower than
+/// rolled, except on the lowest row (SPI 14.6).
+pub fn damage_for(t: &AntiArmour, points: u32, shift: i32, phasing: bool, reading: u8) -> u32 {
+    let row = AntiArmour::row_index(reading);
+    let row = if phasing { row.saturating_sub(1) } else { row };
+    t.damage(row, column(t, points, shift))
+}
+
 /// Expected damage points from `points` actual anti-armour points, the
 /// column moved by `shift` (negative toward the defender; below column 0
 /// reads column 0, SPI 14.33). The phasing player reads one row lower than
@@ -80,6 +96,42 @@ mod tests {
         assert_eq!(
             expected_damage(&t, 9, -1, false),
             expected_damage(&t, 8, 0, false)
+        );
+    }
+
+    #[test]
+    fn damage_for_agrees_with_the_expectation() {
+        let t = t();
+        for points in [0, 3, 5, 9, 16, 30] {
+            for shift in [-3, 0, 2] {
+                for phasing in [false, true] {
+                    let mean: f64 = crate::dice::rolls()
+                        .map(|(a, b)| P * damage_for(&t, points, shift, phasing, a * 10 + b) as f64)
+                        .sum();
+                    let exact = expected_damage(&t, points, shift, phasing);
+                    assert!((mean - exact).abs() < 1e-9, "{points} {shift} {phasing}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn ten_thousand_seeded_samples_match_the_expectation() {
+        use crate::dice::sample;
+        let t = t();
+        let exact = expected_damage(&t, 9, 0, false);
+        let mut rng = sample::rng(14);
+        let n = 10_000;
+        let total: u32 = (0..n)
+            .map(|_| damage_for(&t, 9, 0, false, sample::reading(&mut rng)))
+            .sum();
+        assert!((total as f64 / n as f64 - exact).abs() < 0.2, "{exact}");
+        let mut rng = sample::rng(14);
+        let r = sample::reading(&mut rng);
+        assert_eq!(r, 55);
+        assert_eq!(
+            damage_for(&t, 9, 0, false, r),
+            t.damage(AntiArmour::row_index(55), 9)
         );
     }
 
