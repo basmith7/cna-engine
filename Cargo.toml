@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/cna-data", "crates/cna-rules", "crates/cna-probe", "crates/cna-game"]
+members = ["crates/cna-data", "crates/cna-rules", "crates/cna-probe", "crates/cna-game", "crates/cna-play"]
 
 [workspace.package]
 edition = "2024"
@@ -12,3 +12,5 @@ serde_json = "1"
 json-patch = "4"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+rand_chacha = "0.3"
+rand_core = "0.6"

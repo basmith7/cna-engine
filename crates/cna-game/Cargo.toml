@@ -6,8 +6,9 @@ license.workspace = true
 
 [dependencies]
 cna-data = { path = "../cna-data" }
+cna-rules = { path = "../cna-rules" }
 serde.workspace = true
 anyhow.workspace = true
-
-[dev-dependencies]
+rand_chacha.workspace = true
+rand_core.workspace = true
 serde_json.workspace = true
