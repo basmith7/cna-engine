@@ -85,12 +85,34 @@ impl Pending {
     }
 }
 
+/// Rules modules a game opts into. Off, a game plays as it did before
+/// the module existed, so older logs and saves replay unchanged.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Modules {
+    /// Supply units carry loads and motorisation points exist (§32, 60.92).
+    #[serde(default)]
+    pub abstract_supply: bool,
+}
+
+impl Modules {
+    /// Every module on: what a new game of the app plays.
+    pub const ALL: Modules = Modules {
+        abstract_supply: true,
+    };
+
+    pub(crate) fn is_default(&self) -> bool {
+        *self == Modules::default()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameState {
     pub scenario: String,
     /// The `vendor/cna` commit the game was made from.
     pub rules_commit: String,
     pub ruleset: Ruleset,
+    #[serde(default, skip_serializing_if = "Modules::is_default")]
+    pub modules: Modules,
     pub clock: Clock,
     /// Who holds initiative this Game-Turn (7.1x).
     pub initiative: Option<Side>,
@@ -136,7 +158,12 @@ impl GameState {
     /// free pieces first (our choice: 59 and 60 do not say who sets up
     /// first), then the Commonwealth; then GT1 OpStage 1 phase A.
     pub fn new(data: &Data, seed: u64) -> Result<GameState> {
-        let setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map)?;
+        GameState::with_modules(data, seed, Modules::default())
+    }
+
+    /// `new` with the rules modules named.
+    pub fn with_modules(data: &Data, seed: u64, modules: Modules) -> Result<GameState> {
+        let setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map, modules)?;
         let pieces = setup
             .pieces
             .into_iter()
@@ -146,6 +173,7 @@ impl GameState {
             scenario: data.slug().to_owned(),
             rules_commit: data.rules_commit.clone(),
             ruleset: Ruleset::default(),
+            modules,
             clock: Clock::opening(data.scenario.start),
             initiative: None,
             player_a: None,

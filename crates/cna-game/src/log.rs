@@ -6,8 +6,8 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::order::LoggedOrder;
-use crate::piece::{Location, PieceId};
-use crate::state::{GameState, Pending};
+use crate::piece::{Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+use crate::state::{GameState, Modules, Pending};
 use anyhow::{Context, Result, bail};
 use cna_data::map::HexId;
 use cna_data::scenario::{Locator, Side};
@@ -19,6 +19,8 @@ pub struct Log {
     pub scenario: String,
     pub rules_commit: String,
     pub ruleset: Ruleset,
+    #[serde(default, skip_serializing_if = "Modules::is_default")]
+    pub modules: Modules,
     pub seed: u64,
     pub orders: Vec<LoggedOrder>,
 }
@@ -30,6 +32,7 @@ impl GameState {
             scenario: self.scenario.clone(),
             rules_commit: self.rules_commit.clone(),
             ruleset: self.ruleset,
+            modules: self.modules,
             seed: self.rng.seed(),
             orders: self.log.clone(),
         }
@@ -100,6 +103,21 @@ impl GameState {
             }
             if let Some(h) = &p.garrison_of {
                 ids.hex("a garrison", h)?;
+            }
+            // 32.1x: only real supply units carry loads, and only with
+            // the module on.
+            match (
+                &p.load,
+                self.modules.abstract_supply && p.kind == PieceKind::SupplyUnit,
+            ) {
+                (Some(l), true) if l.ammo > MAX_AMMO || l.fuel > MAX_FUEL => bail!(
+                    "{key}: a load of {} ammunition and {} fuel is over {MAX_AMMO}/{MAX_FUEL}",
+                    l.ammo,
+                    l.fuel
+                ),
+                (Some(_), true) | (None, false) => {}
+                (Some(_), false) => bail!("{key} has a load but is not a supply unit with one"),
+                (None, true) => bail!("the supply unit {key} has no load"),
             }
         }
         ids.pieces("moved", &self.moved)?;
@@ -225,7 +243,7 @@ fn check(scenario: &str, commit: &str, data: &Data) -> Result<()> {
 /// Rebuilds the state a log describes by applying its orders afresh.
 pub fn replay(data: &Data, log: &Log) -> Result<GameState> {
     check(&log.scenario, &log.rules_commit, data)?;
-    let mut state = GameState::new(data, log.seed)?;
+    let mut state = GameState::with_modules(data, log.seed, log.modules)?;
     state.ruleset = log.ruleset;
     for (i, o) in log.orders.iter().enumerate() {
         state
@@ -326,6 +344,40 @@ mod tests {
         test_support::auto_place(data, &mut state);
         edit(&mut state);
         state.to_json().unwrap()
+    }
+
+    // 32.1x: a real supply unit's load is within 40 ammunition and 60
+    // fuel, a dummy (or any other piece) has none, and a game without the
+    // module has no loads at all.
+    #[test]
+    fn a_supply_unit_with_a_hostile_load_is_refused() {
+        use crate::piece::Load;
+        let data = graziani();
+        let on = |edit: &dyn Fn(&mut GameState)| {
+            let mut s = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+            test_support::auto_place(&data, &mut s);
+            edit(&mut s);
+            s.to_json().unwrap()
+        };
+        let real = PieceId::supply(Side::Axis, 1);
+        let dummy = PieceId::dummy_supply(Side::Axis, 1);
+        assert!(GameState::from_json(&on(&|_| {}), &data).is_ok());
+        let cases = [
+            ("ammo", &real, Some(Load { ammo: 41, fuel: 0 })),
+            ("fuel", &real, Some(Load { ammo: 0, fuel: 61 })),
+            ("no load", &real, None),
+            ("dummy", &dummy, Some(Load { ammo: 1, fuel: 1 })),
+        ];
+        for (what, id, load) in cases {
+            let json = on(&|s| s.pieces.get_mut(id).unwrap().load = load);
+            let err = GameState::from_json(&json, &data).unwrap_err().to_string();
+            assert!(err.contains("load"), "{what}: {err}");
+        }
+        // Module off: a load is out of place.
+        let mut s = GameState::new(&data, 1).unwrap();
+        s.pieces.get_mut(&real).unwrap().load = Some(Load { ammo: 1, fuel: 1 });
+        let err = GameState::from_json(&s.to_json().unwrap(), &data).unwrap_err();
+        assert!(err.to_string().contains("load"), "{err}");
     }
 
     #[test]

@@ -98,6 +98,18 @@ impl fmt::Display for Reserve {
     }
 }
 
+/// What a real supply unit carries (32.1x, 60.92): secret to its owner
+/// (3.61).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Load {
+    pub ammo: u32,
+    pub fuel: u32,
+}
+
+/// The most ammunition and fuel one supply unit carries (32.1x).
+pub const MAX_AMMO: u32 = 40;
+pub const MAX_FUEL: u32 = 60;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Piece {
     pub id: PieceId,
@@ -129,6 +141,10 @@ pub struct Piece {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub garrison_of: Option<HexId>,
     pub location: Location,
+    /// A real supply unit's ammunition and fuel, with the abstract
+    /// supply module on (32.1x); none for everything else.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub load: Option<Load>,
     /// CP spent this OpStage, both halves (6.14).
     #[serde(default)]
     pub cp_spent: Cp,

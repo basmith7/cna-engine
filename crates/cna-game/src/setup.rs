@@ -12,7 +12,8 @@
 //! The Land-Game-only abstraction is applied first (60.92), so the supply
 //! blocks seen here are supply units, which become inert pieces.
 
-use crate::piece::{Location, Piece, PieceId, PieceKind};
+use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
+use crate::state::Modules;
 use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Row};
 use cna_data::cp::Cp;
@@ -45,7 +46,13 @@ pub struct Unchecked {
 /// into pieces. Fails on a hex or place not on the map, a unit not in the
 /// OA, an indicator naming a unit outside the entry, or a unit placed
 /// twice (R-094).
-pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) -> Result<Setup> {
+pub fn expand(
+    scenario: &Scenario,
+    oa: &Oa,
+    chars: &Characteristics,
+    map: &Map,
+    modules: Modules,
+) -> Result<Setup> {
     let scenario = scenario.land_only();
     let mut setup = Setup {
         pieces: Vec::new(),
@@ -108,6 +115,12 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     equivalent: None,
                     garrison_of: None,
                     location: location.clone(),
+                    load: (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| {
+                        Load {
+                            ammo: b.ammo.unwrap_or(0),
+                            fuel: b.fuel.unwrap_or(0),
+                        }
+                    }),
                     cp_spent: Cp::ZERO,
                     cp_enemy_half: Cp::ZERO,
                     cohesion: Default::default(),
@@ -284,6 +297,7 @@ fn piece(
         equivalent,
         garrison_of: oa.formation_of(&unit.id).garrison_hex(),
         location,
+        load: None,
         cp_spent: Cp::ZERO,
         cp_enemy_half: Cp::ZERO,
         cohesion: Default::default(),
@@ -429,7 +443,7 @@ mod tests {
         let oa = Oa::load_all().unwrap();
         let chars = Characteristics::load().unwrap();
         let map = Map::load().unwrap();
-        let setup = expand(&scenario, &oa, &chars, &map).unwrap();
+        let setup = expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap();
         Fixture {
             scenario,
             oa,
@@ -783,6 +797,44 @@ mod tests {
         assert_eq!((dummy.nation, dummy.toe, dummy.morale), (None, 0, None));
     }
 
+    // 32.1x, 60.92: each real supply unit carries its block's figures
+    // (per unit: every block's figure is within 40/60); Derna's printed
+    // dash is no ammunition; dummies carry nothing.
+    #[test]
+    fn supply_units_carry_their_block_loads() {
+        let f = graziani();
+        assert!(f.setup.pieces.iter().all(|p| p.load.is_none()));
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        let loads_at = |h: &str| -> Vec<Option<Load>> {
+            on.pieces
+                .iter()
+                .filter(|p| p.hex() == Some(&hex(h)))
+                .filter(|p| p.kind == PieceKind::SupplyUnit)
+                .map(|p| p.load)
+                .collect()
+        };
+        let tobruk = Some(Load { ammo: 15, fuel: 50 });
+        assert_eq!(loads_at("C4807"), vec![tobruk; 3]);
+        let derna = on
+            .pieces
+            .iter()
+            .find(|p| p.load == Some(Load { ammo: 0, fuel: 10 }));
+        assert!(derna.is_some());
+        assert_eq!(
+            loads_at("D3714"),
+            vec![Some(Load { ammo: 40, fuel: 60 }); 5]
+        );
+        for p in &on.pieces {
+            match p.kind {
+                PieceKind::SupplyUnit => {
+                    let l = p.load.unwrap_or_else(|| panic!("{} has no load", p.id));
+                    assert!(l.ammo <= crate::piece::MAX_AMMO && l.fuel <= crate::piece::MAX_FUEL);
+                }
+                _ => assert_eq!(p.load, None, "{}", p.id),
+            }
+        }
+    }
+
     #[test]
     fn constraints_are_logged_unchecked() {
         let f = graziani();
@@ -824,7 +876,10 @@ mod tests {
         let map = Map::load().unwrap();
         let d = &mut scenario.sides.get_mut(&Side::Axis).unwrap().deployments[0];
         d.placement.locator = Locator::Hexes(vec![hex("C9999")]);
-        let err = format!("{:#}", expand(&scenario, &oa, &chars, &map).unwrap_err());
+        let err = format!(
+            "{:#}",
+            expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap_err()
+        );
         assert!(err.contains("C9999"), "{err}");
     }
 }
