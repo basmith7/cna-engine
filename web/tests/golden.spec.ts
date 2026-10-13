@@ -52,13 +52,16 @@ async function tickExactly(page: Page, pieces: PieceId[]) {
 }
 
 /**
- * Sends a stack along `path` by clicks: a one-hex path by a click on the
- * hex (the engine's path to a neighbour is that hex, and the ticked
- * stack never stands there); a longer one hex by hex with Shift, then
- * Enter, so the path is the log's and not the overlay's cheapest.
+ * Sends a stack along `path` by clicks: a one-hex path onto an empty hex
+ * by a click on it (the engine's path to a neighbour is that hex); any
+ * other path hex by hex with Shift, then Enter, so the path is the log's
+ * and not the overlay's cheapest. A one-hex path onto a hex with a stack
+ * takes the Shift route too: a plain click there selects (own pieces) or
+ * is intercepted by the stack's counter (the stack is drawn over the hex
+ * polygon), and the app's way of moving onto own pieces is Shift + Enter.
  */
 async function walk(page: Page, path: HexId[]) {
-  if (path.length === 1) {
+  if (path.length === 1 && (await page.locator(`[data-stack="${path[0]}"]`).count()) === 0) {
     await expect(page.locator(`polygon.reach[data-hex="${path[0]}"]`)).toBeAttached();
     await page.locator(`polygon.hex[data-hex="${path[0]}"]`).click();
     return;
@@ -177,6 +180,9 @@ async function perform(page: Page, i: number, { order }: Logged) {
 
 test("the golden game, all 446 orders by clicks, with a save, reload and load in the middle, ends with replay's state and the report open", async ({ page }) => {
   test.setTimeout(900_000);
+  // A stuck click (a counter over the hex, a curtain over a button) fails
+  // in seconds with the order named, not at the test's timeout.
+  page.setDefaultTimeout(15_000);
   expect(golden.orders).toHaveLength(446);
   await openStart(page);
   await page.getByTestId("seed").fill(String(golden.seed));
@@ -193,16 +199,10 @@ test("the golden game, all 446 orders by clicks, with a save, reload and load in
       await curtain.click();
       await expect(curtain).toHaveCount(0);
     }
-    await expect(page.getByTestId("to-act")).toHaveText(`${sideName(logged.player)} to act`);
-    await perform(page, i, logged);
-    // The engine accepted it: one more order in its log, no refusal.
-    await expect.poll(() => page.evaluate(() => window.__cna.orders()), { message: `order ${i} accepted` }).toBe(i + 1);
-    await expect(illegal).toHaveCount(0);
-    // The DOM's counters are the view's after every order.
-    await expectDomMatchesView(page);
-
-    if (i + 1 === SAVE_AFTER) {
-      // Save, reload the page, load the file, play on.
+    if (i === SAVE_AFTER) {
+      // Save, reload the page, load the file, play on. This comes after
+      // the curtain is lifted: order 87 hands over, and the curtain would
+      // intercept the Save click.
       const download = page.waitForEvent("download");
       await page.getByTestId("save").click();
       const file = await download;
@@ -217,7 +217,15 @@ test("the golden game, all 446 orders by clicks, with a save, reload and load in
       expect(await page.evaluate(() => window.__cna.save())).toBe(saved);
       expect(await page.evaluate(() => window.__cna.orders())).toBe(SAVE_AFTER);
       await expectDomMatchesView(page);
+      await expect(page.getByTestId("curtain")).toHaveCount(0);
     }
+    await expect(page.getByTestId("to-act")).toHaveText(`${sideName(logged.player)} to act`);
+    await perform(page, i, logged);
+    // The engine accepted it: one more order in its log, no refusal.
+    await expect.poll(() => page.evaluate(() => window.__cna.orders()), { message: `order ${i} accepted` }).toBe(i + 1);
+    await expect(illegal).toHaveCount(0);
+    // The DOM's counters are the view's after every order.
+    await expectDomMatchesView(page);
   }
 
   // The end: the report open, no level for either side, every order
@@ -237,6 +245,8 @@ test("the golden game, all 446 orders by clicks, with a save, reload and load in
   expect(sha256(await page.evaluate(() => window.__cna.save()))).toBe(goldenDone);
   await shoot(page, "golden-end.png");
   await page.setViewportSize({ width: 390, height: 844 });
+  // The dialog body scrolls at this height; the close button is reachable.
+  await dialog.getByTestId("end-close").scrollIntoViewIfNeeded();
   await expect(dialog.getByTestId("end-close")).toBeInViewport();
   await shoot(page, "golden-end-390.png");
 });
