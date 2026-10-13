@@ -31,6 +31,9 @@
   } = $props();
 
   const index = $derived(byHex(reaches));
+  /** Plain hexes first, so a flagged hex's outline is not overdrawn by a plain neighbour's stroke. */
+  const flagged = (r: Reach) => r.dp > 0 || r.ends_in_zoc || r.may_be_interrupted;
+  const ordered = $derived([...reaches].sort((a, b) => Number(flagged(a)) - Number(flagged(b))));
   const hoverPath = $derived(hovered ? (index.get(hovered)?.path ?? null) : null);
 
   function line(path: HexId[]): string {
@@ -41,7 +44,7 @@
 
 {#if part === "fill"}
   <g class="reachable" data-testid="reachable" data-count={reaches.length}>
-    {#each reaches as r (r.hex)}
+    {#each ordered as r (r.hex)}
       <polygon
         class="reach"
         class:dp={r.dp > 0}
@@ -117,16 +120,16 @@
   .cp.dp {
     fill: #8b1e12;
   }
+  /* Light, so it reads as a label and not as a second count badge. */
   .pill rect {
-    fill: #0b3d38;
-    stroke: #fff;
-    stroke-width: 0.6;
+    fill: #fff;
+    stroke: #0b3d38;
+    stroke-width: 0.7;
   }
   .pill.dp rect {
-    fill: #8b1e12;
+    stroke: #8b1e12;
   }
   .pill .cp {
-    fill: #fff;
     stroke: none;
     font-size: 5.5px;
   }

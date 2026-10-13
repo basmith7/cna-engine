@@ -81,7 +81,7 @@
         <button type="button" onclick={onclear}>Clear (Esc)</button>
       </p>
     {:else if ticked.length > 0 && onMap && !refusal}
-      <p class="hint">Shift-click hexes to build your own path; Enter sends it and the engine judges it.</p>
+      <p class="hint">Shift-click hexes to build your own path (also the way onto a hex your own units hold, which a plain click selects); Enter sends it and the engine judges it.</p>
     {/if}
   </div>
 </section>

@@ -375,6 +375,9 @@ mod tests {
     ///
     /// - `set-up-done`: orders 0–58, GT1 phase A, the Axis to act.
     /// - `reserve`: orders 0–59, phase F, the Axis to designate.
+    /// - `reserve-release`: the Libyans designated, the segment ended
+    ///   and the combat steps answered with nothing, so the release
+    ///   segment waits on the Axis.
     /// - `off-map`: orders 0–60, the Axis movement segment, the Tripoli
     ///   box full; a box stack's `move-off-map` is accepted.
     /// - `declare-zoc`: orders 0–60 and then the cheapest flagged move of
@@ -391,6 +394,29 @@ mod tests {
         let reserve = golden_prefix(60);
         assert_eq!(reserve.clock.phase, cna_game::clock::Phase::ReserveDesignation);
         assert_eq!(reserve.to_act(), Some(Side::Axis));
+        let Order::Move { pieces: libyans, .. } = &golden_log().orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let mut reserve_release = reserve.clone();
+        reserve_release
+            .apply(data(), Side::Axis, Order::DesignateReserve { pieces: libyans.clone() })
+            .unwrap();
+        reserve_release.apply(data(), Side::Axis, Order::Pass).unwrap();
+        reserve_release.apply(data(), Side::Axis, Order::EndSegment).unwrap();
+        // The combat steps, answered with nothing (as the scripted games do).
+        while reserve_release.clock.segment != Some(cna_game::clock::Segment::ReserveRelease) {
+            use cna_game::combat::SealedStep;
+            let player = reserve_release.to_act().unwrap();
+            let order = match &reserve_release.pending {
+                Some(Pending::Sealed { step: SealedStep::GunPositions, .. }) => Order::GunPositions { forward: vec![] },
+                Some(Pending::Sealed { step: SealedStep::Barrage, .. }) => Order::Barrage { fires: vec![] },
+                Some(Pending::Sealed { step: SealedStep::AssignForces, .. }) => Order::AssignForces { assignments: vec![] },
+                _ => Order::Pass,
+            };
+            reserve_release.apply(data(), player, order).unwrap();
+        }
+        assert_eq!(reserve_release.to_act(), Some(Side::Axis));
+        assert!(reserve_release.pending.is_none());
 
         let off_map = golden_prefix(61);
         assert_eq!(off_map.clock.segment, Some(cna_game::clock::Segment::Movement));
@@ -435,6 +461,7 @@ mod tests {
         vec![
             ("set-up-done", set_up_done),
             ("reserve", reserve),
+            ("reserve-release", reserve_release),
             ("off-map", off_map),
             ("declare-zoc", declare_zoc),
         ]

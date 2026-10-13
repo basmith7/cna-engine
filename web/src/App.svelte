@@ -150,12 +150,20 @@
       custom = extendPath(custom, h);
       return;
     }
-    // A click on a reachable hex is the move; any other click selects.
-    if (purpose && custom.length === 0 && reaches.some((r) => r.hex === h)) {
-      sendPath(reaches.find((r) => r.hex === h)!.path);
+    // A click on a reachable hex is the move, unless the hex holds the
+    // player's own pieces, which it selects instead (moving onto them
+    // is a shift-click path): a stack must never move by a click meant
+    // to look at another.
+    const r = purpose && custom.length === 0 ? reaches.find((r) => r.hex === h) : undefined;
+    if (r && !ownStackAt(h)) {
+      sendPath(r.path);
       return;
     }
     select(h);
+  }
+
+  function ownStackAt(h: HexId): boolean {
+    return !!view && defaultTicked(view, h, view.to_act).length > 0;
   }
 
   /** Selects a hex: its own pieces start ticked for the side to act. */
