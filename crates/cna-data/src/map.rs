@@ -153,9 +153,9 @@ pub enum HexsideFeature {
     Lake,
 }
 
-/// A side of a pointy-top hex, for records on a sheet's edge.
+/// One of the six sides of a pointy-top hex, for records on a sheet's edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum Side {
+pub enum Direction {
     E,
     SE,
     SW,
@@ -189,7 +189,7 @@ impl Hexside {
 struct HexsideRecord {
     a: HexId,
     b: Option<HexId>,
-    side: Option<Side>,
+    side: Option<Direction>,
     #[serde(flatten)]
     hexside: Hexside,
 }
@@ -255,7 +255,7 @@ pub struct Map {
     hexes: BTreeMap<HexId, Hex>,
     /// Keyed `(a, b)` with `a < b`.
     hexsides: BTreeMap<(HexId, HexId), Hexside>,
-    edges: BTreeMap<(HexId, Side), Hexside>,
+    edges: BTreeMap<(HexId, Direction), Hexside>,
     places: BTreeMap<String, Place>,
     regions: Regions,
     /// Cross-sheet neighbours from `seams.json`, both ways.
@@ -450,7 +450,7 @@ impl Map {
 
     /// A sheet-edge record: the features drawn up to the edge of the sheet
     /// on `side` of `a`.
-    pub fn edge(&self, a: &HexId, side: Side) -> Option<&Hexside> {
+    pub fn edge(&self, a: &HexId, side: Direction) -> Option<&Hexside> {
         self.edges.get(&(a.clone(), side))
     }
 
@@ -460,7 +460,7 @@ impl Map {
     }
 
     /// Every sheet-edge record.
-    pub fn edges(&self) -> impl Iterator<Item = (&HexId, Side, &Hexside)> {
+    pub fn edges(&self) -> impl Iterator<Item = (&HexId, Direction, &Hexside)> {
         self.edges.iter().map(|((a, side), hs)| (a, *side, hs))
     }
 
@@ -636,8 +636,8 @@ mod tests {
     fn edge_records_are_kept_by_side() {
         let m = map();
         let a1233 = HexId::parse("A1233").unwrap();
-        assert!(m.edge(&a1233, Side::E).unwrap().has(HexsideFeature::Slope));
-        assert!(m.edge(&a1233, Side::W).is_none());
+        assert!(m.edge(&a1233, Direction::E).unwrap().has(HexsideFeature::Slope));
+        assert!(m.edge(&a1233, Direction::W).is_none());
     }
 
     #[test]
