@@ -18,6 +18,7 @@ use cna_data::scenario::Scenario;
 use cna_data::schedule::Schedule;
 use cna_data::stacking::StackingPoints;
 use cna_data::terrain::Terrain;
+use cna_data::weapons::WeaponSystems;
 use cna_data::weather::Weather;
 
 pub struct Data {
@@ -27,6 +28,7 @@ pub struct Data {
     pub scenario: Scenario,
     pub oa: Oa,
     pub chars: Characteristics,
+    pub weapons: WeaponSystems,
     pub map: Map,
     pub terrain: Terrain,
     pub stacking: StackingPoints,
@@ -45,6 +47,7 @@ impl Data {
             scenario: Scenario::load(slug)?,
             oa: Oa::load_all()?,
             chars: Characteristics::load()?,
+            weapons: WeaponSystems::load()?,
             map: Map::load()?,
             terrain: Terrain::load()?,
             stacking: StackingPoints::load()?,

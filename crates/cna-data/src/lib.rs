@@ -17,6 +17,7 @@ pub mod schedule;
 pub mod stacking;
 pub mod terrain;
 pub mod time;
+pub mod weapons;
 pub mod weather;
 
 pub fn repo_root() -> PathBuf {

@@ -104,6 +104,11 @@ pub enum Event {
     ReserveFlipped {
         pieces: Vec<PieceId>,
     },
+    /// Combat CP charged to a unit by its hex's role this segment (11.2x).
+    CombatCp {
+        piece: PieceId,
+        cost: Cp,
+    },
     /// A non-combat unit alone in an enemy ZOC was taken (10.29).
     Captured {
         piece: PieceId,

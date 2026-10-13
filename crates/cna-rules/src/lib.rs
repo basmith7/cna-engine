@@ -8,4 +8,5 @@ pub mod morale;
 pub mod movement;
 pub mod ruleset;
 pub mod stacking;
+pub mod strength;
 pub mod zoc;

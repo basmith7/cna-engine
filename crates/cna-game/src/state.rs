@@ -4,6 +4,7 @@
 //! the log.
 
 use crate::clock::Clock;
+use crate::combat::CombatSegment;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::order::{LoggedOrder, Order};
@@ -92,6 +93,9 @@ pub struct GameState {
     /// segment (18.2x).
     #[serde(default)]
     pub shifted: BTreeSet<PieceId>,
+    /// The combat segment under way (11.0).
+    #[serde(default)]
+    pub combat: CombatSegment,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -124,10 +128,12 @@ impl GameState {
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),
+            combat: CombatSegment::default(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),
         };
+        state.check_weapons(data)?;
         state.pending = state.next_set_up();
         if state.pending.is_none() {
             state.start_play(data);
@@ -221,7 +227,9 @@ impl GameState {
                     assault,
                 },
             ) => self.move_pieces(data, player, pieces, path, *assault),
-            (None, Order::MoveOffMap { pieces, to }) => self.move_off_map(data, player, pieces, *to),
+            (None, Order::MoveOffMap { pieces, to }) => {
+                self.move_off_map(data, player, pieces, *to)
+            }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
             (None, Order::EndSegment) => self.end_segment(data),

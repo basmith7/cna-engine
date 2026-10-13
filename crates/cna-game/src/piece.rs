@@ -5,7 +5,7 @@
 use cna_data::characteristics::{Equivalent, Rating};
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
-use cna_data::oa::{Nation, UnitId};
+use cna_data::oa::{Nation, ToeEntry, UnitId};
 use cna_data::off_map::OffMapPlace;
 use cna_data::scenario::{OffMapBox, Placement, Side, Status};
 use serde::{Deserialize, Serialize};
@@ -113,6 +113,10 @@ pub struct Piece {
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,
+    /// The TOE points listed by weapon system (4.47–4.49): their ratings
+    /// come from the weapon's row; the rest of `toe` from the ID code's.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub weapons: Vec<ToeEntry>,
     /// The characteristics row's CPA, with its mark.
     pub cpa: Option<Rating>,
     /// Basic morale: the unit's own, else its sheet's.
