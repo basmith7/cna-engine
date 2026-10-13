@@ -57,7 +57,7 @@
   {#each markers as m, i (m)}
     <g class="marker {m}" transform="translate({S * 0.96} {S * 0.3 + i * S * 0.2})">
       <circle r={S * 0.09} />
-      <text y={S * 0.035}>{m === "reserve-I" ? "I" : m === "reserve-II" ? "II" : m === "pinned" ? "P" : m === "forward" ? "F" : ""}</text>
+      <text y={S * 0.035}>{m === "reserve-I" ? "I" : m === "reserve-II" ? "II" : m === "contact" ? "C" : m === "engaged" ? "E" : m === "pinned" ? "P" : "F"}</text>
     </g>
   {/each}
 </g>
