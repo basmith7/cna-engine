@@ -43,7 +43,7 @@ problem for later, and none of slice 1 depends on it.
 | Rules data | `cna` as a git submodule at `vendor/cna`, pinned to a commit | Moving to newer rules is a deliberate bump. Every probe result records the commit it ran against. |
 | Tables | Read directly from `vendor/cna/data/tables/*.json` with serde; errata applied at load from `data/errata/*.json` (JSON-Patch `replace` ops) | No second copy of any table. |
 | Randomness | Exact enumeration of dice outcomes by default (a sequential two-dice reading has 36 outcomes, a dice sum has 11). Monte Carlo with a seeded ChaCha8 RNG only where the state space is too large to enumerate | Exact probabilities, reproducible, and fast enough. |
-| Ruling switches | One enum per ruling in `cna-rules::ruleset`. The variant numbers match the option numbers in the ruling file. The default is the option the printed text supports, as each ruling's Rationale identifies it | A ruleset serialises as `{"R-012": 1, "R-013": 2}`, the same numbers used on the board. |
+| Ruling switches | One enum per ruling in `cna-rules::ruleset`. The variant numbers match the option numbers in the ruling file. The default is the option the printed text supports, as each ruling's Rationale identifies it. *Superseded 2026-10-08 by the Mission 2 spec: each default is now the option cna's ruling accepted (its Decision); a test checks it* | A ruleset serialises as `{"R-012": 1, "R-013": 2}`, the same numbers used on the board. |
 | Coverage | A test reads `vendor/cna/rulings/R-*.md`. Every ruling must either have a switch or be listed in `NOT_SIMULATED.md` with a one-line reason | Rulings cannot silently go unmodelled. |
 
 ### Crates

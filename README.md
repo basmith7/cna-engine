@@ -17,6 +17,27 @@ cargo test
 cargo run -p cna-probe -- run
 ```
 
+## Playing headless
+
+`cna-game` is the game state for one scenario (Mission 2, in progress:
+set-up, the sequence of play, initiative and weather so far). `cna-play`
+drives it from files:
+
+```bash
+cargo run -p cna-play -- new grazianis-offensive --seed 7 -o state.json
+cargo run -p cna-play -- show state.json
+cargo run -p cna-play -- apply state.json orders.json   # [{"player": "axis", "order": {...}}, ...]
+cargo run -p cna-play -- log state.json -o log.json
+cargo run -p cna-play -- replay log.json -o replayed.json
+```
+
+An illegal order is rejected with the SPI case it breaks and the state is
+left as it was; a log replays to the same state byte for byte on the same
+`vendor/cna` commit. `tests/games/` holds scripted games the tests replay;
+a scripted game pins that commit and the ruleset defaults, so a submodule
+bump or a changed default fails its replay test until the fixture is
+regenerated (`cargo test -p cna-game -- --ignored regenerate_setup_fixture`).
+
 ## Probes
 
 | File | Question |

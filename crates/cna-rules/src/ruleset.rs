@@ -1,7 +1,12 @@
 //! A ruleset: the printed rules plus one chosen option per ruling. Variant
 //! numbers are the option numbers in `vendor/cna/rulings/R-nnn.md`; each
-//! default is the option the printed text supports, per the ruling's
-//! Rationale.
+//! default is the option cna's ruling accepted (its `## Decision`), so a
+//! game plays the decided rules unless a group switches one. JSON is
+//! `{"R-001": 1, ...}`.
+
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::BTreeMap;
 
 /// R-001: what the −26 collapse threshold counts (SPI 6.26, 17.5).
 #[repr(u8)]
@@ -66,18 +71,16 @@ pub enum R015 {
 }
 
 /// R-018: what a supply dump costs (SPI 24.9 text against the 24.17 and
-/// 6.3 charts). The default follows the ruling's Rationale: the charts' CP
-/// (two charts agree), the text's stores (a tie the Rationale defers to the
-/// Logistics Game; the text is what the restated rules use until then).
+/// 6.3 charts). cna decided for the charts.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum R018 {
     /// The text: real 3 CP + 20 stores, dummy 3 CP.
     Text = 1,
     /// The charts: real 3 CP + 10 stores, dummy 2 CP.
+    #[default]
     Charts = 2,
     /// CP from the charts, stores from the text.
-    #[default]
     CpChartsStoresText = 3,
 }
 
@@ -91,8 +94,72 @@ pub struct Ruleset {
     pub r018: R018,
 }
 
-/// Rulings with a switch. Every other ruling is listed in `NOT_SIMULATED.md`.
-pub const SWITCHED: &[&str] = &["R-001", "R-009", "R-011", "R-012", "R-015", "R-018"];
+/// The switches as (ruling id, read, write), so the JSON form and the
+/// list of switched rulings cannot drift apart.
+macro_rules! switches {
+    ($($id:literal => $field:ident: $ty:ident [$($variant:ident),+]),+ $(,)?) => {
+        /// Rulings with a switch. Every other ruling is listed in `NOT_SIMULATED.md`.
+        pub const SWITCHED: &[&str] = &[$($id),+];
+
+        $(impl TryFrom<u8> for $ty {
+            type Error = String;
+            fn try_from(n: u8) -> Result<$ty, String> {
+                $(if n == $ty::$variant as u8 { return Ok($ty::$variant); })+
+                Err(format!("{}: no option {n}", $id))
+            }
+        })+
+
+        impl Ruleset {
+            /// Each switch as (ruling id, option number).
+            pub fn options(&self) -> Vec<(&'static str, u8)> {
+                vec![$(($id, self.$field as u8)),+]
+            }
+
+            /// Sets one switch by ruling id and option number.
+            pub fn set(&mut self, id: &str, option: u8) -> Result<(), String> {
+                match id {
+                    $($id => self.$field = $ty::try_from(option)?,)+
+                    _ => return Err(format!("{id}: no such switch")),
+                }
+                Ok(())
+            }
+        }
+    };
+}
+
+switches! {
+    "R-001" => r001: R001 [CohesionLevel, DpTally],
+    "R-009" => r009: R009 [EitherSide, PhasingFireOnly],
+    "R-011" => r011: R011 [OwnRaw, CombinedRaw],
+    "R-012" => r012: R012 [MustRetreat, BuyOut, NoPathNoWithhold],
+    "R-015" => r015: R015 [OwnHexBoth, PhasingOnly, HexAndHexsideBoth],
+    "R-018" => r018: R018 [Text, Charts, CpChartsStoresText],
+}
+
+impl Serialize for Ruleset {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let map: BTreeMap<&str, u8> = self.options().into_iter().collect();
+        map.serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for Ruleset {
+    /// Every switch must be given and no other key: a saved ruleset pins
+    /// the game's rules completely.
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Ruleset, D::Error> {
+        let map = BTreeMap::<String, u8>::deserialize(d)?;
+        let mut rules = Ruleset::default();
+        for (id, option) in &map {
+            rules.set(id, *option).map_err(D::Error::custom)?;
+        }
+        for id in SWITCHED {
+            if !map.contains_key(*id) {
+                return Err(D::Error::custom(format!("{id}: missing")));
+            }
+        }
+        Ok(rules)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -118,5 +185,55 @@ mod tests {
             missing.is_empty(),
             "no switch and not in NOT_SIMULATED.md: {missing:?}"
         );
+    }
+}
+
+#[cfg(test)]
+mod serde_tests {
+    use super::*;
+
+    /// The option number a ruling's `## Decision` section opens with.
+    fn decided_option(id: &str) -> u8 {
+        let path = cna_data::cna_root().join(format!("rulings/{id}.md"));
+        let text = std::fs::read_to_string(&path).unwrap();
+        let decision = text
+            .split("\n## Decision")
+            .nth(1)
+            .unwrap_or_else(|| panic!("{id}: no `## Decision` section"));
+        let body = decision.split("\n## ").next().unwrap().trim();
+        let rest = body
+            .strip_prefix("Option ")
+            .unwrap_or_else(|| panic!("{id}: Decision does not open with `Option n.`: {body:?}"));
+        let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+        digits.parse().unwrap()
+    }
+
+    #[test]
+    fn every_default_is_the_option_cna_decided() {
+        for (id, option) in Ruleset::default().options() {
+            assert_eq!(
+                option,
+                decided_option(id),
+                "{id}: default option {option} is not cna's Decision"
+            );
+        }
+    }
+
+    #[test]
+    fn ruleset_json_is_a_map_of_ruling_to_option() {
+        let rules = Ruleset {
+            r012: R012::MustRetreat,
+            r018: R018::Charts,
+            ..Ruleset::default()
+        };
+        let json = serde_json::to_string(&rules).unwrap();
+        assert_eq!(
+            json,
+            r#"{"R-001":1,"R-009":1,"R-011":1,"R-012":1,"R-015":2,"R-018":2}"#
+        );
+        let back: Ruleset = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, rules);
+        assert!(serde_json::from_str::<Ruleset>(r#"{"R-001":9}"#).is_err());
+        assert!(serde_json::from_str::<Ruleset>(r#"{"R-999":1}"#).is_err());
     }
 }

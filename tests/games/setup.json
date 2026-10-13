@@ -1,0 +1,570 @@
+{
+  "scenario": "grazianis-offensive",
+  "rules_commit": "0271377de30467b5b738c340526341f5d64c2ad4",
+  "ruleset": {
+    "R-001": 1,
+    "R-009": 1,
+    "R-011": 1,
+    "R-012": 2,
+    "R-015": 2,
+    "R-018": 2
+  },
+  "seed": 7,
+  "orders": [
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:16",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:17",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:18",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:19",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:20",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:21",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-1",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-2",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-3",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-4",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-5",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-6",
+          "hex": "C0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:1-saharan-libyan-bn",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:131st-artiglieri-bn",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:147th-artiglieri-bn",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:16th-gaf-s-di-c-arty-regt",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:1st-bn-1-arty-rgppmnto",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:2-saharan-libyan-bn",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:22nd-gaf-s-di-c-arty-regt",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:2nd-bn-1-arty-rgppmnto",
+          "hex": "A0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:2nd-bn-24th-artiglieri",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:350th-gaf-s-di-c-arty-regt",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:3rd-bn-1-arty-rgppmnto",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:42nd-gaf-s-di-c-arty-regt",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:4th-bn-1-arty-rgppmnto",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:5th-bn-1st-artiglieri",
+          "hex": "A0102"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:6th-gaf-s-di-c-arty-regt",
+          "hex": "A0103"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:meharisiti-camel-cavalry",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:sahara-machinegun-bn",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:sahara-mtr-machinegun-coy",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:saharan-artillery-battery",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:saharan-detachment-hq",
+          "hex": "C0414"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:xviii-libyan-bn",
+          "hex": "A0103"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:xxi-corps-artillery-regt",
+          "hex": "A0103"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:xxvi-corps-artillery-regt",
+          "hex": "A0103"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:xxxii-libyan-bn",
+          "hex": "A0103"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:10",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:11",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:12",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:7",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:8",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:9",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-1",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-2",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-3",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:149th-anti-tank-regt",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:15-laa",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:18-nz",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:19-nz",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-nz-cv",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-nz-hq",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:20-nz",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:27-nz",
+          "hex": "E3714"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:4-nz-fld",
+          "hex": "E3714"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:4-nz-hq",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:57-laa",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:65th-anti-tank-regt",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:8-med",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:9-haa",
+          "hex": "D0101"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    }
+  ]
+}
