@@ -36,7 +36,7 @@ pub fn hex_shift(data: &Data, hex: &HexId, kind: Kind) -> Option<i32> {
 /// 14.34: why no anti-armour fire, by either side, crosses `side` when
 /// the phasing points assault over it from `from` into `to`; none where
 /// the fire is allowed. A ridge has no direction; a slope or escarpment
-/// with no recorded `up` (a seam pair) climbs both ways, as for movement.
+/// climbs towards its recorded `up` hex, as for movement.
 pub fn anti_armour_ban(side: &Hexside, from: &HexId, to: &HexId) -> Option<&'static str> {
     let crossing = side.road() || side.track();
     let climbs = side.climbs(from, to);
@@ -234,16 +234,18 @@ mod tests {
     }
 
     #[test]
-    fn seam_slopes_and_escarpments_climb_both_ways_for_anti_armour_fire_too() {
-        // seams.json records no `up`, so the engine climbs them in either
-        // direction, as it does for movement: an escarpment is banned
-        // both ways even with its track, a slope is L1 both ways, and a
-        // ridge (which has no direction) follows its road or track.
+    fn seam_slopes_and_escarpments_follow_their_recorded_up() {
+        // seams.json says which hex is higher (cna #235), so a seam
+        // hexside bans and shifts like any other: A3933|B3901 is an
+        // escarpment with a track, B3901 above, banned up and L2 down;
+        // A1233|B1201 a bare slope, A1233 above, banned down and L1 up;
+        // D2833|E2901 a bare ridge, banned both ways.
         let data = Data::load("grazianis-offensive").unwrap();
         assert_eq!(aa(&data, "A3933", "B3901"), None);
-        assert_eq!(aa(&data, "B3901", "A3933"), None);
-        assert_eq!(aa(&data, "A1233", "B1201"), Some(-1));
+        assert_eq!(aa(&data, "B3901", "A3933"), Some(-2));
+        assert_eq!(aa(&data, "A1233", "B1201"), None);
         assert_eq!(aa(&data, "B1201", "A1233"), Some(-1));
         assert_eq!(aa(&data, "D2833", "E2901"), None);
+        assert_eq!(aa(&data, "E2901", "D2833"), None);
     }
 }

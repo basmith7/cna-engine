@@ -207,9 +207,9 @@ impl Hexside {
     }
 
     /// True when a move from `from` to `to` goes up the slope or
-    /// escarpment: `to` is the recorded `up` hex, or the record has a
-    /// slope or escarpment and no `up` (seam pairs and two sheet-B
-    /// records), which seams.json says to treat as the feature both ways.
+    /// escarpment: `to` is the recorded `up` hex. Two sheet-B records
+    /// (B1705|B1706, B1706|B1805) still carry a slope and no `up`; those
+    /// climb both ways until cna reads them.
     pub fn climbs(&self, from: &HexId, to: &HexId) -> bool {
         match &self.up {
             Some(u) => u == to && u != from,
@@ -331,8 +331,8 @@ pub struct Map {
 }
 
 /// `seams.json`: every pair of hexes that touch across a sheet edge, with
-/// the features of that hexside. `up` is not known for seam slopes and
-/// escarpments, so they are read as the feature in both directions.
+/// the features of that hexside and, for a slope or escarpment, the
+/// higher hex (cna #235), which both sheets' edge records repeat.
 #[derive(Deserialize)]
 struct SeamsFile {
     seams: Vec<Seam>,
@@ -346,8 +346,11 @@ struct Seam {
 #[derive(Deserialize)]
 struct SeamPair {
     west: HexId,
+    west_side: Direction,
     east: HexId,
+    east_side: Direction,
     features: Vec<HexsideFeature>,
+    up: Option<HexId>,
 }
 
 #[derive(Deserialize)]
@@ -451,10 +454,41 @@ impl Map {
                     .or_default()
                     .push(p.west.clone());
                 seam_pairs += 1;
+                let graded = p.features.contains(&HexsideFeature::Slope)
+                    || p.features.contains(&HexsideFeature::Escarpment);
+                match &p.up {
+                    Some(up) if up != &p.west && up != &p.east => {
+                        bail!("seam {}-{}: up {up} is neither hex", p.west, p.east);
+                    }
+                    Some(_) if !graded => {
+                        bail!("seam {}-{}: up on no slope or escarpment", p.west, p.east);
+                    }
+                    None if graded => {
+                        bail!(
+                            "seam {}-{}: a slope or escarpment with no up",
+                            p.west,
+                            p.east
+                        );
+                    }
+                    _ => {}
+                }
+                for (hex, side) in [(&p.west, p.west_side), (&p.east, p.east_side)] {
+                    if let Some(edge) = edges.get(&(hex.clone(), side))
+                        && edge.up != p.up
+                    {
+                        bail!(
+                            "seam {}-{}: edge record {hex}|{side:?} says up {:?}, the seam {:?}",
+                            p.west,
+                            p.east,
+                            edge.up,
+                            p.up
+                        );
+                    }
+                }
                 if !p.features.is_empty() {
                     let hs = Hexside {
                         features: p.features,
-                        up: None,
+                        up: p.up,
                     };
                     if hexsides.insert(pair_key(p.west, p.east), hs).is_some() {
                         bail!("seam pair duplicates a hexsides.json record");
@@ -708,30 +742,66 @@ mod tests {
     }
 
     #[test]
-    fn a_slope_with_no_known_up_hex_climbs_both_ways() {
-        // Seam records and two sheet-B records carry a slope or
-        // escarpment without saying which hex is higher; seams.json says
-        // to treat such a hexside as the feature in both directions.
+    fn seam_slopes_and_escarpments_carry_up_from_seams_json() {
+        // cna #235: every slope or escarpment seam pair says which hex is
+        // higher, and both sheets' edge records agree with it.
         let m = map();
-        for (a, b) in [("C0633", "D0701"), ("B1705", "B1706"), ("B1706", "B1805")] {
-            let (a, b) = (HexId::parse(a).unwrap(), HexId::parse(b).unwrap());
+        for (a, b, up) in [
+            ("C0633", "D0701", "D0701"),
+            ("A3933", "B3901", "B3901"),
+            ("A1233", "B1201", "A1233"),
+            ("D2233", "E2301", "E2301"),
+        ] {
+            let (a, b, up) = (
+                HexId::parse(a).unwrap(),
+                HexId::parse(b).unwrap(),
+                HexId::parse(up).unwrap(),
+            );
             let hs = m.hexside(&a, &b).unwrap();
-            assert!(hs.has(HexsideFeature::Slope), "{a}|{b}");
-            assert!(hs.up.is_none(), "{a}|{b}");
-            assert!(hs.climbs(&a, &b), "{a}|{b}");
-            assert!(hs.climbs(&b, &a), "{a}|{b}");
+            assert_eq!(hs.up.as_ref(), Some(&up), "{a}|{b}");
+            assert_eq!(hs.climbs(&a, &b), b == up, "{a}|{b}");
+            assert_eq!(hs.climbs(&b, &a), a == up, "{a}|{b}");
         }
-        // Every slope or escarpment record with no `up` climbs both ways;
-        // every other such record climbs one way only.
+        let graded =
+            |hs: &Hexside| hs.has(HexsideFeature::Slope) || hs.has(HexsideFeature::Escarpment);
+        let mut seam_graded = 0;
+        for (a, b, hs) in m.hexsides() {
+            if a.sheet() != b.sheet() && graded(hs) {
+                seam_graded += 1;
+                let up = hs.up.as_ref().expect("a seam slope or escarpment has up");
+                assert!(up == a || up == b, "{a}|{b}: up {up} is neither hex");
+            }
+        }
+        assert_eq!(seam_graded, 25);
+        // Every edge record with a slope or escarpment carries up too.
+        for (a, side, hs) in m.edges() {
+            if graded(hs) {
+                assert!(hs.up.is_some(), "{a}|{side:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn only_two_sheet_b_slopes_still_climb_both_ways() {
+        // hexsides.json still records no up for two sheet-B slopes
+        // (B1705|B1706 and B1706|B1805); the engine climbs those both
+        // ways until cna reads them. Every other graded hexside climbs
+        // one way only.
+        let m = map();
+        let mut unknown = Vec::new();
         for (a, b, hs) in m.hexsides() {
             let graded = hs.has(HexsideFeature::Slope) || hs.has(HexsideFeature::Escarpment);
             let ways = usize::from(hs.climbs(a, b)) + usize::from(hs.climbs(b, a));
             match (graded, &hs.up) {
-                (true, None) => assert_eq!(ways, 2, "{a}|{b}"),
+                (true, None) => {
+                    assert_eq!(ways, 2, "{a}|{b}");
+                    unknown.push(format!("{a}|{b}"));
+                }
                 (true, Some(_)) => assert_eq!(ways, 1, "{a}|{b}"),
                 (false, _) => assert_eq!(ways, 0, "{a}|{b}"),
             }
         }
+        assert_eq!(unknown, ["B1705|B1706", "B1706|B1805"]);
     }
 
     #[test]

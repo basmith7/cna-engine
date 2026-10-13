@@ -942,8 +942,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         // 1 KRRC (foot) at C0633 (rough) crosses the seam slope to D0701
-        // (clear): 2 + 2 up, cna knowing no `up` hex for a seam; back is
-        // 3 + 2.
+        // (clear), the higher hex: 2 + 2 up; back is 3 + 1 down.
         let krrc = pid("unit:cw:1-krrc");
         state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C0633"));
         let events = state
@@ -961,10 +960,10 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C0633"]))
             .unwrap();
-        assert_eq!(state.pieces[&krrc].cp_spent, Cp::whole(9));
+        assert_eq!(state.pieces[&krrc].cp_spent, Cp::whole(8));
         // 7 Med (vehicles) at D2233 may not climb the seam escarpment
-        // into E2301 (8.4x); by the coast road across C4033|D4001 it pays
-        // the road rate, ½.
+        // into E2301, the higher hex (8.4x); by the coast road across
+        // C4033|D4001 it pays the road rate, ½.
         let med = pid("unit:cw:7-med");
         state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("D2233"));
         let before = snapshot(&state);

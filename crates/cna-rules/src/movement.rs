@@ -467,32 +467,22 @@ mod tests {
     #[test]
     fn a_seam_hexside_is_priced_like_any_other() {
         let (map, chart) = fixtures();
-        // C0633 (rough) to D0701 (clear) across a seam slope; cna records
-        // no `up` for seam slopes and says to read them as the feature
-        // both ways, so it climbs in either direction: foot 2 + 2 into
-        // clear, a vehicle 4 + 4 into rough.
-        assert_eq!(
-            cost(
-                &map,
-                &chart,
-                Mobility::Foot,
-                "C0633",
-                "D0701",
-                Weather::Normal
-            ),
-            Ok(Cp::whole(4))
-        );
-        assert_eq!(
-            cost(
-                &map,
-                &chart,
-                Mobility::Vehicle,
-                "D0701",
-                "C0633",
-                Weather::Normal
-            ),
-            Ok(Cp::whole(8))
-        );
+        let foot = |a, b| cost(&map, &chart, Mobility::Foot, a, b, Weather::Normal);
+        let mot = |a, b| cost(&map, &chart, Mobility::Vehicle, a, b, Weather::Normal);
+        // C0633 (rough) to D0701 (clear) across a seam slope, D0701 the
+        // higher hex (cna #235): up it is 2 + 2 for a foot unit, 2 + 4 for
+        // a vehicle; back down it is 3 + 1 and 4 + 2.
+        assert_eq!(foot("C0633", "D0701"), Ok(Cp::whole(4)));
+        assert_eq!(mot("C0633", "D0701"), Ok(Cp::whole(6)));
+        assert_eq!(foot("D0701", "C0633"), Ok(Cp::whole(4)));
+        assert_eq!(mot("D0701", "C0633"), Ok(Cp::whole(6)));
+        // D2233|E2301 is a seam escarpment with no track, E2301 above: a
+        // vehicle climbs no escarpment and goes down one only by road or
+        // track; a foot unit pays the climb one way and the descent the
+        // other.
+        assert_eq!(mot("D2233", "E2301").unwrap_err().case, "8.4x");
+        assert_eq!(mot("E2301", "D2233").unwrap_err().case, "8.4x");
+        assert!(foot("D2233", "E2301").unwrap() > foot("E2301", "D2233").unwrap());
     }
 
     #[test]
