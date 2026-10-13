@@ -9,11 +9,25 @@ import "./cna.d.ts";
 /** A file beside the specs. */
 export const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 
-/** Opens the app and, for test builds, replaces the game with a fixture state from `tests/fixtures/<name>.json`. */
-export async function openFixture(page: Page, name: string) {
+/** Opens the app at its start screen. */
+export async function openStart(page: Page) {
   await page.goto("/");
+  await expect(page.getByTestId("start")).toBeVisible();
+}
+
+/** Opens the app and starts a new game with `seed` from the start screen (7 is the golden game's). */
+export async function newGame(page: Page, seed = 7) {
+  await openStart(page);
+  await page.getByTestId("seed").fill(String(seed));
+  await page.getByTestId("new-game").click();
   await page.locator("[data-stack]").first().waitFor();
+}
+
+/** Opens the app and, for test builds, starts from a fixture state from `tests/fixtures/<name>.json`. */
+export async function openFixture(page: Page, name: string) {
+  await openStart(page);
   await page.evaluate((json) => window.__cna.load(json), readFileSync(here(`fixtures/${name}.json`), "utf8"));
+  await page.locator("[data-stack]").first().waitFor();
   await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(0);
 }
 

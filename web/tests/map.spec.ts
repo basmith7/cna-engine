@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { expectDomMatchesView, shoot as shootInto, shotsDir } from "./helpers.ts";
+import { expectDomMatchesView, newGame, openStart, shoot as shootInto, shotsDir } from "./helpers.ts";
 
 // Slice 2's proving screenshots.
 const shots = shotsDir("slice-2");
 const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 test("a new game shows the theatre, every placed piece at its hex and the set-up trays", async ({ page }) => {
-  await page.goto("/");
+  await newGame(page);
   await expect(page.getByTestId("to-act")).toHaveText("Axis to act");
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · set-up");
   await expect(page.locator("polygon.hex[data-hex]")).toHaveCount(7073);
@@ -26,10 +26,13 @@ test("a new game shows the theatre, every placed piece at its hex and the set-up
 });
 
 test("stays within the performance budget: first counters under 3 s, a wheel zoom step under 100 ms", async ({ page }) => {
-  await page.goto("/");
+  await openStart(page);
+  await page.getByTestId("seed").fill("7");
+  // Time from the New game click, measured in the page once the counters are in the DOM.
+  const t0 = await page.evaluate(() => performance.now());
+  await page.getByTestId("new-game").click();
   await page.locator("[data-stack]").first().waitFor();
-  // Time since navigation start, measured in the page once the counters are in the DOM.
-  const firstCounters = await page.evaluate(() => performance.now());
+  const firstCounters = (await page.evaluate(() => performance.now())) - t0;
   const zoomStep = await page.evaluate(async () => {
     const svg = document.querySelector("svg.map")!;
     const r = svg.getBoundingClientRect();
@@ -46,8 +49,7 @@ test("stays within the performance budget: first counters under 3 s, a wheel zoo
 });
 
 test("zooms to Sidi Barrani, where a stack badge and the stack panel show the three pieces", async ({ page }) => {
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   await page.getByLabel("Go to hex").fill("c4131");
   await page.getByLabel("Go to hex").press("Enter");
   await expect(page.getByTestId("hex")).toHaveText("hex C4131");
@@ -84,8 +86,7 @@ test("zooms to Sidi Barrani, where a stack badge and the stack panel show the th
 });
 
 test("a mouse click alone selects a hex, and a stack; a drag pans without selecting", async ({ page }) => {
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   await expect(page.getByTestId("stack-panel")).toContainText("Click a hex to see what is in it.");
 
   // An empty hex at the fitted view, then a stack, by click only: no go-to.
@@ -117,8 +118,7 @@ test("a mouse click alone selects a hex, and a stack; a drag pans without select
 
 test("fits the spec's 1280 px desktop minimum with the map still the larger part", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   const map = (await page.getByTestId("map").boundingBox())!;
@@ -129,8 +129,7 @@ test("fits the spec's 1280 px desktop minimum with the map still the larger part
 
 test("stays usable at a phone width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.locator("[data-stack]").first().waitFor();
+  await newGame(page);
   await expect(page.getByTestId("to-act")).toHaveText("Axis to act");
   // Nothing overflows the viewport sideways; the panel is reached by scrolling down.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
