@@ -33,8 +33,8 @@ pub fn check_target(errata: &Value, tables: &[String]) -> Result<()> {
 /// file whose `table` is `name`, in id order.
 pub fn load_table(src: &dyn Source, name: &str) -> Result<Value> {
     let rel = format!("tables/{name}.json");
-    let mut table: Value = serde_json::from_str(&src.read(&rel)?)
-        .with_context(|| format!("parsing {rel}"))?;
+    let mut table: Value =
+        serde_json::from_str(&src.read(&rel)?).with_context(|| format!("parsing {rel}"))?;
     let tables = src.list("tables")?;
     let mut files: Vec<_> = src
         .list("errata")?

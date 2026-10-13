@@ -53,7 +53,10 @@ impl InitiativeRatings {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<InitiativeRatings> {
-        Ok(serde_json::from_value(load_table(src, "initiative-ratings")?)?)
+        Ok(serde_json::from_value(load_table(
+            src,
+            "initiative-ratings",
+        )?)?)
     }
 
     pub fn commonwealth(&self, game_turn: u8) -> Result<u8> {

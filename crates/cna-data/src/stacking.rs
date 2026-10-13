@@ -24,7 +24,9 @@ impl StackingPoints {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<StackingPoints> {
-        Ok(serde_json::from_value(load_table(src, "stacking-point-values",
+        Ok(serde_json::from_value(load_table(
+            src,
+            "stacking-point-values",
         )?)?)
     }
 

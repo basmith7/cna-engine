@@ -35,7 +35,9 @@ impl Construction {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
-        Ok(serde_json::from_value(crate::errata::load_table(src, "construction",
+        Ok(serde_json::from_value(crate::errata::load_table(
+            src,
+            "construction",
         )?)?)
     }
 

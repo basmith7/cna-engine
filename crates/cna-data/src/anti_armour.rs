@@ -31,7 +31,9 @@ impl AntiArmour {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
-        Ok(serde_json::from_value(crate::errata::load_table(src, "anti-armour-results",
+        Ok(serde_json::from_value(crate::errata::load_table(
+            src,
+            "anti-armour-results",
         )?)?)
     }
 

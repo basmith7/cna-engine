@@ -29,7 +29,10 @@ impl Prisoners {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
-        Ok(serde_json::from_value(load_table(src, "prisoners-captured")?)?)
+        Ok(serde_json::from_value(load_table(
+            src,
+            "prisoners-captured",
+        )?)?)
     }
 
     /// The percentage for one die.

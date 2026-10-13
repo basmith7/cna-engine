@@ -26,10 +26,13 @@ impl Source for Fs {
 
     fn list(&self, dir: &str) -> Result<Vec<String>> {
         let path = crate::cna_root().join("data").join(dir);
-        let mut names: Vec<String> = std::fs::read_dir(&path)
-            .with_context(|| format!("listing {}", path.display()))?
-            .map(|e| Ok(e?.file_name().to_string_lossy().into_owned()))
-            .collect::<Result<_>>()?;
+        let mut names = Vec::new();
+        for e in std::fs::read_dir(&path).with_context(|| format!("listing {}", path.display()))? {
+            let e = e?;
+            if e.file_type()?.is_file() {
+                names.push(e.file_name().to_string_lossy().into_owned());
+            }
+        }
         names.sort();
         Ok(names)
     }
@@ -101,6 +104,11 @@ mod tests {
         sorted.sort();
         assert_eq!(names, sorted);
         assert!(names.contains(&"E-008.json".to_owned()), "{names:?}");
+        let map = Fs.list("map").unwrap();
+        assert!(
+            map.contains(&"hexes.json".to_owned()) && !map.contains(&"raw".to_owned()),
+            "files only: {map:?}"
+        );
         assert!(Fs.read("tables/weather.json").unwrap().contains("rows"));
         assert!(Fs.read("tables/no-such.json").is_err());
     }

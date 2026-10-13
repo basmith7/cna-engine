@@ -26,7 +26,10 @@ impl AssaultSizeShifts {
 
     /// The same, from any `Source`.
     pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
-        Ok(serde_json::from_value(load_table(src, "assault-size-shifts")?)?)
+        Ok(serde_json::from_value(load_table(
+            src,
+            "assault-size-shifts",
+        )?)?)
     }
 
     /// The shift for a pairing; none where the chart has no row (equal
