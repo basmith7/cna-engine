@@ -97,6 +97,9 @@ export interface Piece {
   landed?: boolean;
   /** Added by `view()`: the characteristics chart's unit type, null off the chart. */
   unit_type: string | null;
+  /** Added by `view()`: the OA unit's name and abbreviation, null for supply units. */
+  name: string | null;
+  abbreviation: string | null;
 }
 
 export type SealedStep = "gun-positions" | "barrage" | "assign-forces";
@@ -258,7 +261,7 @@ export interface Illegal {
 
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
-/** `Game.view()`: the state minus `log` and `rng`, plus `to_act` and `unit_type`. */
+/** `Game.view()`: the state minus `log` and `rng`, plus `to_act` and each piece's labels. */
 export interface View {
   scenario: string;
   rules_commit: string;

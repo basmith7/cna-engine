@@ -1,0 +1,49 @@
+/* cna's map style: PALETTE, STROKES and _style() from
+   vendor/cna/tools/map_render.py at cna commit 41846835, with the same
+   class names. Widths are map units (hex size 20) and scale with the
+   zoom, as on cna's site; `.far` (zoomed out) pins the features to a
+   pixel width so roads and escarpments stay visible in the fitted view. */
+
+.map .hex { stroke: #8a8a8a; stroke-width: 0.4; }
+.map .hexside { fill: none; stroke-linecap: round; }
+.map .hexnum { font: 5px sans-serif; fill: #666; text-anchor: middle; pointer-events: none; }
+.map .place { font: 7px sans-serif; fill: #222; text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: #fbf8f0; stroke-width: 2px; stroke-linejoin: round; }
+.map .settlement.village, .map .settlement.bir, .map .settlement.oasis { fill: #222; }
+.map .settlement.major-city { fill: #444; }
+.map .settlement, .map .hexside, .map .place-area { pointer-events: none; }
+
+.map .terrain-clear { fill: #f3ecd8; }
+.map .terrain-gravel { fill: #e2d9bf; }
+.map .terrain-salt-marsh { fill: #d8d2b0; }
+.map .terrain-heavy-vegetation { fill: #b9c98a; }
+.map .terrain-rough { fill: #d9c9a0; }
+.map .terrain-mountain { fill: #b8a377; }
+.map .terrain-delta { fill: #cfe0c8; }
+.map .terrain-desert { fill: #efd98a; }
+.map .terrain-major-city { fill: #c9c9c9; }
+.map .terrain-swamp { fill: #a9cdb0; }
+.map .terrain-sea { fill: #cfe1ec; }
+
+/* A place over several hexes (Cairo) is shaded as one area. */
+.map .place-area { fill: #444; fill-opacity: 0.08; }
+
+.map .hexside.escarpment { stroke: #333333; stroke-width: 2.5; }
+.map .hexside.ridge { stroke: #7a6a3a; stroke-width: 2; }
+.map .hexside.slope { stroke: #7a6a3a; stroke-width: 1.5; stroke-dasharray: 4 2; }
+.map .hexside.wadi { stroke: #5f8a7f; stroke-width: 1.5; stroke-dasharray: 2 2; }
+.map .hexside.major-river { stroke: #3b78a8; stroke-width: 3; }
+.map .hexside.minor-river { stroke: #3b78a8; stroke-width: 1.5; }
+.map .hexside.road { stroke: #5a3d1e; stroke-width: 2; }
+.map .hexside.unfinished-road { stroke: #5a3d1e; stroke-width: 2; stroke-dasharray: 3 3; }
+.map .hexside.railroad { stroke: #222222; stroke-width: 1.5; stroke-dasharray: 6 2; }
+.map .hexside.unfinished-railroad { stroke: #222222; stroke-width: 1.5; stroke-dasharray: 2 4; }
+.map .hexside.track { stroke: #7a7a7a; stroke-width: 1; stroke-dasharray: 3 3; }
+.map .hexside.coast { stroke: #3b78a8; stroke-width: 1; }
+.map .hexside.lake { stroke: #3b78a8; stroke-width: 1; stroke-dasharray: 1 2; }
+
+/* Zoomed out: labels off, hex edges a hairline, features one pixel. */
+.map.far .labels { display: none; }
+.map.far .hex { stroke-width: 0.6px; vector-effect: non-scaling-stroke; }
+.map.far .hexside { stroke-width: 1px; stroke-dasharray: none; vector-effect: non-scaling-stroke; }
+.map.far .hexside.escarpment, .map.far .hexside.major-river { stroke-width: 1.5px; }
+.map.far .settlement { display: none; }

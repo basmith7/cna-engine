@@ -42,15 +42,16 @@ impl Game {
     }
 
     /// What the UI draws: the state minus `log` and `rng`, plus `to_act`
-    /// and each piece's `unit_type` from the characteristics chart (null
-    /// for supply units and ID codes the chart lacks).
+    /// and, per piece, `unit_type` from the characteristics chart (null
+    /// for supply units and ID codes the chart lacks) and the OA unit's
+    /// `name` and `abbreviation` (null for supply units).
     pub fn view(&self) -> Result<Value> {
         let mut v = serde_json::to_value(&self.state)?;
         let obj = v.as_object_mut().context("state is an object")?;
         obj.remove("log");
         obj.remove("rng");
         obj.insert("to_act".into(), json!(self.state.to_act()));
-        let unit_types: Vec<(String, Option<String>)> = self
+        let labels: Vec<(String, Value)> = self
             .state
             .pieces
             .values()
@@ -60,11 +61,19 @@ impl Game {
                     .zip(p.id_code.as_deref())
                     .and_then(|(nation, code)| data().chars.row(nation, code))
                     .map(|row| row.unit_type.clone());
-                (p.id.as_str().to_owned(), unit_type)
+                let oa = p.id.unit().and_then(|id| data().oa.unit(&id));
+                let labels = json!({
+                    "unit_type": unit_type,
+                    "name": oa.map(|u| u.name.clone()),
+                    "abbreviation": oa.and_then(|u| u.abbreviation.clone()),
+                });
+                (p.id.as_str().to_owned(), labels)
             })
             .collect();
-        for (id, unit_type) in unit_types {
-            v["pieces"][&id]["unit_type"] = json!(unit_type);
+        for (id, labels) in labels {
+            for (k, val) in labels.as_object().context("labels")? {
+                v["pieces"][&id][k] = val.clone();
+            }
         }
         Ok(v)
     }
@@ -128,6 +137,24 @@ mod tests {
                 .filter(|p| !on_chart(p))
                 .all(|p| p["unit_type"].is_null())
         );
+    }
+
+    #[test]
+    fn view_adds_the_oa_name_and_abbreviation_per_unit() {
+        let view = Game::new(7).unwrap().view().unwrap();
+        let pieces = view["pieces"].as_object().unwrap();
+        let tank = &pieces["unit:it:ixl-tank-bn"];
+        assert!(tank["name"].is_string(), "{tank}");
+        assert!(tank["abbreviation"].is_string(), "{tank}");
+        assert!(
+            pieces
+                .values()
+                .filter(|p| p["kind"] == "combat" || p["kind"] == "hq")
+                .all(|p| p["name"].is_string() && p["abbreviation"].is_string()),
+            "every OA unit has a name and an abbreviation"
+        );
+        let supply = &pieces["supply:axis:1"];
+        assert!(supply["name"].is_null() && supply["abbreviation"].is_null());
     }
 
     #[test]
