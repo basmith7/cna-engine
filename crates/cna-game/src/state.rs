@@ -76,7 +76,7 @@ impl GameState {
             .collect();
         let mut state = GameState {
             scenario: data.slug().to_owned(),
-            rules_commit: cna_data::rules_commit()?,
+            rules_commit: data.rules_commit.clone(),
             ruleset: Ruleset::default(),
             clock: Clock::opening(data.scenario.start),
             initiative: None,
@@ -118,6 +118,7 @@ impl GameState {
         player: Side,
         order: Order,
     ) -> Result<Vec<Event>, Illegal> {
+        self.check(data).expect("the Data is this game's");
         match self.to_act() {
             None => return Err(Illegal::new("60.8", "the game is over")),
             Some(s) if s != player => {
@@ -293,6 +294,15 @@ mod tests {
         assert_eq!(state.pieces.values().filter(|p| p.is_pending()).count(), 59);
         assert_eq!(state.clock, Clock::start(1));
         assert_eq!(state.to_act(), Some(Side::Axis));
+    }
+
+    #[test]
+    fn a_new_game_records_the_data_s_rules_commit() {
+        // The commit comes with the data; the engine never asks git.
+        let mut data = graziani();
+        data.rules_commit = "0".repeat(40);
+        let state = GameState::new(&data, 1).unwrap();
+        assert_eq!(state.rules_commit, data.rules_commit);
     }
 
     #[test]

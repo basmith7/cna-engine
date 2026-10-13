@@ -1,5 +1,7 @@
 //! The log: what a game is made of, and nothing else. Replaying it on the
-//! same `vendor/cna` commit rebuilds the state byte for byte.
+//! same `vendor/cna` commit rebuilds the state byte for byte. The commit
+//! a state or log names is checked against `Data::rules_commit`, never
+//! against git: the engine stays free of the file system.
 
 use crate::data::Data;
 use crate::order::LoggedOrder;
@@ -33,33 +35,37 @@ impl GameState {
         Ok(serde_json::to_string_pretty(self)? + "\n")
     }
 
-    /// Reads a saved state; fails if it was made on another `vendor/cna`
-    /// commit than the one checked out.
-    pub fn from_json(json: &str) -> Result<GameState> {
+    /// Reads a saved state; fails if it is of another scenario or was
+    /// made on another `vendor/cna` commit than `data`.
+    pub fn from_json(json: &str, data: &Data) -> Result<GameState> {
         let state: GameState = serde_json::from_str(json).context("parsing the state")?;
-        check_commit(&state.rules_commit)?;
+        state.check(data)?;
         Ok(state)
+    }
+
+    /// Whether `data` is this game's: the same scenario and the same
+    /// `vendor/cna` commit.
+    pub fn check(&self, data: &Data) -> Result<()> {
+        check(&self.scenario, &self.rules_commit, data)
     }
 }
 
-fn check_commit(commit: &str) -> Result<()> {
-    let current = cna_data::rules_commit()?;
-    if commit != current {
-        bail!("made on vendor/cna {commit}, but {current} is checked out");
+fn check(scenario: &str, commit: &str, data: &Data) -> Result<()> {
+    if scenario != data.slug() {
+        bail!("the game is of {scenario}, the data of {}", data.slug());
+    }
+    if commit != data.rules_commit {
+        bail!(
+            "made on vendor/cna {commit}, but the data is from {}",
+            data.rules_commit
+        );
     }
     Ok(())
 }
 
 /// Rebuilds the state a log describes by applying its orders afresh.
 pub fn replay(data: &Data, log: &Log) -> Result<GameState> {
-    if log.scenario != data.slug() {
-        bail!(
-            "the log is of {}, the data of {}",
-            log.scenario,
-            data.slug()
-        );
-    }
-    check_commit(&log.rules_commit)?;
+    check(&log.scenario, &log.rules_commit, data)?;
     let mut state = GameState::new(data, log.seed)?;
     state.ruleset = log.ruleset;
     for (i, o) in log.orders.iter().enumerate() {
@@ -137,14 +143,14 @@ mod tests {
         let data = graziani();
         let state = GameState::new(&data, 1).unwrap();
         let json = state.to_json().unwrap();
-        assert_eq!(GameState::from_json(&json).unwrap(), state);
-        let other = json.replace(&state.rules_commit, &"0".repeat(40));
-        let err = GameState::from_json(&other).unwrap_err().to_string();
+        assert_eq!(GameState::from_json(&json, &data).unwrap(), state);
+        let mut other = graziani();
+        other.rules_commit = "0".repeat(40);
+        let err = GameState::from_json(&json, &other).unwrap_err().to_string();
         assert!(err.contains("vendor/cna"), "{err}");
+        let log = state.to_log();
+        assert!(replay(&other, &log).is_err());
         let mut log = state.to_log();
-        log.rules_commit = "0".repeat(40);
-        assert!(replay(&data, &log).is_err());
-        log.rules_commit = state.rules_commit.clone();
         log.scenario = "italian-campaign".into();
         assert!(replay(&data, &log).is_err());
     }

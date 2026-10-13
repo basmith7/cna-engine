@@ -1,5 +1,7 @@
 //! `cna-play`: the headless game from the command line. Files in, files
-//! out; the engine itself never touches the file system.
+//! out; the engine itself never touches the file system, so the reading,
+//! the writing and `Data::load` (which asks git for the `vendor/cna`
+//! commit) all happen here.
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
@@ -52,9 +54,16 @@ fn read(path: &Path) -> Result<String> {
     std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))
 }
 
+/// A state file with the scenario's data: the scenario is read from the
+/// file first, since loading a state checks it against the data.
 fn load_state(path: &Path) -> Result<(Data, GameState)> {
-    let state = GameState::from_json(&read(path)?)?;
-    let data = Data::load(&state.scenario)?;
+    let json = read(path)?;
+    let v: serde_json::Value = serde_json::from_str(&json).context("parsing the state")?;
+    let Some(scenario) = v["scenario"].as_str() else {
+        bail!("{}: no scenario", path.display());
+    };
+    let data = Data::load(scenario)?;
+    let state = GameState::from_json(&json, &data)?;
     Ok((data, state))
 }
 
@@ -132,7 +141,7 @@ fn main() -> Result<()> {
             write_state(&state, &game)?;
         }
         Cmd::Log { state, output } => {
-            let game = GameState::from_json(&read(&state)?)?;
+            let (_, game) = load_state(&state)?;
             let json = serde_json::to_string_pretty(&game.to_log())? + "\n";
             std::fs::write(&output, json)
                 .with_context(|| format!("writing {}", output.display()))?;
@@ -145,7 +154,7 @@ fn main() -> Result<()> {
             println!("{}", show(&state));
         }
         Cmd::Show { state } => {
-            let game = GameState::from_json(&read(&state)?)?;
+            let (_, game) = load_state(&state)?;
             print!("{}", show(&game));
         }
     }
