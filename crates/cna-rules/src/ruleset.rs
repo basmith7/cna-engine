@@ -71,18 +71,16 @@ pub enum R015 {
 }
 
 /// R-018: what a supply dump costs (SPI 24.9 text against the 24.17 and
-/// 6.3 charts). The default follows the ruling's Rationale: the charts' CP
-/// (two charts agree), the text's stores (a tie the Rationale defers to the
-/// Logistics Game; the text is what the restated rules use until then).
+/// 6.3 charts). cna decided for the charts.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum R018 {
     /// The text: real 3 CP + 20 stores, dummy 3 CP.
     Text = 1,
     /// The charts: real 3 CP + 10 stores, dummy 2 CP.
+    #[default]
     Charts = 2,
     /// CP from the charts, stores from the text.
-    #[default]
     CpChartsStoresText = 3,
 }
 
@@ -193,6 +191,33 @@ mod tests {
 #[cfg(test)]
 mod serde_tests {
     use super::*;
+
+    /// The option number a ruling's `## Decision` section opens with.
+    fn decided_option(id: &str) -> u8 {
+        let path = cna_data::cna_root().join(format!("rulings/{id}.md"));
+        let text = std::fs::read_to_string(&path).unwrap();
+        let decision = text
+            .split("\n## Decision")
+            .nth(1)
+            .unwrap_or_else(|| panic!("{id}: no `## Decision` section"));
+        let body = decision.split("\n## ").next().unwrap().trim();
+        let rest = body
+            .strip_prefix("Option ")
+            .unwrap_or_else(|| panic!("{id}: Decision does not open with `Option n.`: {body:?}"));
+        let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+        digits.parse().unwrap()
+    }
+
+    #[test]
+    fn every_default_is_the_option_cna_decided() {
+        for (id, option) in Ruleset::default().options() {
+            assert_eq!(
+                option,
+                decided_option(id),
+                "{id}: default option {option} is not cna's Decision"
+            );
+        }
+    }
 
     #[test]
     fn ruleset_json_is_a_map_of_ruling_to_option() {

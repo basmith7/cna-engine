@@ -74,6 +74,6 @@ mod tests {
                 "{o:?} {dummy}"
             );
         }
-        assert_eq!(Ruleset::default().r018, R018::CpChartsStoresText);
+        assert_eq!(Ruleset::default().r018, R018::Charts);
     }
 }
