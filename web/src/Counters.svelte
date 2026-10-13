@@ -13,7 +13,9 @@
 
   let { view, selected = null, scale = 1 }: { view: View; selected?: string | null; scale?: number } = $props();
 
-  const groups = $derived([...stacks(view)]);
+  // Painted north to south, so a fan never covers its northern neighbour;
+  // the selected stack is painted last so nothing covers it.
+  const groups = $derived([...stacks(view)].sort(([a], [b]) => (a === selected ? 1 : 0) - (b === selected ? 1 : 0)));
   const S = COUNTER;
   /** Zoomed out, a stack is still a mark the eye can find: at least this many pixels wide. */
   const MIN_PX = 16;
@@ -25,7 +27,8 @@
 
 {#each groups as [hex, pieces] (hex)}
   {@const [cx, cy] = centre(hex)}
-  <g class="stack" class:selected={hex === selected} data-stack={hex} data-count={pieces.length} transform="translate({cx} {cy}) scale({grow}) translate({-S / 2} {-S / 2})">
+  <!-- data-hex on the stack itself: a click anywhere on it, badge included, is a click on its hex. -->
+  <g class="stack" class:selected={hex === selected} data-stack={hex} data-hex={hex} data-count={pieces.length} transform="translate({cx} {cy}) scale({grow}) translate({-S / 2} {-S / 2})">
     {#each pieces.slice(1).reverse() as p, i (p.id)}
       {@const depth = pieces.length - 1 - i}
       {@const k = Math.min(depth, MAX_SHOWN - 1)}

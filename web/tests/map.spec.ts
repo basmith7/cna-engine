@@ -118,6 +118,14 @@ test("zooms to Sidi Barrani, where a stack badge and the stack panel show the th
   await page.locator("[data-stack=C4131]").click();
   await expect(page.getByTestId("hex")).toHaveText("hex C4131");
   await expect(panel.locator("[data-unit]")).toHaveCount(3);
+  // The count badge is the obvious thing to click to see what is in a stack.
+  await page.locator("polygon.hex[data-hex=C4130]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4130");
+  await stack.locator(".badge circle").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4131");
+  await expect(panel.locator("[data-unit]")).toHaveCount(3);
+  // The selected stack is painted last, so no neighbour's fan covers it.
+  await expect(page.locator("[data-stack]").last()).toHaveAttribute("data-stack", "C4131");
   await shoot(page, "sidi-barrani.png");
 });
 
