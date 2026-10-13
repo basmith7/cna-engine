@@ -6,3 +6,4 @@ pub mod construction;
 pub mod dice;
 pub mod morale;
 pub mod ruleset;
+pub mod stacking;

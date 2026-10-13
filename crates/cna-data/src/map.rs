@@ -9,7 +9,7 @@
 use crate::cna_root;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 /// A hex id as cna writes it: sheet letter (A–E, M = Malta), then row and
@@ -519,6 +519,29 @@ impl Map {
 
     pub fn adjacent(&self, a: &HexId, b: &HexId) -> bool {
         self.hexes.contains_key(a) && self.neighbours(a).binary_search(b).is_ok()
+    }
+
+    /// Every hex within `n` hexes of `centre`, the centre included, by
+    /// hex-to-hex steps (seams included).
+    pub fn within(&self, centre: &HexId, n: u32) -> BTreeSet<HexId> {
+        let mut seen = BTreeSet::new();
+        if !self.hexes.contains_key(centre) {
+            return seen;
+        }
+        seen.insert(centre.clone());
+        let mut frontier = vec![centre.clone()];
+        for _ in 0..n {
+            let mut next = Vec::new();
+            for h in &frontier {
+                for nb in self.neighbours(h) {
+                    if seen.insert(nb.clone()) {
+                        next.push(nb);
+                    }
+                }
+            }
+            frontier = next;
+        }
+        seen
     }
 }
 

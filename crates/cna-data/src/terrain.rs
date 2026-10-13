@@ -1,5 +1,5 @@
-//! The Terrain Effects Chart (SPI 8.37): only the combat column shifts so
-//! far. Errata applied.
+//! The Terrain Effects Chart (SPI 8.37): the combat column shifts and the
+//! stacking ceiling so far. Errata applied.
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -53,6 +53,8 @@ pub struct TerrainRow {
     pub kind: String,
     pub terrain: String,
     pub shifts: Option<RowShifts>,
+    /// The stacking ceiling in SP (9.14); none where the chart prints none.
+    pub stacking: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -65,6 +67,14 @@ impl Terrain {
         Ok(serde_json::from_value(crate::errata::load_table(
             "terrain-effects",
         )?)?)
+    }
+
+    /// The stacking ceiling of a hex terrain (9.14).
+    pub fn ceiling(&self, terrain: &str) -> Option<u32> {
+        self.rows
+            .iter()
+            .find(|r| r.kind == "hex" && r.terrain == terrain)?
+            .stacking
     }
 
     /// The row's own shifts; none for a missing row or one that refers

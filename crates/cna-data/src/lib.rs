@@ -11,6 +11,7 @@ pub mod morale;
 pub mod oa;
 pub mod scenario;
 pub mod schedule;
+pub mod stacking;
 pub mod terrain;
 pub mod time;
 

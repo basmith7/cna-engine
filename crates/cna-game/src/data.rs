@@ -7,12 +7,16 @@ use cna_data::characteristics::Characteristics;
 use cna_data::map::Map;
 use cna_data::oa::Oa;
 use cna_data::scenario::Scenario;
+use cna_data::stacking::StackingPoints;
+use cna_data::terrain::Terrain;
 
 pub struct Data {
     pub scenario: Scenario,
     pub oa: Oa,
     pub chars: Characteristics,
     pub map: Map,
+    pub terrain: Terrain,
+    pub stacking: StackingPoints,
 }
 
 impl Data {
@@ -23,6 +27,8 @@ impl Data {
             oa: Oa::load_all()?,
             chars: Characteristics::load()?,
             map: Map::load()?,
+            terrain: Terrain::load()?,
+            stacking: StackingPoints::load()?,
         })
     }
 

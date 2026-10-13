@@ -6,6 +6,7 @@ pub mod data;
 pub mod event;
 pub mod order;
 pub mod piece;
+mod place;
 pub mod rng;
 pub mod setup;
 pub mod state;
