@@ -2,7 +2,7 @@
   "id": "R-012",
   "kind": "line",
   "question": "Defender's expected loss when fighting, against withholding everything",
-  "rules_commit": "c30bcded14ff8b0c9299555e449af416284955ca",
+  "rules_commit": "41846835e0b207798d101e551b473d8c91a193b0",
   "engine_commit": "see git log",
   "x": {
     "label": "Final close-assault column",
