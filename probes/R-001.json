@@ -2,7 +2,7 @@
   "id": "R-001",
   "kind": "line",
   "question": "A unit alternating a 4-DP push with a stage of rest: when does it collapse (threshold 26)?",
-  "rules_commit": "0271377de30467b5b738c340526341f5d64c2ad4",
+  "rules_commit": "c30bcded14ff8b0c9299555e449af416284955ca",
   "engine_commit": "see git log",
   "x": {
     "label": "Operations Stage",

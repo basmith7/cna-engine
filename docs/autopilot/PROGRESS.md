@@ -48,12 +48,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **8.37, swamp by railroad.** `terrain-effects.json` gives swamp's cp as
-  `road-or-railroad-only` and the railroad row as `as-hex-terrain`, so a
-  rail-only step into swamp (13 hexsides on sheet E near Alexandria and
-  Cairo, e.g. E3211|E3312) has no price. The engine charges the road rate
-  for now (`cna_rules::movement::step_cost`). What does the chart intend?
-  Mission 2 (movement) carries the guess.
 - **Seam slopes and escarpments need `up`.** `seams.json` records no `up`
   hex for its 18 slope and 7 escarpment pairs, so the engine reads them as
   climbing both ways; vehicles therefore cannot use the tracks at
