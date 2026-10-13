@@ -5,6 +5,7 @@ pub mod barrage;
 pub mod characteristics;
 pub mod close_assault;
 pub mod construction;
+pub mod cp;
 pub mod errata;
 pub mod initiative;
 pub mod map;
