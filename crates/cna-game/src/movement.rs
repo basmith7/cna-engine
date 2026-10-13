@@ -295,6 +295,7 @@ impl GameState {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
+            self.entered.insert(to.clone());
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at,

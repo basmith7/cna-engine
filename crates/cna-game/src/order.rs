@@ -22,6 +22,9 @@ pub enum Order {
         pieces: Vec<PieceId>,
         path: Vec<HexId>,
     },
+    /// Phase G: the movement segment is over (stacking is checked, 9.14),
+    /// or from reserve release, another cycle begins (8.2x).
+    EndSegment,
     /// Nothing more this phase: ends F or G for the phasing player.
     Pass,
 }

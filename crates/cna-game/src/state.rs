@@ -11,10 +11,11 @@ use crate::piece::{Piece, PieceId};
 use crate::rng::GameRng;
 use crate::setup;
 use anyhow::Result;
+use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::ruleset::Ruleset;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// The OpStage's weather (29.6): the result and, for a storm, the sheets
 /// it covers (29.7).
@@ -57,6 +58,13 @@ pub struct GameState {
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
+    /// Movement segments completed in the current phase G (8.2x).
+    #[serde(default)]
+    pub cycle: u8,
+    /// Hexes a piece has moved into this movement segment: where the
+    /// stacking ceiling binds when it ends (9.14, 9.31).
+    #[serde(default)]
+    pub entered: BTreeSet<HexId>,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -84,6 +92,8 @@ impl GameState {
             weather: Weather::Normal,
             pieces,
             pending: None,
+            cycle: 0,
+            entered: BTreeSet::new(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),
@@ -155,6 +165,7 @@ impl GameState {
                 self.declare_initiative(data, *player_a)
             }
             (None, Order::Move { pieces, path }) => self.move_pieces(data, player, pieces, path),
+            (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }
     }
@@ -164,7 +175,6 @@ impl GameState {
 pub(crate) mod test_support {
     use super::*;
     use crate::piece::Location;
-    use cna_data::map::HexId;
     use cna_data::scenario::Locator;
 
     /// Hexes a pending piece's placement allows, in id order (the
@@ -266,7 +276,6 @@ mod tests {
     use crate::clock::Phase;
     use crate::order::Order;
     use crate::piece::Location;
-    use cna_data::map::HexId;
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
@@ -386,26 +395,24 @@ mod tests {
     fn a_place_over_the_stacking_ceiling_is_illegal() {
         let data = graziani();
         let mut state = GameState::new(&data, 1).unwrap();
-        // C4218 (clear, ceiling 6) holds the 1st CCNN division's 14
-        // counters, which the set-up puts there whatever the ceiling.
+        // C4218 (clear, ceiling 6) holds the 1st CCNN division with its
+        // HQ: 5 SP (9.13). One "anywhere in Libya" battalion (1 SP) fits;
+        // a second does not.
         let target = hex("C4218");
-        let sp_now: u32 = state
-            .pieces
-            .values()
-            .filter(|p| p.hex() == Some(&target))
-            .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
-            .sum();
-        assert!(
-            sp_now >= 6,
-            "C4218 (1st CCNN) should be at the ceiling, has {sp_now}"
-        );
-        // An "anywhere in Libya" battalion (1 SP) onto a full hex.
+        assert_eq!(state.stacked(&data, &target), 5);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                place("unit:it:1st-bn-1-arty-rgppmnto", "C4218"),
+            )
+            .unwrap();
         let before = serde_json::to_string(&state).unwrap();
         let err = state
             .apply(
                 &data,
                 Side::Axis,
-                place("unit:it:1st-bn-1-arty-rgppmnto", "C4218"),
+                place("unit:it:2nd-bn-1-arty-rgppmnto", "C4218"),
             )
             .unwrap_err();
         assert_eq!(err.case, "9.14");
@@ -415,7 +422,7 @@ mod tests {
             .apply(
                 &data,
                 Side::Axis,
-                place("unit:it:1st-bn-1-arty-rgppmnto", "C4219"),
+                place("unit:it:2nd-bn-1-arty-rgppmnto", "C4219"),
             )
             .unwrap();
     }

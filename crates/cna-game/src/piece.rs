@@ -96,6 +96,9 @@ pub struct Piece {
     /// Stacking equivalent (9.4): the row's, or the unit's own for a
     /// `by-unit` row.
     pub equivalent: Option<Equivalent>,
+    /// The hex this garrison unit takes no stacking space in (9.16).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub garrison_of: Option<HexId>,
     pub location: Location,
     /// CP spent this OpStage, both halves (6.14).
     #[serde(default)]

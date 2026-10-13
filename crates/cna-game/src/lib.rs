@@ -2,6 +2,7 @@
 //! events and the log. Movement and combat follow in later slices.
 
 pub mod clock;
+mod cycle;
 pub mod data;
 pub mod event;
 pub mod log;
