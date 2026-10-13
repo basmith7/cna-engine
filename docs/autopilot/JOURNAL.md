@@ -105,3 +105,9 @@ Done: Mission 2 slice 4 (movement) complete, PR #11 ready: step cost (f86c72c), 
 In flight: nothing.
 Next: merge PR #11 once CI passes, then slice 5 (combat) from `docs/plans/2026-10-08-m2-slice-5-combat.md`. For slice 5: `Piece::released` carries the reserve combat limits (one assault from I; one assault or probe and +1 DP from II); `Order::Move { assault }` is the pinning declaration; ZOC eligibility counts tank and gun defence as 0 until weapon-systems.json is wired; `engaged` is set by nothing yet.
 Blocked: none. Two questions for cna in the PR body (the 8.8x map-end hex, A2802 being sea in hexes.json; the 8.89 chart's 21–24 CPA gap).
+
+## 2026-10-12 22:33 MST — autopilot/m2-slice-5-combat
+Done: Mission 2 slice 5 (combat) complete, PR #12 ready: weapon systems and strengths (ababd69), sampling entry points (c92859d, 9049e06), the six combat steps with sealed plots (00b4be1), barrage (5718078), retreat before assault (8932f5a), anti-armour and close assault with forced retreats (08dbf3d), must-attack (82c25ed), reserve limits, the G cycle test and NOT_SIMULATED.md (67618a8). 98 cna-game tests; all three gates pass.
+In flight: nothing.
+Next: merge PR #12 once CI passes, then slice 6 from its plan. For slice 6: losses are the engine's choice (`combat::losses`), a pending owner choice would slot in there; `Event::Prisoners` is logged but nothing changes hands; ammunition, trucks, destroyed-tank markers and dummy formations are listed as not simulated.
+Blocked: none. Deviations from the plan are in PR #12's body (computed probe, no advance after combat, infantry defends in full unless assigned, morale `surrender` as −4, no divisions in the size table).
