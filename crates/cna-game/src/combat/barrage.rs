@@ -107,10 +107,10 @@ impl GameState {
                 NON_PHASING_CEILING
             };
             for hex in firing_hexes {
-                self.charge_combat_hex(&hex, firing, cna_data::cp::Cp::ZERO, events);
+                self.charge_combat_hex(&hex, firing, events);
             }
             for hex in target_hexes {
-                self.charge_combat_hex(&hex, NON_PHASING_CEILING, cna_data::cp::Cp::ZERO, events);
+                self.charge_combat_hex(&hex, NON_PHASING_CEILING, events);
             }
         }
         for (id, n) in losses {

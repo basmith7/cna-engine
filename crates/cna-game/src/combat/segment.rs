@@ -256,6 +256,9 @@ impl GameState {
                     events.push(Event::ForcesAssigned { side, assignments });
                     self.reserve_ii_dp(&active, events);
                 }
+                if let Some(phasing) = self.phasing() {
+                    self.record_probes(phasing);
+                }
                 Segment::AntiArmour
             }
         };

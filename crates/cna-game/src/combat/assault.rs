@@ -345,10 +345,10 @@ impl GameState {
             self.absorb(data, &mut a.shares, |p| p.protection, damage, events);
             if a.side == phasing {
                 for h in &a.from {
-                    self.charge_combat_hex(h, PHASING_CEILING, Cp::ZERO, events);
+                    self.charge_combat_hex(h, PHASING_CEILING, events);
                 }
             }
-            self.charge_combat_hex(&a.target, NON_PHASING_CEILING, Cp::ZERO, events);
+            self.charge_combat_hex(&a.target, NON_PHASING_CEILING, events);
         }
     }
 
@@ -405,21 +405,21 @@ impl GameState {
         basic + modifier
     }
 
-    /// Whether this unit's attacks are probes by the 50 % rule (15.9x):
-    /// no single assault takes half its TOE points.
-    fn probing(&self, phasing: Side, id: &PieceId) -> bool {
-        let toe = self.pieces[id].toe;
-        let most = self
-            .combat
-            .assignments
-            .get(&phasing)
-            .into_iter()
-            .flatten()
-            .filter(|a| a.piece == *id)
-            .flat_map(|a| a.close_assault.iter().map(|al| al.points))
-            .max()
-            .unwrap_or(0);
-        most * 2 < toe
+    /// The 50 % rule (15.9x), applied as the assignments are revealed and
+    /// before anti-armour fire: a phasing unit none of whose assaults
+    /// takes half the TOE points it has now probes with all of them.
+    pub(super) fn record_probes(&mut self, phasing: Side) {
+        let mut probing = BTreeSet::new();
+        for a in self.combat.assignments.get(&phasing).into_iter().flatten() {
+            if a.close_assault.is_empty() {
+                continue;
+            }
+            let most = a.close_assault.iter().map(|al| al.points).max().unwrap_or(0);
+            if most * 2 < self.pieces[&a.piece].toe {
+                probing.insert(a.piece.clone());
+            }
+        }
+        self.combat.probing = probing;
     }
 
     /// `Order::Assault`: the assault assigned against `target` (15.2x),
@@ -465,7 +465,9 @@ impl GameState {
         }
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
-        let probe = attacker_ids.iter().all(|id| self.probing(phasing, id));
+        let probe = attacker_ids
+            .iter()
+            .all(|id| self.combat.probing.contains(id));
 
         // Surrender when assaulted (15.88, E-009).
         let surrendering: Vec<PieceId> = self
@@ -914,8 +916,9 @@ impl GameState {
     }
 
     /// The CP of one assault (6.3): the attacking hexes pay 5 (2 for a
-    /// probe); the defended hex 3 (2 when probed), less 2 for a final
-    /// differential of −4 or worse, or nothing at all for a probe there.
+    /// probe); the defended hex 3 (2 when probed), and for a final
+    /// differential of −4 or worse every defender gets 2 back of all it
+    /// was charged this segment, step 5 included.
     fn charge_assault_cp(
         &mut self,
         attackers: &[Commit],
@@ -927,16 +930,16 @@ impl GameState {
         let hexes: BTreeSet<HexId> = attackers.iter().map(|c| c.hex.clone()).collect();
         let attack = if probe { Cp::whole(2) } else { PHASING_CEILING };
         for h in hexes {
-            self.charge_combat_hex(&h, attack, Cp::ZERO, events);
+            self.charge_combat_hex(&h, attack, events);
         }
-        let (defend, refund) = match (probe, bad) {
-            (true, true) => (Cp::ZERO, Cp::ZERO),
-            (true, false) => (Cp::whole(2), Cp::ZERO),
-            (false, true) => (NON_PHASING_CEILING, BAD_ATTACK_REFUND),
-            (false, false) => (NON_PHASING_CEILING, Cp::ZERO),
+        let defend = if probe {
+            Cp::whole(2)
+        } else {
+            NON_PHASING_CEILING
         };
-        if defend > Cp::ZERO {
-            self.charge_combat_hex(target, defend, refund, events);
+        self.charge_combat_hex(target, defend, events);
+        if bad {
+            self.refund_combat_hex(target, BAD_ATTACK_REFUND, events);
         }
     }
 
@@ -1294,14 +1297,18 @@ mod tests {
         );
         // Pinned to seed 3 so the fixture stays honest.
         assert_eq!((attacker.reading, defender.reading), (43, 36));
-        // CP: the attacking hex 5; the defended hex 3, less 2 for a bad attack.
+        // Adjusted +1 under this seed: no refund, no retreat. CP: the
+        // attacking hex 5; the defended hex 3 (the bad-attack refund has
+        // its own test below).
+        assert_eq!(basic + shifts, 1);
+        assert_eq!(defender.retreat, 0);
+        assert_eq!(state.pending, None);
         for id in ["unit:cw:1-krrc", "unit:cw:1-rtr", "unit:cw:7-med"] {
             assert_eq!(state.pieces[&pid(id)].cp_spent, Cp::whole(5), "{id}");
         }
-        let defended = if basic + shifts <= -4 { 1 } else { 3 };
         assert_eq!(
             state.pieces[&pid("unit:it:viii-libyan-bn")].cp_spent,
-            Cp::whole(defended)
+            Cp::whole(3)
         );
         // Once per segment.
         let err = state
@@ -1313,13 +1320,7 @@ mod tests {
                 },
             )
             .unwrap_err();
-        assert!(err.case == "15.21" || err.case == "15.82", "{}", err.case);
-        if let Some(Pending::ForcedRetreat { side, hexes, .. }) = &state.pending {
-            assert_eq!((*side, *hexes), (Side::Axis, defender.retreat));
-            state.apply(&data, Side::Axis, Order::Pass).unwrap();
-        } else {
-            assert_eq!(defender.retreat, 0);
-        }
+        assert_eq!(err.case, "15.21");
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
     }
@@ -1908,5 +1909,145 @@ mod tests {
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
         assert!(!state.combat.assaults.contains_key(&hex("C4020")));
+    }
+
+    /// 1 KRRC and 1 RTR assigned against C4020 with `rtr_points` cruiser
+    /// points to close assault; the anti-tank company returns fire, so
+    /// the defended hex has paid 3 CP before the assault is made.
+    fn after_return_fire(data: &Data, rtr_points: u32) -> GameState {
+        let mut state = with_tanks(data);
+        assigning_against_the_anti_tank_coy(data, &mut state);
+        state
+            .apply(
+                data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![
+                        assign("unit:cw:1-krrc", vec![], vec![alloc(Some("C4020"), 6)]),
+                        assign("unit:cw:1-rtr", vec![], vec![alloc(Some("C4020"), rtr_points)]),
+                    ],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 2)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
+        for id in c4020_ids(&state) {
+            assert_eq!(state.pieces[&id].cp_spent, Cp::whole(3), "{id}");
+        }
+        state
+    }
+
+    #[test]
+    fn a_bad_attack_refunds_two_of_the_cp_the_hex_already_paid() {
+        // 6.3: a final differential of −4 or worse gives every defender
+        // back 2 of the CP it spent, including the 3 charged for the
+        // anti-armour exchange in step 5. The attackers' morale is set
+        // so low that no roll can lift the column.
+        let data = graziani();
+        let mut state = after_return_fire(&data, 7);
+        for id in ["unit:cw:1-krrc", "unit:cw:1-rtr"] {
+            state.pieces.get_mut(&pid(id)).unwrap().morale = Some(-20);
+        }
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        let Some(Event::Assault {
+            probe,
+            basic,
+            shifts,
+            ..
+        }) = find_assault(&events)
+        else {
+            panic!("no assault");
+        };
+        assert!(!probe);
+        assert!(basic + shifts <= -4, "{basic} + {shifts}");
+        let bn = pid("unit:it:viii-libyan-bn");
+        let coy = pid("unit:it:1st-libyan-anti-tank-coy");
+        assert!(events.contains(&Event::CombatCpRefunded {
+            piece: bn.clone(),
+            cp: BAD_ATTACK_REFUND,
+        }));
+        for id in [&bn, &coy] {
+            assert_eq!(state.pieces[id].cp_spent, Cp::whole(1), "{id}");
+            assert_eq!(state.pieces[id].cp_enemy_half, Cp::whole(1), "{id}");
+            assert_eq!(state.combat.charged[id], Cp::whole(1), "{id}");
+        }
+    }
+
+    #[test]
+    fn a_probe_is_judged_on_the_toe_available_at_assignment() {
+        // 15.9x: 1 RTR commits 3 of 7 cruiser points, a probe. Seven
+        // 47/32 points (28 raw, 3 actual) return fire and kill at least
+        // one point in step 5; the attack is still a probe, judged on
+        // the 7 points it had when assigned.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        set_points(&mut state, "unit:it:1st-libyan-anti-tank-coy", 7);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![],
+                        vec![alloc(Some("C4020"), 3)],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 7)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        let rtr = pid("unit:cw:1-rtr");
+        let toe = state.pieces[&rtr].toe;
+        assert!((3..7).contains(&toe), "{toe}");
+        assert!(state.combat.probing.contains(&rtr));
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        let Some(Event::Assault { probe, .. }) = find_assault(&events) else {
+            panic!("no assault");
+        };
+        assert!(probe);
+        assert!(state.combat.assaults[&hex("C4020")].probe);
+        assert_eq!(state.pieces[&rtr].cp_spent, Cp::whole(2));
+        assert!(!state.pieces[&rtr].engaged && !state.pieces[&rtr].contact);
     }
 }
