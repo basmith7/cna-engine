@@ -210,6 +210,13 @@ pub enum Event {
         piece: PieceId,
         cost: Cp,
     },
+    /// CP given back to a defender of a bad attack (6.3's dagger), and
+    /// the DP that CP had earned over the CPA, taken back with it.
+    CombatCpRefunded {
+        piece: PieceId,
+        cp: Cp,
+        dp: u32,
+    },
     /// A non-combat unit alone in an enemy ZOC was taken (10.29).
     Captured {
         piece: PieceId,

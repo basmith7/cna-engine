@@ -81,6 +81,11 @@ pub struct CombatSegment {
     /// Force assignments by side, sealed until both are in (14.1x).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub assignments: BTreeMap<Side, Vec<Assignment>>,
+    /// Phasing units whose assaults are all probes by the 50 % rule,
+    /// judged on the TOE they had when assigned, before anti-armour
+    /// fire (15.9x).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub probing: BTreeSet<PieceId>,
     /// Units pinned by barrage for the rest of the segment (12.44).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub pinned: BTreeSet<PieceId>,
