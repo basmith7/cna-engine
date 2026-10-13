@@ -427,7 +427,9 @@ mod tests {
     fn a_seam_hexside_is_priced_like_any_other() {
         let (map, chart) = fixtures();
         // C0633 (rough) to D0701 (clear) across a seam slope; cna records
-        // no `up` for seam slopes, so it is read as going down.
+        // no `up` for seam slopes and says to read them as the feature
+        // both ways, so it climbs in either direction: foot 2 + 2 into
+        // clear, a vehicle 4 + 4 into rough.
         assert_eq!(
             cost(
                 &map,
@@ -437,7 +439,7 @@ mod tests {
                 "D0701",
                 Weather::Normal
             ),
-            Ok(Cp::whole(3))
+            Ok(Cp::whole(4))
         );
         assert_eq!(
             cost(
@@ -448,7 +450,7 @@ mod tests {
                 "C0633",
                 Weather::Normal
             ),
-            Ok(Cp::whole(6))
+            Ok(Cp::whole(8))
         );
     }
 }
