@@ -2,7 +2,9 @@
 //! the hex entered plus the hexside crossed, priced from the Terrain
 //! Effects Chart for the kind of unit moving, with the weather applied.
 //! Pure: the map, the chart and the step come in, a price or a
-//! prohibition comes out.
+//! prohibition comes out. A railroad gives no rate of its own
+//! (footnote 5); it only opens swamp (8.37) and major rivers (footnote
+//! 11) the way a road does.
 
 use cna_data::cp::Cp;
 use cna_data::map::{Hex, Hexside, HexsideFeature, Terrain as Fill};
@@ -177,13 +179,12 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
 
     let mut cost = match mode {
         Along::Road => price(chart, "hex", "road", motorised)?,
-        Along::Track => {
-            if to == Fill::Swamp {
-                price(chart, "hex", "road", motorised)?
-            } else {
-                price(chart, "hex", to.name(), motorised)?.halved()
-            }
-        }
+        // Swamp has no price of its own: it is entered by road or
+        // railroad only (8.37), and the chart gives the railroad no rate
+        // (footnote 5), so a track or a railroad into it is priced as
+        // the road.
+        _ if to == Fill::Swamp => price(chart, "hex", "road", motorised)?,
+        Along::Track => price(chart, "hex", to.name(), motorised)?.halved(),
         Along::Country => price(chart, "hex", to.name(), motorised)?,
     };
 
@@ -246,7 +247,7 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
                     if motorised && !road_or_rail {
                         return Err(no(
                             "8.4x",
-                            "vehicles cross a major river only where a road crosses it",
+                            "vehicles cross a major river only where a road or railroad crosses it",
                         ));
                     }
                     if step.weather == Weather::Rainstorm && !road_or_rail {
@@ -255,7 +256,9 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
                             "a river in a rainstorm is crossed by road or rail only",
                         ));
                     }
-                    match (road, motorised, mode) {
+                    // Footnote 11: by road or railroad a vehicle pays
+                    // nothing for the river; a foot unit pays the crossing.
+                    match (road_or_rail, motorised, mode) {
                         (true, true, _) => continue,
                         (true, false, _) => price(chart, "hexside", "major-river", false)?,
                         (false, _, Along::Track) => {
@@ -472,5 +475,24 @@ mod tests {
             ),
             Ok(Cp::whole(8))
         );
+    }
+
+    #[test]
+    fn a_railroad_opens_swamp_and_major_river_hexsides() {
+        let (map, chart) = fixtures();
+        let foot = |a, b, w| cost(&map, &chart, Mobility::Foot, a, b, w);
+        let mot = |a, b, w| cost(&map, &chart, Mobility::Vehicle, a, b, w);
+        // E3211 (clear) to E3312 (swamp) by railroad alone: the chart
+        // allows swamp by road or railroad, priced as the road (8.37).
+        assert_eq!(foot("E3211", "E3312", Weather::Normal), Ok(Cp::whole(1)));
+        assert_eq!(mot("E3211", "E3312", Weather::Normal), Ok(Cp::HALF));
+        // E2829|E2830: a major river with a railroad across it, delta on
+        // both banks. A vehicle crosses free (footnote 11) and pays the
+        // delta hex; a foot unit pays the river on top of the hex.
+        assert_eq!(mot("E2829", "E2830", Weather::Normal), Ok(Cp::whole(4)));
+        assert_eq!(foot("E2829", "E2830", Weather::Normal), Ok(Cp::whole(10)));
+        // In a rainstorm the railroad still opens the river and the delta
+        // to vehicles (29.5x).
+        assert_eq!(mot("E2829", "E2830", Weather::Rainstorm), Ok(Cp::whole(4)));
     }
 }
