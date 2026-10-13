@@ -769,7 +769,7 @@ mod tests {
     fn a_state_with_pieces_round_trips_through_json() {
         let data = graziani();
         let state = GameState::new(&data, 7).unwrap();
-        assert_eq!(state.pieces.len(), 328);
+        assert_eq!(state.pieces.len(), 331);
         let json = serde_json::to_string(&state).unwrap();
         let back: GameState = serde_json::from_str(&json).unwrap();
         assert_eq!(back, state);
