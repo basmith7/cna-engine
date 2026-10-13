@@ -184,3 +184,9 @@ Done: PR #23 review. Blocking: the golden e2e never finished because of three dr
 In flight: nothing.
 Next: merge PR #23 once CI passes; then Mission 4's spec (PROGRESS.md, Next steps). Not done from the review, recorded in PROGRESS.md: `check_invariants` extended to every piece and hex reference and duplicate `waiting` sides (a hostile save can still panic the engine later); the curtain on Load/Continue; the 390 px end-dialog table clipping MET.
 Blocked: none.
+
+## 2026-10-13 09:20 MST — autopilot/m4-spec
+Done: Mission 4 Part 0, PR #25 (`needs-brian`): the multiplayer server design `docs/designs/2026-10-13-multiplayer-server-design.md` (f20901c) and six slice plans (df496dc); a sub-agent review against the code found leaks the first draft missed (per-piece state maps, pending placements, `forced-retreat.raw`, refusal reasons, event numbers, alias direction, seed-keyed aliases) and server gaps (per-account order limits, stream caps, missing `Origin`, suspension and open streams), all folded in (fdf0208).
+In flight: nothing for Mission 4; it waits for Brian.
+Next: when **Feedback** approves PR #25 (and answers its three questions), merge it and start slice 1 (`docs/plans/2026-10-13-m4-slice-1-view.md`). Until then build nothing for Mission 4.
+Blocked: Brian's review of PR #25.
