@@ -7,7 +7,40 @@ jobs:
       - uses: actions/checkout@v4
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
-        with: { components: clippy }
+        with: { components: clippy, targets: wasm32-unknown-unknown }
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: cargo run -p cna-probe -- check
+      - run: cargo check -p cna-game --target wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with: { tool: wasm-pack@0.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: wasm-pack test --node crates/cna-web
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: web }
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - uses: taiki-e/install-action@v2
+        with: { tool: wasm-pack@0.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - run: npm run wasm
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env: { CNA_SHOTS: ${{ github.workspace }}/web/test-results/shots }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: web/test-results/shots
+          if-no-files-found: ignore
