@@ -221,9 +221,13 @@ struct HexsidesFile {
 /// A named place from `places.json`. `kind` is the Terrain Key's class,
 /// or `feature` for a named point with no settlement.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(from = "RawPlace")]
 pub struct Place {
     pub id: String,
+    /// The place's principal hex (where units set up).
     pub hex: HexId,
+    /// Every hex the place covers: the optional `hexes` array, else `[hex]`.
+    pub hexes: Vec<HexId>,
     pub name: String,
     pub kind: PlaceKind,
     pub port: bool,
@@ -237,6 +241,35 @@ pub enum PlaceKind {
     Bir,
     Oasis,
     Feature,
+}
+
+#[derive(Deserialize)]
+struct RawPlace {
+    id: String,
+    hex: HexId,
+    #[serde(default)]
+    hexes: Vec<HexId>,
+    name: String,
+    kind: PlaceKind,
+    port: bool,
+}
+
+impl From<RawPlace> for Place {
+    fn from(r: RawPlace) -> Self {
+        let hexes = if r.hexes.is_empty() {
+            vec![r.hex.clone()]
+        } else {
+            r.hexes
+        };
+        Place {
+            id: r.id,
+            hex: r.hex,
+            hexes,
+            name: r.name,
+            kind: r.kind,
+            port: r.port,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -363,8 +396,10 @@ impl Map {
         }
         let mut places = BTreeMap::new();
         for p in read_json::<PlacesFile>("places.json")?.places {
-            if !hexes.contains_key(&p.hex) {
-                bail!("place {}: {} is not a hex", p.id, p.hex);
+            for h in &p.hexes {
+                if !hexes.contains_key(h) {
+                    bail!("place {}: {} is not a hex", p.id, h);
+                }
             }
             if places.insert(p.id.clone(), p).is_some() {
                 bail!("duplicate place in places.json");
@@ -731,6 +766,17 @@ mod tests {
         assert!(m.place("sollum").unwrap().port);
         assert!(!m.place("siwa").unwrap().port);
         assert!(m.place("nowhere").is_none());
+    }
+
+    #[test]
+    fn cairo_has_five_hexes_and_other_places_one() {
+        let m = map();
+        let cairo = m.place("cairo").unwrap();
+        assert_eq!(cairo.hexes.len(), 5);
+        assert!(cairo.hexes.contains(&cairo.hex));
+        assert!(cairo.hexes.iter().all(|h| m.hex(h).is_some()));
+        let tobruk = m.place("tobruk").unwrap();
+        assert_eq!(tobruk.hexes, vec![tobruk.hex.clone()]);
     }
 
     #[test]

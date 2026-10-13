@@ -31,9 +31,6 @@ pub struct Setup {
     /// Placement `constraint` sentences the grammar cannot check (59.2);
     /// the owner is trusted to honour them.
     pub unchecked: Vec<Unchecked>,
-    /// Sheet counters that are not Land Game units (no ID code and no
-    /// TOE, e.g. a wreck) and so become no piece.
-    pub not_land_units: Vec<UnitId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,7 +49,6 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
-        not_land_units: Vec::new(),
     };
     let mut placed = BTreeSet::new();
     for side in [Side::Axis, Side::Cw] {
@@ -66,10 +62,6 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     .with_context(|| format!("{side} deployment {}", di + 1))?;
                 for m in members {
                     let unit = oa.unit(&m.id).expect("resolved by members");
-                    if unit.id_code.is_none() && unit.toe.is_empty() {
-                        setup.not_land_units.push(m.id);
-                        continue;
-                    }
                     if !placed.insert(m.id.clone()) {
                         bail!("{}: placed twice (R-094)", m.id);
                     }
@@ -424,14 +416,13 @@ mod tests {
     // Libyan 10+1 = 11; Aresca 1st Regt 5-3 = 2; 62nd Marmarica 13+1 =
     // 14; Maletti 14+1 = 15; 64th Catanzaro 13; 4th CCNN 12; Trivioli
     // 2nd Regt 6-2 = 4; Bardia garrison sheet 11; Libyan Tank Command HQ
-    // alone 1; Tobruk garrison sheet 23-1 = 22 (the San Giorgio has no ID
-    // code and no TOE); Benghazi sheet 4; Libyan Para Regt 3; Derna sheet
+    // alone 1; Tobruk garrison sheet 23-1 = 22 (the San Giorgio is `less`); Benghazi sheet 4; Libyan Para Regt 3; Derna sheet
     // 4; Mechili bn 1; Giarabub sheet 6; Scheferzen, Maddalena, EGUG,
-    // Benina, Soluch AT coy, X Corps arty: 6; "anywhere in Libya" 6;
+    // Benina, Soluch AT coy and arty regt, X Corps arty: 7; "anywhere in Libya" 6;
     // Saharan Detachment 7; sheets A/B 11; Tripoli box: 2nd CCNN 13 +
     // 3rd CCNN sheet 7 + two corps arty 2 = 22; Tripolitania 1.
-    // Sum: 14+15+11+11+2+14+15+13+12+4+11+1+22+4+3+4+1+6+6+6+7+11+22+1
-    // = 216.
+    // Sum: 14+15+11+11+2+14+15+13+12+4+11+1+22+4+3+4+1+6+7+6+7+11+22+1
+    // = 217.
     //
     // Commonwealth, 16 deployments: singles at C4131 (2), C3926 (1),
     // C3922 (4), C3721 (2), C3520, C3320, C3020 (3) = 12; Selby Force
@@ -441,23 +432,24 @@ mod tests {
     // detached, 1 Fld arrives 3/3); 16th Inf Bde 5-1 (AT coy arrives
     // 50/1) = 4; Alexandria: 2 NZ HQ alone 1 + 4 NZ HQ 4 + 27 NZ + 2 NZ
     // Cav + 4 NZ Fld = 8; 6 Aus HQ: 1 + 16 Aus 4 + 17 Aus 4 + 6 Aus Cav
-    // = 10 (19 Aus and both fld regts `less`); Cairo 4; sheets D/E 6.
-    // Sum: 12+4+7+11+4+8+10+4+6 = 66.
+    // = 10 (19 Aus and both fld regts `less`); Cairo 4; sheets D/E 6; the 1st Buffs and 1st
+    // Hampshires, assigned to the Matruh garrison (4.44b), 2. The 7th Motor
+    // HQ and 1st Fld are `less`; the arrival filter already dropped them.
+    // Sum: 12+4+7+11+4+8+10+4+6+2 = 68.
     #[test]
     fn piece_counts_are_pinned() {
         let f = graziani();
         let oa_pieces =
             |side| f.side_pieces(side, PieceKind::Combat) + f.side_pieces(side, PieceKind::Hq);
-        assert_eq!(oa_pieces(Side::Axis), 216);
-        assert_eq!(oa_pieces(Side::Cw), 66);
+        assert_eq!(oa_pieces(Side::Axis), 217);
+        assert_eq!(oa_pieces(Side::Cw), 68);
         // 60.92: 3+2+1+1+8+3+3+1 supply units and 3+3 dummies for the Axis;
         // 5+1+3 and 3 for the Commonwealth, plus the 3+3 `adds`.
         assert_eq!(f.side_pieces(Side::Axis, PieceKind::SupplyUnit), 22);
         assert_eq!(f.side_pieces(Side::Axis, PieceKind::DummySupplyUnit), 6);
         assert_eq!(f.side_pieces(Side::Cw, PieceKind::SupplyUnit), 15);
         assert_eq!(f.side_pieces(Side::Cw, PieceKind::DummySupplyUnit), 3);
-        assert_eq!(f.setup.pieces.len(), 216 + 66 + 22 + 6 + 15 + 3);
-        assert_eq!(f.setup.not_land_units, vec![uid("unit:it:the-san-giorgio")]);
+        assert_eq!(f.setup.pieces.len(), 217 + 68 + 22 + 6 + 15 + 3);
     }
 
     #[test]
@@ -736,7 +728,7 @@ mod tests {
             .map(|u| u.constraint.as_str())
             .collect();
         assert!(texts.contains(&"or Helwan (E1430)"));
-        assert!(texts.contains(&"one hex west of Mersa Matruh; all three units together"));
+        assert!(texts.contains(&"any one hex of map D that lies west of Mersa Matruh (D3714); all three units in that one hex (60.92)"));
         let helwan = f
             .setup
             .unchecked
