@@ -15,6 +15,13 @@ writes is **Feedback**.
 
 ## Status
 
+**MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
+slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
+built until **Feedback** approves it. The spec asks three questions, each
+with a default: how the bot reaches DMs (`guilds.join` and a small CNA
+Discord server), host port 3240, and the image name
+`ghcr.io/basmith7/cna`.
+
 **MISSION 3 COMPLETE** (2026-10-13): a minimal browser UI for Graziani's
 Offensive in `web/` on `cna-game` compiled to WebAssembly (`crates/cna-web`,
 the `vendor/cna` data built in). Slices 1–6 merged as PRs #18–#23: the
@@ -48,14 +55,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Mission 4, Part 0**: the multiplayer server (`AUTOPILOT.md` queue,
-  row 4, Brian's direction of 2026-10-13) needs its spec on
-  `autopilot/m4-spec`, in the shape of the Mission 2 and 3 designs:
-  server architecture, the redacted per-side view, accounts and Discord
-  OAuth, the lobby, Discord DM alerts, persistence, deployment, the
-  slices, and Brian's checklist of outside steps. Mark the PR
-  `needs-brian` and build nothing until **Feedback** approves it. The
-  rest of the Land Game turn is now row 5.
+- **Review the Mission 4 spec: PR #25.** Approve (or ask for changes)
+  under **Feedback**, answering its three questions if the defaults are
+  wrong. Building starts with slice 1 once approved.
 - Mission 3's accepted residue, for a polish slice when it matters: the
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
