@@ -39,7 +39,8 @@ fn new_apply_log_replay_show() {
     assert!(ok);
     assert!(out.contains("GT1 stage 1 phase A"), "{out}");
     assert!(out.contains("waiting on axis"), "{out}");
-    assert!(out.contains("pending: 59"), "{out}");
+    // 59 free placements less the three Commonwealth AA units 32.8x removes.
+    assert!(out.contains("pending: 56"), "{out}");
     assert!(out.contains("C4218: 14"), "{out}");
 
     std::fs::write(
@@ -52,7 +53,7 @@ fn new_apply_log_replay_show() {
     assert!(out.contains("placed"), "{out}");
     let (ok, out, _) = play(&dir, &["show", "state.json"]);
     assert!(ok);
-    assert!(out.contains("pending: 58"), "{out}");
+    assert!(out.contains("pending: 55"), "{out}");
 
     // An illegal order fails, names its case, and leaves the file alone.
     let before = std::fs::read_to_string(dir.join("state.json")).unwrap();

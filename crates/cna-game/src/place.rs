@@ -4,7 +4,7 @@
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceId};
+use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::scenario::{Locator, Placement, Side};
@@ -42,6 +42,14 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.check_place(data, player, piece, hex)?;
         self.pieces.get_mut(piece).expect("checked").location = Location::Hex(hex.clone());
+        if let Some(points) = self.pending_motorisation.remove(piece) {
+            *self
+                .motorisation
+                .entry(player)
+                .or_default()
+                .entry(hex.to_string())
+                .or_default() += points;
+        }
         let mut events = vec![Event::Placed {
             piece: piece.clone(),
             hex: hex.clone(),
@@ -110,6 +118,9 @@ impl GameState {
                 format!("{hex} is {terrain}: no unit may be there"),
             ));
         };
+        if let Some(e) = self.supply_stack_refusal(data, p.kind, hex, 1) {
+            return Err(e);
+        }
         let stacked = self.stacked(data, hex);
         let sp = cna_rules::stacking::points(&data.stacking, p.equivalent);
         if stacked + sp > ceiling {
@@ -121,6 +132,47 @@ impl GameState {
             ));
         }
         Ok(())
+    }
+
+    /// 32.1x: with the abstract supply module on, at most five supply
+    /// units (dummies look real, 3.61) stand in a major city hex and three
+    /// anywhere else; `adding` more of kind `kind` would break it. The
+    /// off-map boxes take any number.
+    pub(crate) fn supply_stack_refusal(
+        &self,
+        data: &Data,
+        kind: PieceKind,
+        hex: &HexId,
+        adding: usize,
+    ) -> Option<Illegal> {
+        if !self.modules.abstract_supply
+            || !matches!(kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+        {
+            return None;
+        }
+        let n = adding + self.supply_units_at(hex);
+        let terrain = data.map.hex(hex)?.terrain;
+        let cap = if terrain.name() == "major-city" { 5 } else { 3 };
+        (n > cap).then(|| {
+            Illegal::new(
+                "32.1x",
+                format!(
+                    "{hex} ({}) would hold {n} supply units, over {cap}",
+                    terrain.name()
+                ),
+            )
+        })
+    }
+
+    /// The supply units, real or dummy, on a hex.
+    pub(crate) fn supply_units_at(&self, hex: &HexId) -> usize {
+        self.pieces
+            .values()
+            .filter(|p| {
+                matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && p.hex() == Some(hex)
+            })
+            .count()
     }
 
     pub(crate) fn next_set_up(&self) -> Option<Pending> {
@@ -226,6 +278,92 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn supply_game(data: &Data) -> GameState {
+        GameState::with_modules(data, 1, crate::state::Modules::ALL).unwrap()
+    }
+
+    /// Places `ids` in `at` in turn, returning the first refusal.
+    fn place_all(
+        data: &Data,
+        state: &mut GameState,
+        ids: &[PieceId],
+        at: &HexId,
+    ) -> Option<Illegal> {
+        ids.iter().find_map(|id| {
+            let order = Order::Place {
+                piece: id.clone(),
+                hex: at.clone(),
+            };
+            state.apply(data, Side::Axis, order).err()
+        })
+    }
+
+    // 32.1x: no more than three supply units, dummies included, in a hex
+    // that is not a major city.
+    #[test]
+    fn a_fourth_supply_unit_in_an_ordinary_hex_is_refused() {
+        let data = data();
+        let mut state = supply_game(&data);
+        let first = PieceId::supply(Side::Axis, 16);
+        let at = state
+            .placements(&data, &first)
+            .into_iter()
+            .find(|h| {
+                data.map.hex(h).unwrap().terrain.name() != "major-city"
+                    && state.stacked(&data, h) == 0
+            })
+            .unwrap();
+        let ids = [
+            first,
+            PieceId::supply(Side::Axis, 17),
+            PieceId::dummy_supply(Side::Axis, 1),
+            PieceId::dummy_supply(Side::Axis, 2),
+        ];
+        let err = place_all(&data, &mut state, &ids, &at).expect("the fourth is refused");
+        assert_eq!(err.case, "32.1x");
+        assert!(state.pieces[&ids[3]].is_pending());
+        // Without the module the stack is free.
+        let mut free = GameState::new(&data, 1).unwrap();
+        assert!(place_all(&data, &mut free, &ids, &at).is_none());
+    }
+
+    // 32.1x: a major city takes five.
+    #[test]
+    fn a_sixth_supply_unit_in_a_major_city_is_refused() {
+        let data = data();
+        let mut state = supply_game(&data);
+        let tobruk = HexId::parse("C4807").unwrap();
+        assert_eq!(data.map.hex(&tobruk).unwrap().terrain.name(), "major-city");
+        // Three real ones already stand there.
+        let ids = [
+            PieceId::supply(Side::Axis, 16),
+            PieceId::supply(Side::Axis, 17),
+            PieceId::supply(Side::Axis, 18),
+        ];
+        let err = place_all(&data, &mut state, &ids, &tobruk).expect("the sixth is refused");
+        assert_eq!(err.case, "32.1x");
+        assert_eq!(state.pieces[&ids[0]].hex(), Some(&tobruk));
+        assert_eq!(state.pieces[&ids[1]].hex(), Some(&tobruk));
+        assert!(state.pieces[&ids[2]].is_pending());
+        // `placements` agrees with `apply`.
+        assert!(!state.placements(&data, &ids[2]).contains(&tobruk));
+    }
+
+    // 32.1x binds what is added, not 60.92's own set-up: it stacks five
+    // supply units at Mersa Matruh, a village, so the cap is no load error.
+    #[test]
+    fn the_scenarios_own_stack_at_a_village_stands_but_takes_no_more() {
+        let data = data();
+        let state = supply_game(&data);
+        let matruh = HexId::parse("D3714").unwrap();
+        assert_eq!(state.supply_units_at(&matruh), 5);
+        state.check_invariants(&data).unwrap();
+        let err = state
+            .supply_stack_refusal(&data, PieceKind::SupplyUnit, &matruh, 1)
+            .unwrap();
+        assert_eq!(err.case, "32.1x");
     }
 
     #[test]

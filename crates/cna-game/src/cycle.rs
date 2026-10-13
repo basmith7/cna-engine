@@ -107,7 +107,9 @@ impl GameState {
         sp
     }
 
-    /// Whether a hex is over its terrain's ceiling (9.14).
+    /// Whether a hex is over its terrain's ceiling (9.14). With §32 on, no
+    /// road or track stacking limit applies (32.9), and the engine has
+    /// none to switch off: the ceiling binds only where a move ends.
     pub(crate) fn over_ceiling_at(&self, data: &Data, hex: &HexId) -> Option<Illegal> {
         let terrain = data.map.hex(hex).expect("pieces stand on hexes").terrain;
         let ceiling = data.terrain.ceiling(terrain.name()).unwrap_or(0);

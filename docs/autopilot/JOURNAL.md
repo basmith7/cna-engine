@@ -196,3 +196,9 @@ Done: merged PR #27 (10.36 must-attack Pass; its run left no journal entry). Re-
 In flight: slice 1 (supply state) on `autopilot/m5-slice-1-supply-state`.
 Next: merge #29 once gates pass; merge #28 once its re-run is green; continue slice 1 from its plan. If **Feedback** approves #25, finish the slice in hand and switch to Mission 4.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-13 14:35 MST — autopilot/m5-slice-1-supply-state
+Done: spec #29 and #28 merged. Slice 1, PR #31: loads (e000001), motorisation points (bb3f138), supply stacking (c7869ef), the `abstract_supply` module and view redaction (7c7248a), browser stays module-off (8cea02f), 32.8x AA thinning (e413911). Gates pass locally. PR #30 fixes the flaky zoom budget (368a941). Slice 2 is PR #32: rates (867ad5d) and the draw range (a650fb8).
+In flight: slice 2 Task 3 (fuel) on `autopilot/m5-slice-2-spending`.
+Next: merge #30, #31 once CI is green, then #32's base becomes main; continue slice 2 at the first unchecked task in its plan.
+Blocked: Mission 4 on Brian's review of PR #25.

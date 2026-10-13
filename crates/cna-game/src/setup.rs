@@ -12,14 +12,16 @@
 //! The Land-Game-only abstraction is applied first (60.92), so the supply
 //! blocks seen here are supply units, which become inert pieces.
 
-use crate::piece::{Location, Piece, PieceId, PieceKind};
+use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
+use crate::state::Modules;
 use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
-use cna_data::oa::{Arrival, Oa, ToeMark, Unit, UnitId};
+use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
 use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
 use cna_data::time::GameTime;
+use cna_data::weapons::{WeaponClass, WeaponSystems};
 use std::collections::BTreeSet;
 
 /// A time no arrival is after: subtree with no arrival filter.
@@ -32,6 +34,19 @@ pub struct Setup {
     /// Placement `constraint` sentences the grammar cannot check (59.2);
     /// the owner is trusted to honour them.
     pub unchecked: Vec<Unchecked>,
+    /// Motorisation points where each deployment's medium trucks start
+    /// (32.5x, 60.92); empty with the module off.
+    pub motorisation: Vec<Motorisation>,
+}
+
+/// A deployment's motorisation points. Where the deployment is still
+/// pending, they follow `anchor`, its first piece, to the hex it lands in.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Motorisation {
+    pub side: Side,
+    pub location: Location,
+    pub points: u32,
+    pub anchor: Option<PieceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,11 +60,18 @@ pub struct Unchecked {
 /// into pieces. Fails on a hex or place not on the map, a unit not in the
 /// OA, an indicator naming a unit outside the entry, or a unit placed
 /// twice (R-094).
-pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) -> Result<Setup> {
+pub fn expand(
+    scenario: &Scenario,
+    oa: &Oa,
+    chars: &Characteristics,
+    map: &Map,
+    modules: Modules,
+) -> Result<Setup> {
     let scenario = scenario.land_only();
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
+        motorisation: Vec::new(),
     };
     let mut placed = BTreeSet::new();
     for side in [Side::Axis, Side::Cw] {
@@ -70,6 +92,17 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     ids.push(piece.id.clone());
                     setup.pieces.push(piece);
                 }
+            }
+            // 60.92: each medium truck point becomes a motorisation
+            // point; light and heavy give none.
+            let medium = d.trucks.map_or(0, |t| t.medium);
+            if modules.abstract_supply && medium > 0 {
+                setup.motorisation.push(Motorisation {
+                    side,
+                    location: location.clone(),
+                    points: medium,
+                    anchor: ids.first().cloned(),
+                });
             }
             log_constraint(&mut setup, side, &d.placement, ids);
         }
@@ -108,6 +141,12 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     equivalent: None,
                     garrison_of: None,
                     location: location.clone(),
+                    load: (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| {
+                        Load {
+                            ammo: b.ammo.unwrap_or(0),
+                            fuel: b.fuel.unwrap_or(0),
+                        }
+                    }),
                     cp_spent: Cp::ZERO,
                     cp_enemy_half: Cp::ZERO,
                     cohesion: Default::default(),
@@ -284,6 +323,7 @@ fn piece(
         equivalent,
         garrison_of: oa.formation_of(&unit.id).garrison_hex(),
         location,
+        load: None,
         cp_spent: Cp::ZERO,
         cp_enemy_half: Cp::ZERO,
         cohesion: Default::default(),
@@ -395,6 +435,66 @@ fn resolve(p: &Placement, map: &Map) -> Result<Location> {
     Ok(Location::Pending(p.clone()))
 }
 
+/// 32.8x, the Land Game without the Air Game: AA is thinned at set-up.
+/// The Commonwealth loses every AA unit (one whose TOE is all AA) and
+/// every AA point; the Germans their *z* and *bb* units and light AA
+/// points; the Italians their *ss*, *tt* and *uu* units, the AA points of
+/// *pp* units and the heavy AA points of *kk* units. A unit stripped to
+/// no TOE goes too. Returns the pieces removed.
+pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<PieceId>> {
+    let mut removed = Vec::new();
+    setup.pieces.retain_mut(|p| {
+        let Some(nation) = p.nation else {
+            return true;
+        };
+        let code = p.id_code.as_deref().unwrap_or_default();
+        let aa = |name: &str| {
+            weapons
+                .resolve(nation, name)
+                .filter(|r| r.class == WeaponClass::AntiAir)
+                .map(|r| r.weapon.trim_start_matches("'I' ").starts_with("Heavy"))
+        };
+        let all_aa = !p.weapons.is_empty() && p.weapons.iter().all(|w| aa(&w.weapon).is_some());
+        let unit_goes = match nation {
+            Nation::Cw => all_aa,
+            Nation::De => matches!(code, "z" | "bb"),
+            Nation::It => matches!(code, "ss" | "tt" | "uu"),
+        };
+        let strips = |heavy: bool| match nation {
+            Nation::Cw => true,
+            Nation::De => !heavy,
+            Nation::It => code == "pp" || (code == "kk" && heavy),
+        };
+        let before = p.toe;
+        if !unit_goes {
+            let toe = &mut p.toe;
+            p.weapons.retain(|w| match aa(&w.weapon) {
+                Some(heavy) if strips(heavy) => {
+                    *toe -= w.points;
+                    false
+                }
+                _ => true,
+            });
+        }
+        let keep = !unit_goes && (p.toe > 0 || before == 0);
+        if !keep {
+            removed.push(p.id.clone());
+        }
+        keep
+    });
+    for u in &mut setup.unchecked {
+        u.pieces.retain(|id| !removed.contains(id));
+    }
+    for m in &setup.motorisation {
+        if let Some(anchor) = &m.anchor
+            && removed.contains(anchor)
+        {
+            bail!("{anchor}: removed by 32.8x but anchors motorisation points");
+        }
+    }
+    Ok(removed)
+}
+
 fn log_constraint(setup: &mut Setup, side: Side, p: &Placement, pieces: Vec<PieceId>) {
     if let Some(c) = &p.constraint {
         setup.unchecked.push(Unchecked {
@@ -429,7 +529,7 @@ mod tests {
         let oa = Oa::load_all().unwrap();
         let chars = Characteristics::load().unwrap();
         let map = Map::load().unwrap();
-        let setup = expand(&scenario, &oa, &chars, &map).unwrap();
+        let setup = expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap();
         Fixture {
             scenario,
             oa,
@@ -783,6 +883,44 @@ mod tests {
         assert_eq!((dummy.nation, dummy.toe, dummy.morale), (None, 0, None));
     }
 
+    // 32.1x, 60.92: each real supply unit carries its block's figures
+    // (per unit: every block's figure is within 40/60); Derna's printed
+    // dash is no ammunition; dummies carry nothing.
+    #[test]
+    fn supply_units_carry_their_block_loads() {
+        let f = graziani();
+        assert!(f.setup.pieces.iter().all(|p| p.load.is_none()));
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        let loads_at = |h: &str| -> Vec<Option<Load>> {
+            on.pieces
+                .iter()
+                .filter(|p| p.hex() == Some(&hex(h)))
+                .filter(|p| p.kind == PieceKind::SupplyUnit)
+                .map(|p| p.load)
+                .collect()
+        };
+        let tobruk = Some(Load { ammo: 15, fuel: 50 });
+        assert_eq!(loads_at("C4807"), vec![tobruk; 3]);
+        let derna = on
+            .pieces
+            .iter()
+            .find(|p| p.load == Some(Load { ammo: 0, fuel: 10 }));
+        assert!(derna.is_some());
+        assert_eq!(
+            loads_at("D3714"),
+            vec![Some(Load { ammo: 40, fuel: 60 }); 5]
+        );
+        for p in &on.pieces {
+            match p.kind {
+                PieceKind::SupplyUnit => {
+                    let l = p.load.unwrap_or_else(|| panic!("{} has no load", p.id));
+                    assert!(l.ammo <= crate::piece::MAX_AMMO && l.fuel <= crate::piece::MAX_FUEL);
+                }
+                _ => assert_eq!(p.load, None, "{}", p.id),
+            }
+        }
+    }
+
     #[test]
     fn constraints_are_logged_unchecked() {
         let f = graziani();
@@ -824,7 +962,10 @@ mod tests {
         let map = Map::load().unwrap();
         let d = &mut scenario.sides.get_mut(&Side::Axis).unwrap().deployments[0];
         d.placement.locator = Locator::Hexes(vec![hex("C9999")]);
-        let err = format!("{:#}", expand(&scenario, &oa, &chars, &map).unwrap_err());
+        let err = format!(
+            "{:#}",
+            expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap_err()
+        );
         assert!(err.contains("C9999"), "{err}");
     }
 }

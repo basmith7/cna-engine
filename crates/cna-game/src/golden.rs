@@ -15,8 +15,8 @@ mod tests {
     use crate::log::{Log, replay};
     use crate::order::{Allocation, Assignment, Fire, Order};
     use crate::piece::PieceId;
-    use crate::state::GameState;
     use crate::state::test_support::{auto_place, pass_stage};
+    use crate::state::{GameState, Modules};
     use cna_data::map::HexId;
     use cna_data::scenario::{Side, VictoryLevel};
     use sha2::{Digest, Sha256};
@@ -26,8 +26,16 @@ mod tests {
     const FINAL_STATE_SHA256: &str =
         "4f74be58169d973ad7e7b4de437975a9280faf0b8097859583c479dd0e4264e8";
 
+    /// The same final state's hash with the abstract supply module on.
+    const M5_FINAL_STATE_SHA256: &str =
+        "ad3b9c67cbd5dfd2713bc6d507d3b3cecc056006b3c4df66fbac1b162d64305b";
+
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
+    }
+
+    fn m5_fixture() -> PathBuf {
+        cna_data::repo_root().join("tests/games/graziani-m5.json")
     }
 
     fn pid(s: &str) -> PieceId {
@@ -91,8 +99,8 @@ mod tests {
     /// the 62nd Marmarica Division follows the road to C3920 and the
     /// artillery barrages the Coldstream Guards. Then both sides pass to
     /// the end of Game-Turn 6.
-    fn script(data: &Data) -> GameState {
-        let mut state = GameState::new(data, 7).unwrap();
+    fn script(data: &Data, modules: Modules) -> GameState {
+        let mut state = GameState::with_modules(data, 7, modules).unwrap();
         auto_place(data, &mut state);
         let div1 = stack(&state, "C4020");
         let div2 = stack(&state, "C3920");
@@ -257,7 +265,7 @@ mod tests {
     #[ignore]
     fn regenerate_graziani_short_fixture() {
         let data = Data::load("grazianis-offensive").unwrap();
-        let state = script(&data);
+        let state = script(&data, Modules::default());
         let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
         std::fs::write(fixture(), json).unwrap();
         println!("orders: {}", state.log.len());
@@ -266,11 +274,44 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+    fn regenerate_graziani_m5_fixture() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = script(&data, Modules::ALL);
+        let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
+        std::fs::write(m5_fixture(), json).unwrap();
+        println!(
+            "M5_FINAL_STATE_SHA256 = {}",
+            sha256(&state.to_json().unwrap())
+        );
+    }
+
+    // The old orders with the module on (Mission 5): the same fight, the
+    // same report, now with loads and motorisation in the state.
+    #[test]
+    fn the_golden_game_with_abstract_supply_replays_to_its_pinned_end() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let text = std::fs::read_to_string(m5_fixture()).unwrap();
+        let log: Log = serde_json::from_str(&text).unwrap();
+        assert!(log.modules.abstract_supply);
+        let live = script(&data, Modules::ALL);
+        assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
+        let replayed = replay(&data, &log).unwrap();
+        let json = replayed.to_json().unwrap();
+        assert_eq!(json, live.to_json().unwrap());
+        assert_eq!(sha256(&json), M5_FINAL_STATE_SHA256);
+        let old = script(&data, Modules::default());
+        assert_eq!(replayed.over, old.over);
+        assert!(replayed.pieces.values().any(|p| p.load.is_some()));
+        assert!(!replayed.motorisation.is_empty());
+    }
+
+    #[test]
     fn the_golden_game_replays_to_its_pinned_end() {
         let data = Data::load("grazianis-offensive").unwrap();
         let text = std::fs::read_to_string(fixture()).unwrap();
         let log: Log = serde_json::from_str(&text).unwrap();
-        let live = script(&data);
+        let live = script(&data, Modules::default());
         assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
         let replayed = replay(&data, &log).unwrap();
         let json = replayed.to_json().unwrap();
