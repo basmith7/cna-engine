@@ -216,3 +216,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-12 13:53 | 0 | 65→65 | 3→3 | $0.32 | 4 | I built nothing this run. The Mission 2 spec (PR #5) is still waiting for your review, and the standing orders don't allow any Mission 2 work until you approve  |
 | 2026-10-12 16:53 | 0 | 66→? | 0→? | $0.31 | 4 | I built nothing this run: the Mission 2 spec (PR #5) still needs your review, and the standing orders don't allow any Mission 2 work until you approve it under  |
 | 2026-10-13 08:53 | 29 | 1→4 | 10→68 | $4.03 | 3 | Brian, the Mission 4 spec is up as **PR #25**, labelled `needs-brian`, and nothing for Mission 4 will be built until you approve it under **Feedback**. **What's |
+| 2026-10-13 12:53 | 11 | 6→7 | 93→100 | $2.51 | 1 | You've hit your session limit · resets 1:30pm (America/Phoenix) |
