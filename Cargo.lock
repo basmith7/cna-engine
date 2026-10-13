@@ -219,6 +219,7 @@ dependencies = [
  "cna-data",
  "cna-game",
  "serde_json",
+ "sha2",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

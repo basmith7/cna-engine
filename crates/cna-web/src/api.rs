@@ -252,6 +252,40 @@ mod tests {
         assert!(Game::load("{}").is_err());
     }
 
+    /// The golden game's set-up (orders 0–58 of `graziani-short.json`)
+    /// replayed, as the hash of its save.
+    fn set_up_done_sha256() -> String {
+        use sha2::{Digest, Sha256};
+        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let mut log: Log =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        log.orders.truncate(59);
+        let state = replay(data(), &log).unwrap();
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        assert!(state.pending.is_none());
+        format!("{:x}", Sha256::digest(state.to_json().unwrap()))
+    }
+
+    fn set_up_done_fixture() -> std::path::PathBuf {
+        cna_data::repo_root().join("web/tests/fixtures/set-up-done.sha256")
+    }
+
+    /// The Playwright set-up e2e ends with `save()` hashing to this
+    /// fixture (`web/tests/setup.spec.ts`); regenerate it with
+    /// `cargo test -p cna-web -- --ignored regenerate_set_up_done_fixture`
+    /// after a deliberate change to the rules or the golden game.
+    #[test]
+    fn the_set_up_done_fixture_is_current() {
+        let pinned = std::fs::read_to_string(set_up_done_fixture()).unwrap();
+        assert_eq!(pinned.trim(), set_up_done_sha256());
+    }
+
+    #[test]
+    #[ignore]
+    fn regenerate_set_up_done_fixture() {
+        std::fs::write(set_up_done_fixture(), set_up_done_sha256() + "\n").unwrap();
+    }
+
     #[test]
     fn the_scripted_set_up_through_apply_matches_replay() {
         let log = setup_log();
