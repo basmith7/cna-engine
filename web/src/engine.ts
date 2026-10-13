@@ -2,7 +2,7 @@
 // parsed into the types of `types.ts`. The engine state is the only game
 // state; the UI reads `view()` whole after every accepted order.
 import init, { Game } from "./pkg/cna_web.js";
-import type { ApplyResult, Order, Side, View } from "./types";
+import type { ApplyResult, HexId, Order, PieceId, Side, View } from "./types";
 
 let ready: Promise<void> | undefined;
 
@@ -34,6 +34,11 @@ export class Engine {
 
   save(): string {
     return this.game.save();
+  }
+
+  /** The hexes `place` would accept for a pending piece of the side setting up; empty for any other piece. */
+  placements(piece: PieceId): HexId[] {
+    return JSON.parse(this.game.placements(piece)) as HexId[];
   }
 
   apply(side: Side, order: Order): ApplyResult {

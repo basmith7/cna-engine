@@ -12,6 +12,7 @@ use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::order::Order;
+use cna_game::piece::PieceId;
 use cna_game::state::GameState;
 use serde_json::{Value, json};
 
@@ -76,6 +77,15 @@ impl Game {
             }
         }
         Ok(v)
+    }
+
+    /// The hexes `place` would accept for a pending piece of the side
+    /// setting up, as a JSON array of hex ids; empty for any other piece
+    /// (`GameState::placements`). A piece id that is not a string is an
+    /// `Err`.
+    pub fn placements(&self, piece: &str) -> Result<Value> {
+        let id: PieceId = serde_json::from_value(Value::String(piece.to_owned()))?;
+        Ok(json!(self.state.placements(data(), &id)))
     }
 
     /// One order from `side`.
@@ -187,6 +197,27 @@ mod tests {
             game.view().unwrap()["pieces"]["supply:axis:16"]["location"],
             json!({ "hex": "C0101" })
         );
+    }
+
+    #[test]
+    fn placements_lists_the_hexes_place_accepts_for_the_side_setting_up() {
+        let mut game = Game::new(7).unwrap();
+        let hexes = game.placements("supply:axis:16").unwrap();
+        let hexes = hexes.as_array().unwrap();
+        assert!(hexes.contains(&json!("C0101")), "{hexes:?}");
+        assert!(hexes.iter().all(|h| h.as_str().unwrap().starts_with('C')));
+        // The Commonwealth is not setting up yet; a placed piece and an
+        // unknown one have nowhere to go either.
+        assert_eq!(game.placements("supply:cw:7").unwrap(), json!([]));
+        assert_eq!(game.placements("unit:it:no-such").unwrap(), json!([]));
+        let r = game
+            .apply(
+                "axis",
+                r#"{"place":{"piece":"supply:axis:16","hex":"C0101"}}"#,
+            )
+            .unwrap();
+        assert!(r["ok"].is_array());
+        assert_eq!(game.placements("supply:axis:16").unwrap(), json!([]));
     }
 
     #[test]

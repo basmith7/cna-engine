@@ -23,12 +23,31 @@ fn a_new_game_waits_on_the_axis() {
 }
 
 #[wasm_bindgen_test]
+fn placements_of_a_pending_piece() {
+    let game = Game::new_game(7).unwrap();
+    let hexes = parse(&game.placements("supply:axis:16").unwrap());
+    assert!(
+        hexes
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("C0101"))
+    );
+    assert_eq!(
+        parse(&game.placements("supply:cw:7").unwrap()),
+        serde_json::json!([])
+    );
+}
+
+#[wasm_bindgen_test]
 fn legal_and_illegal_orders() {
     let mut game = Game::new_game(7).unwrap();
     let before = game.save().unwrap();
     let r = parse(
         &game
-            .apply("axis", r#"{"place":{"piece":"supply:axis:16","hex":"E0101"}}"#)
+            .apply(
+                "axis",
+                r#"{"place":{"piece":"supply:axis:16","hex":"E0101"}}"#,
+            )
             .unwrap(),
     );
     assert_eq!(r["illegal"]["case"], "59.2");
