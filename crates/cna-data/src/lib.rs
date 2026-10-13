@@ -2,12 +2,15 @@ use std::path::PathBuf;
 
 pub mod anti_armour;
 pub mod barrage;
+pub mod characteristics;
 pub mod close_assault;
 pub mod construction;
 pub mod errata;
 pub mod map;
 pub mod morale;
+pub mod oa;
 pub mod terrain;
+pub mod time;
 
 pub fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
