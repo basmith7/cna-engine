@@ -197,9 +197,14 @@ impl Hexside {
     }
 
     /// True when a move from `from` to `to` goes up the slope or
-    /// escarpment, that is when `to` is the recorded `up` hex.
+    /// escarpment: `to` is the recorded `up` hex, or the record has a
+    /// slope or escarpment and no `up` (seam pairs and two sheet-B
+    /// records), which seams.json says to treat as the feature both ways.
     pub fn climbs(&self, from: &HexId, to: &HexId) -> bool {
-        self.up.as_ref().is_some_and(|u| u == to && u != from)
+        match &self.up {
+            Some(u) => u == to && u != from,
+            None => self.has(HexsideFeature::Slope) || self.has(HexsideFeature::Escarpment),
+        }
     }
 }
 
@@ -690,6 +695,33 @@ mod tests {
         assert!(!hs.climbs(&plateau, &plain));
         // Either order looks up the same record.
         assert_eq!(m.hexside(&plateau, &plain), Some(hs));
+    }
+
+    #[test]
+    fn a_slope_with_no_known_up_hex_climbs_both_ways() {
+        // Seam records and two sheet-B records carry a slope or
+        // escarpment without saying which hex is higher; seams.json says
+        // to treat such a hexside as the feature in both directions.
+        let m = map();
+        for (a, b) in [("C0633", "D0701"), ("B1705", "B1706"), ("B1706", "B1805")] {
+            let (a, b) = (HexId::parse(a).unwrap(), HexId::parse(b).unwrap());
+            let hs = m.hexside(&a, &b).unwrap();
+            assert!(hs.has(HexsideFeature::Slope), "{a}|{b}");
+            assert!(hs.up.is_none(), "{a}|{b}");
+            assert!(hs.climbs(&a, &b), "{a}|{b}");
+            assert!(hs.climbs(&b, &a), "{a}|{b}");
+        }
+        // Every slope or escarpment record with no `up` climbs both ways;
+        // every other such record climbs one way only.
+        for (a, b, hs) in m.hexsides() {
+            let graded = hs.has(HexsideFeature::Slope) || hs.has(HexsideFeature::Escarpment);
+            let ways = usize::from(hs.climbs(a, b)) + usize::from(hs.climbs(b, a));
+            match (graded, &hs.up) {
+                (true, None) => assert_eq!(ways, 2, "{a}|{b}"),
+                (true, Some(_)) => assert_eq!(ways, 1, "{a}|{b}"),
+                (false, _) => assert_eq!(ways, 0, "{a}|{b}"),
+            }
+        }
     }
 
     #[test]

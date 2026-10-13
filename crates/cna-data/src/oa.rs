@@ -214,6 +214,18 @@ pub struct Formation {
     pub units: Vec<Unit>,
 }
 
+impl Formation {
+    /// The hex a garrison sheet garrisons (SPI 9.16's `G`): the sheet's
+    /// title names it, as in `Bardia Garrison (Hex: C4321)`; none for
+    /// any other sheet.
+    pub fn garrison_hex(&self) -> Option<crate::map::HexId> {
+        let rest = self.name.split("Garrison (Hex:").nth(1)?;
+        let inside = rest.split(')').next()?;
+        let compact: String = inside.chars().filter(|c| !c.is_whitespace()).collect();
+        crate::map::HexId::parse(&compact).ok()
+    }
+}
+
 #[derive(Deserialize)]
 struct OaFile {
     nation: Nation,
@@ -368,6 +380,24 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn garrison_sheets_name_their_hex() {
+        let oa = Oa::load_all().unwrap();
+        let hex = |f: &str| oa.formation(f).unwrap().garrison_hex();
+        assert_eq!(
+            hex("it:bardia-garrison-hex-c4321").unwrap().as_str(),
+            "C4321"
+        );
+        assert_eq!(
+            hex("it:giariabub-oasis-complex-garrison-hex-c-1014")
+                .unwrap()
+                .as_str(),
+            "C1014"
+        );
+        assert_eq!(hex("it:minor-garrison-units"), None);
+        assert_eq!(hex("it:gruppo-maletti"), None);
     }
 
     #[test]

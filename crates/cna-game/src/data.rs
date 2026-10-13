@@ -13,7 +13,9 @@ use cna_data::characteristics::Characteristics;
 use cna_data::initiative::InitiativeRatings;
 use cna_data::map::Map;
 use cna_data::oa::Oa;
+use cna_data::off_map::OffMapDistances;
 use cna_data::scenario::Scenario;
+use cna_data::schedule::Schedule;
 use cna_data::stacking::StackingPoints;
 use cna_data::terrain::Terrain;
 use cna_data::weather::Weather;
@@ -30,6 +32,8 @@ pub struct Data {
     pub stacking: StackingPoints,
     pub weather: Weather,
     pub initiative: InitiativeRatings,
+    pub schedule: Schedule,
+    pub off_map: OffMapDistances,
 }
 
 impl Data {
@@ -46,6 +50,8 @@ impl Data {
             stacking: StackingPoints::load()?,
             weather: Weather::load()?,
             initiative: InitiativeRatings::load()?,
+            schedule: Schedule::load()?,
+            off_map: OffMapDistances::load()?,
         })
     }
 

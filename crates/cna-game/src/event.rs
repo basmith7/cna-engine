@@ -3,8 +3,9 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
-use crate::piece::PieceId;
+use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
+use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,70 @@ pub enum Event {
     },
     /// Every piece is on the map; play begins.
     SetUpComplete,
+    /// Reinforcements landed in phase D (20.1x).
+    Arrived {
+        pieces: Vec<PieceId>,
+        at: Location,
+    },
+    /// An OpStage of off-map movement (8.8x): where the piece now is.
+    MovedOffMap {
+        piece: PieceId,
+        location: Location,
+    },
+    /// One step of a move: what it cost each piece (8.3x).
+    Moved {
+        pieces: Vec<PieceId>,
+        from: HexId,
+        to: HexId,
+        cost: Cp,
+    },
+    /// CP over the CPA earned DP at once (6.21); the level after.
+    Disorganised {
+        piece: PieceId,
+        dp: u32,
+        level: i32,
+    },
+    /// A move stopped at `at` before entering `before`, until the
+    /// non-phasing player says whether `declare` exert a ZOC (10.16).
+    MoveInterrupted {
+        pieces: Vec<PieceId>,
+        at: HexId,
+        before: HexId,
+        declare: Vec<HexId>,
+    },
+    ZocDeclared {
+        hex: HexId,
+        exerts: bool,
+    },
+    /// A move stopped at `at`, next to non-phasing units that may react
+    /// (8.5x); the mover may go on once they have answered.
+    ReactionOffered {
+        pieces: Vec<PieceId>,
+        at: HexId,
+    },
+    /// A unit in contact or engaged paid to leave (8.6x).
+    ContactBroken {
+        piece: PieceId,
+        cost: Cp,
+    },
+    ReserveDesignated {
+        pieces: Vec<PieceId>,
+    },
+    /// Released from Reserve I or II (18.2x).
+    ReserveReleased {
+        pieces: Vec<PieceId>,
+        from: Reserve,
+    },
+    /// Still in Reserve I as the first release segment closed: now
+    /// Reserve II (18.2x).
+    ReserveFlipped {
+        pieces: Vec<PieceId>,
+    },
+    /// A non-combat unit alone in an enemy ZOC was taken (10.29).
+    Captured {
+        piece: PieceId,
+        hex: HexId,
+    },
     /// The scenario's last OpStage is over.
     GameOver,
 }

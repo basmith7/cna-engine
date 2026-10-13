@@ -64,20 +64,13 @@ impl GameState {
                 format!("{hex} is {terrain}: no unit may be there"),
             ));
         };
-        let sp =
-            |id: &PieceId| cna_rules::stacking::points(&data.stacking, self.pieces[id].equivalent);
-        let stacked: u32 = self
-            .pieces
-            .values()
-            .filter(|q| q.hex() == Some(hex))
-            .map(|q| sp(&q.id))
-            .sum();
-        if stacked + sp(piece) > ceiling {
+        let stacked = self.stacked(data, hex);
+        let sp = cna_rules::stacking::points(&data.stacking, p.equivalent);
+        if stacked + sp > ceiling {
             return Err(Illegal::new(
                 "9.14",
                 format!(
-                    "{hex} holds {stacked} SP of a ceiling of {ceiling}; {piece} would add {}",
-                    sp(piece)
+                    "{hex} holds {stacked} SP of a ceiling of {ceiling}; {piece} would add {sp}"
                 ),
             ));
         }

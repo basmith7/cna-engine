@@ -11,10 +11,11 @@ use crate::piece::{Piece, PieceId};
 use crate::rng::GameRng;
 use crate::setup;
 use anyhow::Result;
+use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::ruleset::Ruleset;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// The OpStage's weather (29.6): the result and, for a storm, the sheets
 /// it covers (29.7).
@@ -33,12 +34,24 @@ pub enum Weather {
 pub enum Pending {
     /// This side has pieces with a free placement to make (59.2).
     SetUp { side: Side },
+    /// The non-phasing side must say which of these hexes exert a ZOC
+    /// (10.16); `at_start` when asked as a movement segment opens, so
+    /// contact is fixed once it answers (R-003).
+    DeclareZoc {
+        side: Side,
+        hexes: Vec<HexId>,
+        at_start: bool,
+    },
+    /// The non-phasing side may react with these units (8.5x).
+    Reaction { side: Side, eligible: Vec<PieceId> },
 }
 
 impl Pending {
     pub fn side(&self) -> Side {
         match self {
-            Pending::SetUp { side } => *side,
+            Pending::SetUp { side }
+            | Pending::DeclareZoc { side, .. }
+            | Pending::Reaction { side, .. } => *side,
         }
     }
 }
@@ -57,6 +70,28 @@ pub struct GameState {
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
+    /// Movement segments completed in the current phase G (8.2x).
+    #[serde(default)]
+    pub cycle: u8,
+    /// Pieces that have moved this movement segment: the hexes they
+    /// stand in when it ends are where the stacking ceiling binds (9.14,
+    /// 9.31).
+    #[serde(default)]
+    pub moved: BTreeSet<PieceId>,
+    /// The non-phasing player's ZOC declarations this movement segment,
+    /// by its hex (10.16).
+    #[serde(default)]
+    pub zoc: BTreeMap<HexId, bool>,
+    /// Phasing pieces that ended the last movement segment within two
+    /// hexes of an enemy combat unit, or were just released from
+    /// reserve: the only ones that may move in a later segment of this
+    /// phase (8.2x, 18.25).
+    #[serde(default)]
+    pub continuing: BTreeSet<PieceId>,
+    /// Reserve I pieces that made their one-hex shift this movement
+    /// segment (18.2x).
+    #[serde(default)]
+    pub shifted: BTreeSet<PieceId>,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -84,6 +119,11 @@ impl GameState {
             weather: Weather::Normal,
             pieces,
             pending: None,
+            cycle: 0,
+            moved: BTreeSet::new(),
+            zoc: BTreeMap::new(),
+            continuing: BTreeSet::new(),
+            shifted: BTreeSet::new(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),
@@ -148,12 +188,43 @@ impl GameState {
                 "59.2",
                 format!("{side} still has pieces to place"),
             )),
+            (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
+                self.declare_zoc(data, player, exerting)
+            }
+            (Some(Pending::DeclareZoc { side, hexes, .. }), _) => Err(Illegal::new(
+                "10.16",
+                format!("{side} must first say whether {hexes:?} exert a ZOC"),
+            )),
+            (None, Order::DeclareZoc { .. }) => {
+                Err(Illegal::new("10.16", "no ZOC declaration is pending"))
+            }
+            (Some(Pending::Reaction { .. }), Order::React { pieces, path }) => {
+                self.react(data, player, pieces, path)
+            }
+            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
+            (Some(Pending::Reaction { side, .. }), _) => Err(Illegal::new(
+                "8.5x",
+                format!("{side} is reacting: only React or Pass"),
+            )),
+            (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
             (None, Order::DeclareInitiative { player_a }) => {
                 self.declare_initiative(data, *player_a)
             }
+            (
+                None,
+                Order::Move {
+                    pieces,
+                    path,
+                    assault,
+                },
+            ) => self.move_pieces(data, player, pieces, path, *assault),
+            (None, Order::MoveOffMap { pieces, to }) => self.move_off_map(data, player, pieces, *to),
+            (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
+            (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
+            (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }
     }
@@ -163,7 +234,6 @@ impl GameState {
 pub(crate) mod test_support {
     use super::*;
     use crate::piece::Location;
-    use cna_data::map::HexId;
     use cna_data::scenario::Locator;
 
     /// Hexes a pending piece's placement allows, in id order (the
@@ -265,7 +335,6 @@ mod tests {
     use crate::clock::Phase;
     use crate::order::Order;
     use crate::piece::Location;
-    use cna_data::map::HexId;
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
@@ -385,26 +454,24 @@ mod tests {
     fn a_place_over_the_stacking_ceiling_is_illegal() {
         let data = graziani();
         let mut state = GameState::new(&data, 1).unwrap();
-        // C4218 (clear, ceiling 6) holds the 1st CCNN division's 14
-        // counters, which the set-up puts there whatever the ceiling.
+        // C4218 (clear, ceiling 6) holds the 1st CCNN division with its
+        // HQ: 5 SP (9.13). One "anywhere in Libya" battalion (1 SP) fits;
+        // a second does not.
         let target = hex("C4218");
-        let sp_now: u32 = state
-            .pieces
-            .values()
-            .filter(|p| p.hex() == Some(&target))
-            .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
-            .sum();
-        assert!(
-            sp_now >= 6,
-            "C4218 (1st CCNN) should be at the ceiling, has {sp_now}"
-        );
-        // An "anywhere in Libya" battalion (1 SP) onto a full hex.
+        assert_eq!(state.stacked(&data, &target), 5);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                place("unit:it:1st-bn-1-arty-rgppmnto", "C4218"),
+            )
+            .unwrap();
         let before = serde_json::to_string(&state).unwrap();
         let err = state
             .apply(
                 &data,
                 Side::Axis,
-                place("unit:it:1st-bn-1-arty-rgppmnto", "C4218"),
+                place("unit:it:2nd-bn-1-arty-rgppmnto", "C4218"),
             )
             .unwrap_err();
         assert_eq!(err.case, "9.14");
@@ -414,7 +481,7 @@ mod tests {
             .apply(
                 &data,
                 Side::Axis,
-                place("unit:it:1st-bn-1-arty-rgppmnto", "C4219"),
+                place("unit:it:2nd-bn-1-arty-rgppmnto", "C4219"),
             )
             .unwrap();
     }

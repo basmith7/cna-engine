@@ -6,12 +6,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | Ruling | Why not (yet) |
 |---|---|
 | R-002 | map art (road stubs): a question of what the map shows, not of numbers |
-| R-003 | interpretive: when a unit is in Contact is a question of what the text means, not of numbers |
-| R-004 | interpretive: terrain cost for a part-motorised formation; also needs movement, which slice 1 does not model |
 | R-005 | interpretive: what one rail stack may carry; also needs movement |
-| R-006 | interpretive: who may never react; a question of what the text means, not of numbers |
-| R-007 | interpretive: what a reacting unit may spend CP on |
-| R-008 | interpretive: "in combat or Engaged" and the break-off sentence |
 | R-010 | interpretive: retreat before assault direction; also needs the map |
 | R-013 | the difference is linear: ammunition scales with the pinned share; no probe adds information |
 | R-014 | interpretive: what may capture a destroyed-tank marker |
@@ -75,3 +70,17 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-114 | Air Game: not in the engine yet |
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
+
+# Rulings implemented as decided
+
+Interpretive rulings cna decided with one option worth playing: the engine
+plays the Decision and offers no switch (Mission 2 spec, *Interpretive
+rulings*). Each names where it is enforced.
+
+| Ruling | Decision as built |
+|---|---|
+| R-003 | contact is fixed as every movement segment opens, either side's (`cna-game::zoc::fix_contact`); a unit entering an enemy ZOC mid-segment is stopped, not yet in contact |
+| R-004 | a mixed stack pays the dearest piece's step cost and obeys every piece's prohibitions (`cna-game::movement::plan`) |
+| R-006 | non-motorised units never react, whatever they stack with (`cna-game::reaction::reactors_next_to`); truck convoys are not in the engine yet |
+| R-007 | a reaction spends CP on movement only: `Order::React` is a path and nothing else |
+| R-008 | a unit in an enemy ZOC, in contact or engaged never reacts; no break-off fee arises in a reaction |

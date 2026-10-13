@@ -15,6 +15,7 @@
 use crate::piece::{Location, Piece, PieceId, PieceKind};
 use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Row};
+use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Oa, ToeMark, Unit, UnitId};
 use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
@@ -104,7 +105,16 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     morale: None,
                     status: None,
                     equivalent: None,
+                    garrison_of: None,
                     location: location.clone(),
+                    cp_spent: Cp::ZERO,
+                    cp_enemy_half: Cp::ZERO,
+                    cohesion: Default::default(),
+                    contact: false,
+                    engaged: false,
+                    reserve: None,
+                    released: None,
+                    landed: false,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -270,8 +280,53 @@ fn piece(
         morale: oa.morale(&unit.id),
         status: entry.status,
         equivalent,
+        garrison_of: oa.formation_of(&unit.id).garrison_hex(),
         location,
+        cp_spent: Cp::ZERO,
+        cp_enemy_half: Cp::ZERO,
+        cohesion: Default::default(),
+        contact: false,
+        engaged: false,
+        reserve: None,
+        released: None,
+        landed: false,
     }
+}
+
+/// The pieces a scheduled arrival brings (20.1x, 4.42): the named unit
+/// and its sheet subtree, less members with a later arrival of their own.
+pub fn reinforcement(
+    side: Side,
+    head: &UnitId,
+    oa: &Oa,
+    chars: &Characteristics,
+    at: GameTime,
+    location: Location,
+) -> Result<Vec<Piece>> {
+    let mut members = Vec::new();
+    subtree(head, oa, at, &mut members)?;
+    let entry = UnitEntry {
+        subject: Subject::Unit(head.clone()),
+        less: Vec::new(),
+        assigned: Vec::new(),
+        detached: Vec::new(),
+        attached: Vec::new(),
+        consists_of: None,
+        alone: false,
+        status: None,
+        toe: None,
+        notes: Vec::new(),
+    };
+    Ok(members
+        .into_iter()
+        .filter_map(|m| {
+            let unit = oa.unit(&m.id)?;
+            if unit.id_code.is_none() && unit.toe.is_empty() {
+                return None;
+            }
+            Some(piece(side, unit, m.parent, &entry, chars, oa, location.clone()))
+        })
+        .collect())
 }
 
 /// TOE points as the sheet prints them: `N` is the row's `max_toe` plus

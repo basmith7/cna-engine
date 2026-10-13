@@ -8,6 +8,7 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceKind};
 use crate::state::{GameState, Weather};
+use cna_data::cp::Cp;
 use cna_data::initiative::AxisSituation;
 use cna_data::oa::Nation;
 use cna_data::scenario::Side;
@@ -58,8 +59,11 @@ impl GameState {
                 ));
             }
         }
-        self.clock = self.clock.end_phase();
         let mut events = Vec::new();
+        self.before_leaving_g(data, &mut events)?;
+        self.cycle = 0;
+        self.continuing.clear();
+        self.clock = self.clock.end_phase();
         self.advance(data, &mut events);
         Ok(events)
     }
@@ -76,17 +80,27 @@ impl GameState {
             }
             match clock.phase {
                 Phase::InitiativeDeclaration => {
+                    self.start_stage();
                     self.determine_initiative(data, events);
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
                 Phase::Weather => self.roll_weather(data, events),
-                Phase::ReserveDesignation | Phase::MovementCombat => {
+                Phase::ReserveDesignation => {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                Phase::MovementCombat => {
+                    events.push(Event::PhaseStarted { clock });
+                    self.open_movement_segment(data, events);
+                    return;
+                }
+                Phase::Arrival => {
+                    if !self.arrive(data, events) {
+                        events.push(Event::PhaseSkipped { clock });
+                    }
+                }
                 Phase::Organisation
-                | Phase::Arrival
                 | Phase::CwFleet
                 | Phase::TruckConvoy
                 | Phase::Rail
@@ -94,6 +108,21 @@ impl GameState {
                 | Phase::Patrol => events.push(Event::PhaseSkipped { clock }),
             }
             self.clock = self.clock.next();
+        }
+    }
+
+    /// The bookkeeping between OpStages: unspent CP are lost (6.16), a
+    /// unit that spent none rests (6.24), and reserve ends (18.2x).
+    fn start_stage(&mut self) {
+        for p in self.pieces.values_mut() {
+            if p.cp_spent == Cp::ZERO {
+                p.cohesion.rest();
+            }
+            p.cp_spent = Cp::ZERO;
+            p.cp_enemy_half = Cp::ZERO;
+            p.reserve = None;
+            p.released = None;
+            p.landed = false;
         }
     }
 
