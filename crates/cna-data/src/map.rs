@@ -196,6 +196,16 @@ impl Hexside {
         self.features.contains(&f)
     }
 
+    /// A road crosses the hexside.
+    pub fn road(&self) -> bool {
+        self.has(HexsideFeature::Road)
+    }
+
+    /// A track crosses the hexside; an unfinished road is a track.
+    pub fn track(&self) -> bool {
+        self.has(HexsideFeature::Track) || self.has(HexsideFeature::UnfinishedRoad)
+    }
+
     /// True when a move from `from` to `to` goes up the slope or
     /// escarpment: `to` is the recorded `up` hex, or the record has a
     /// slope or escarpment and no `up` (seam pairs and two sheet-B
