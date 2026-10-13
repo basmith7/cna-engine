@@ -12,6 +12,7 @@ use cna_data::map::HexId;
 use cna_data::oa::Nation;
 use cna_rules::barrage::{BarrageResult, resolve, terrain_shift};
 use cna_rules::strength::actual;
+use cna_rules::supply::Role;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// One barrage: the fires pooled against one target.
@@ -35,8 +36,19 @@ impl GameState {
         let mut losses: Vec<(PieceId, u32)> = Vec::new();
         for side in [phasing, phasing.other()] {
             // Key: the target, and the firing hex where fire is not pooled.
+            // Ammunition (32.21): paid at the roll by each firer, as
+            // the plot was checked to be payable when it was sealed.
+            let plots = self.combat.plots.get(&side).cloned().unwrap_or_default();
+            let firers: Vec<PieceId> = plots
+                .iter()
+                .map(|f| f.piece.clone())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            let plan = self.plan_ammo(data, &firers, Role::Barrage, side == phasing);
+            self.spend_ammo(plan.payments, events);
             let mut pools: BTreeMap<(PieceId, Option<HexId>), Pool> = BTreeMap::new();
-            for f in self.combat.plots.get(&side).cloned().unwrap_or_default() {
+            for f in plots {
                 let firer = &self.pieces[&f.piece];
                 let Some(hex) = firer.hex().cloned() else {
                     continue;

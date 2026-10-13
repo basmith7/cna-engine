@@ -36,6 +36,18 @@ pub enum Role {
     Barrage,
 }
 
+/// The battalion-equivalents a single counter stands for when it pays
+/// by components (32.21, 32.22): a brigade-equivalent counter is three
+/// battalions (the 15.5x size ladder's reading of 9.4); anything else
+/// pays as itself, once. Returns the equivalent each component pays as
+/// and how many there are.
+pub fn components(equivalent: Equivalent) -> (Equivalent, u32) {
+    match equivalent {
+        Equivalent::Brigade => (Equivalent::Battalion, 3),
+        other => (other, 1),
+    }
+}
+
 /// Fuel owed for one land move in a stage. A brigade, a division or an
 /// HQ pays by its components, so the caller passes those.
 pub fn fuel_owed(class: FuelClass, equivalent: Equivalent, carrying: Carrying) -> u32 {
@@ -100,6 +112,13 @@ mod tests {
                 "{class:?} {eq:?} {carrying:?}"
             );
         }
+    }
+
+    #[test]
+    fn a_brigade_counter_pays_as_three_battalions() {
+        assert_eq!(components(Brigade), (Battalion, 3));
+        assert_eq!(components(Company), (Company, 1));
+        assert_eq!(components(Hq), (Hq, 1));
     }
 
     #[test]

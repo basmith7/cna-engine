@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "fb6fde62daa68c3e56f7faca5e524b1987655200533377502421ec392cc0db96";
+        "fefa5658c5c9a1d5baa4de18f461e4a9e9d7b7e9100bb333d1807fc207fb5241";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -183,6 +183,13 @@ mod tests {
         // GT1 OpStage 1, Commonwealth half. With the supply module on 4 RHA
         // (gun-class) owes fuel for the return and no supply unit is in
         // range (32.22), so the module-on script leaves it at C3923.
+        // Likewise 7 Med's barrage owes 4 ammunition (32.21) and nothing
+        // is in range, so the module-on script plots no fire.
+        let shell = if modules.abstract_supply {
+            Order::Barrage { fires: vec![] }
+        } else {
+            fire("unit:cw:7-med", "unit:it:ix-libyan-bn")
+        };
         let mut back = vec![(Cw, Order::Pass)];
         if !modules.abstract_supply {
             back.push((Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)));
@@ -202,7 +209,7 @@ mod tests {
                         },
                     ),
                     (Axis, Order::GunPositions { forward: vec![] }),
-                    (Cw, fire("unit:cw:7-med", "unit:it:ix-libyan-bn")),
+                    (Cw, shell),
                     (Axis, Order::Barrage { fires: vec![] }),
                     (Axis, Order::Pass),
                     (
