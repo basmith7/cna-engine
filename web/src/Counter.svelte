@@ -33,7 +33,7 @@
   <rect class="band" width={S} height={S * 0.24} rx={S * 0.06} />
   <text class="abbr" x={S * 0.07} y={S * 0.17}>{text.short}</text>
   {#if piece.id_code}<text class="code" x={S * 0.93} y={S * 0.17}>{piece.id_code}</text>{/if}
-  {#if size}<text class="size" x={cx} y={fy - S * 0.03}>{size}</text>{/if}
+  {#if size}<text class="size" x={cx} y={fy - S * 0.06}>{size}</text>{/if}
   <rect class="frame" x={fx} y={fy} width={fw} height={fh} />
   {#if glyph === "infantry"}
     <path class="glyph" d="M {fx} {fy} L {fx + fw} {fy + fh} M {fx + fw} {fy} L {fx} {fy + fh}" />

@@ -153,6 +153,18 @@ test("a mouse click alone selects a hex, and a stack; a drag pans without select
   await expect(page.getByTestId("hex")).toHaveText("hex C4229");
 });
 
+test("fits the spec's 1280 px desktop minimum with the map still the larger part", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await page.locator("[data-stack]").first().waitFor();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  const map = (await page.getByTestId("map").boundingBox())!;
+  expect(map.width).toBeGreaterThan(900);
+  await expect(page.getByTestId("stack-panel")).toBeInViewport();
+  await shoot(page, "start-1280.png");
+});
+
 test("stays usable at a phone width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

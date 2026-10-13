@@ -1,7 +1,7 @@
 <script lang="ts">
   // Read-only this slice: what is in the clicked hex (spec, *Moving*
   // adds the ticks and orders in slice 4).
-  import { glyphFor, label, markers, stacks } from "./counters";
+  import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
   import type { View } from "./types";
 
@@ -24,9 +24,10 @@
       <ol>
         {#each pieces as p (p.id)}
           {@const text = label(p)}
+          {@const name = nameParts(text.long)}
           <li class="piece side-{p.side}" data-unit={p.id}>
             <span class="abbr">{text.short}</span>
-            <span class="name">{text.long}</span>
+            <span class="name">{name.text}{#if name.sup}<sup title="Engineering capability">{name.sup}</sup>{/if}</span>
             <span class="facts">
               {sideName(p.side)} · {p.unit_type ?? glyphFor(p.kind, p.unit_type)}
               {#if p.kind !== "supply-unit" && p.kind !== "dummy-supply-unit"}

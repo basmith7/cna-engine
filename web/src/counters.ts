@@ -60,8 +60,32 @@ export function label(p: Piece): { short: string; long: string } {
 /** HQs on top, then combat units, then supply; ties by id so a stack is stable. */
 const KIND_ORDER: Record<PieceKind, number> = { hq: 0, combat: 1, "supply-unit": 2, "dummy-supply-unit": 2 };
 
+/**
+ * Supply units tie-break on a hash of the id, not the id itself: a dummy's
+ * id ("supply:axis:dummy-1") would sort every dummy after every real one,
+ * and their position in a tray or a stack must not be a tell.
+ */
+function tieKey(p: Piece): string {
+  if (p.kind !== "supply-unit" && p.kind !== "dummy-supply-unit") return p.id;
+  // FNV-1a, then a finalizer mix: ids that differ in one run of characters would otherwise cluster.
+  let h = 2166136261;
+  for (const c of p.id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
 export function topFirst(pieces: Piece[]): Piece[] {
-  return [...pieces].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.id.localeCompare(b.id));
+  return [...pieces].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || tieKey(a).localeCompare(tieKey(b)));
+}
+
+/** cna keeps the sheet's superscript E (an HQ with engineering capability) in the name as "^E"; it is drawn as a superscript. */
+export function nameParts(name: string): { text: string; sup: string | null } {
+  const m = /^(.*)\^([A-Z])$/.exec(name);
+  return m ? { text: m[1], sup: m[2] } : { text: name, sup: null };
 }
 
 /** The pieces on the map, by hex, each stack top first; hexes in id order. */

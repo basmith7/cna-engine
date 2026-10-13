@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import charsFile from "../../vendor/cna/data/tables/unit-characteristics.json";
-import { glyphFor, label, offMap, sizeMark, stacks, topFirst } from "./counters";
+import { glyphFor, label, nameParts, offMap, sizeMark, stacks, topFirst } from "./counters";
 import type { Piece, View } from "./types";
 
 function piece(over: Partial<Piece> & { id: string }): Piece {
@@ -74,6 +74,11 @@ describe("counter glyphs", () => {
     expect(glyphFor("combat", null)).toBe("other");
   });
 
+  it("lifts the engineering mark out of an HQ's name as a superscript", () => {
+    expect(nameParts("Ariete (132nd) Div HQ^E")).toEqual({ text: "Ariete (132nd) Div HQ", sup: "E" });
+    expect(nameParts("2nd Scots Guards")).toEqual({ text: "2nd Scots Guards", sup: null });
+  });
+
   it("marks size from the stacking equivalent", () => {
     expect(sizeMark("brigade")).toBe("X");
     expect(sizeMark("battalion")).toBe("II");
@@ -91,6 +96,18 @@ describe("counter glyphs", () => {
 });
 
 describe("stacks", () => {
+  it("does not put the dummy supply units last: their order is no tell", () => {
+    const supply = (id: string, kind: "supply-unit" | "dummy-supply-unit") =>
+      piece({ id, kind, nation: null, id_code: null, name: null, abbreviation: null, location: { pending: { sheets: ["A"] } } });
+    const real = ["16", "17", "18", "19", "20", "21"].map((n) => supply(`supply:axis:${n}`, "supply-unit"));
+    const dummies = ["1", "2", "3", "4", "5", "6"].map((n) => supply(`supply:axis:dummy-${n}`, "dummy-supply-unit"));
+    const order = topFirst([...real, ...dummies]).map((p) => p.kind);
+    expect(order.slice(0, 6)).not.toEqual(Array(6).fill("supply-unit"));
+    expect(order.slice(6)).not.toEqual(Array(6).fill("dummy-supply-unit"));
+    // Still a stable order: the same set sorts the same way from any starting order.
+    expect(topFirst([...dummies, ...real]).map((p) => p.id)).toEqual(topFirst([...real, ...dummies]).map((p) => p.id));
+  });
+
   it("groups placed pieces by hex with the HQ on top, then combat, then supply", () => {
     const v = view([
       piece({ id: "supply:axis:1", kind: "supply-unit", nation: null, id_code: null, name: null, abbreviation: null }),
