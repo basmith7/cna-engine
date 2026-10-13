@@ -43,6 +43,9 @@ impl Class {
 /// Some TOE points of one piece that share a row of ratings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Part {
+    /// The weapon these points are listed under; none for the ID
+    /// code's points.
+    pub weapon: Option<String>,
     pub points: u32,
     pub class: Class,
     /// A tank proper (15.4): not recce, not a self-propelled gun.
@@ -116,6 +119,7 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
         let gun = t.contains("Artillery") || t.contains("Anti-tank") || t.contains("Anti-air");
         let protection = per_point(r.armour_protection.as_ref());
         Part {
+            weapon: None,
             points,
             class: if gun {
                 Class::Gun
@@ -139,12 +143,17 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
     {
         out.push(from_row(unlisted, r));
     }
+    let listed_row = |points: u32, name: &str, r: &cna_data::characteristics::Row| Part {
+        weapon: Some(name.to_owned()),
+        ..from_row(points, r)
+    };
     for w in &piece.weapons {
         if w.points == 0 {
             continue;
         }
         match data.weapons.resolve(nation, &w.weapon) {
             Some(r) => out.push(Part {
+                weapon: Some(w.weapon.clone()),
                 points: w.points,
                 class: match r.class {
                     WeaponClass::Tank => Class::Armour,
@@ -160,7 +169,7 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
                 vulnerability: per_point(r.vulnerability.as_ref()),
             }),
             None => match data.chars.row(nation, &w.weapon) {
-                Some(r) => out.push(from_row(w.points, r)),
+                Some(r) => out.push(listed_row(w.points, &w.weapon, r)),
                 None => bail!(
                     "{}: {:?} is neither a weapon system nor a {nation} ID code",
                     piece.id,
@@ -206,6 +215,15 @@ impl GameState {
 
     /// Raw points of a piece's whole TOE in `kind`, the parenthesised
     /// rule judged by its hex.
+    /// Raw points in `kind` of `points` of a piece's TOE points, drawn
+    /// from its parts in order.
+    pub fn raw_points(&self, data: &Data, piece: &Piece, kind: Kind, points: u32) -> u32 {
+        let paren_ok = piece
+            .hex()
+            .is_some_and(|h| !self.plain_in_hex(data, h, kind));
+        raw(&self.parts(data, piece), kind, points, paren_ok)
+    }
+
     pub fn raw_of(&self, data: &Data, piece: &Piece, kind: Kind) -> u32 {
         let paren_ok = piece
             .hex()

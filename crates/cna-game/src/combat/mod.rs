@@ -7,10 +7,12 @@
 mod assault;
 mod barrage;
 pub mod cp;
+mod losses;
 mod plots;
 mod retreat;
 mod segment;
 pub mod strength;
+pub mod terrain;
 
 use crate::order::{Assignment, Fire, Order};
 use crate::piece::PieceId;

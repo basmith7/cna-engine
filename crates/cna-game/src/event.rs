@@ -10,6 +10,7 @@ use crate::state::Weather;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::barrage::BarrageResult;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -121,6 +122,28 @@ pub enum Event {
     BarragePlotted {
         side: Side,
         fires: Vec<Fire>,
+    },
+    /// One barrage rolled (12.4x): the firers' points pooled against one
+    /// target, after the terrain shift.
+    Barrage {
+        side: Side,
+        firers: Vec<PieceId>,
+        target: PieceId,
+        /// Actual barrage points, before the shift.
+        points: u32,
+        shift: i32,
+        reading: u8,
+        result: BarrageResult,
+    },
+    /// TOE points destroyed; `toe` is what is left.
+    Losses {
+        piece: PieceId,
+        points: u32,
+        toe: u32,
+    },
+    /// A piece whose last TOE point went.
+    Eliminated {
+        piece: PieceId,
     },
     /// Step 4 revealed: this side's roles (14.1x).
     ForcesAssigned {

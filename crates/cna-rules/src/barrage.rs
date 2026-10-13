@@ -16,7 +16,8 @@ pub fn terrain_shift(rules: &Ruleset, target_shift: i32, firer_phasing: bool) ->
 }
 
 /// What one barrage does to its target on one reading (12.4x).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum BarrageResult {
     NoEffect,
     Pinned,

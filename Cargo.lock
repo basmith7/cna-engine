@@ -150,6 +150,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cna-data",
+ "rand_chacha",
+ "rand_core",
  "serde",
  "serde_json",
 ]
