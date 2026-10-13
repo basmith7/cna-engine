@@ -1,11 +1,18 @@
 <script lang="ts">
-  // Read-only this slice: what is in the clicked hex (spec, *Moving*
-  // adds the ticks and orders in slice 4).
+  // What is in the clicked hex (spec, *Moving*): the side to act's own
+  // pieces carry a tick, and the ticked ones are the stack an order
+  // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import type { View } from "./types";
+  import { tickable } from "./moves";
+  import type { PieceId, View } from "./types";
 
-  let { view, hex }: { view: View; hex: string | null } = $props();
+  let {
+    view,
+    hex,
+    ticked = [],
+    ontoggle,
+  }: { view: View; hex: string | null; ticked?: PieceId[]; ontoggle?: (id: PieceId) => void } = $props();
 
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
@@ -25,7 +32,12 @@
         {#each pieces as p (p.id)}
           {@const text = label(p)}
           {@const name = nameParts(text.long)}
-          <li class="piece side-{p.side}" data-unit={p.id}>
+          <li class="piece side-{p.side}" class:ticked={ticked.includes(p.id)} data-unit={p.id}>
+            {#if tickable(p, view.to_act)}
+              <input type="checkbox" class="tick" checked={ticked.includes(p.id)} aria-label="Move {text.long}" onchange={() => ontoggle?.(p.id)} />
+            {:else}
+              <span class="tick"></span>
+            {/if}
             <span class="abbr">{text.short}</span>
             <span class="name">{name.text}{#if name.sup}<sup title="Engineering capability">{name.sup}</sup>{/if}</span>
             <span class="facts">
@@ -81,8 +93,16 @@
     margin-bottom: 0.25rem;
     background: #fbf8f0;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto 1fr;
     gap: 0 0.5rem;
+  }
+  .piece.ticked {
+    background: #e6f4f1;
+  }
+  .tick {
+    margin: 0;
+    width: 15px;
+    align-self: center;
   }
   .piece.side-axis { border-color: #7a2e1f; }
   .piece.side-cw { border-color: #1f3a5f; }
@@ -95,7 +115,7 @@
     white-space: nowrap;
   }
   .facts {
-    grid-column: 1 / -1;
+    grid-column: 2 / -1;
     color: #555;
     font-size: 12px;
   }

@@ -5,13 +5,20 @@
   import { centreOn, fit, isFar, panBy, scale, zoomAt, type Port, type ViewBox } from "./viewport";
   import type { Snippet } from "svelte";
 
-  // `onhex` is a click on a hex, which may be an order; `ongoto` is the
-  // go-to box, which only looks.
+  // `onhex` is a click on a hex (with whether shift was held), which
+  // may be an order; `onhover` the hex under the pointer; `ongoto` is
+  // the go-to box, which only looks.
   let {
     onhex,
+    onhover,
     ongoto,
     overlays,
-  }: { onhex?: (hex: string) => void; ongoto?: (hex: string) => void; overlays?: Snippet<[number]> } = $props();
+  }: {
+    onhex?: (hex: string, shift: boolean) => void;
+    onhover?: (hex: string | null) => void;
+    ongoto?: (hex: string) => void;
+    overlays?: Snippet<[number]>;
+  } = $props();
 
   // Rendered once: a plain string, not reactive state.
   const base = baseSvg();
@@ -37,16 +44,25 @@
   // Drag to pan; a click that did not drag selects a hex. The hex is read
   // at pointerdown: the pointer is captured by the svg for the drag, so
   // pointerup's target is the svg, never the polygon.
-  let drag: { x: number; y: number; moved: boolean; hex: string | null } | null = null;
+  let drag: { x: number; y: number; moved: boolean; hex: string | null; shift: boolean } | null = null;
+  let hovered: string | null = null;
+
+  const hexUnder = (e: PointerEvent) => (e.target as Element).closest("[data-hex]")?.getAttribute("data-hex") ?? null;
 
   function down(e: PointerEvent) {
     if (e.button !== 0) return;
-    const hex = (e.target as Element).closest("[data-hex]")?.getAttribute("data-hex") ?? null;
-    drag = { x: e.clientX, y: e.clientY, moved: false, hex };
+    drag = { x: e.clientX, y: e.clientY, moved: false, hex: hexUnder(e), shift: e.shiftKey };
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
-    if (!drag) return;
+    if (!drag) {
+      const h = hexUnder(e);
+      if (h !== hovered) {
+        hovered = h;
+        onhover?.(h);
+      }
+      return;
+    }
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) < 4) return;
@@ -57,9 +73,15 @@
   }
   function up() {
     if (!drag) return;
-    const { moved, hex } = drag;
+    const { moved, hex, shift } = drag;
     drag = null;
-    if (!moved && hex) onhex?.(hex);
+    if (!moved && hex) onhex?.(hex, shift);
+  }
+  function leave() {
+    if (hovered !== null) {
+      hovered = null;
+      onhover?.(null);
+    }
   }
 
   function wheel(e: WheelEvent) {
@@ -110,6 +132,7 @@
     onpointermove={move}
     onpointerup={up}
     onpointercancel={() => (drag = null)}
+    onpointerleave={leave}
     onwheel={wheel}
   >
     <g class="base">{@html base}</g>

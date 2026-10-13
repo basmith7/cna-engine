@@ -3,7 +3,7 @@ import type { View } from "../src/types";
 
 declare global {
   interface Window {
-    __cna: { view(): View; save(): string };
+    __cna: { view(): View; save(): string; load(json: string): void };
   }
 }
 

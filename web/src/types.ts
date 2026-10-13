@@ -268,6 +268,26 @@ export interface Illegal {
 
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
+/** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
+export type Purpose = "move" | "react";
+
+/** A hex a stack can end in (`cna_game::reach::Reach`). */
+export interface Reach {
+  hex: HexId;
+  /** What the stack pays in all, breaking off included. */
+  cp: number;
+  /** The hexes entered, cheapest first. */
+  path: HexId[];
+  /** The most DP any piece in the stack earns on the way. */
+  dp: number;
+  /** A known enemy ZOC: the move ends there. */
+  ends_in_zoc: boolean;
+  /** The engine may stop the stack short of it (an undeclared ZOC or a reaction on the way). */
+  may_be_interrupted: boolean;
+}
+
+export type ReachResult = { ok: Reach[] } | { illegal: Illegal };
+
 /** `Game.view()`: the state minus `log` and `rng`, plus `to_act` and each piece's labels. */
 export interface View {
   scenario: string;
