@@ -3,8 +3,8 @@
   // now, from the engine's `reachable`; the assault toggle; the custom
   // path shift-clicks build; and the key to the overlay. The engine's
   // refusal is shown as it is when the stack cannot move at all.
-  import { cpLabel } from "./moves";
-  import type { HexId, Illegal, PieceId, Purpose, Reach } from "./types";
+  import { cpLabel, OFF_MAP_PLACES } from "./moves";
+  import type { HexId, Illegal, OffMapPlace, PieceId, Purpose, Reach } from "./types";
 
   let {
     purpose,
@@ -13,8 +13,11 @@
     refusal,
     assault = $bindable(false),
     custom,
+    onMap,
+    offMap,
     onsend,
     onclear,
+    onoffmap,
   }: {
     purpose: Purpose;
     ticked: PieceId[];
@@ -22,8 +25,13 @@
     refusal: Illegal | null;
     assault?: boolean;
     custom: HexId[];
+    /** The ticked stack stands on a hex: the overlay applies. */
+    onMap: boolean;
+    /** The ticked stack is in a box, in transit or at Nofilia: it may move off-map (8.8x). */
+    offMap: boolean;
     onsend: () => void;
     onclear: () => void;
+    onoffmap: (to: OffMapPlace) => void;
   } = $props();
 
   const title = $derived(purpose === "react" ? "Reaction move" : "Move");
@@ -38,7 +46,9 @@
     <p class="hint">{purpose === "react" ? "Tick the pieces to react with." : "Click one of your stacks and tick the pieces to move."}</p>
   {:else if refusal}
     <p class="refusal" data-testid="move-refusal">Cannot move ({refusal.case}): {refusal.reason}</p>
-  {:else}
+  {:else if !onMap && !offMap}
+    <p class="refusal" data-testid="move-refusal">The ticked pieces are not all in one place.</p>
+  {:else if onMap}
     <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
     {#if purpose === "move"}
       <label class="assault">
@@ -53,6 +63,16 @@
       {#if maybe > 0}<li><span class="swatch maybe"></span>the engine may stop the stack short ({maybe})</li>{/if}
     </ul>
   {/if}
+  {#if offMap && purpose === "move"}
+    <div class="offmap" data-testid="off-map-moves">
+      <p>Off-map, by the whole OpStage (8.8x), towards:</p>
+      <p class="buttons">
+        {#each OFF_MAP_PLACES as { place, name } (place)}
+          <button type="button" data-to={place} onclick={() => onoffmap(place)}>{name}</button>
+        {/each}
+      </p>
+    </div>
+  {/if}
   <div class="custom" data-testid="custom">
     {#if custom.length > 0}
       <p>Custom path: <span class="hexes">{custom.join(" → ")}</span></p>
@@ -60,7 +80,7 @@
         <button type="button" onclick={onsend} data-testid="send-path">Send (Enter)</button>
         <button type="button" onclick={onclear}>Clear (Esc)</button>
       </p>
-    {:else if ticked.length > 0}
+    {:else if ticked.length > 0 && onMap && !refusal}
       <p class="hint">Shift-click hexes to build your own path; Enter sends it and the engine judges it.</p>
     {/if}
   </div>
@@ -126,6 +146,11 @@
   }
   .buttons button {
     font: inherit;
-    margin-right: 0.3rem;
+    margin: 0 0.3rem 0.3rem 0;
+  }
+  .offmap {
+    margin-top: 0.3rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid #8fc9bf;
   }
 </style>

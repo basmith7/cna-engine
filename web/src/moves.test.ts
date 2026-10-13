@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { byHex, cpLabel, defaultTicked, extendPath, tickable, toggle } from "./moves";
+import { NOFILIA } from "./map";
+import { allOffMapCapable, allOnMap, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -63,5 +64,37 @@ describe("byHex", () => {
   it("indexes reaches by hex", () => {
     const r = { hex: "C1", cp: 1, path: ["C1"], dp: 0, ends_in_zoc: false, may_be_interrupted: false };
     expect(byHex([r]).get("C1")).toBe(r);
+  });
+});
+
+describe("off-map", () => {
+  const boxed = { ...piece("a", "axis", "combat", "C1"), location: { box: "tripoli" } } as Piece;
+  const boxed2 = { ...piece("b", "axis", "combat", "C1"), location: { box: "tripoli" } } as Piece;
+  const transit = { ...piece("t", "axis", "combat", "C1"), location: { transit: { from: "tripoli", to: "nofilia", done: 1 } } } as Piece;
+  const nofilia = piece("n", "axis", "combat", NOFILIA);
+  const v = { pieces: { a: boxed, b: boxed2, t: transit, n: nofilia, bn: view.pieces.bn } } as unknown as View;
+
+  it("knows where an off-map move can start", () => {
+    expect(offMapCapable(boxed)).toBe(true);
+    expect(offMapCapable(transit)).toBe(true);
+    expect(offMapCapable(nofilia)).toBe(true);
+    expect(offMapCapable(view.pieces.bn)).toBe(false);
+    expect(allOffMapCapable(v, ["a", "n"])).toBe(true);
+    expect(allOffMapCapable(v, ["a", "bn"])).toBe(false);
+    expect(allOffMapCapable(v, [])).toBe(false);
+    expect(allOnMap(v, ["n", "bn"])).toBe(true);
+    expect(allOnMap(v, ["a"])).toBe(false);
+  });
+
+  it("ticks pieces of one box together and starts afresh elsewhere", () => {
+    expect(toggleOffMap(v, [], "a")).toEqual(["a"]);
+    expect(toggleOffMap(v, ["a"], "b")).toEqual(["a", "b"]);
+    expect(toggleOffMap(v, ["a", "b"], "a")).toEqual(["b"]);
+    expect(toggleOffMap(v, ["bn"], "a")).toEqual(["a"]);
+    expect(toggleOffMap(v, ["a"], "t")).toEqual(["t"]);
+  });
+
+  it("offers every place on the chart; the engine says which can hold a unit", () => {
+    expect(OFF_MAP_PLACES.map((p) => p.place)).toEqual(["tunis", "gabes", "tripoli", "tripolitania", "nofilia"]);
   });
 });
