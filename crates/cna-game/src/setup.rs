@@ -18,9 +18,10 @@ use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
-use cna_data::oa::{Arrival, Oa, ToeMark, Unit, UnitId};
+use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
 use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
 use cna_data::time::GameTime;
+use cna_data::weapons::{WeaponClass, WeaponSystems};
 use std::collections::BTreeSet;
 
 /// A time no arrival is after: subtree with no arrival filter.
@@ -432,6 +433,66 @@ fn resolve(p: &Placement, map: &Map) -> Result<Location> {
         Locator::Region(_) | Locator::AirFacility => {}
     }
     Ok(Location::Pending(p.clone()))
+}
+
+/// 32.8x, the Land Game without the Air Game: AA is thinned at set-up.
+/// The Commonwealth loses every AA unit (one whose TOE is all AA) and
+/// every AA point; the Germans their *z* and *bb* units and light AA
+/// points; the Italians their *ss*, *tt* and *uu* units, the AA points of
+/// *pp* units and the heavy AA points of *kk* units. A unit stripped to
+/// no TOE goes too. Returns the pieces removed.
+pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<PieceId>> {
+    let mut removed = Vec::new();
+    setup.pieces.retain_mut(|p| {
+        let Some(nation) = p.nation else {
+            return true;
+        };
+        let code = p.id_code.as_deref().unwrap_or_default();
+        let aa = |name: &str| {
+            weapons
+                .resolve(nation, name)
+                .filter(|r| r.class == WeaponClass::AntiAir)
+                .map(|r| r.weapon.trim_start_matches("'I' ").starts_with("Heavy"))
+        };
+        let all_aa = !p.weapons.is_empty() && p.weapons.iter().all(|w| aa(&w.weapon).is_some());
+        let unit_goes = match nation {
+            Nation::Cw => all_aa,
+            Nation::De => matches!(code, "z" | "bb"),
+            Nation::It => matches!(code, "ss" | "tt" | "uu"),
+        };
+        let strips = |heavy: bool| match nation {
+            Nation::Cw => true,
+            Nation::De => !heavy,
+            Nation::It => code == "pp" || (code == "kk" && heavy),
+        };
+        let before = p.toe;
+        if !unit_goes {
+            let toe = &mut p.toe;
+            p.weapons.retain(|w| match aa(&w.weapon) {
+                Some(heavy) if strips(heavy) => {
+                    *toe -= w.points;
+                    false
+                }
+                _ => true,
+            });
+        }
+        let keep = !unit_goes && (p.toe > 0 || before == 0);
+        if !keep {
+            removed.push(p.id.clone());
+        }
+        keep
+    });
+    for u in &mut setup.unchecked {
+        u.pieces.retain(|id| !removed.contains(id));
+    }
+    for m in &setup.motorisation {
+        if let Some(anchor) = &m.anchor
+            && removed.contains(anchor)
+        {
+            bail!("{anchor}: removed by 32.8x but anchors motorisation points");
+        }
+    }
+    Ok(removed)
 }
 
 fn log_constraint(setup: &mut Setup, side: Side, p: &Placement, pieces: Vec<PieceId>) {

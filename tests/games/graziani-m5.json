@@ -432,15 +432,6 @@
       "player": "cw",
       "order": {
         "place": {
-          "piece": "unit:cw:15-laa",
-          "hex": "D0101"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "place": {
           "piece": "unit:cw:18-nz",
           "hex": "E3613"
         }
@@ -513,15 +504,6 @@
       "player": "cw",
       "order": {
         "place": {
-          "piece": "unit:cw:57-laa",
-          "hex": "D0101"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "place": {
           "piece": "unit:cw:65th-anti-tank-regt",
           "hex": "D0101"
         }
@@ -532,15 +514,6 @@
       "order": {
         "place": {
           "piece": "unit:cw:8-med",
-          "hex": "D0101"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "place": {
-          "piece": "unit:cw:9-haa",
           "hex": "D0101"
         }
       }

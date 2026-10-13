@@ -171,7 +171,10 @@ impl GameState {
 
     /// `new` with the rules modules named.
     pub fn with_modules(data: &Data, seed: u64, modules: Modules) -> Result<GameState> {
-        let setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map, modules)?;
+        let mut setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map, modules)?;
+        if modules.abstract_supply {
+            setup::thin_anti_air(&mut setup, &data.weapons)?;
+        }
         let mut motorisation: BTreeMap<Side, BTreeMap<String, u32>> = BTreeMap::new();
         let mut pending_motorisation = BTreeMap::new();
         for m in setup.motorisation {
@@ -520,6 +523,69 @@ mod tests {
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
+    }
+
+    // 32.8x: without the Air Game the Commonwealth loses every AA unit
+    // and AA point; the Italians their AA units (ss, tt, uu), the AA
+    // points of emplaced guns (pp) and the heavy AA of artillery that may
+    // hold it (kk). Light AA on kk artillery and on other units stays.
+    #[test]
+    fn anti_air_is_thinned_at_set_up() {
+        let data = graziani();
+        let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let old = GameState::new(&data, 1).unwrap();
+        let unit = |s: &str| -> PieceId {
+            serde_json::from_value(serde_json::json!(format!("unit:{s}"))).unwrap()
+        };
+        for gone in [
+            "cw:15-laa",
+            "cw:57-laa",
+            "cw:9-haa",
+            "it:tobruk-light-aa-bn",
+            "it:xvii-anti-air-group",
+            "it:vii-coastal-defense-arty-aa-group",
+            "it:xv-coastal-def-aa-group",
+            "it:benina-aa-battery",
+            "it:giariabub-oasis-anti-air-bty",
+        ] {
+            assert!(old.pieces.contains_key(&unit(gone)), "{gone}");
+            assert!(!state.pieces.contains_key(&unit(gone)), "{gone}");
+        }
+        let aa = |st: &GameState, id: &str| -> Vec<String> {
+            st.pieces[&unit(id)]
+                .weapons
+                .iter()
+                .map(|w| w.weapon.clone())
+                .filter(|w| w.contains("AA"))
+                .collect()
+        };
+        // Emplaced guns lose all their AA; kk artillery its heavy AA only.
+        for id in [
+            "it:2nd-tobruk-cd-arty-group",
+            "it:4th-tobruk-cd-arty-group",
+            "it:201st-artillery-regt",
+        ] {
+            assert!(!aa(&old, id).is_empty(), "{id}");
+            assert!(aa(&state, id).is_empty(), "{id}");
+            let lost: u32 = old.pieces[&unit(id)]
+                .weapons
+                .iter()
+                .filter(|w| w.weapon.contains("AA"))
+                .map(|w| w.points)
+                .sum();
+            assert_eq!(
+                state.pieces[&unit(id)].toe,
+                old.pieces[&unit(id)].toe - lost,
+                "{id}"
+            );
+        }
+        for id in ["it:203rd-artillery-regt", "it:saharan-artillery-battery"] {
+            assert_eq!(aa(&state, id), aa(&old, id), "{id}");
+            assert!(!aa(&state, id).is_empty(), "{id}");
+        }
+        // The Italian machine-gun battalions share German AA's bb code.
+        assert!(state.pieces.contains_key(&unit("it:201st-machinegun-bn")));
+        state.check_invariants(&data).unwrap();
     }
 
     // 60.92, 32.5x: each side starts with its medium truck points as
