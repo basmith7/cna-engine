@@ -977,13 +977,15 @@ impl GameState {
         {
             return true;
         }
-        let equivalents = self
+        // Battalion equivalents by the stacking chart: a brigade is two,
+        // a company nothing (10.33).
+        let equivalents: u32 = self
             .pieces
             .values()
             .filter(|p| p.hex() == Some(e) && p.kind == PieceKind::Combat)
             .filter(|p| !self.is_gun_unit(data, p))
-            .filter(|p| cna_rules::stacking::points(&data.stacking, p.equivalent) >= 1)
-            .count() as u32;
+            .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
+            .sum();
         self.combat.barraged.get(e).copied().unwrap_or(0) >= equivalents
     }
 
