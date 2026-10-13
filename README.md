@@ -17,6 +17,45 @@ cargo test
 cargo run -p cna-probe -- run
 ```
 
+## Playing in a browser
+
+`web/` is a local, two-players-at-one-screen UI for Graziani's Offensive
+on the same engine, compiled to WebAssembly (`crates/cna-web`, with the
+`vendor/cna` data built in). Nothing is hosted: it runs on localhost only.
+See [the design](docs/designs/2026-10-13-minimal-ui-design.md).
+
+```bash
+rustup target add wasm32-unknown-unknown   # once
+cargo install wasm-pack --version 0.15.0   # once; Node 22 as well
+cd web && npm ci && npm run wasm && npm run dev
+```
+
+Open the address Vite prints. The start screen offers a new game (with
+its seed shown, so a game can be repeated), the autosave as "Continue",
+or a save file. In play: click a piece in the "to place" tray and then a
+shaded hex; click a stack and then a shaded hex to move it along the
+engine's cheapest path (Shift-click builds a path of your own, Enter
+sends it); every interrupt the engine raises (ZOC declarations,
+reactions, the sealed combat steps, retreats) is a panel offering only
+what the engine computed; the log is the engine's events in English; the
+victory report opens when the game ends. Every order goes to the engine
+as the side it is waiting on and an illegal one is refused with its case;
+the UI holds no rules of its own. Save downloads the state JSON
+(`graziani-gt<N>-os<M>.json`); Load takes one back and refuses a file
+from another `vendor/cna` commit or with its invariants broken; the state
+is also autosaved to the browser's `localStorage` after every order.
+
+**Secrecy is hot-seat only.** The screen avoids *showing* the other side's
+sealed combat answers until both are in, and a curtain asks for the
+keyboard to change hands; but the autosave, a downloaded save and (in
+test builds) `window.__cna` hold the whole state. Real hidden information
+waits for the server.
+
+Checks: `npm run check` (svelte-check and tsc), `npm test` (Vitest),
+`npm run build`, `npx playwright test` (headless Chromium against the
+production build; the golden game `tests/games/graziani-short.json` is
+played through by clicks and must end in the same state as `replay`).
+
 ## Playing headless
 
 `cna-game` is the game state for one scenario, **Graziani's Offensive**

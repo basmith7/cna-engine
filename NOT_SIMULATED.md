@@ -106,6 +106,16 @@ mission, and the engine neither models nor approximates them.
 | Patrol identification of barrage targets (12.2x) | the firer names any target in the hex |
 | Divisions in the size table (15.53) | the largest unit is a brigade at most, so no division shift arises |
 
+# The browser UI enforces nothing (Mission 3)
+
+`web/` draws the engine's `view()` and sends `Order` JSON back; it holds
+no rule of its own. What it shows as allowed (placement shading, the
+reachable overlay, the sealed panels' options) is the engine's answer to
+`placements`, `reachable` and `sealed_options`, and `apply` alone judges
+what is sent. Where that leaves a gap, it is the engine's gap, listed
+above: in particular the set-up `constraint` prose (59.2) is shown under
+the tray and trusted to the owner, never checked.
+
 # Systems not simulated (Mission 2)
 
 The game state plays Graziani's Offensive with the Land Game's movement

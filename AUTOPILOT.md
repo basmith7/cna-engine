@@ -47,7 +47,8 @@ small scenario in cna, a headless game state for it here, then a minimal UI.
 |---|---|---|---|
 | 1 | Rules core and ruling probes (combat, cohesion, construction) | | done |
 | 2 | **Game state, headless, for one small scenario.** Load `vendor/cna/data/map/`; place the scenario's units as typed state; enforce the turn sequence (§5, §7) and movement (CP and CPA §6, terrain §8, stacking and ZOC §9–10, §18); combat from the existing rules core. Scripted orders in, illegal ones rejected, a replayable log out; the state serialises to JSON and back. No AI, no UI. **Brian reviews the spec before any building** (below) | one small scenario: set-up, OA, victory conditions (cna Mission 6, Part 1) | done |
-| 3 | **A minimal UI** on top of Mission 2's game state: the map, the units, legal moves shown from the rules core, orders entered by clicking. Local only | | next |
+| 3 | **A minimal UI** on top of Mission 2's game state: the map, the units, legal moves shown from the rules core, orders entered by clicking. Local only | | done |
+| 4 | **The rest of the Land Game turn** for Graziani's Offensive and then every scenario's land rules: organisation (§20: attachment, detachment, replacements), breakdown (§21), engineering and construction (§24–26), the special rules (§28–31), abstract supply (§19, §32) with supply units that matter. Each lands in `cna-game` behind the existing phase and segment skips and shows up in the UI's panels, so the game stops passing through phases C, D, H, J, K and L. The spec names the order and what each needs from cna | the Land Game sections restated in cna; check each one and post requests for the gaps | next |
 
 **Later, in no fixed order.** When Mission 3 is done, take the one that
 moves the game closest to **The goal**, add it as a row with its own spec,
