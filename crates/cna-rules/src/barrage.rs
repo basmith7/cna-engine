@@ -28,7 +28,7 @@ pub enum BarrageResult {
 
 /// The band a barrage of `points` reads after `shift`; none below the
 /// lowest band (no effect, 12.33).
-fn band<'a>(t: &'a Barrage, points: u32, shift: i32) -> Option<&'a str> {
+fn band(t: &Barrage, points: u32, shift: i32) -> Option<&str> {
     let i = t
         .band_index(points)
         .map(|i| i as i32 + shift)
