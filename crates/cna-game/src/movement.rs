@@ -517,6 +517,7 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
         assault: bool,
+        fuel_from: Option<&PieceId>,
     ) -> Result<Vec<Event>, Illegal> {
         let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
@@ -576,7 +577,13 @@ impl GameState {
                 ));
             }
         }
+        let payments = if plan.steps.is_empty() {
+            Vec::new()
+        } else {
+            self.plan_fuel(data, pieces, total, fuel_from)?
+        };
         let mut events = Vec::new();
+        self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off && !plan.steps.is_empty() {
             for id in pieces {
                 let cost = break_off(&self.pieces[id]);
@@ -699,6 +706,7 @@ pub(crate) mod test_support {
             pieces: pieces.iter().map(|s| pid(s)).collect(),
             path: path(p),
             assault: false,
+            fuel_from: None,
         }
     }
 }
@@ -848,6 +856,7 @@ mod tests {
                     pieces: vec![PieceId::supply(Side::Cw, 1)],
                     path: path(&["C3923"]),
                     assault: false,
+                    fuel_from: None,
                 },
                 "32.x",
             ),

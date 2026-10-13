@@ -19,6 +19,8 @@ use cna_rules::close_assault::may_buy_out;
 /// The DP a must-attack retreat adds (10.36).
 const MUST_ATTACK_DP: u32 = 3;
 
+// TODO(32.22): fuel is not charged here until cna answers "What a unit may
+// do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
 impl GameState {
     /// `Order::RetreatBeforeAssault` (13.2x): ordinary voluntary movement
     /// by an unpinned, uncollapsed non-phasing stack, paid in the enemy
@@ -159,6 +161,8 @@ impl GameState {
             .unwrap_or(limit + 1)
     }
 
+    // TODO(32.22): fuel is not charged here until cna answers "What a unit may
+    // do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
     /// `Order::Retreat` or `Pass` while a forced retreat is pending
     /// (15.82, 15.29, 10.36): the stack walks `path` as a move that may
     /// leave an enemy ZOC, ending at least the ordered hexes from every

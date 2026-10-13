@@ -120,32 +120,7 @@ struct Tracer<'a> {
 
 impl<'a> Tracer<'a> {
     fn new(data: &'a Data, state: &'a GameState, side: Side) -> Tracer<'a> {
-        let enemy = side.other();
-        let mut blocked = BTreeSet::new();
-        let mut friendly = BTreeSet::new();
-        for p in state.pieces.values() {
-            if p.kind != PieceKind::Combat {
-                continue;
-            }
-            if let Some(h) = p.hex() {
-                if p.side == enemy {
-                    blocked.insert(h.clone());
-                } else {
-                    friendly.insert(h.clone());
-                }
-            }
-        }
-        let enemy_hexes: Vec<HexId> = blocked.iter().cloned().collect();
-        for src in enemy_hexes {
-            if !state.could_exert(data, &src) {
-                continue;
-            }
-            for n in data.map.neighbours(&src) {
-                if !friendly.contains(&n) && state.reaches(data, &src, &n) {
-                    blocked.insert(n);
-                }
-            }
-        }
+        let blocked = state.trace_blocked(data, side);
         Tracer {
             data,
             state,

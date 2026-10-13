@@ -193,6 +193,13 @@ pub struct Piece {
     /// free, and it may not leave the box it landed in (8.8x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub landed: bool,
+    /// Paid fuel for a land move this OpStage (32.22); a second move
+    /// pays nothing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fuelled: bool,
+    /// Paid again for spending past its CPA this OpStage (32.22).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fuelled_over: bool,
 }
 
 impl Piece {

@@ -27,6 +27,10 @@ pub enum Order {
         /// slice 5's.
         #[serde(default)]
         assault: bool,
+        /// The supply unit that pays the fuel (32.22); none takes the
+        /// nearest in range with fuel.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
     },
     /// The non-phasing player, offered a reaction (8.5x): some of the
     /// units offered move along `path`, never into an enemy ZOC. `Pass`

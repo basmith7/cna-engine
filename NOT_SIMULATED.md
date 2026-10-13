@@ -7,7 +7,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 |---|---|
 | R-002 | map art (road stubs): a question of what the map shows, not of numbers |
 | R-005 | interpretive: what one rail stack may carry; also needs movement |
-| R-013 | ammunition is not in the engine yet (Mission 2 has no supply states); when it is, pinned, retreated-in and withheld units spend none (the Decision) |
 | R-014 | destroyed-tank markers are not in the engine yet (slice 5 removes destroyed armour outright); when they are, only a battalion-size combat unit captures one (the Decision) |
 | R-016 | interpretive: when a Tank Delivery Squadron moves |
 | R-017 | interpretive: what a Tank Delivery Squadron may do in combat and retreat |
@@ -75,6 +74,7 @@ rulings*). Each names where it is enforced.
 
 | Ruling | Decision as built |
 |---|---|
+| R-013 | with abstract supply on, only units committed to a barrage or close assault pay ammunition; pinned, retreated-in and withheld units are never in the commit lists and pay none (`cna-game::ammo`) |
 | R-003 | contact is fixed as every movement segment opens, either side's (`cna-game::zoc::fix_contact`); a unit entering an enemy ZOC mid-segment is stopped, not yet in contact |
 | R-004 | a mixed stack pays the dearest piece's step cost and obeys every piece's prohibitions (`cna-game::movement::plan`) |
 | R-006 | non-motorised units never react, whatever they stack with (`cna-game::reaction::reactors_next_to`); truck convoys are not in the engine yet |
@@ -125,7 +125,7 @@ only that phase.
 
 | System | What the engine does instead |
 |---|---|
-| Abstract supply and supply units (§32) | every unit is supplied with unlimited ammunition and fuel; supply units are placed, captured when left alone in an enemy ZOC (10.29), and otherwise inert; motorisation points are not tracked |
+| Abstract supply and supply units (§32), Mission 5 in progress | with the `abstract_supply` module on (new `cna-play` games; the browser not yet): supply units carry loads, motorisation points stand where the trucks did, supply stacking and 32.8x's AA thinning apply, land moves pay fuel and barrages and assaults pay ammunition from supply in range. Not yet: supply units moving, arrivals and convoys, motorisation losses, destroying one's own supply, reactions and retreats paying fuel. With the module off (older saves and logs) every unit is supplied without limit and supply units are inert |
 | Breakdown (§21) | the breakdown segment of phase G is skipped |
 | Organisation (§20): attachment, detachment, replacements | phase C is skipped; the set-up's attachments are fixed for the game |
 | Engineering and construction (§24–26) | no minefields, fortifications, roads or airfields are built or demolished; the scenario starts with none (60.7) |

@@ -14,7 +14,7 @@ type Logged = { player: Side; order: Order };
 type GoldenLog = { seed: number; orders: Logged[] };
 
 /** M2's golden game: 446 orders, seed 7, ending at the start of GT7 with neither side at a level. */
-const golden: GoldenLog = JSON.parse(readFileSync(here("../../tests/games/graziani-short.json"), "utf8")) as GoldenLog;
+const golden: GoldenLog = JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as GoldenLog;
 /** `cna-play replay` of the whole log, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current` and `cna-game::golden`). */
 const goldenDone = readFileSync(here("fixtures/golden-done.sha256"), "utf8").trim();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");

@@ -14,6 +14,8 @@ use crate::order::Order;
 use crate::piece::{Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
 use cna_data::scenario::Side;
+use cna_rules::supply::Role;
+use std::collections::BTreeSet;
 
 impl GameState {
     /// Whether a piece of `side` on the map stands next to an enemy piece.
@@ -196,10 +198,32 @@ impl GameState {
             }
             Order::Barrage { fires } => {
                 self.check_barrage(data, player, fires)?;
+                // The plot binds once sealed: what it owes must be
+                // payable now (32.21); the debit comes at the roll.
+                let firers: Vec<PieceId> = fires
+                    .iter()
+                    .map(|f| f.piece.clone())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                let phasing = self.phasing() == Some(player);
+                self.plan_ammo(data, &firers, Role::Barrage, phasing)
+                    .refuse()?;
                 self.combat.plots.insert(player, fires.clone());
             }
             Order::AssignForces { assignments } => {
                 self.check_assignments(data, player, assignments)?;
+                // The attacker must be able to pay for what it commits
+                // to assault (32.21); defenders fight regardless.
+                if self.phasing() == Some(player) {
+                    let attackers: Vec<PieceId> = assignments
+                        .iter()
+                        .filter(|a| !a.close_assault.is_empty())
+                        .map(|a| a.piece.clone())
+                        .collect();
+                    self.plan_ammo(data, &attackers, Role::Assault, true)
+                        .refuse()?;
+                }
                 self.combat.assignments.insert(player, assignments.clone());
             }
             _ => unreachable!("matched by the caller"),
