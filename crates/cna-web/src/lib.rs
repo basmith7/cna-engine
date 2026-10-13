@@ -50,7 +50,8 @@ impl Game {
     }
 
     /// The hexes a stack of `side`'s (`pieces_json`, a JSON array of
-    /// piece ids) can end a `move` or `react` in, as
+    /// piece ids) can end a move of `purpose` (`move`, `react`,
+    /// `retreat-before-assault`, `forced-retreat`) in, as
     /// `{"ok": [Reach]}` or `{"illegal": {...}}` JSON (see
     /// `api::Game::reachable`). Throws only on malformed input.
     pub fn reachable(
@@ -63,11 +64,28 @@ impl Game {
         Ok(serde_json::to_string(&v)?)
     }
 
+    /// What `side` may answer the sealed step now pending with, as
+    /// `{"ok": SealedOptions}` or `{"illegal": {...}}` JSON (see
+    /// `api::Game::sealed_options`). Throws only on malformed input.
+    #[wasm_bindgen(js_name = sealedOptions)]
+    pub fn sealed_options(&self, side: &str) -> Result<String, JsError> {
+        let v = self.0.sealed_options(side).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
     /// One order from `side` (`axis` / `cw`) as `Order` JSON; the answer
     /// is `{"ok": [...]}` or `{"illegal": {...}}` JSON. Throws only on
     /// malformed input.
     pub fn apply(&mut self, side: &str, order_json: &str) -> Result<String, JsError> {
         let v = self.0.apply(side, order_json).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
+    /// What `apply` would answer `order_json` from `side` with, the game
+    /// untouched (see `api::Game::preview`). Throws only on malformed
+    /// input.
+    pub fn preview(&self, side: &str, order_json: &str) -> Result<String, JsError> {
+        let v = self.0.preview(side, order_json).map_err(js)?;
         Ok(serde_json::to_string(&v)?)
     }
 

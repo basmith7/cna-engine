@@ -87,16 +87,17 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("barrage" in e) {
     const d = e.barrage;
-    return `${sideName(d.side)} barrage on ${name(d.target)} by ${list(d.firers, name)}: ${d.points} points, shift ${d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
+    return `${sideName(d.side)} barrage on ${name(d.target)} by ${list(d.firers, name)}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
   }
   if ("retreated-before-assault" in e) return `${list(e["retreated-before-assault"].pieces, name)} retreat before assault to ${e["retreated-before-assault"].to}.`;
   if ("anti-armour" in e) {
     const d = e["anti-armour"];
-    return `${sideName(d.side)} anti-armour fire at ${d.target}: ${d.points} points, shift ${d.shift}, reading ${d.reading}, damage ${d.damage}.`;
+    return `${sideName(d.side)} anti-armour fire at ${d.target}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${d.damage} point${d.damage === 1 ? "" : "s"} of damage.`;
   }
   if ("assault" in e) {
     const d = e.assault;
-    return `${d.probe ? "Probe" : "Assault"} on ${d.target} by ${list(d.attackers, name)}: ${d.attacker_raw} v ${d.defender_raw}, column ${d.column} (${d.shifts} shifts); attacker ${d.attacker.pct}% (${d.attacker.toe_lost} TOE), defender ${d.defender.pct}% (${d.defender.toe_lost} TOE)${d.defender.retreat ? `, retreat ${d.defender.retreat}` : ""}${d.defender.captured ? ", captured" : ""}.`;
+    const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+    return `${d.probe ? "Probe" : "Assault"} on ${d.target} by ${list(d.attackers, name)}: ${d.attacker_raw} v ${d.defender_raw} raw, differential ${sign(d.basic)}, ${sign(d.shifts)} shifts, column ${d.column}; attacker rolls ${d.attacker.reading} and loses ${d.attacker.pct}% (${d.attacker.toe_lost} TOE), defender rolls ${d.defender.reading} and loses ${d.defender.pct}% (${d.defender.toe_lost} TOE)${d.defender.retreat ? `, retreats ${d.defender.retreat}` : ""}${d.defender.engaged ? ", engaged" : ""}${d.defender.captured ? ", captured" : ""}.`;
   }
   if ("prisoners" in e) return `${sideName(e.prisoners.side)} takes ${e.prisoners.points} prisoner points.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
@@ -105,7 +106,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["retreat-ordered"];
     return `${list(d.pieces, name)} must retreat ${d.hexes} hex${d.hexes === 1 ? "" : "es"} (${REASON[d.reason]}).`;
   }
-  if ("retreat-bought-out" in e) return `${list(e["retreat-bought-out"].pieces, name)} stand, ${e["retreat-bought-out"].short} hex short.`;
+  if ("retreat-bought-out" in e) {
+    const d = e["retreat-bought-out"];
+    return `${list(d.pieces, name)} stand ${d.short} hex${d.short === 1 ? "" : "es"} short of the ordered retreat and pay for it.`;
+  }
   if ("losses" in e) return `${name(e.losses.piece)} loses ${e.losses.points} points, TOE now ${e.losses.toe}.`;
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
   if ("forces-assigned" in e) {

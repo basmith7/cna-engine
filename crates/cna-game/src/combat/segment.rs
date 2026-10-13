@@ -17,7 +17,7 @@ use cna_data::scenario::Side;
 
 impl GameState {
     /// Whether a piece of `side` on the map stands next to an enemy piece.
-    fn next_to_enemy(&self, data: &Data, piece: &Piece) -> bool {
+    pub(crate) fn next_to_enemy(&self, data: &Data, piece: &Piece) -> bool {
         piece.hex().is_some_and(|h| {
             data.map.neighbours(h).iter().any(|n| {
                 self.pieces

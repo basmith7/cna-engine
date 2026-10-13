@@ -68,13 +68,70 @@ impl GameState {
     ) -> Result<(), Illegal> {
         Self::no_duplicates(forward.iter(), "12.1x")?;
         for id in forward {
-            let p = self.own_piece(player, id, "12.1x")?;
-            if p.kind != PieceKind::Combat || !self.is_gun_unit(data, p) {
-                return Err(Illegal::new(
-                    "12.1x",
-                    format!("{id} is not a gun-class unit: only artillery stands forward or back"),
-                ));
-            }
+            self.may_stand_forward(data, player, id)?;
+        }
+        Ok(())
+    }
+
+    /// Whether one of the player's units may stand forward (12.1x): a
+    /// gun-class combat unit on the map.
+    pub(crate) fn may_stand_forward(
+        &self,
+        data: &Data,
+        player: Side,
+        id: &PieceId,
+    ) -> Result<&Piece, Illegal> {
+        let p = self.own_piece(player, id, "12.1x")?;
+        if p.kind != PieceKind::Combat || !self.is_gun_unit(data, p) {
+            return Err(Illegal::new(
+                "12.1x",
+                format!("{id} is not a gun-class unit: only artillery stands forward or back"),
+            ));
+        }
+        Ok(p)
+    }
+
+    /// Whether one of the player's units may barrage at all (12.0): on
+    /// the map with a barrage rating.
+    pub(crate) fn barrage_firer(
+        &self,
+        data: &Data,
+        player: Side,
+        id: &PieceId,
+    ) -> Result<&Piece, Illegal> {
+        let p = self.own_piece(player, id, "12.2x")?;
+        if self.raw_of(data, p, Kind::Barrage) == 0 {
+            return Err(Illegal::new("12.0", format!("{id} has no barrage rating")));
+        }
+        Ok(p)
+    }
+
+    /// Whether `firer` may barrage `target` (12.2x, 12.31): an enemy
+    /// unit a barrage may target, on the map in an adjacent hex.
+    pub(crate) fn barrage_target(
+        &self,
+        data: &Data,
+        player: Side,
+        firer: &Piece,
+        target: &PieceId,
+    ) -> Result<(), Illegal> {
+        let Some(t) = self.pieces.get(target) else {
+            return Err(Illegal::new("12.2x", format!("{target}: no such target")));
+        };
+        let (Some(from), Some(at)) = (firer.hex(), t.hex()) else {
+            return Err(Illegal::new("12.2x", format!("{target} is not on the map")));
+        };
+        if t.side == player || !self.is_target(data, t) {
+            return Err(Illegal::new(
+                "12.2x",
+                format!("{target} is not an enemy unit a barrage may target"),
+            ));
+        }
+        if !data.map.adjacent(from, at) {
+            return Err(Illegal::new(
+                "12.31",
+                format!("{target} at {at} is not adjacent to {} at {from}", firer.id),
+            ));
         }
         Ok(())
     }
@@ -99,12 +156,7 @@ impl GameState {
                     format!("{}: no points fired", f.piece),
                 ));
             }
-            if self.raw_of(data, p, Kind::Barrage) == 0 {
-                return Err(Illegal::new(
-                    "12.0",
-                    format!("{} has no barrage rating", f.piece),
-                ));
-            }
+            self.barrage_firer(data, player, &f.piece)?;
             let total = spent.entry(&f.piece).or_default();
             *total = total.checked_add(f.points).unwrap_or(u32::MAX);
             if *total > p.toe {
@@ -113,33 +165,8 @@ impl GameState {
                     format!("{} fires {total} points but has {}", f.piece, p.toe),
                 ));
             }
-            let Some(t) = self.pieces.get(&f.target) else {
-                return Err(Illegal::new(
-                    "12.2x",
-                    format!("{}: no such target", f.target),
-                ));
-            };
-            let (Some(from), Some(at)) = (p.hex(), t.hex()) else {
-                return Err(Illegal::new(
-                    "12.2x",
-                    format!("{} is not on the map", f.target),
-                ));
-            };
-            if t.side == player || !self.is_target(data, t) {
-                return Err(Illegal::new(
-                    "12.2x",
-                    format!("{} is not an enemy unit a barrage may target", f.target),
-                ));
-            }
-            if !data.map.adjacent(from, at) {
-                return Err(Illegal::new(
-                    "12.31",
-                    format!(
-                        "{} at {at} is not adjacent to {} at {from}",
-                        f.target, f.piece
-                    ),
-                ));
-            }
+            self.barrage_target(data, player, p, &f.target)?;
+            let from = p.hex().expect("checked");
             per_hex.entry((from, &f.target)).or_default().push(&f.piece);
         }
         for ((hex, target), firers) in per_hex {
@@ -188,50 +215,8 @@ impl GameState {
         Self::no_duplicates(assignments.iter().map(|a| &a.piece), "14.1x")?;
         let phasing = self.phasing() == Some(player);
         for a in assignments {
-            let p = self.own_piece(player, &a.piece, "14.1x")?;
+            let p = self.may_commit(data, player, &a.piece)?;
             let from = p.hex().expect("checked").clone();
-            if !matches!(p.kind, PieceKind::Combat | PieceKind::Hq) || p.toe == 0 {
-                return Err(Illegal::new(
-                    "15.1x",
-                    format!("{} has no TOE points to commit", a.piece),
-                ));
-            }
-            if self.combat.pinned.contains(&a.piece) {
-                return Err(Illegal::new(
-                    "12.44",
-                    format!(
-                        "{} is pinned: it may neither fire anti-armour nor close assault",
-                        a.piece
-                    ),
-                ));
-            }
-            if self.combat.retreated.contains(&a.piece) {
-                return Err(Illegal::new(
-                    "13.28",
-                    format!(
-                        "{} retreated before assault: it adds nothing this segment",
-                        a.piece
-                    ),
-                ));
-            }
-            if p.cohesion.collapsed(&self.ruleset) {
-                return Err(Illegal::new(
-                    "6.26",
-                    format!(
-                        "{} is at cohesion {}: it cannot attack or defend",
-                        a.piece, p.cohesion.level
-                    ),
-                ));
-            }
-            if self.is_gun_unit(data, p) && !self.combat.forward.contains(&a.piece) {
-                return Err(Illegal::new(
-                    "12.1x",
-                    format!(
-                        "{} is back: a back gun neither fires anti-armour nor close assaults",
-                        a.piece
-                    ),
-                ));
-            }
             let total: u64 = a
                 .anti_armour
                 .iter()
@@ -280,18 +265,17 @@ impl GameState {
                             ),
                         ));
                     }
-                    (Some(h), true) => self.check_target_hex(data, p, &from, h)?,
-                    (None, false) => {}
+                    (Some(_), true) | (None, false) => {}
                 }
             }
             for al in &a.anti_armour {
                 if let Some(h) = &al.target {
-                    self.check_anti_armour_hexside(data, &from, h)?;
+                    self.anti_armour_target(data, p, &from, h)?;
                 }
             }
             for al in &a.close_assault {
                 if let Some(h) = &al.target {
-                    self.check_assault_hexside(data, p, &from, h)?;
+                    self.assault_target(data, p, &from, h)?;
                 }
             }
             // A unit released from reserve makes one assault at most
@@ -334,6 +318,79 @@ impl GameState {
             }
         }
         Ok(())
+    }
+
+    /// Whether one of the player's units may commit points in step 4 at
+    /// all (14.1x, 15.1x, 12.44, 13.28, 6.26, 12.1x): a combat unit or
+    /// HQ on the map with TOE, not pinned, not retreated this segment,
+    /// not collapsed, and not a back gun.
+    pub(crate) fn may_commit(
+        &self,
+        data: &Data,
+        player: Side,
+        id: &PieceId,
+    ) -> Result<&Piece, Illegal> {
+        let p = self.own_piece(player, id, "14.1x")?;
+        if !matches!(p.kind, PieceKind::Combat | PieceKind::Hq) || p.toe == 0 {
+            return Err(Illegal::new(
+                "15.1x",
+                format!("{id} has no TOE points to commit"),
+            ));
+        }
+        if self.combat.pinned.contains(id) {
+            return Err(Illegal::new(
+                "12.44",
+                format!("{id} is pinned: it may neither fire anti-armour nor close assault"),
+            ));
+        }
+        if self.combat.retreated.contains(id) {
+            return Err(Illegal::new(
+                "13.28",
+                format!("{id} retreated before assault: it adds nothing this segment"),
+            ));
+        }
+        if p.cohesion.collapsed(&self.ruleset) {
+            return Err(Illegal::new(
+                "6.26",
+                format!(
+                    "{id} is at cohesion {}: it cannot attack or defend",
+                    p.cohesion.level
+                ),
+            ));
+        }
+        if self.is_gun_unit(data, p) && !self.combat.forward.contains(id) {
+            return Err(Illegal::new(
+                "12.1x",
+                format!("{id} is back: a back gun neither fires anti-armour nor close assaults"),
+            ));
+        }
+        Ok(p)
+    }
+
+    /// Whether the phasing unit `p` at `from` may fire anti-armour at
+    /// `h` (15.0, 14.34).
+    pub(crate) fn anti_armour_target(
+        &self,
+        data: &Data,
+        p: &Piece,
+        from: &HexId,
+        h: &HexId,
+    ) -> Result<(), Illegal> {
+        self.check_target_hex(data, p, from, h)?;
+        self.check_anti_armour_hexside(data, from, h)
+    }
+
+    /// Whether the phasing unit `p` at `from` may close assault `h`
+    /// (15.0, 15.36).
+    pub(crate) fn assault_target(
+        &self,
+        data: &Data,
+        p: &Piece,
+        from: &HexId,
+        h: &HexId,
+    ) -> Result<(), Illegal> {
+        self.check_target_hex(data, p, from, h)?;
+        self.check_assault_hexside(data, p, from, h)
     }
 
     /// An adjacent enemy-held hex.

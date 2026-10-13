@@ -8,6 +8,7 @@ mod assault;
 mod barrage;
 pub mod cp;
 mod losses;
+pub mod options;
 mod plots;
 mod retreat;
 pub(crate) mod segment;

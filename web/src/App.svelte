@@ -4,6 +4,7 @@
   import { label, stacks } from "./counters";
   import Curtain from "./Curtain.svelte";
   import { curtainAfter } from "./curtain";
+  import EndDialog from "./EndDialog.svelte";
   import { Engine, initEngine } from "./engine";
   import { formatEvent } from "./format";
   import { withEvents, withIllegal, type LogEntry } from "./log";
@@ -21,7 +22,7 @@
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, Side, View } from "./types";
+  import type { ApplyResult, HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -45,18 +46,52 @@
   let custom: HexId[] = $state([]);
   /** The hex under the pointer, for the path preview. */
   let hover: HexId | null = $state(null);
+  /** The end-of-game dialog, closed to look at the map and reopened from a button. */
+  let reportOpen = $state(true);
 
   // Re-read from the engine whenever the view is replaced: the engine is
   // not reactive, the view standing in for its version.
   const placements: HexId[] = $derived.by(() => (view && picked && engine ? engine.placements(picked) : []));
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
 
-  /** What a click on a reachable hex would send: a move in a movement segment, a reaction while one is offered. */
+  /** What a click on a reachable hex would send: a move in a movement segment, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
     if (!view || !view.to_act) return null;
-    if (view.pending && "reaction" in view.pending) return "reaction" in view.pending ? "react" : null;
-    if (view.pending) return null;
+    if (view.pending) {
+      if ("reaction" in view.pending) return "react";
+      if ("retreat-before-assault" in view.pending) return "retreat-before-assault";
+      if ("forced-retreat" in view.pending) return "forced-retreat";
+      return null;
+    }
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
+  });
+  /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */
+  const sealed: { ok: SealedOptions } | { ok: null; illegal: Illegal } | null = $derived.by(() => {
+    if (!engine || !view || !view.to_act || !view.pending || !("sealed" in view.pending)) return null;
+    const r = engine.sealedOptions(view.to_act);
+    return "ok" in r ? r : { ok: null, illegal: r.illegal };
+  });
+  /** The engine's preview of Pass while a forced retreat is pending: what standing still costs (spec, *Interrupts*). */
+  const passPreview: ApplyResult | null = $derived.by(() => {
+    if (!engine || !view || !view.to_act || !view.pending || !("forced-retreat" in view.pending)) return null;
+    return engine.preview(view.to_act, "pass");
+  });
+  /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
+  const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
+  let map: Map | undefined = $state();
+  // A forced retreat is the ordered stack's, nobody else's: it stands
+  // ticked and the map comes to it.
+  $effect(() => {
+    if (!view?.pending || !("forced-retreat" in view.pending)) return;
+    const pieces = view.pending["forced-retreat"].pieces.filter((id) => {
+      const l = view!.pieces[id]?.location;
+      return typeof l === "object" && "hex" in l;
+    });
+    if (pieces.join(",") !== ticked.join(",")) {
+      ticked = pieces;
+      const l = pieces.length > 0 ? view.pieces[pieces[0]].location : null;
+      if (l && typeof l === "object" && "hex" in l) map?.goTo(l.hex);
+    }
   });
   /** Whether the ticked stack stands on a hex (the overlay applies) or could go off-map (8.8x). */
   const onMap = $derived(view ? allOnMap(view, ticked) : false);
@@ -88,7 +123,9 @@
     const r = engine.apply(view.to_act, order);
     if ("illegal" in r) {
       illegal = `Illegal (${r.illegal.case}): ${r.illegal.reason}`;
-      log = withIllegal(log, illegal);
+      // A refused sealed answer stays out of the log: the engine's reason
+      // repeats the answer, and the log is the other side's to read next.
+      if (!("sealed" in (view.pending ?? {}))) log = withIllegal(log, illegal);
       refusals++;
       return false;
     }
@@ -124,7 +161,15 @@
   /** The ticked stack along `path`, as the order the moment calls for. */
   function sendPath(path: HexId[]): boolean {
     if (!purpose || ticked.length === 0) return false;
-    const ok = purpose === "react" ? send({ react: { pieces: ticked, path } }) : send({ move: { pieces: ticked, path, assault } });
+    const order: Order =
+      purpose === "react"
+        ? { react: { pieces: ticked, path } }
+        : purpose === "retreat-before-assault"
+          ? { "retreat-before-assault": { pieces: ticked, path } }
+          : purpose === "forced-retreat"
+            ? { retreat: { path } }
+            : { move: { pieces: ticked, path, assault } };
+    const ok = send(order);
     if (ok) assault = false;
     return ok;
   }
@@ -143,6 +188,11 @@
       if (send({ place: { piece: picked, hex: h } })) {
         picked = view!.to_act === side && side ? nextToPlace(view!, side) : null;
       }
+      return;
+    }
+    // The close assault step: a click on a hex still to assault resolves it.
+    if (!view.pending && toAssault.includes(h)) {
+      send({ assault: { target: h } });
       return;
     }
     // A shift-click extends the custom path; the engine judges it on Enter.
@@ -217,6 +267,7 @@
         (window as unknown as { __cna: unknown }).__cna = {
           view: () => engine!.view(),
           save: () => engine!.save(),
+          sealedOptions: () => engine!.sealedOptions(engine!.view().to_act!),
           load: (json: string) => {
             engine = Engine.load(json);
             view = engine.view();
@@ -226,6 +277,7 @@
             custom = [];
             log = [];
             curtain = null;
+            reportOpen = true;
           },
         };
       }
@@ -247,13 +299,17 @@
     {/key}
   {/if}
   {#if view}
+    {#if view.over && reportOpen}
+      <EndDialog {view} onclose={() => (reportOpen = false)} />
+    {/if}
     <TopBar {view} {hex} />
     <div class="body">
       <main class="board">
-        <Map {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
+        <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
             <Placements hexes={placements} />
             <Marks hexes={asked} kind="zoc" />
+            <Marks hexes={toAssault} kind="assault" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
             <Reachable {reaches} {from} hovered={hover} {custom} {occupied} part="labels" />
@@ -262,10 +318,22 @@
       </main>
       <aside class="side">
         <div class="panels">
+          {#if view.over}
+            <section class="panel over" data-testid="over">
+              <h2>Game over</h2>
+              <p>The engine takes no more orders (60.22). <button type="button" data-testid="show-report" onclick={() => (reportOpen = true)}>Show the victory report</button></p>
+            </section>
+          {/if}
+          {#if toAssault.length > 0}
+            <section class="panel assault" data-testid="assault-panel">
+              <h2>Close assault · {toAssault.length} to resolve</h2>
+              <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
+            </section>
+          {/if}
           <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
-            <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} />
+            <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
           {#if purpose}
             <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
@@ -351,6 +419,37 @@
   .status {
     padding: 1rem;
     font: 15px system-ui, sans-serif;
+  }
+  .panel {
+    font: 14px/1.35 system-ui, sans-serif;
+    color: #1b1b1b;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.6rem;
+    border-radius: 4px;
+  }
+  .panel h2 {
+    margin: 0 0 0.3rem;
+    font-size: 15px;
+  }
+  .panel p {
+    margin: 0;
+  }
+  .panel.assault {
+    background: #fbe3e1;
+    border: 1px solid #d9847d;
+  }
+  .panel.over {
+    background: #e9e4d8;
+    border: 1px solid #b9b2a2;
+  }
+  .panel button {
+    font: inherit;
+    padding: 0.2rem 0.5rem;
+    background: #1f2a33;
+    color: #f2efe6;
+    border: 1px solid #0f161c;
+    border-radius: 4px;
+    cursor: pointer;
   }
   .error {
     color: #a4161a;

@@ -36,6 +36,7 @@ function view(pieces: Piece[]): View {
     clock: { game_turn: 1, stage: 1, phase: "initiative-declaration", half: null, segment: null },
     initiative: null,
     player_a: null,
+    assaults_to_resolve: [],
     weather: "normal",
     pieces: Object.fromEntries(pieces.map((p) => [p.id, p])),
     pending: { "set-up": { side: "axis" } },

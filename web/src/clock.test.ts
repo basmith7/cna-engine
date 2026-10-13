@@ -10,6 +10,7 @@ function view(partial: Partial<View>): View {
     clock: { game_turn: 1, stage: 1, phase: "initiative-declaration", half: null, segment: null },
     initiative: null,
     player_a: null,
+    assaults_to_resolve: [],
     weather: "normal",
     pieces: {},
     pending: null,

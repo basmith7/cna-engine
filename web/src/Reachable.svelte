@@ -32,7 +32,7 @@
 
   const index = $derived(byHex(reaches));
   /** Plain hexes first, so a flagged hex's outline is not overdrawn by a plain neighbour's stroke. */
-  const flagged = (r: Reach) => r.dp > 0 || r.ends_in_zoc || r.may_be_interrupted;
+  const flagged = (r: Reach) => r.dp > 0 || r.ends_in_zoc || r.may_be_interrupted || r.short > 0;
   const ordered = $derived([...reaches].sort((a, b) => Number(flagged(a)) - Number(flagged(b))));
   const hoverPath = $derived(hovered ? (index.get(hovered)?.path ?? null) : null);
 
@@ -50,9 +50,11 @@
         class:dp={r.dp > 0}
         class:zoc={r.ends_in_zoc}
         class:maybe={r.may_be_interrupted}
+        class:short={r.short > 0}
         data-hex={r.hex}
         data-cp={r.cp}
         data-dp={r.dp}
+        data-short={r.short}
         points={polygonPoints(r.hex)}
       />
     {/each}
@@ -61,7 +63,7 @@
   <g class="reach-labels">
     {#each reaches as r (r.hex)}
       {@const [cx, cy] = centre(r.hex)}
-      {@const text = `${cpLabel(r.cp)}${r.dp > 0 ? ` +${r.dp}` : ""}`}
+      {@const text = `${cpLabel(r.cp)}${r.dp > 0 ? ` +${r.dp}` : ""}${r.short > 0 ? ` −${r.short}h` : ""}`}
       {#if occupied.has(r.hex)}
         <!-- A pill on the top-right corner of the counter, the count badge's opposite. -->
         <g class="pill" class:dp={r.dp > 0} transform="translate({cx + COUNTER * 0.5} {cy - COUNTER * 0.5})">
@@ -106,6 +108,12 @@
   .reach.maybe {
     stroke-dasharray: 1.5 1.5;
     stroke-width: 1.4;
+  }
+  .reach.short {
+    fill: #ffb703;
+    stroke: #c77700;
+    stroke-width: 1.4;
+    stroke-dasharray: 4 2;
   }
   .cp {
     font: 700 6.5px system-ui, sans-serif;

@@ -78,6 +78,23 @@ impl GameState {
             .collect()
     }
 
+    /// The hexes the phasing player still has to assault in the close
+    /// assault step (`unresolved_assaults`, each once); empty at any
+    /// other moment or while something is pending. What a client
+    /// highlights.
+    pub fn assaults_to_resolve(&self) -> Vec<HexId> {
+        if self.clock.segment != Some(Segment::CloseAssault) || self.pending.is_some() {
+            return Vec::new();
+        }
+        let mut hexes = self
+            .phasing()
+            .map(|p| self.unresolved_assaults(p))
+            .unwrap_or_default();
+        hexes.sort();
+        hexes.dedup();
+        hexes
+    }
+
     /// Whether any assignment, by a unit still on the map or not, names
     /// `target` for close assault.
     fn assault_assigned(&self, phasing: Side, target: &HexId) -> bool {

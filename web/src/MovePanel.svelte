@@ -34,7 +34,9 @@
     onoffmap: (to: OffMapPlace) => void;
   } = $props();
 
-  const title = $derived(purpose === "react" ? "Reaction move" : "Move");
+  const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat" };
+  const title = $derived(TITLES[purpose]);
+  const shorts = $derived(reaches.filter((r) => r.short > 0).length);
   const zocStops = $derived(reaches.filter((r) => r.ends_in_zoc).length);
   const maybe = $derived(reaches.filter((r) => r.may_be_interrupted).length);
   const dearest = $derived(reaches.reduce((m, r) => Math.max(m, r.cp), 0));
@@ -43,7 +45,7 @@
 <section class="panel" data-testid="move-panel" data-purpose={purpose}>
   <h2>{title} <span class="n">{ticked.length} piece{ticked.length === 1 ? "" : "s"} ticked</span></h2>
   {#if ticked.length === 0}
-    <p class="hint">{purpose === "react" ? "Tick the pieces to react with." : "Click one of your stacks and tick the pieces to move."}</p>
+    <p class="hint">{purpose === "react" ? "Tick the pieces to react with." : purpose === "retreat-before-assault" ? "Click one of your stacks and tick the pieces to pull back." : "Click one of your stacks and tick the pieces to move."}</p>
   {:else if refusal}
     <p class="refusal" data-testid="move-refusal">Cannot move ({refusal.case}): {refusal.reason}</p>
   {:else if !onMap && !offMap}
@@ -61,6 +63,7 @@
       <li><span class="swatch dp"></span>earns DP (+n)</li>
       {#if zocStops > 0}<li><span class="swatch zoc"></span>enemy ZOC: the move ends there ({zocStops})</li>{/if}
       {#if maybe > 0}<li><span class="swatch maybe"></span>the engine may stop the stack short ({maybe})</li>{/if}
+      {#if shorts > 0}<li><span class="swatch short"></span>short of the ordered distance: stands and pays ({shorts})</li>{/if}
     </ul>
   {/if}
   {#if offMap && purpose === "move"}
@@ -137,6 +140,7 @@
   .swatch.dp { border: 2px dashed #c0392b; }
   .swatch.zoc { background: rgba(224, 123, 0, 0.5); border: 2px solid #7a3e00; }
   .swatch.maybe { border: 2px dotted #1b6f66; }
+  .swatch.short { background: rgba(255, 183, 3, 0.5); border: 2px dashed #c77700; }
   .custom {
     margin-top: 0.3rem;
   }
