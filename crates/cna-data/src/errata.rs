@@ -1,7 +1,7 @@
 //! Errata from `cna/data/errata/E-*.json`: RFC 6902 patches applied to a
 //! table at load.
 
-use crate::cna_root;
+use crate::source::Source;
 use anyhow::{Context, Result};
 use serde_json::Value;
 
@@ -15,36 +15,38 @@ pub fn apply_errata(table: &mut Value, errata: &Value) -> Result<()> {
     Ok(())
 }
 
-/// Fails unless the errata names a table that exists, so a misspelt
-/// `table` cannot leave an errata silently unapplied.
-pub fn check_target(errata: &Value, tables: &std::path::Path) -> Result<()> {
+/// Fails unless the errata names a table in `tables` (the file names of
+/// `data/tables/`), so a misspelt `table` cannot leave an errata
+/// silently unapplied.
+pub fn check_target(errata: &Value, tables: &[String]) -> Result<()> {
     let id = errata["id"].as_str().unwrap_or("?");
     let Some(table) = errata["table"].as_str() else {
         anyhow::bail!("{id}: no `table` field");
     };
-    if !tables.join(format!("{table}.json")).is_file() {
+    if !tables.iter().any(|t| *t == format!("{table}.json")) {
         anyhow::bail!("{id}: names table `{table}`, which does not exist");
     }
     Ok(())
 }
 
-/// Reads `data/tables/<name>.json` and applies every errata file whose
-/// `table` is `name`, in id order.
-pub fn load_table(name: &str) -> Result<Value> {
-    let root = cna_root().join("data");
-    let path = root.join("tables").join(format!("{name}.json"));
-    let mut table: Value = serde_json::from_str(
-        &std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?,
-    )?;
-    let mut files: Vec<_> = std::fs::read_dir(root.join("errata"))?
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().is_some_and(|x| x == "json"))
+/// Reads `data/tables/<name>.json` from `src` and applies every errata
+/// file whose `table` is `name`, in id order.
+pub fn load_table(src: &dyn Source, name: &str) -> Result<Value> {
+    let rel = format!("tables/{name}.json");
+    let mut table: Value = serde_json::from_str(&src.read(&rel)?)
+        .with_context(|| format!("parsing {rel}"))?;
+    let tables = src.list("tables")?;
+    let mut files: Vec<_> = src
+        .list("errata")?
+        .into_iter()
+        .filter(|f| f.ends_with(".json"))
         .collect();
     files.sort();
     for f in files {
-        let e: Value = serde_json::from_str(&std::fs::read_to_string(&f)?)
-            .with_context(|| format!("parsing {}", f.display()))?;
-        check_target(&e, &root.join("tables"))?;
+        let rel = format!("errata/{f}");
+        let e: Value =
+            serde_json::from_str(&src.read(&rel)?).with_context(|| format!("parsing {rel}"))?;
+        check_target(&e, &tables)?;
         if e["table"] == name {
             apply_errata(&mut table, &e)?;
         }
@@ -67,7 +69,7 @@ mod tests {
 
     #[test]
     fn errata_for_a_missing_table_names_the_errata() {
-        let tables = crate::cna_root().join("data/tables");
+        let tables = crate::source::Fs.list("tables").unwrap();
         let e = serde_json::json!({"id": "E-998", "table": "no-such-table", "patches": []});
         let err = check_target(&e, &tables).unwrap_err().to_string();
         assert!(err.contains("E-998"), "{err}");

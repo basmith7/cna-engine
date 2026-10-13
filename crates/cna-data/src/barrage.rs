@@ -32,8 +32,12 @@ pub struct Barrage {
 
 impl Barrage {
     pub fn load() -> Result<Self> {
-        Ok(serde_json::from_value(crate::errata::load_table(
-            "barrage-results",
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        Ok(serde_json::from_value(crate::errata::load_table(src, "barrage-results",
         )?)?)
     }
 

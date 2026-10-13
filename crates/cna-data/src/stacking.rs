@@ -19,8 +19,12 @@ pub struct StackingPoints {
 
 impl StackingPoints {
     pub fn load() -> Result<StackingPoints> {
-        Ok(serde_json::from_value(load_table(
-            "stacking-point-values",
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<StackingPoints> {
+        Ok(serde_json::from_value(load_table(src, "stacking-point-values",
         )?)?)
     }
 

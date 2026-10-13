@@ -124,8 +124,12 @@ pub struct Terrain {
 
 impl Terrain {
     pub fn load() -> Result<Self> {
-        Ok(serde_json::from_value(crate::errata::load_table(
-            "terrain-effects",
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        Ok(serde_json::from_value(crate::errata::load_table(src, "terrain-effects",
         )?)?)
     }
 

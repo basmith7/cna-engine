@@ -30,7 +30,12 @@ pub struct MoraleModifier {
 impl MoraleModifier {
     /// Fails unless the rows run from +8 down to −17 with no level missing.
     pub fn load() -> Result<Self> {
-        let t: Self = serde_json::from_value(crate::errata::load_table("morale-modifier")?)?;
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        let t: Self = serde_json::from_value(crate::errata::load_table(src, "morale-modifier")?)?;
         let levels: Vec<i32> = t.rows.iter().map(|r| r.level).collect();
         let want: Vec<i32> = (-17..=8).rev().collect();
         anyhow::ensure!(

@@ -52,7 +52,12 @@ pub struct OffMapDistances {
 
 impl OffMapDistances {
     pub fn load() -> Result<OffMapDistances> {
-        serde_json::from_value(load_table("off-map-distances")?).context("parsing off-map-distances")
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<OffMapDistances> {
+        serde_json::from_value(load_table(src, "off-map-distances")?).context("parsing off-map-distances")
     }
 
     /// The chart's column for a CPA: the band it falls in, or, in the
