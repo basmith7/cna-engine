@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { View } from "../src/types.ts";
 import "./cna.d.ts";
 
 // Slice 2's proving screenshots go where the spec says (Testing,
@@ -18,19 +19,21 @@ async function shoot(page: Page, name: string) {
 
 /** Every placed piece has a counter at its hex and every pending piece is in its side's tray; nothing else carries a data-unit. */
 async function expectDomMatchesView(page: Page) {
-  const view = await page.evaluate(() => window.__cna.view());
+  // Playwright's return type for evaluate loses the record's value type; the view is the engine's.
+  const view: View = await page.evaluate(() => window.__cna.view());
   let placed = 0;
   const pending = { axis: 0, cw: 0 };
   for (const p of Object.values(view.pieces)) {
-    if (typeof p.location !== "object") continue;
-    if ("hex" in p.location) {
-      await expect(page.locator(`svg.map g[data-unit="${p.id}"][data-hex="${p.location.hex}"]`)).toHaveCount(1);
+    const loc = p.location;
+    if (typeof loc !== "object") continue;
+    if ("hex" in loc) {
+      await expect(page.locator(`svg.map g[data-unit="${p.id}"][data-hex="${loc.hex}"]`)).toHaveCount(1);
       placed++;
-    } else if ("pending" in p.location) {
+    } else if ("pending" in loc) {
       await expect(page.locator(`[data-where="tray-${p.side}"] [data-unit="${p.id}"]`)).toHaveCount(1);
       pending[p.side]++;
-    } else if ("box" in p.location) {
-      await expect(page.locator(`[data-where="box-${p.location.box}"] [data-unit="${p.id}"]`)).toHaveCount(1);
+    } else if ("box" in loc) {
+      await expect(page.locator(`[data-where="box-${loc.box}"] [data-unit="${p.id}"]`)).toHaveCount(1);
     }
   }
   await expect(page.locator("svg.map g[data-unit]")).toHaveCount(placed);
