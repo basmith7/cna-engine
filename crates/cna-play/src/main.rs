@@ -101,6 +101,7 @@ fn show(state: &GameState) -> String {
         let key = match &p.location {
             Location::Hex(h) => h.to_string(),
             Location::Box(b) => format!("box {b:?}"),
+            Location::Transit { from, to, done } => format!("{from} to {to}, {done} stages along"),
             Location::Pending(_) => format!("pending ({})", p.side),
             Location::Eliminated => "eliminated".into(),
         };

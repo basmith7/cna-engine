@@ -220,6 +220,7 @@ impl GameState {
                     assault,
                 },
             ) => self.move_pieces(data, player, pieces, path, *assault),
+            (None, Order::MoveOffMap { pieces, to }) => self.move_off_map(data, player, pieces, *to),
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
             (None, Order::EndSegment) => self.end_segment(data),

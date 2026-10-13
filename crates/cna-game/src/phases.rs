@@ -95,8 +95,12 @@ impl GameState {
                     self.open_movement_segment(data, events);
                     return;
                 }
+                Phase::Arrival => {
+                    if !self.arrive(data, events) {
+                        events.push(Event::PhaseSkipped { clock });
+                    }
+                }
                 Phase::Organisation
-                | Phase::Arrival
                 | Phase::CwFleet
                 | Phase::TruckConvoy
                 | Phase::Rail
@@ -118,6 +122,7 @@ impl GameState {
             p.cp_enemy_half = Cp::ZERO;
             p.reserve = None;
             p.released = None;
+            p.landed = false;
         }
     }
 

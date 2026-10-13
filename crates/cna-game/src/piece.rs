@@ -6,6 +6,7 @@ use cna_data::characteristics::{Equivalent, Rating};
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::oa::{Nation, UnitId};
+use cna_data::off_map::OffMapPlace;
 use cna_data::scenario::{OffMapBox, Placement, Side, Status};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -68,6 +69,12 @@ pub enum PieceKind {
 pub enum Location {
     Hex(HexId),
     Box(OffMapBox),
+    /// Between two off-map places, `done` OpStages along (8.8x).
+    Transit {
+        from: OffMapPlace,
+        to: OffMapPlace,
+        done: u8,
+    },
     /// A free set-up the owner has yet to make (59.2).
     Pending(Placement),
     Eliminated,
@@ -144,6 +151,10 @@ pub struct Piece {
     /// rest of the stage, and the combat limits slice 5 reads.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub released: Option<Reserve>,
+    /// Arrived as a reinforcement this OpStage (20.1x): its first hex is
+    /// free, and it may not leave the box it landed in (8.8x).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub landed: bool,
 }
 
 impl Piece {

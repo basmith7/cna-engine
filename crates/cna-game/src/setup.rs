@@ -114,6 +114,7 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     engaged: false,
                     reserve: None,
                     released: None,
+                    landed: false,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -288,7 +289,44 @@ fn piece(
         engaged: false,
         reserve: None,
         released: None,
+        landed: false,
     }
+}
+
+/// The pieces a scheduled arrival brings (20.1x, 4.42): the named unit
+/// and its sheet subtree, less members with a later arrival of their own.
+pub fn reinforcement(
+    side: Side,
+    head: &UnitId,
+    oa: &Oa,
+    chars: &Characteristics,
+    at: GameTime,
+    location: Location,
+) -> Result<Vec<Piece>> {
+    let mut members = Vec::new();
+    subtree(head, oa, at, &mut members)?;
+    let entry = UnitEntry {
+        subject: Subject::Unit(head.clone()),
+        less: Vec::new(),
+        assigned: Vec::new(),
+        detached: Vec::new(),
+        attached: Vec::new(),
+        consists_of: None,
+        alone: false,
+        status: None,
+        toe: None,
+        notes: Vec::new(),
+    };
+    Ok(members
+        .into_iter()
+        .filter_map(|m| {
+            let unit = oa.unit(&m.id)?;
+            if unit.id_code.is_none() && unit.toe.is_empty() {
+                return None;
+            }
+            Some(piece(side, unit, m.parent, &entry, chars, oa, location.clone()))
+        })
+        .collect())
 }
 
 /// TOE points as the sheet prints them: `N` is the row's `max_toe` plus

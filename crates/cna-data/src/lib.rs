@@ -11,6 +11,7 @@ pub mod initiative;
 pub mod map;
 pub mod morale;
 pub mod oa;
+pub mod off_map;
 pub mod scenario;
 pub mod schedule;
 pub mod stacking;

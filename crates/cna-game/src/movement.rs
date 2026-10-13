@@ -144,7 +144,7 @@ impl GameState {
     }
 
     /// Whether a piece may move voluntarily at all.
-    fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
+    pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
             PieceKind::Combat | PieceKind::Hq => {}
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
@@ -423,6 +423,11 @@ impl GameState {
                 step.1 = Cp::ZERO;
             }
         }
+        // A reinforcement's first hex is free (20.1x).
+        let landed = pieces.iter().all(|id| self.pieces[id].landed);
+        if landed && let Some(step) = plan.steps.first_mut() {
+            step.1 = Cp::ZERO;
+        }
         let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
         let break_off = |p: &Piece| {
             if p.engaged {
@@ -504,6 +509,9 @@ impl GameState {
             self.release_contact_around(data, &from, player);
             if shift {
                 self.shifted.extend(pieces.iter().cloned());
+            }
+            for id in pieces {
+                self.pieces.get_mut(id).expect("checked").landed = false;
             }
         }
         if let Some(eligible) = reaction {

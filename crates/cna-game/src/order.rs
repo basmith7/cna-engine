@@ -4,6 +4,7 @@
 
 use crate::piece::PieceId;
 use cna_data::map::HexId;
+use cna_data::off_map::OffMapPlace;
 use cna_data::scenario::Side;
 use serde::{Deserialize, Serialize};
 
@@ -37,6 +38,12 @@ pub enum Order {
     /// The non-phasing player, asked which of its hexes exert a ZOC
     /// (10.16): these do; the rest asked about do not.
     DeclareZoc { exerting: Vec<HexId> },
+    /// A movement segment: an Axis stack in a box, in transit, or at
+    /// Nofilia sets out for `to`, spending the whole OpStage (8.8x).
+    MoveOffMap {
+        pieces: Vec<PieceId>,
+        to: OffMapPlace,
+    },
     /// Phase F: these units go into Reserve I (18.1x).
     DesignateReserve { pieces: Vec<PieceId> },
     /// A reserve release segment: these units, all in the same reserve

@@ -3,7 +3,7 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
-use crate::piece::{PieceId, Reserve};
+use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
@@ -45,6 +45,16 @@ pub enum Event {
     },
     /// Every piece is on the map; play begins.
     SetUpComplete,
+    /// Reinforcements landed in phase D (20.1x).
+    Arrived {
+        pieces: Vec<PieceId>,
+        at: Location,
+    },
+    /// An OpStage of off-map movement (8.8x): where the piece now is.
+    MovedOffMap {
+        piece: PieceId,
+        location: Location,
+    },
     /// One step of a move: what it cost each piece (8.3x).
     Moved {
         pieces: Vec<PieceId>,
