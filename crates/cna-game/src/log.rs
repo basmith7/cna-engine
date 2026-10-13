@@ -10,7 +10,7 @@ use crate::piece::{Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
 use crate::state::{GameState, Modules, Pending};
 use anyhow::{Context, Result, bail};
 use cna_data::map::HexId;
-use cna_data::scenario::{Locator, Side};
+use cna_data::scenario::{Locator, OffMapBox, Side};
 use cna_rules::ruleset::Ruleset;
 use serde::{Deserialize, Serialize};
 
@@ -118,6 +118,24 @@ impl GameState {
                 (Some(_), true) | (None, false) => {}
                 (Some(_), false) => bail!("{key} has a load but is not a supply unit with one"),
                 (None, true) => bail!("the supply unit {key} has no load"),
+            }
+        }
+        // 32.5x: points stand in a hex or a box, with the module on.
+        if !self.modules.abstract_supply
+            && !(self.motorisation.is_empty() && self.pending_motorisation.is_empty())
+        {
+            bail!("motorisation points exist without the abstract supply module");
+        }
+        for key in self.motorisation.values().flat_map(|m| m.keys()) {
+            let box_name = serde_json::from_value::<OffMapBox>(key.as_str().into()).is_ok();
+            if !box_name {
+                ids.hex("the motorisation", &HexId::parse(key)?)?;
+            }
+        }
+        for id in self.pending_motorisation.keys() {
+            ids.piece("the pending motorisation", id)?;
+            if !self.pieces[id].is_pending() {
+                bail!("the pending motorisation names {id}, which is not waiting to be placed");
             }
         }
         ids.pieces("moved", &self.moved)?;
@@ -378,6 +396,38 @@ mod tests {
         s.pieces.get_mut(&real).unwrap().load = Some(Load { ammo: 1, fuel: 1 });
         let err = GameState::from_json(&s.to_json().unwrap(), &data).unwrap_err();
         assert!(err.to_string().contains("load"), "{err}");
+    }
+
+    // 32.5x: motorisation points stand somewhere real, with the module on.
+    #[test]
+    fn hostile_motorisation_is_refused() {
+        let data = graziani();
+        let edit = |f: &dyn Fn(&mut GameState), modules| {
+            let mut s = GameState::with_modules(&data, 1, modules).unwrap();
+            f(&mut s);
+            s.to_json().unwrap()
+        };
+        let axis = |s: &mut GameState, key: &str| {
+            s.motorisation
+                .entry(Side::Axis)
+                .or_default()
+                .insert(key.into(), 1);
+        };
+        assert!(GameState::from_json(&edit(&|s| axis(s, "tripoli"), Modules::ALL), &data).is_ok());
+        for key in ["Z9999", "mars"] {
+            let json = edit(&|s| axis(s, key), Modules::ALL);
+            assert!(GameState::from_json(&json, &data).is_err(), "{key}");
+        }
+        let json = edit(&|s| axis(s, "tripoli"), Modules::default());
+        assert!(GameState::from_json(&json, &data).is_err());
+        let json = edit(
+            &|s| {
+                s.pending_motorisation
+                    .insert(PieceId::supply(Side::Cw, 1), 1);
+            },
+            Modules::ALL,
+        );
+        assert!(GameState::from_json(&json, &data).is_err());
     }
 
     #[test]

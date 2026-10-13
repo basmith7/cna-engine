@@ -114,6 +114,14 @@ pub struct GameState {
     #[serde(default, skip_serializing_if = "Modules::is_default")]
     pub modules: Modules,
     pub clock: Clock,
+    /// Each side's motorisation points by where they stand: a hex id or
+    /// a box name (32.5x). Secret to their owner (3.61).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub motorisation: BTreeMap<Side, BTreeMap<String, u32>>,
+    /// Points of a free-placement deployment, by its first piece: they
+    /// join `motorisation` in the hex that piece is placed in.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub pending_motorisation: BTreeMap<PieceId, u32>,
     /// Who holds initiative this Game-Turn (7.1x).
     pub initiative: Option<Side>,
     /// Who acts first this OpStage.
@@ -164,6 +172,23 @@ impl GameState {
     /// `new` with the rules modules named.
     pub fn with_modules(data: &Data, seed: u64, modules: Modules) -> Result<GameState> {
         let setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map, modules)?;
+        let mut motorisation: BTreeMap<Side, BTreeMap<String, u32>> = BTreeMap::new();
+        let mut pending_motorisation = BTreeMap::new();
+        for m in setup.motorisation {
+            match (m.location.key(), m.anchor) {
+                (Some(key), _) => {
+                    *motorisation
+                        .entry(m.side)
+                        .or_default()
+                        .entry(key)
+                        .or_default() += m.points
+                }
+                (None, Some(anchor)) => {
+                    pending_motorisation.insert(anchor, m.points);
+                }
+                (None, None) => {}
+            }
+        }
         let pieces = setup
             .pieces
             .into_iter()
@@ -175,6 +200,8 @@ impl GameState {
             ruleset: Ruleset::default(),
             modules,
             clock: Clock::opening(data.scenario.start),
+            motorisation,
+            pending_motorisation,
             initiative: None,
             player_a: None,
             weather: Weather::Normal,
@@ -493,6 +520,76 @@ mod tests {
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
+    }
+
+    // 60.92, 32.5x: each side starts with its medium truck points as
+    // motorisation points, where the deployments stood; light and heavy
+    // give none; a game without the module has none.
+    #[test]
+    fn medium_trucks_become_motorisation_points_where_they_stand() {
+        let data = graziani();
+        for side in [Side::Axis, Side::Cw] {
+            let medium: u32 = data
+                .scenario
+                .side(side)
+                .deployments
+                .iter()
+                .filter_map(|d| d.trucks)
+                .map(|t| t.medium)
+                .sum();
+            let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+            let held: u32 = state.motorisation[&side].values().sum();
+            let pending: u32 = state
+                .pending_motorisation
+                .keys()
+                .filter(|id| state.pieces[*id].side == side)
+                .map(|id| state.pending_motorisation[id])
+                .sum();
+            assert_eq!(held + pending, medium, "{side}");
+        }
+        let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let axis = &state.motorisation[&Side::Axis];
+        assert_eq!(axis["C4120"], 45); // medium 45, heavy 5
+        assert_eq!(axis["C4218"], 25); // light and heavy ignored
+        let bardia = data.map.place("bardia").unwrap().hex.to_string();
+        assert_eq!(axis[&bardia], 20);
+        assert_eq!(state.motorisation[&Side::Cw]["C3922"], 15);
+        // The Alexandria deployment (E3613 or E3714, the owner's choice)
+        // waits for its pieces to be placed.
+        assert_eq!(state.pending_motorisation.values().sum::<u32>(), 15);
+        assert!(GameState::new(&data, 1).unwrap().motorisation.is_empty());
+    }
+
+    // 59.2: the points of a free-placement deployment follow its pieces.
+    #[test]
+    fn pending_points_land_with_the_piece_placed() {
+        let data = graziani();
+        let mut state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let piece = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.is_pending())
+            .unwrap()
+            .id
+            .clone();
+        state.pending_motorisation.insert(piece.clone(), 7);
+        let at = state.placements(&data, &piece)[0].clone();
+        let before = state.motorisation[&Side::Axis]
+            .get(&at.to_string())
+            .copied()
+            .unwrap_or(0);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: piece.clone(),
+                    hex: at.clone(),
+                },
+            )
+            .unwrap();
+        assert!(!state.pending_motorisation.contains_key(&piece));
+        assert_eq!(state.motorisation[&Side::Axis][&at.to_string()], before + 7);
     }
 
     fn pid(s: &str) -> PieceId {

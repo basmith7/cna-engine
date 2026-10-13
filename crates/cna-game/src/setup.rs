@@ -33,6 +33,19 @@ pub struct Setup {
     /// Placement `constraint` sentences the grammar cannot check (59.2);
     /// the owner is trusted to honour them.
     pub unchecked: Vec<Unchecked>,
+    /// Motorisation points where each deployment's medium trucks start
+    /// (32.5x, 60.92); empty with the module off.
+    pub motorisation: Vec<Motorisation>,
+}
+
+/// A deployment's motorisation points. Where the deployment is still
+/// pending, they follow `anchor`, its first piece, to the hex it lands in.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Motorisation {
+    pub side: Side,
+    pub location: Location,
+    pub points: u32,
+    pub anchor: Option<PieceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,6 +70,7 @@ pub fn expand(
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
+        motorisation: Vec::new(),
     };
     let mut placed = BTreeSet::new();
     for side in [Side::Axis, Side::Cw] {
@@ -77,6 +91,17 @@ pub fn expand(
                     ids.push(piece.id.clone());
                     setup.pieces.push(piece);
                 }
+            }
+            // 60.92: each medium truck point becomes a motorisation
+            // point; light and heavy give none.
+            let medium = d.trucks.map_or(0, |t| t.medium);
+            if modules.abstract_supply && medium > 0 {
+                setup.motorisation.push(Motorisation {
+                    side,
+                    location: location.clone(),
+                    points: medium,
+                    anchor: ids.first().cloned(),
+                });
             }
             log_constraint(&mut setup, side, &d.placement, ids);
         }

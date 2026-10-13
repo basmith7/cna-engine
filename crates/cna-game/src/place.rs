@@ -42,6 +42,14 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.check_place(data, player, piece, hex)?;
         self.pieces.get_mut(piece).expect("checked").location = Location::Hex(hex.clone());
+        if let Some(points) = self.pending_motorisation.remove(piece) {
+            *self
+                .motorisation
+                .entry(player)
+                .or_default()
+                .entry(hex.to_string())
+                .or_default() += points;
+        }
         let mut events = vec![Event::Placed {
             piece: piece.clone(),
             hex: hex.clone(),

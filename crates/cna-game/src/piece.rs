@@ -80,6 +80,24 @@ pub enum Location {
     Eliminated,
 }
 
+impl Location {
+    /// The key motorisation points are filed under: the hex id or the
+    /// box's name; none where points cannot stand (32.5x).
+    pub fn key(&self) -> Option<String> {
+        match self {
+            Location::Hex(h) => Some(h.to_string()),
+            Location::Box(b) => Some(
+                serde_json::to_value(b)
+                    .expect("a box serialises")
+                    .as_str()
+                    .expect("as a string")
+                    .to_owned(),
+            ),
+            _ => None,
+        }
+    }
+}
+
 /// The two reserve states (18.1x): I may shift a hex and be released at
 /// the first release segment; II waits for a later one and moves not at
 /// all.
