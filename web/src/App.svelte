@@ -267,8 +267,12 @@
     }
   }
 
-  /** Puts a game on the screen with the UI-only state cleared: a new game, a loaded save, the autosave. */
-  function start(e: Engine) {
+  /**
+   * Puts a game on the screen with the UI-only state cleared: a new game, a
+   * loaded save, the autosave. `curtained` drops the curtain for the side
+   * to act, for a game whoever opened it may not be entitled to see.
+   */
+  function start(e: Engine, curtained = false) {
     engine = e;
     view = e.view();
     hex = null;
@@ -276,7 +280,7 @@
     ticked = [];
     custom = [];
     log = [];
-    curtain = null;
+    curtain = curtained ? curtainAfter(null, view.to_act) : null;
     reportOpen = true;
     illegal = null;
     autosaveNow();
@@ -292,10 +296,14 @@
     }
   }
 
-  /** Hands a save's text to the engine; on its refusal the current game, if any, is kept and the reason shown. */
-  function loadJson(json: string): boolean {
+  /**
+   * Hands a save's text to the engine; on its refusal the current game, if
+   * any, is kept and the reason shown. A player's load opens behind the
+   * curtain (`curtained`): whoever loads may be the side not to act.
+   */
+  function loadJson(json: string, curtained = true): boolean {
     try {
-      start(Engine.load(json));
+      start(Engine.load(json), curtained);
       loadError = null;
       return true;
     } catch (e) {
@@ -345,8 +353,9 @@
           /** How many orders the engine has accepted: the e2e driver's sync point after each click. */
           orders: () => (JSON.parse(engine!.save()) as { log: unknown[] }).log.length,
           sealedOptions: () => engine!.sealedOptions(engine!.view().to_act!),
+          /** A fixture state, opened without the curtain. */
           load: (json: string) => {
-            if (!loadJson(json)) throw new Error(loadError ?? "not loaded");
+            if (!loadJson(json, false)) throw new Error(loadError ?? "not loaded");
           },
         };
       }

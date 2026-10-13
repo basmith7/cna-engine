@@ -47,7 +47,8 @@ is also autosaved to the browser's `localStorage` after every order.
 
 **Secrecy is hot-seat only.** The screen avoids *showing* the other side's
 sealed combat answers until both are in, and a curtain asks for the
-keyboard to change hands; but the autosave, a downloaded save and (in
+keyboard to change hands (and comes down when a save or the autosave is
+opened); but the autosave, a downloaded save and (in
 test builds) `window.__cna` hold the whole state. Real hidden information
 waits for the server.
 
