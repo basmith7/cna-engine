@@ -1,16 +1,18 @@
 # Mission 3, slice 1 (engine in the browser) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** implement this plan task by task with the
+> **implement-spec** skill. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A Graziani game created and driven by the real engine inside a
 browser page: `cna-data` loads from any `Source`, `cna-web` embeds the
 data, and `web/` shows the hex grid and the clock from `Game.view()`.
 
 **Spec:** `docs/designs/2026-10-13-minimal-ui-design.md`
-**Depends on:** M2 slices 1–4 (merged).
+**Depends on:** Mission 2, complete on `origin/main` (`21f36a7`).
 
-**Proving screenshot:** the theatre's 7 073 hex outlines (no styling yet)
-with the top bar reading "Game-Turn 1 · set-up · Axis to act".
+**Proving screenshot:** `slice-1/grid.png`: the theatre's 7 073 hex
+outlines (no styling yet) with the top bar reading "Game-Turn 1 · set-up ·
+Axis to act".
 
 ## Rules for every task
 
@@ -19,9 +21,14 @@ with the top bar reading "Game-Turn 1 · set-up · Axis to act".
   summarise it as "passes".
 - Stop any dev or preview server you start (`npm run dev`, `npm run
   preview`) before finishing; Playwright's `webServer` stops its own.
-- On any visual change, capture the slice's proving screenshot and run
-  the **screenshot-critique** skill on it before calling the slice done;
-  paste its verdict in the PR.
+- On any visual change, capture the slice's proving screenshots with
+  Playwright at 1440×900 (plus one at 390×844) into
+  `~/Projects/cna-m3-shots/slice-N/` under the names below, run the
+  **screenshot-critique** skill on them, fix what it finds, and paste its
+  verdict in the PR.
+- `export CARGO_TARGET_DIR=$HOME/.cache/cna-engine-target`; a gate that
+  fails on data this tree does not have is re-run before being believed
+  (spec, *Risks*).
 
 ## Tasks
 
@@ -31,11 +38,14 @@ with the top bar reading "Game-Turn 1 · set-up · Axis to act".
   &str) -> Result<String>; fn list(&self, dir: &str) -> Result<Vec<String>>; }`
   (paths relative to `vendor/cna/data`, `/`-separated) and `Fs` over
   `cna_root()`.
-- [ ] Every loader (`Map`, `Scenario` incl. `extends`, `Oa::load_all`,
-  `Characteristics`, `Terrain`, `StackingPoints`, `Weather`,
-  `InitiativeRatings`, `Schedule`, `OffMapDistances`, the combat tables,
-  `errata::load_table`) becomes `load_from(src: &dyn Source)`; `load()`
-  calls it with `Fs`. No behaviour change: existing tests pass untouched.
+- [ ] Every loader behind `Data`'s 18 fields (`Scenario` incl.
+  `extends`, `Oa::load_all`, `Characteristics`, `WeaponSystems`, `Map`,
+  `Terrain`, `StackingPoints`, `Weather`, `InitiativeRatings`,
+  `Schedule`, `OffMapDistances`, `Barrage`, `AntiArmour`, `CloseAssault`,
+  `MoraleModifier`, `AssaultSizeShifts`, `Prisoners`) and
+  `errata::load_table` becomes `load_from(src: &dyn Source)`; `load()`
+  calls it with `Fs`. No behaviour change: existing tests, including the
+  golden game's pinned SHA-256, pass untouched.
 - [ ] `Data::load_from(slug, &dyn Source, rules_commit: String)` in
   `cna-game::data`; `Data::load` calls it.
 - [ ] Test: a `MemSource` (a `BTreeMap` filled from `Fs`) gives
@@ -55,12 +65,16 @@ with the top bar reading "Game-Turn 1 · set-up · Axis to act".
   `load(json)` (`GameState::from_json`), `save`, `view`, `apply(side,
   order_json)` → `{"ok": [Event]}` or `{"illegal": {"case", "reason"}}`.
   `view` = the state JSON minus `log` and `rng`, plus `to_act` and
-  `unit_type` per piece. `lib.rs`: a `#[wasm_bindgen] Game` whose methods
+  `unit_type` per piece (`over` stays: it is the victory report or
+  null). `lib.rs`: a `#[wasm_bindgen] Game` whose methods
   take and return JSON strings.
 - [ ] Native tests: embedded `Data` equals `Data::load`; new game pending
   `set-up` for `axis`; an illegal `place` returns case `59.2` and leaves
   `save()` unchanged; `load(save())` round-trips byte for byte; a save
-  with another `rules_commit` errors. Commit `cna-web: Game API with
+  with another `rules_commit` errors; the 76 orders of
+  `tests/games/setup.json` sent through `api::apply` end in the same
+  `save()` as `log::replay` of that file. `load` is
+  API-only until slice 6 checks invariants (spec, *Risks*). Commit `cna-web: Game API with
   embedded data`.
 - [ ] `wasm-bindgen-test` (node): the same new/apply/save/load through
   JS strings; `wasm-pack test --node crates/cna-web`. Record the release
@@ -91,7 +105,10 @@ with the top bar reading "Game-Turn 1 · set-up · Axis to act".
   "axis"` (`__cna` only when `import.meta.env.MODE === "test"`). Save the
   proving screenshot as an artefact.
 - [ ] CI: `cargo check -p cna-game --target wasm32-unknown-unknown`,
-  pinned `wasm-pack`, `wasm-pack test --node crates/cna-web`, job `web`
-  (Node 22, `npm ci`, `npm run wasm`, `npm run check`, `npm test`,
-  `npx playwright install --with-deps chromium`, `npx playwright test`).
+  pinned `wasm-pack` (0.15), `wasm-pack test --node crates/cna-web`, job
+  `web` (Node 22, `npm ci`, `npm run wasm`, `npm run check`, `npm test`,
+  `npm run build`, `npx playwright install --with-deps chromium`, `npx
+  playwright test`).
   Commit `CI: wasm and web`.
+- [ ] Capture `slice-1/grid.png` (and the 390×844 shot), run
+  screenshot-critique, fix what it finds.
