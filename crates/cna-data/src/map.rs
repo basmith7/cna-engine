@@ -199,6 +199,56 @@ struct HexsidesFile {
     hexsides: Vec<HexsideRecord>,
 }
 
+/// A named place from `places.json`. `kind` is the Terrain Key's class,
+/// or `feature` for a named point with no settlement.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Place {
+    pub id: String,
+    pub hex: HexId,
+    pub name: String,
+    pub kind: PlaceKind,
+    pub port: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlaceKind {
+    MajorCity,
+    Village,
+    Bir,
+    Oasis,
+    Feature,
+}
+
+#[derive(Deserialize)]
+struct PlacesFile {
+    places: Vec<Place>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Country {
+    Libya,
+    Egypt,
+}
+
+/// `regions.json`: whole sheets, and the one sheet the frontier splits.
+#[derive(Debug, Clone, Deserialize)]
+struct Regions {
+    whole_sheets: BTreeMap<char, Country>,
+    split_sheet: SplitSheet,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct SplitSheet {
+    sheet: char,
+    west: Country,
+    east: Country,
+    /// Per row: the first column in `east`. A value past the sheet's last
+    /// column means the whole row is `west`.
+    first_east_col: BTreeMap<String, u8>,
+}
+
 #[derive(Debug)]
 pub struct Map {
     sheets: BTreeMap<char, Sheet>,
@@ -206,6 +256,8 @@ pub struct Map {
     /// Keyed `(a, b)` with `a < b`.
     hexsides: BTreeMap<(HexId, HexId), Hexside>,
     edges: BTreeMap<(HexId, Side), Hexside>,
+    places: BTreeMap<String, Place>,
+    regions: Regions,
 }
 
 #[derive(Deserialize)]
@@ -230,7 +282,8 @@ fn pair_key(a: HexId, b: HexId) -> (HexId, HexId) {
 }
 
 impl Map {
-    /// Loads `sheets.json`, `hexes.json` and `hexsides.json`. Map corrections are already
+    /// Loads `sheets.json`, `hexes.json`, `hexsides.json`, `places.json`
+    /// and `regions.json`. Map corrections are already
     /// applied in those files.
     pub fn load() -> Result<Map> {
         let sheets = read_json::<SheetsFile>("sheets.json")?.sheets;
@@ -266,11 +319,64 @@ impl Map {
                 _ => bail!("hexside {}: needs exactly one of b and side", r.a),
             }
         }
+        let mut places = BTreeMap::new();
+        for p in read_json::<PlacesFile>("places.json")?.places {
+            if !hexes.contains_key(&p.hex) {
+                bail!("place {}: {} is not a hex", p.id, p.hex);
+            }
+            if places.insert(p.id.clone(), p).is_some() {
+                bail!("duplicate place in places.json");
+            }
+        }
+        let regions: Regions = read_json("regions.json")?;
+        for sheet in regions
+            .whole_sheets
+            .keys()
+            .chain(std::iter::once(&regions.split_sheet.sheet))
+        {
+            if !sheets.contains_key(sheet) {
+                bail!("regions.json names sheet {sheet}, which is not in sheets.json");
+            }
+        }
         Ok(Map {
             sheets,
             hexes,
             hexsides,
             edges,
+            places,
+            regions,
+        })
+    }
+
+    pub fn place(&self, id: &str) -> Option<&Place> {
+        self.places.get(id)
+    }
+
+    /// Every place, in id order.
+    pub fn places(&self) -> impl Iterator<Item = &Place> {
+        self.places.values()
+    }
+
+    /// The country a land hex lies in; `None` for sea, Malta and anything
+    /// that is not a hex. Follows cna's `tools/map_geom.country`, except
+    /// that sea hexes belong to no country.
+    pub fn country(&self, id: &HexId) -> Option<Country> {
+        let hex = self.hexes.get(id)?;
+        if hex.terrain == Terrain::Sea {
+            return None;
+        }
+        if let Some(c) = self.regions.whole_sheets.get(&hex.sheet) {
+            return Some(*c);
+        }
+        let split = &self.regions.split_sheet;
+        if hex.sheet != split.sheet {
+            return None;
+        }
+        let first_east = *split.first_east_col.get(&id.row().to_string())?;
+        Some(if id.col() >= first_east {
+            split.east
+        } else {
+            split.west
         })
     }
 
@@ -490,5 +596,72 @@ mod tests {
         assert_eq!(count(HexsideFeature::Track), 1808);
         assert_eq!(count(HexsideFeature::Road), 354);
         assert_eq!(count(HexsideFeature::Escarpment), 216);
+    }
+
+    #[test]
+    fn places_resolve_to_hexes() {
+        let m = map();
+        for (id, hex) in [
+            ("tobruk", "C4807"),
+            ("sollum", "C4021"),
+            ("siwa", "C0127"),
+            ("mersa-matruh", "D3714"),
+        ] {
+            let p = m.place(id).unwrap();
+            assert_eq!(p.hex.as_str(), hex, "{id}");
+            assert!(m.hex(&p.hex).is_some(), "{id}");
+        }
+        assert_eq!(m.place("tobruk").unwrap().kind, PlaceKind::MajorCity);
+        assert!(m.place("sollum").unwrap().port);
+        assert!(!m.place("siwa").unwrap().port);
+        assert!(m.place("nowhere").is_none());
+    }
+
+    #[test]
+    fn every_place_hex_exists() {
+        let m = map();
+        assert_eq!(m.places().count(), 51);
+        for p in m.places() {
+            assert!(m.hex(&p.hex).is_some(), "{}: {}", p.id, p.hex);
+        }
+    }
+
+    #[test]
+    fn whole_sheets_have_one_country() {
+        let m = map();
+        for h in m.hexes() {
+            let want = match h.sheet {
+                'A' | 'B' => Some(Country::Libya),
+                'D' | 'E' => Some(Country::Egypt),
+                _ => continue,
+            };
+            let want = if h.terrain == Terrain::Sea {
+                None
+            } else {
+                want
+            };
+            assert_eq!(m.country(&h.id), want, "{}", h.id);
+        }
+        // Malta is in neither.
+        assert_eq!(m.country(&HexId::parse("M0500").unwrap()), None);
+    }
+
+    #[test]
+    fn frontier_on_sheet_c_matches_map_geom() {
+        // Pinned from cna tools/map_geom.country, 2026-10-12.
+        let m = map();
+        for (hex, want) in [
+            ("C2017", Country::Libya),
+            ("C2018", Country::Egypt),
+            ("C3920", Country::Libya),
+            ("C3921", Country::Egypt),
+            ("C4020", Country::Libya),
+            ("C4021", Country::Egypt),
+        ] {
+            assert_eq!(m.country(&HexId::parse(hex).unwrap()), Some(want), "{hex}");
+        }
+        // Sea is in no country: C4233 is sea on a row the frontier never
+        // reaches.
+        assert_eq!(m.country(&HexId::parse("C4233").unwrap()), None);
     }
 }
