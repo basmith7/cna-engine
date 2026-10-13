@@ -157,8 +157,10 @@ impl GameState {
                 "18.2x",
                 "released from Reserve I: it may not exceed its CPA this stage",
             )),
+            // Half the CPA rounded down; leg infantry (CPA 10 or less,
+            // 8.1x) gets 5 whatever its CPA (18.24).
             Some(Reserve::II) => Some((
-                Cp::whole(cpa / 2),
+                Cp::whole(if cpa <= 10 { 5 } else { cpa / 2 }),
                 "18.2x",
                 "released from Reserve II: it may not exceed half its CPA this stage",
             )),
@@ -410,6 +412,34 @@ mod tests {
         assert_eq!(state.clock.stage, 2);
         assert_eq!(state.pieces[&krrc].released, None);
         assert_eq!(state.pieces[&pid("unit:cw:7-med")].released, None);
+    }
+
+    #[test]
+    fn leg_infantry_out_of_reserve_two_has_five_cp_not_half_its_cpa() {
+        let data = graziani();
+        let mut state = in_phase_f(&data);
+        let rnf = pid("unit:cw:1-rnf");
+        assert_eq!(state.cpa(&state.pieces[&rnf]), Some(8));
+        state
+            .apply(&data, Side::Cw, designate(&["unit:cw:1-rnf"]))
+            .unwrap();
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        assert_eq!(state.pieces[&rnf].reserve, Some(Reserve::II));
+        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        state
+            .apply(&data, Side::Cw, release(&["unit:cw:1-rnf"]))
+            .unwrap();
+        // 18.24: half the CPA rounded down, but 5 for leg infantry.
+        assert_eq!(
+            state.voluntary_cap(&rnf),
+            Some((
+                Cp::whole(5),
+                "18.2x",
+                "released from Reserve II: it may not exceed half its CPA this stage"
+            ))
+        );
     }
 
     #[test]

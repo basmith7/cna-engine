@@ -559,7 +559,7 @@ mod tests {
     }
 
     #[test]
-    fn a_lone_supply_unit_in_an_enemy_zoc_is_captured_when_the_enemy_moves() {
+    fn a_lone_supply_unit_in_an_enemy_zoc_is_captured_when_the_enemy_s_segment_opens() {
         let data = graziani();
         let mut state = crate::state::test_support::set_up(&data, 3);
         let supply = PieceId::supply(Side::Cw, 1);
