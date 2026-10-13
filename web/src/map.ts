@@ -20,6 +20,12 @@ const PLACE_AT = new Map(PLACES.map((p) => [p.hex, p]));
 
 export const HEX_IDS: HexId[] = HEXES.map((h) => h.id);
 export const THEATRE_BOUNDS = bounds(HEX_IDS);
+/** The start view: sheets B–E, where Graziani is fought (spec, *Pan and zoom*). */
+export const START_BOUNDS = bounds(HEXES.filter((h) => "BCDE".includes(h.sheet)).map((h) => h.id));
+
+export function isHex(id: string): id is HexId {
+  return BY_ID.has(id);
+}
 
 const f = (v: number) => v.toFixed(2);
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
