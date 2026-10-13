@@ -116,12 +116,22 @@ impl GameState {
                 format!("{hex} is in an enemy ZOC: a reacting unit never enters one"),
             ));
         }
+        // The ceiling binds where the reaction ends (9.14): the only
+        // moment the engine can refuse it, so it is settled before any
+        // CP is charged. The stack stands on its end hex for the count.
+        let (end, _) = plan.steps.last().expect("a priced path has a step");
+        for id in pieces {
+            self.pieces.get_mut(id).expect("checked").location = Location::Hex(end.clone());
+        }
+        if let Some(e) = self.over_ceiling_at(data, end) {
+            for id in pieces {
+                self.pieces.get_mut(id).expect("checked").location = Location::Hex(from.clone());
+            }
+            return Err(e);
+        }
         let mut events = Vec::new();
         let mut at = from.clone();
         for (to, cost) in &plan.steps {
-            for id in pieces {
-                self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
-            }
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at.clone(),
@@ -132,14 +142,6 @@ impl GameState {
                 self.charge(id, *cost, true, &mut events);
             }
             at = to.clone();
-        }
-        // The ceiling binds where the reaction ends (9.14): the only
-        // moment the engine can refuse it.
-        if let Some(e) = self.over_ceiling_at(data, &at) {
-            for id in pieces {
-                self.pieces.get_mut(id).expect("checked").location = Location::Hex(from.clone());
-            }
-            return Err(e);
         }
         // Its new hex is a possible ZOC source the phasing player has not
         // been told about.
@@ -186,12 +188,18 @@ mod tests {
     /// segment; two Libyan battalions put at C3820, whose ZOC covers
     /// C3821. The Commonwealth has declared that C3922 exerts no ZOC.
     fn tanks_near_halfaya(data: &Data) -> GameState {
+        tanks_near_halfaya_after(data, |_| {})
+    }
+
+    /// The same, with `prepare` run on the state before the tanks move.
+    fn tanks_near_halfaya_after(data: &Data, prepare: impl FnOnce(&mut GameState)) -> GameState {
         let mut state = moving(data, 3, Side::Axis);
         let tanks = pid("unit:it:lxiil-tank-bn");
         state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C3924"));
         for id in ["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"] {
             state.pieces.get_mut(&pid(id)).unwrap().location = Location::Hex(hex("C3820"));
         }
+        prepare(&mut state);
         assert!(state.could_exert(data, &hex("C3820")));
         let events = state
             .apply(data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
@@ -280,6 +288,57 @@ mod tests {
             .apply(&data, Side::Cw, react(&["unit:cw:4-rha"], &["C3822"]))
             .unwrap_err();
         assert_eq!(err.case, "5.2");
+    }
+
+    #[test]
+    fn a_reaction_refused_by_the_ceiling_changes_nothing() {
+        let data = graziani();
+        // Six foot battalions fill C3822 (clear, ceiling 6) before the
+        // tanks come up.
+        let mut state = tanks_near_halfaya_after(&data, |state| {
+            let foot: Vec<PieceId> = state
+                .pieces
+                .values()
+                .filter(|p| {
+                    p.side == Side::Cw
+                        && p.kind == PieceKind::Combat
+                        && p.hex().is_some_and(|h| h.sheet() == 'E')
+                        && state.cpa(p).is_some_and(|c| c <= 10)
+                        && cna_rules::stacking::points(&data.stacking, p.equivalent) == 1
+                })
+                .map(|p| p.id.clone())
+                .take(6)
+                .collect();
+            assert_eq!(foot.len(), 6);
+            for id in foot {
+                state.pieces.get_mut(&id).unwrap().location = Location::Hex(hex("C3822"));
+            }
+        });
+        assert_eq!(state.stacked(&data, &hex("C3822")), 6);
+        state
+            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .unwrap();
+        assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
+        let before = snapshot(&state);
+        let err = state
+            .apply(&data, Side::Cw, react(&["unit:cw:7-med"], &["C3822"]))
+            .unwrap_err();
+        assert_eq!(err.case, "9.14");
+        assert!(err.reason.contains("C3822"), "{}", err.reason);
+        // Nothing moved, nothing was charged, nothing was logged.
+        assert_eq!(snapshot(&state), before);
+        let med = &state.pieces[&pid("unit:cw:7-med")];
+        assert_eq!(med.hex(), Some(&hex("C3922")));
+        assert_eq!(med.cp_spent, Cp::ZERO);
+        assert_eq!(med.cp_enemy_half, Cp::ZERO);
+        // The offer still stands.
+        assert_eq!(
+            state.pending,
+            Some(Pending::Reaction {
+                side: Side::Cw,
+                eligible: vec![pid("unit:cw:4-rha"), pid("unit:cw:7-med")],
+            })
+        );
     }
 
     #[test]
