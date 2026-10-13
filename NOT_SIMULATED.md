@@ -66,6 +66,8 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-114 | Air Game: not in the engine yet |
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
+| R-118 | decided after slice 5: a must-attack retreat (10.36) still charges the unit's whole CPA and the retreat's CP on top (`cna-game::combat::retreat`); paying the retreat from the CP left and forfeiting the rest without disorganisation is a follow-up |
+| R-119 | decided after Mission 2: the victory route trace (`cna-game::victory`) lets every enemy piece block and every friendly piece lift a ZOC, supply units and dummies included; counting combat units only is a follow-up |
 
 # Rulings implemented as decided
 
@@ -84,6 +86,7 @@ rulings*). Each names where it is enforced.
 | R-023 | a defender reading of 34–36 on the +2 column inflicts 5 % (`cna-rules::close_assault::loss_pct_decided`) |
 | R-024 | a morale reading of 56 at cohesion −4 is −2 (`cna-game::combat::assault::adjusted_morale`) |
 | R-110 | Land-only victory supply is a route a medium truck could follow from the holding unit to the level's source, through no enemy hex and no enemy-ZOC hex without a friendly piece (`cna-game::victory`); every enemy hex able to exert a ZOC does, since 10.16's declarations belong to a movement segment |
+| R-117 | a swamp hex entered by railroad costs the road rate: 1 CP non-motorised, ½ motorised, breakdown ½ (`cna_rules::movement::step_cost`) |
 
 # Combat systems not simulated (Mission 2 slice 5)
 

@@ -24,7 +24,7 @@ mod tests {
 
     /// SHA-256 of the final state's JSON (`GameState::to_json`).
     const FINAL_STATE_SHA256: &str =
-        "d36750262c75885e6e739dbce088c40534868d68bc79598492c1fa97699c07a4";
+        "5d500a3220ba0fc34a78364eaa776d9041600db2a2500fb41496787f383eaa1b";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
