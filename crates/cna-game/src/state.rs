@@ -399,6 +399,7 @@ mod tests {
             "C4218 (1st CCNN) should be at the ceiling, has {sp_now}"
         );
         // An "anywhere in Libya" battalion (1 SP) onto a full hex.
+        let before = serde_json::to_string(&state).unwrap();
         let err = state
             .apply(
                 &data,
@@ -407,6 +408,7 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "9.14");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
         // The same battalion onto an empty Libyan hex is fine.
         state
             .apply(
@@ -429,14 +431,39 @@ mod tests {
             piece: supply.clone(),
             hex: hex(h),
         };
+        let before = serde_json::to_string(&state).unwrap();
         let err = state.apply(&data, Side::Axis, near("C3922")).unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(err.reason.contains("enemy"), "{}", err.reason);
         let err = state.apply(&data, Side::Axis, near("C3722")).unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(data.map.within(&hex("C3922"), 4).contains(&hex("C3722")));
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
         // Well clear of every Commonwealth unit (C3410 is Libya, sheet C).
         state.apply(&data, Side::Axis, near("C3410")).unwrap();
+    }
+
+    #[test]
+    fn a_place_on_a_hex_with_no_ceiling_is_illegal() {
+        let data = graziani();
+        let mut state = GameState::new(&data, 1).unwrap();
+        // Axis supply may go anywhere on sheet C; C5001 is sea (8.37: no
+        // stacking column), and far from the Commonwealth.
+        let supply = PieceId::supply(Side::Axis, 16);
+        assert_eq!(data.map.hex(&hex("C5001")).unwrap().terrain.name(), "sea");
+        let before = serde_json::to_string(&state).unwrap();
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: supply,
+                    hex: hex("C5001"),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "8.37", "{}", err.reason);
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
     }
 
     fn skipped(events: &[Event]) -> Vec<char> {
@@ -698,8 +725,10 @@ mod tests {
         }
         assert_eq!(stages, 18);
         assert_eq!(state.to_act(), None);
+        let before = serde_json::to_string(&state).unwrap();
         let err = state.apply(&data, Side::Axis, Order::Pass).unwrap_err();
         assert_eq!(err.case, "60.8");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
         let json = serde_json::to_string(&state).unwrap();
         let back: GameState = serde_json::from_str(&json).unwrap();
         assert_eq!(back, state);
