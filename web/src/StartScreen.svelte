@@ -39,7 +39,7 @@
     {#if autosave}
       <p class="autosave">
         <button type="button" class="primary" data-testid="continue" onclick={oncontinue}>Continue</button>
-        <span class="where">the autosave, at {autosave}</span>
+        <span class="where">Autosave at {autosave}</span>
       </p>
     {/if}
     <p class="new">

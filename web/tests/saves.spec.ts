@@ -49,7 +49,8 @@ test("a new game shows its seed; Save downloads the state as graziani-gt<N>-os<M
   // Continue restores exactly that state.
   await page.reload();
   await expect(page.getByTestId("start")).toBeVisible();
-  await expect(page.getByTestId("start")).toContainText("the autosave, at Game-Turn 1 · set-up");
+  await expect(page.getByTestId("start")).toContainText("Autosave at Game-Turn 1 · set-up");
+  await shoot(page, "start-continue.png");
   await page.getByTestId("continue").click();
   await page.locator("[data-stack]").first().waitFor();
   expect(await save(page)).toBe(saved);
