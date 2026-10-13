@@ -25,10 +25,17 @@ pub struct Game {
 }
 
 impl Game {
-    /// A new Graziani game, the Axis to place first.
+    /// A new Graziani game, the Axis to place first. Abstract supply
+    /// stays off in the browser until its panels land (Mission 5): the
+    /// golden e2e's set-up stacks supply past 32.1x's cap.
     pub fn new(seed: u64) -> Result<Game> {
+        Game::with_modules(seed, Modules::default())
+    }
+
+    /// `new` with the rules modules named.
+    pub fn with_modules(seed: u64, modules: Modules) -> Result<Game> {
         Ok(Game {
-            state: GameState::with_modules(data(), seed, Modules::ALL)?,
+            state: GameState::with_modules(data(), seed, modules)?,
         })
     }
 
@@ -295,7 +302,7 @@ mod tests {
     // view; the acting side's own are, and the save keeps both.
     #[test]
     fn the_view_hides_the_other_side_s_loads_and_motorisation() {
-        let game = Game::new(7).unwrap();
+        let game = Game::with_modules(7, Modules::ALL).unwrap();
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "axis");
         assert_eq!(
