@@ -3,7 +3,7 @@
 //! given, never against the other player's answer.
 
 use crate::combat::strength::Kind;
-use crate::combat::terrain::hexside_shift;
+use crate::combat::terrain::anti_armour_ban;
 use crate::data::Data;
 use crate::event::Illegal;
 use crate::order::{Assignment, Fire};
@@ -360,22 +360,24 @@ impl GameState {
         Ok(())
     }
 
-    /// 14.35 as the Terrain Effects Chart has it: anti-armour fire never
-    /// climbs an escarpment; every other hexside only shifts the column.
-    /// (cna's prose for 14.35 prohibits ridges and *downward* slopes and
-    /// escarpments instead, with road and track exceptions; the chart is
-    /// the data this engine follows, and the difference is recorded in
-    /// the slice's PR.)
+    /// 14.34: no anti-armour fire crosses a ridge or goes down a slope
+    /// without a road or track, down an escarpment without a track, or
+    /// up an escarpment at all. The ban binds the non-phasing side's
+    /// return fire too (`resolve_anti_armour`).
     fn check_anti_armour_hexside(
         &self,
         data: &Data,
         from: &HexId,
         to: &HexId,
     ) -> Result<(), Illegal> {
-        if hexside_shift(data, from, to, Kind::AntiArmour).is_none() {
+        let ban = data
+            .map
+            .hexside(from, to)
+            .and_then(|side| anti_armour_ban(side, from, to));
+        if let Some(ban) = ban {
             return Err(Illegal::new(
-                "14.35",
-                format!("no anti-armour fire climbs the escarpment from {from} into {to}"),
+                "14.34",
+                format!("no anti-armour fire from {from} into {to}, {ban}"),
             ));
         }
         Ok(())
@@ -428,25 +430,27 @@ mod tests {
     use crate::order::Allocation;
 
     #[test]
-    fn anti_armour_fire_never_climbs_an_escarpment() {
-        // 14.35 as the Terrain Effects Chart has it: fire up an
-        // escarpment is prohibited; down it is allowed at -2. A3933 is
-        // below the escarpment to A4033.
+    fn anti_armour_fire_across_a_banned_hexside_is_refused_at_assignment() {
+        // 14.34. A3933|A4033: an escarpment with no track, A4033 above;
+        // banned climbed and descended. C4020|C4121: an escarpment with
+        // a track, C4020 above; open down it, banned up it. C4213|C4313:
+        // a bare ridge. C4021|C4020: up a slope by road, never banned.
         let data = Data::load("grazianis-offensive").unwrap();
         let state = at_sollum(&data);
-        let up = state.check_anti_armour_hexside(&data, &hex("A3933"), &hex("A4033"));
-        assert_eq!(up.unwrap_err().case, "14.35");
-        assert!(
-            state
-                .check_anti_armour_hexside(&data, &hex("A4033"), &hex("A3933"))
-                .is_ok()
-        );
-        // The Sollum front is level ground.
-        assert!(
-            state
-                .check_anti_armour_hexside(&data, &hex("C4021"), &hex("C4020"))
-                .is_ok()
-        );
+        let check =
+            |from: &str, to: &str| state.check_anti_armour_hexside(&data, &hex(from), &hex(to));
+        let up = check("A3933", "A4033").unwrap_err();
+        assert_eq!(up.case, "14.34");
+        assert!(up.reason.contains("escarpment"), "{}", up.reason);
+        let down = check("A4033", "A3933").unwrap_err();
+        assert_eq!(down.case, "14.34");
+        assert!(down.reason.contains("no track"), "{}", down.reason);
+        assert!(check("C4020", "C4121").is_ok());
+        assert_eq!(check("C4121", "C4020").unwrap_err().case, "14.34");
+        let ridge = check("C4213", "C4313").unwrap_err();
+        assert_eq!(ridge.case, "14.34");
+        assert!(ridge.reason.contains("ridge"), "{}", ridge.reason);
+        assert!(check("C4021", "C4020").is_ok());
     }
 
     #[test]

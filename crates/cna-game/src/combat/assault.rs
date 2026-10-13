@@ -214,7 +214,7 @@ impl GameState {
         }
         for (target, firers) in by_target {
             let raw = self.raw_sum(data, &firers, Kind::AntiArmour);
-            // A prohibited hexside was refused at assignment (14.35).
+            // A hexside 14.34 bans was refused at assignment.
             let hexside = firers
                 .iter()
                 .map(|c| hexside_shift(data, &c.hex, &target, Kind::AntiArmour).unwrap_or(0))
@@ -276,6 +276,8 @@ impl GameState {
         for hex in defended {
             let firers = self.defending_commits(data, other, &hex, false);
             let raw = self.raw_sum(data, &firers, Kind::AntiArmour);
+            // Armour assaulting across a hexside 14.34 bans is out of
+            // reach of return fire too.
             let armour: Vec<&Commit> = against
                 .iter()
                 .filter(|(c, t)| {
@@ -284,6 +286,7 @@ impl GameState {
                             .parts(data, &self.pieces[&c.piece])
                             .iter()
                             .any(Part::armoured)
+                        && hexside_shift(data, &c.hex, &hex, Kind::AntiArmour).is_some()
                 })
                 .map(|(c, _)| c)
                 .collect();
@@ -1140,6 +1143,84 @@ mod tests {
             .unwrap()
             .location = Location::Hex(hex("C4021"));
         state
+    }
+
+    #[test]
+    fn return_fire_is_banned_across_the_hexside_the_assault_crosses() {
+        // 14.34 bans anti-armour fire by either side across the hexside
+        // the phasing points assault over. Both stacks move up to
+        // C4121|C4220, a slope with no road or track, C4220 above: the
+        // cruisers assault down it, so their own anti-armour fire is
+        // refused and the anti-tank company at C4121 cannot fire back.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        for p in state.pieces.values_mut() {
+            match p.hex().cloned() {
+                Some(h) if h == hex("C4020") => p.location = Location::Hex(hex("C4121")),
+                Some(h) if h == hex("C4021") => p.location = Location::Hex(hex("C4220")),
+                _ => {}
+            }
+        }
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (
+                Side::Axis,
+                Order::GunPositions {
+                    forward: vec![pid("unit:it:1st-libyan-anti-tank-coy")],
+                },
+            ),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![alloc(Some("C4121"), 7)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "14.34");
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![],
+                        vec![alloc(Some("C4121"), 7)],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 2)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        assert!(
+            !events.iter().any(|e| matches!(e, Event::AntiArmour { .. })),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&pid("unit:cw:1-rtr")].toe, 7);
+        assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
     }
 
     fn c4020_ids(state: &GameState) -> Vec<PieceId> {

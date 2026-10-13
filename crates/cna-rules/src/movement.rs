@@ -92,9 +92,7 @@ fn along(hexside: Option<&Hexside>, weather: Weather) -> Along {
     let Some(hs) = hexside else {
         return Along::Country;
     };
-    let road = hs.has(HexsideFeature::Road);
-    let track = hs.has(HexsideFeature::Track) || hs.has(HexsideFeature::UnfinishedRoad);
-    match (road, track, weather) {
+    match (hs.road(), hs.track(), weather) {
         (true, _, Weather::Rainstorm) => Along::Track,
         (true, _, _) => Along::Road,
         (false, true, _) => Along::Track,
@@ -250,7 +248,9 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
                     (false, Weather::Rainstorm, _) => {
                         return Err(no("29.5x", "a wadi in a rainstorm is crossed by road only"));
                     }
-                    (false, _, Along::Track) => price(chart, "hexside", "wadi", motorised)?.halved(),
+                    (false, _, Along::Track) => {
+                        price(chart, "hexside", "wadi", motorised)?.halved()
+                    }
                     (false, _, _) => price(chart, "hexside", "wadi", motorised)?,
                 },
                 HexsideFeature::MajorRiver => {
