@@ -78,7 +78,7 @@ impl GameState {
             scenario: data.slug().to_owned(),
             rules_commit: cna_data::rules_commit()?,
             ruleset: Ruleset::default(),
-            clock: crate::phases::opening_clock(data.scenario.start),
+            clock: Clock::opening(data.scenario.start),
             initiative: None,
             player_a: None,
             weather: Weather::Normal,
@@ -375,8 +375,8 @@ mod tests {
     fn a_place_over_the_stacking_ceiling_is_illegal() {
         let data = graziani();
         let mut state = GameState::new(&data, 1).unwrap();
-        // C4321 (clear, ceiling 6) holds the 30th GAF sheet: 1 bn + 1
-        // AT bn + 1 arty regt(?) ... compute from the pieces there.
+        // C4218 (clear, ceiling 6) holds the 1st CCNN division's 14
+        // counters, which the set-up puts there whatever the ceiling.
         let target = hex("C4218");
         let sp_now: u32 = state
             .pieces

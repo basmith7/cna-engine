@@ -4,6 +4,7 @@
 //! Player A and again for Player B. Phase G is the movement-combat cycle,
 //! split into segments. There is no phase I.
 
+use cna_data::time::GameTime;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -128,9 +129,14 @@ pub struct Clock {
 impl Clock {
     /// Phase A of the first OpStage of a Game-Turn.
     pub fn start(game_turn: u8) -> Clock {
+        Clock::opening(GameTime::new(game_turn, 1))
+    }
+
+    /// Phase A of a given OpStage: where a scenario's play opens.
+    pub fn opening(at: GameTime) -> Clock {
         Clock {
-            game_turn,
-            stage: 1,
+            game_turn: at.game_turn,
+            stage: at.opstage,
             phase: Phase::InitiativeDeclaration,
             half: None,
             segment: None,

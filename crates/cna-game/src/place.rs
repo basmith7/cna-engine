@@ -57,11 +57,8 @@ impl GameState {
                 ));
             }
         }
-        let terrain = serde_json::to_value(h.terrain)
-            .ok()
-            .and_then(|v| v.as_str().map(str::to_owned))
-            .unwrap_or_default();
-        let Some(ceiling) = data.terrain.ceiling(&terrain) else {
+        let terrain = h.terrain.name();
+        let Some(ceiling) = data.terrain.ceiling(terrain) else {
             return Err(Illegal::new(
                 "8.37",
                 format!("{hex} is {terrain}: no unit may be there"),

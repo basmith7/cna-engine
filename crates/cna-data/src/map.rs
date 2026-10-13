@@ -92,6 +92,25 @@ pub enum Terrain {
     Sea,
 }
 
+impl Terrain {
+    /// The kebab-case name, as `terrain-effects.json` keys its rows.
+    pub fn name(self) -> &'static str {
+        match self {
+            Terrain::Clear => "clear",
+            Terrain::Gravel => "gravel",
+            Terrain::SaltMarsh => "salt-marsh",
+            Terrain::HeavyVegetation => "heavy-vegetation",
+            Terrain::Rough => "rough",
+            Terrain::Mountain => "mountain",
+            Terrain::Delta => "delta",
+            Terrain::Desert => "desert",
+            Terrain::MajorCity => "major-city",
+            Terrain::Swamp => "swamp",
+            Terrain::Sea => "sea",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Settlement {

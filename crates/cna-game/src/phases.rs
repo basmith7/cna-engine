@@ -3,7 +3,7 @@
 //! this mission passes through. `advance` runs the clock from wherever it
 //! stands to the next moment that waits for an order.
 
-use crate::clock::{Clock, Phase};
+use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceKind};
@@ -211,13 +211,5 @@ impl GameState {
         events.push(Event::WeatherSet {
             weather: self.weather.clone(),
         });
-    }
-}
-
-/// Where a Game-Turn's play starts: the scenario's first OpStage.
-pub(crate) fn opening_clock(start: GameTime) -> Clock {
-    Clock {
-        stage: start.opstage,
-        ..Clock::start(start.game_turn)
     }
 }
