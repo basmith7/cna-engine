@@ -19,4 +19,5 @@ mod reserve;
 pub mod rng;
 pub mod setup;
 pub mod state;
+pub mod victory;
 pub mod zoc;
