@@ -168,6 +168,7 @@ impl GameState {
             (Phase::MovementCombat, Some(Segment::ReserveRelease)) => {
                 self.clock.segment = Some(Segment::Movement);
                 events.push(Event::PhaseStarted { clock: self.clock });
+                self.open_movement_segment(data, &mut events);
             }
             _ => {
                 return Err(Illegal::new(

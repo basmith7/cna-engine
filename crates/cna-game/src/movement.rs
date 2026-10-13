@@ -8,7 +8,8 @@ use crate::clock::{Phase, Segment};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind};
-use crate::state::{GameState, Weather};
+use crate::state::{GameState, Pending, Weather};
+use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::{Side, Status};
@@ -16,6 +17,17 @@ use cna_rules::movement::{Mobility, Step, Weather as StepWeather, step_cost};
 
 /// The Commonwealth never goes west of Marble Arch, A2109 (8.1x).
 const MARBLE_ARCH_COL: u8 = 9;
+
+/// A priced path: the hexes the stack will enter with each step's cost,
+/// whether it first breaks off from contact, and where it has to pause
+/// for a ZOC declaration (the hex it was about to enter, the hexes to
+/// ask about).
+#[derive(Debug, Default)]
+struct Plan {
+    steps: Vec<(HexId, Cp)>,
+    break_off: bool,
+    interrupt: Option<(HexId, Vec<HexId>)>,
+}
 
 impl GameState {
     /// The weather over a hex, for movement (29.4x, 29.5x).
@@ -152,23 +164,55 @@ impl GameState {
     }
 
     /// Prices a path for a stack: the hexes entered and what each step
-    /// costs the stack (the dearest piece's price, R-004).
+    /// costs the stack (the dearest piece's price, R-004), with the ZOC
+    /// rules of 10.2x: entering an enemy ZOC is free and ends the move,
+    /// never straight from one ZOC into another, and a non-combat stack
+    /// never into one unoccupied (10.29). The plan stops short of a hex
+    /// next to enemy units that have not said whether they exert a ZOC
+    /// (10.16).
     fn plan(
         &self,
         data: &Data,
         pieces: &[PieceId],
         from: &HexId,
         path: &[HexId],
-    ) -> Result<Vec<(HexId, Cp)>, Illegal> {
+    ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
         let side = self.pieces[&pieces[0]].side;
+        let combat = pieces
+            .iter()
+            .any(|id| self.pieces[id].kind == PieceKind::Combat);
         let mobilities: Vec<Mobility> = pieces
             .iter()
             .map(|id| self.mobility(data, &self.pieces[id]))
             .collect();
-        let mut steps = Vec::with_capacity(path.len());
+        let mut plan = Plan::default();
+        // Where the stack stands: in an enemy ZOC it either breaks off
+        // (contact or engaged, 8.6x) or is stopped (10.22).
+        let mut at_in_zoc = match self.zoc_at(data, from, side) {
+            Zoc::Exerts => {
+                for id in pieces {
+                    let p = &self.pieces[id];
+                    if !(p.contact || p.engaged) {
+                        return Err(Illegal::new(
+                            "10.2x",
+                            format!(
+                                "{id} entered an enemy ZOC at {from} this segment and stays until a later one"
+                            ),
+                        ));
+                    }
+                }
+                plan.break_off = true;
+                !self.friendly_combat_in(from, side, pieces)
+            }
+            Zoc::Clear => false,
+            Zoc::Undeclared(hexes) => {
+                plan.interrupt = Some((path[0].clone(), hexes));
+                return Ok(plan);
+            }
+        };
         let mut at = from.clone();
         for to in path {
             let Some(hex) = data.map.hex(to) else {
@@ -216,10 +260,48 @@ impl GameState {
                     }
                 }
             }
-            steps.push((to.clone(), cost));
+            let cancelled = self.friendly_combat_in(to, side, pieces);
+            let zoc = if cancelled {
+                Zoc::Clear
+            } else {
+                self.zoc_at(data, to, side)
+            };
+            match zoc {
+                Zoc::Undeclared(hexes) => {
+                    plan.interrupt = Some((to.clone(), hexes));
+                    return Ok(plan);
+                }
+                Zoc::Exerts => {
+                    if at_in_zoc {
+                        return Err(Illegal::new(
+                            "10.2x",
+                            format!("{at} and {to} are both enemy-controlled: no ZOC-to-ZOC move"),
+                        ));
+                    }
+                    if !combat {
+                        return Err(Illegal::new(
+                            "10.29",
+                            format!(
+                                "{to} is an unoccupied enemy-controlled hex: no non-combat unit enters one"
+                            ),
+                        ));
+                    }
+                    plan.steps.push((to.clone(), Cp::ZERO));
+                    if path.last() != Some(to) {
+                        return Err(Illegal::new(
+                            "10.2x",
+                            format!("{to} is in an enemy ZOC: the move ends there"),
+                        ));
+                    }
+                    return Ok(plan);
+                }
+                Zoc::Clear => {}
+            }
+            at_in_zoc = false;
+            plan.steps.push((to.clone(), cost));
             at = to.clone();
         }
-        Ok(steps)
+        Ok(plan)
     }
 
     /// Charges a piece CP, earning a DP for every whole point over its
@@ -270,8 +352,24 @@ impl GameState {
             ));
         }
         let from = self.moving_stack(player, pieces)?;
-        let steps = self.plan(data, pieces, &from, path)?;
-        let total: Cp = steps.iter().map(|(_, c)| *c).sum();
+        let plan = self.plan(data, pieces, &from, path)?;
+        let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
+        let break_off = |p: &Piece| {
+            if p.engaged {
+                Cp::whole(4)
+            } else if p.contact {
+                Cp::whole(2)
+            } else {
+                Cp::ZERO
+            }
+        };
+        if plan.break_off && !plan.steps.is_empty() {
+            total += pieces
+                .iter()
+                .map(|id| break_off(&self.pieces[id]))
+                .max()
+                .unwrap_or(Cp::ZERO);
+        }
         for id in pieces {
             let p = &self.pieces[id];
             let cpa = self.cpa(p).expect("able to move");
@@ -290,8 +388,23 @@ impl GameState {
             }
         }
         let mut events = Vec::new();
-        let mut at = from;
-        for (to, cost) in steps {
+        if plan.break_off && !plan.steps.is_empty() {
+            for id in pieces {
+                let cost = break_off(&self.pieces[id]);
+                if cost > Cp::ZERO {
+                    events.push(Event::ContactBroken {
+                        piece: id.clone(),
+                        cost,
+                    });
+                    self.charge(id, cost, false, &mut events);
+                }
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.contact = false;
+                p.engaged = false;
+            }
+        }
+        let mut at = from.clone();
+        for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
@@ -306,6 +419,22 @@ impl GameState {
                 self.charge(id, cost, false, &mut events);
             }
             at = to;
+        }
+        if at != from {
+            self.release_contact_around(data, &from, player);
+        }
+        if let Some((before, declare)) = plan.interrupt {
+            events.push(Event::MoveInterrupted {
+                pieces: pieces.to_vec(),
+                at,
+                before,
+                declare: declare.clone(),
+            });
+            self.pending = Some(Pending::DeclareZoc {
+                side: player.other(),
+                hexes: declare,
+                at_start: false,
+            });
         }
         Ok(events)
     }
@@ -504,26 +633,12 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         // 1 KRRC (foot) and 7 Med (artillery, CPA 20, a vehicle) share
-        // C3922. Up the escarpment to C3921 the battalion alone pays 8; the
-        // stack may not go (R-004, 8.4x).
-        let before = snapshot(&state);
-        let err = state
-            .apply(
-                &data,
-                Side::Cw,
-                mv(&["unit:cw:1-krrc", "unit:cw:7-med"], &["C3921"]),
-            )
-            .unwrap_err();
-        assert_eq!(err.case, "8.4x");
-        assert_eq!(snapshot(&state), before);
-        // Along the coast east both can go; the stack pays the foot rate
-        // (2), the dearer of 2 and 2; by the unfinished road C3926-C3927
-        // foot pays 1 and the vehicle 1: both are charged 1.
+        // C3922. By the unfinished road (a track) to C3822 both pay 1.
         let events = state
             .apply(
                 &data,
                 Side::Cw,
-                mv(&["unit:cw:1-krrc", "unit:cw:7-med"], &["C3923"]),
+                mv(&["unit:cw:1-krrc", "unit:cw:7-med"], &["C3822"]),
             )
             .unwrap();
         assert_eq!(
@@ -531,24 +646,31 @@ mod tests {
             [Event::Moved {
                 pieces: vec![pid("unit:cw:1-krrc"), pid("unit:cw:7-med")],
                 from: hex("C3922"),
-                to: hex("C3923"),
-                cost: Cp::whole(2)
+                to: hex("C3822"),
+                cost: Cp::whole(1)
             }]
         );
-        assert_eq!(state.pieces[&pid("unit:cw:7-med")].cp_spent, Cp::whole(2));
-        assert_eq!(
-            state.pieces[&pid("unit:cw:7-med")].hex(),
-            Some(&hex("C3923"))
-        );
-        // The battalion alone climbs for 8 (foot, 2 + 6).
-        state
+        assert_eq!(state.pieces[&pid("unit:cw:7-med")].cp_spent, Cp::whole(1));
+        // Up the escarpment to C3722 the battalion alone pays 2 + 6; the
+        // stack may not go (R-004, 8.4x).
+        let before = snapshot(&state);
+        let err = state
             .apply(
                 &data,
                 Side::Cw,
-                mv(&["unit:cw:1-krrc"], &["C3922", "C3921"]),
+                mv(&["unit:cw:1-krrc", "unit:cw:7-med"], &["C3722"]),
             )
+            .unwrap_err();
+        assert_eq!(err.case, "8.4x");
+        assert_eq!(snapshot(&state), before);
+        state
+            .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3722"]))
             .unwrap();
-        assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cp_spent, Cp::whole(12));
+        assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cp_spent, Cp::whole(9));
+        assert_eq!(
+            state.pieces[&pid("unit:cw:7-med")].hex(),
+            Some(&hex("C3822"))
+        );
     }
 
     #[test]

@@ -58,6 +58,28 @@ pub enum Event {
         dp: u32,
         level: i32,
     },
+    /// A move stopped at `at` before entering `before`, until the
+    /// non-phasing player says whether `declare` exert a ZOC (10.16).
+    MoveInterrupted {
+        pieces: Vec<PieceId>,
+        at: HexId,
+        before: HexId,
+        declare: Vec<HexId>,
+    },
+    ZocDeclared {
+        hex: HexId,
+        exerts: bool,
+    },
+    /// A unit in contact or engaged paid to leave (8.6x).
+    ContactBroken {
+        piece: PieceId,
+        cost: Cp,
+    },
+    /// A non-combat unit alone in an enemy ZOC was taken (10.29).
+    Captured {
+        piece: PieceId,
+        hex: HexId,
+    },
     /// The scenario's last OpStage is over.
     GameOver,
 }

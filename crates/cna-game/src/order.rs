@@ -22,6 +22,9 @@ pub enum Order {
         pieces: Vec<PieceId>,
         path: Vec<HexId>,
     },
+    /// The non-phasing player, asked which of its hexes exert a ZOC
+    /// (10.16): these do; the rest asked about do not.
+    DeclareZoc { exerting: Vec<HexId> },
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,

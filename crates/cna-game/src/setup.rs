@@ -118,6 +118,8 @@ pub fn expand(scenario: &Scenario, oa: &Oa, chars: &Characteristics, map: &Map) 
                     cp_spent: Cp::ZERO,
                     cp_enemy_half: Cp::ZERO,
                     cohesion: Default::default(),
+                    contact: false,
+                    engaged: false,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -288,6 +290,8 @@ fn piece(
         cp_spent: Cp::ZERO,
         cp_enemy_half: Cp::ZERO,
         cohesion: Default::default(),
+        contact: false,
+        engaged: false,
     }
 }
 

@@ -85,8 +85,13 @@ impl GameState {
                     return;
                 }
                 Phase::Weather => self.roll_weather(data, events),
-                Phase::ReserveDesignation | Phase::MovementCombat => {
+                Phase::ReserveDesignation => {
                     events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::MovementCombat => {
+                    events.push(Event::PhaseStarted { clock });
+                    self.open_movement_segment(data, events);
                     return;
                 }
                 Phase::Organisation

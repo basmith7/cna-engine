@@ -111,6 +111,14 @@ pub struct Piece {
     /// The cohesion level and DP tally (6.2x).
     #[serde(default)]
     pub cohesion: cna_rules::cohesion::Unit,
+    /// In an enemy ZOC when a movement segment began (8.6x, R-003):
+    /// leaving costs 2 CP.
+    #[serde(default)]
+    pub contact: bool,
+    /// Left engaged by a close assault (8.6x): leaving costs 4 CP. Set
+    /// by combat (slice 5).
+    #[serde(default)]
+    pub engaged: bool,
 }
 
 impl Piece {

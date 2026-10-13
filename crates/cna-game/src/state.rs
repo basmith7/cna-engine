@@ -34,12 +34,20 @@ pub enum Weather {
 pub enum Pending {
     /// This side has pieces with a free placement to make (59.2).
     SetUp { side: Side },
+    /// The non-phasing side must say which of these hexes exert a ZOC
+    /// (10.16); `at_start` when asked as a movement segment opens, so
+    /// contact is fixed once it answers (R-003).
+    DeclareZoc {
+        side: Side,
+        hexes: Vec<HexId>,
+        at_start: bool,
+    },
 }
 
 impl Pending {
     pub fn side(&self) -> Side {
         match self {
-            Pending::SetUp { side } => *side,
+            Pending::SetUp { side } | Pending::DeclareZoc { side, .. } => *side,
         }
     }
 }
@@ -65,6 +73,10 @@ pub struct GameState {
     /// stacking ceiling binds when it ends (9.14, 9.31).
     #[serde(default)]
     pub entered: BTreeSet<HexId>,
+    /// The non-phasing player's ZOC declarations this movement segment,
+    /// by its hex (10.16).
+    #[serde(default)]
+    pub zoc: BTreeMap<HexId, bool>,
     /// The scenario's last OpStage is over.
     pub over: bool,
     pub rng: GameRng,
@@ -94,6 +106,7 @@ impl GameState {
             pending: None,
             cycle: 0,
             entered: BTreeSet::new(),
+            zoc: BTreeMap::new(),
             over: false,
             rng: GameRng::new(seed),
             log: Vec::new(),
@@ -158,6 +171,16 @@ impl GameState {
                 "59.2",
                 format!("{side} still has pieces to place"),
             )),
+            (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
+                self.declare_zoc(data, player, exerting)
+            }
+            (Some(Pending::DeclareZoc { side, hexes, .. }), _) => Err(Illegal::new(
+                "10.16",
+                format!("{side} must first say whether {hexes:?} exert a ZOC"),
+            )),
+            (None, Order::DeclareZoc { .. }) => {
+                Err(Illegal::new("10.16", "no ZOC declaration is pending"))
+            }
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
