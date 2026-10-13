@@ -277,13 +277,13 @@ impl GameState {
     /// assault must have been resolved (15.2x); then the must-attack
     /// rule is checked and reserve release opens.
     pub(crate) fn end_close_assault_step(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
-        if let Some(phasing) = self.phasing() {
-            if let Some(h) = self.unresolved_assaults(phasing).first() {
-                return Err(Illegal::new(
-                    "15.2x",
-                    format!("the assault assigned against {h} has not been resolved"),
-                ));
-            }
+        if let Some(phasing) = self.phasing()
+            && let Some(h) = self.unresolved_assaults(phasing).first()
+        {
+            return Err(Illegal::new(
+                "15.2x",
+                format!("the assault assigned against {h} has not been resolved"),
+            ));
         }
         let mut events = Vec::new();
         if !self.end_close_assault(data, &mut events) {
