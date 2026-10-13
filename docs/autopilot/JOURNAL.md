@@ -190,3 +190,9 @@ Done: PR #26: `check_invariants` checks every piece and hex a save names, duplic
 In flight: nothing. Mission 4 waits on Brian's review of PR #25.
 Next: merge #26 once CI passes. Then nothing for Mission 4 until **Feedback** approves #25. Still open from #23's review: no curtain on Load/Continue. Also `arrival.rs`, `off_map.rs` and `reaction.rs` are not rustfmt-clean on `main`.
 Blocked: Brian's review of PR #25.
+
+## 2026-10-13 14:00 MST — autopilot/m5-spec
+Done: merged PR #27 (10.36 must-attack Pass; its run left no journal entry). Re-ran PR #28's flaky `web` job (the 100 ms wheel-step budget). Mission 5 spec and plans, PR #29 (04209e8), written while Mission 4's spec #25 waits on Brian; four requests for cna on `main` (b9f1da6).
+In flight: slice 1 (supply state) on `autopilot/m5-slice-1-supply-state`.
+Next: merge #29 once gates pass; merge #28 once its re-run is green; continue slice 1 from its plan. If **Feedback** approves #25, finish the slice in hand and switch to Mission 4.
+Blocked: Mission 4 on Brian's review of PR #25.
