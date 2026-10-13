@@ -636,7 +636,11 @@ mod tests {
     fn edge_records_are_kept_by_side() {
         let m = map();
         let a1233 = HexId::parse("A1233").unwrap();
-        assert!(m.edge(&a1233, Direction::E).unwrap().has(HexsideFeature::Slope));
+        assert!(
+            m.edge(&a1233, Direction::E)
+                .unwrap()
+                .has(HexsideFeature::Slope)
+        );
         assert!(m.edge(&a1233, Direction::W).is_none());
     }
 
