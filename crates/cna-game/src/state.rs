@@ -370,10 +370,12 @@ pub(crate) mod test_support {
                 events.extend(through_combat(data, state));
                 continue;
             }
-            let order = if state.clock.phase == crate::clock::Phase::InitiativeDeclaration {
-                Order::DeclareInitiative { player_a: player }
-            } else {
-                Order::Pass
+            let order = match &state.pending {
+                Some(Pending::DeclareZoc { .. }) => Order::DeclareZoc { exerting: vec![] },
+                _ if state.clock.phase == crate::clock::Phase::InitiativeDeclaration => {
+                    Order::DeclareInitiative { player_a: player }
+                }
+                _ => Order::Pass,
             };
             events.extend(state.apply(data, player, order).unwrap());
         }
