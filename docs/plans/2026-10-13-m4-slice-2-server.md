@@ -39,7 +39,7 @@ this slice; Discord comes in slice 3.
 - [ ] `migrations/0001_games.sql`: `accounts` (id bigserial, discord_id
   text unique, name, avatar, is_admin derived at runtime not stored,
   suspended_at, alerts bool default true, alerts_unreachable_at,
-  created_at), `games`, `seats`, `orders`, `snapshots` exactly as the
+  created_at), `games` (with `alias_key bytea` from `OsRng`), `seats`, `orders`, `snapshots` exactly as the
   spec's *Persistence* row, with `orders` primary key `(game_id, seq)`
   and `seats` unique `(game_id, side)` and `(game_id, account_id)`.
   `sqlx::migrate!()` at start. Test: migrating twice is a no-op. Commit.
@@ -77,11 +77,14 @@ this slice; Discord comes in slice 3.
   `test-auth` feature (slice 3 replaces it). Every game route resolves
   the caller's seat; queries (`placements`, `reachable`,
   `sealed-options`, `preview`) run as that seat and un-alias inputs;
-  responses use `view_for`/`events_for` with the game's open flag.
+  responses use `view_for`/`events_for` with the game's aliases and open
+  flag, refusals `refusal_for`; `placements` for a piece not the
+  caller's is 403.
   `GET /save` refuses (409) until `over`.
 - [ ] Tests per route: shape, seat checks, the Commonwealth never
-  receiving an Axis secret (reuse slice 1's leak predicate on every
-  response body). Commit.
+  receiving an Axis secret (`cna_game::view::leaks` on every response body). The `test-auth`
+  module starts with `#[cfg(all(feature = "test-auth",
+  not(debug_assertions)))] compile_error!(…)`. Commit.
 
 ### Task 6: SSE
 
@@ -89,7 +92,8 @@ this slice; Discord comes in slice 3.
   each message `id: <seq>`, data `{seq, events, view}` for the caller's
   side; on connect with `Last-Event-ID` (or `?after=`) the server first
   sends one catch-up message (the events since, from the stored orders,
-  and the current view). Test with a raw HTTP client: two streams, one
+  and the current view). Caps: 4 streams per account per game, 32 per
+  account (429 beyond); a game with an open stream is never evicted. Test with a raw HTTP client: two streams, one
   per side, receive their own redacted messages for an order. Commit.
 
 ### Task 7: the golden game over HTTP
@@ -99,7 +103,8 @@ this slice; Discord comes in slice 3.
   orders of `tests/games/graziani-short.json` as the side each names
   (the game created with the golden seed through a `test-auth`-only
   `POST /test/games {seed}`), then `GET /save` and assert its SHA-256 is
-  `cna-game::golden`'s pinned `FINAL_STATE_SHA256`. Commit.
+  the hash in `tests/games/graziani-short.sha256` (moved there in
+  slice 1). Commit.
 
 ### Task 8: CI and PR
 

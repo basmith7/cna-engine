@@ -51,20 +51,23 @@ testable offline against a fake Discord.
 ### Task 3: abuse limits and CSRF
 
 - [ ] Failing tests: the 11th `GET /auth/discord` from one IP in a
-  minute → 429; the 11th game created by one account in an hour → 429;
-  a 21st open game → 409; a `POST` without `Content-Type:
-  application/json` or with a foreign `Origin` → 403; a 65 KB body → 413.
+  minute → 429; the 61st order from one account in a minute → 429; the
+  11th game created by one account in an hour → 429;
+  a 21st open game → 409; a `POST`/`PATCH` without `Content-Type:
+  application/json`, with a foreign `Origin` or with none → 403; a 65 KB body → 413.
 - [ ] Implement: `tower_governor` keyed by peer IP (trust
   `X-Forwarded-For` only when `CNA_TRUST_PROXY=1`, as behind Pangolin),
-  per-account counts from the database, `RequestBodyLimitLayer`, an
+  a second governor keyed by account id for orders and creations, the
+  open-games cap from the database, `RequestBodyLimitLayer`, an
   `Origin` check middleware for state-changing methods. Commit.
 
 ### Task 4: admins and suspension
 
 - [ ] Failing tests: an account whose Discord id is in `CNA_ADMINS` sees
   `GET /admin/accounts` (others 403); `POST
-  /admin/accounts/{id}/suspend` deletes that account's sessions; its next
-  request is 401 and its sign-in is refused with a page saying the
+  /admin/accounts/{id}/suspend` deletes that account's sessions and
+  closes its open SSE streams (a per-account cancellation token the
+  stream handler selects on); its next request is 401 and its sign-in is refused with a page saying the
   account is suspended; `restore` undoes it. A suspended account's games
   stay as they are.
 - [ ] Implement. Commit.
