@@ -10,6 +10,7 @@ writes is **Feedback**.
 
 ## Addressed
 
+- 2026-10-13 (Brian, interactive session) asked for a multiplayer server with real accounts and many games, ahead of the rest of the Land Game turn; chose Discord sign-in, open sign-up and turn alerts by Discord DM → queue row 4, land rules moved to row 5.
 - 2026-10-12 (Brian) approved the Mission 2 spec, PR #5, in an interactive session → merged 2026-10-12; that session builds slices 1–6 and holds the autopilot lock while it does.
 
 ## Status
@@ -47,12 +48,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Mission 4, Part 0**: the rest of the Land Game turn (`AUTOPILOT.md`
-  queue, row 4) needs its spec on `autopilot/m4-spec`, in the shape of
-  the Mission 2 and 3 designs: which of §19–§32 come first, what each
-  needs from cna (post requests below for the gaps), and the slices.
-  Brian would call it large, so it gets the Mission 2 review: mark the
-  PR `needs-brian` and build nothing until **Feedback** approves it.
+- **Mission 4, Part 0**: the multiplayer server (`AUTOPILOT.md` queue,
+  row 4, Brian's direction of 2026-10-13) needs its spec on
+  `autopilot/m4-spec`, in the shape of the Mission 2 and 3 designs:
+  server architecture, the redacted per-side view, accounts and Discord
+  OAuth, the lobby, Discord DM alerts, persistence, deployment, the
+  slices, and Brian's checklist of outside steps. Mark the PR
+  `needs-brian` and build nothing until **Feedback** approves it. The
+  rest of the Land Game turn is now row 5.
 - Mission 3's accepted residue, for a polish slice when it matters: the
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
