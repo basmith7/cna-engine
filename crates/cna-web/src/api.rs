@@ -351,7 +351,8 @@ mod tests {
                 "path": ["C4021"],
                 "dp": 0,
                 "ends_in_zoc": false,
-                "may_be_interrupted": false
+                "may_be_interrupted": false,
+                "short": 0
             })
         );
         // Not the Commonwealth's turn; a supply unit cannot move.
@@ -594,9 +595,16 @@ mod tests {
     /// - `declare-zoc`: orders 0–60 and then the cheapest flagged move of
     ///   the 1st Libyan Division's stack that the engine stops for a ZOC
     ///   declaration, so the Commonwealth is asked.
+    /// - `combat-start`: orders 0–65, gun positions sealed, the Axis to
+    ///   answer.
+    /// - `retreat-before-assault`: orders 0–69, the Commonwealth asked to
+    ///   retreat before assault; 4 RHA at C3923 may.
+    /// - `forced-retreat`: orders 0–72 replayed under the first seed
+    ///   whose assault on Halfaya (order 73) orders the defenders back,
+    ///   that assault applied, so the Commonwealth must retreat.
+    /// - `game-over`: the whole golden game, the report in.
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
-        use cna_game::reach::Purpose;
-        use cna_game::state::Pending;
+        use std::ops::Not;
         let set_up_done = golden_prefix(59);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
         assert!(set_up_done.pending.is_none());
@@ -715,12 +723,72 @@ mod tests {
             .expect("a flagged move of the Libyans is stopped for a declaration");
         assert_eq!(declare_zoc.to_act(), Some(Side::Cw));
 
+        let combat_start = golden_prefix(66);
+        assert_eq!(combat_start.to_act(), Some(Side::Axis));
+        assert!(matches!(combat_start.pending, Some(Pending::Sealed { .. })));
+
+        let retreat_before_assault = golden_prefix(70);
+        assert_eq!(
+            retreat_before_assault.pending,
+            Some(Pending::RetreatBeforeAssault { side: Side::Cw })
+        );
+        let rha = vec![PieceId::from(
+            cna_data::oa::UnitId::parse("unit:cw:4-rha").unwrap(),
+        )];
+        assert!(
+            !retreat_before_assault
+                .reachable(data(), Side::Cw, &rha, Purpose::RetreatBeforeAssault)
+                .unwrap()
+                .is_empty()
+        );
+
+        // A bounded seed search: the assault result is a die roll.
+        let forced_retreat = (0..200u64)
+            .find_map(|seed| {
+                let mut log = golden_log();
+                log.orders.truncate(73);
+                log.seed = seed;
+                let mut state = replay(data(), &log).ok()?;
+                let Order::Assault { .. } = &golden_log().orders[73].order else {
+                    panic!("order 73 is the assault");
+                };
+                state
+                    .apply(data(), Side::Axis, golden_log().orders[73].order.clone())
+                    .ok()?;
+                match &state.pending {
+                    Some(Pending::ForcedRetreat {
+                        side: Side::Cw,
+                        reason: cna_game::combat::RetreatReason::AssaultResult,
+                        pieces,
+                        ..
+                    }) => {
+                        let pieces = pieces.clone();
+                        state
+                            .reachable(data(), Side::Cw, &pieces, Purpose::ForcedRetreat)
+                            .ok()?
+                            .is_empty()
+                            .not()
+                            .then_some(state)
+                    }
+                    _ => None,
+                }
+            })
+            .expect("some seed's assault on Halfaya orders a retreat");
+
+        let game_over = replay(data(), &golden_log()).unwrap();
+        assert!(game_over.is_over());
+        assert_eq!(game_over.to_act(), None);
+
         vec![
             ("set-up-done", set_up_done),
             ("reserve", reserve),
             ("reserve-release", reserve_release),
             ("off-map", off_map),
             ("declare-zoc", declare_zoc),
+            ("combat-start", combat_start),
+            ("retreat-before-assault", retreat_before_assault),
+            ("forced-retreat", forced_retreat),
+            ("game-over", game_over),
         ]
     }
 
@@ -756,7 +824,11 @@ mod tests {
             )
             .unwrap();
         }
-        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+        for (name, n) in [
+            ("set-up-done", 59),
+            ("movement-done", 66),
+            ("combat-done", 77),
+        ] {
             std::fs::write(
                 fixtures_dir().join(format!("{name}.sha256")),
                 sha256(&golden_prefix(n).to_json().unwrap()) + "\n",
