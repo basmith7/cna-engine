@@ -31,6 +31,17 @@ struct Commit {
     points: u32,
 }
 
+/// One anti-armour attack as rolled: whose, from where, at which hex,
+/// at what strength, and the points that absorb its damage.
+struct AntiArmourAttack {
+    side: Side,
+    from: BTreeSet<HexId>,
+    target: HexId,
+    points: u32,
+    shift: i32,
+    shares: Vec<Share>,
+}
+
 /// Surrender when assaulted at this cohesion or worse (15.88, E-009).
 const SURRENDER_LEVEL: i32 = -17;
 /// Losing this share of committed TOE points costs 3 DP (15.86).
@@ -55,7 +66,32 @@ fn allocated(parts: &[Part], points: u32) -> Vec<(Part, u32)> {
 }
 
 impl GameState {
-    /// The phasing player's assignments, flattened to commits of `kind`.
+    /// Hexes assigned a close assault by a unit still on the map and not
+    /// yet assaulted: what keeps the step open. An assault whose
+    /// attackers were all eliminated in step 5 or an earlier assault is
+    /// nobody's to make.
+    pub(super) fn unresolved_assaults(&self, phasing: Side) -> Vec<HexId> {
+        self.phasing_commits(phasing, true)
+            .into_iter()
+            .map(|(_, h)| h)
+            .filter(|h| !self.combat.assaults.contains_key(h))
+            .collect()
+    }
+
+    /// Whether any assignment, by a unit still on the map or not, names
+    /// `target` for close assault.
+    fn assault_assigned(&self, phasing: Side, target: &HexId) -> bool {
+        self.combat
+            .assignments
+            .get(&phasing)
+            .into_iter()
+            .flatten()
+            .flat_map(|a| a.close_assault.iter())
+            .any(|al| al.target.as_ref() == Some(target))
+    }
+
+    /// The phasing player's assignments, flattened to commits of `kind`
+    /// by the units still on the map.
     fn phasing_commits(&self, phasing: Side, close_assault: bool) -> Vec<(Commit, HexId)> {
         let mut out = Vec::new();
         for a in self.combat.assignments.get(&phasing).into_iter().flatten() {
@@ -158,16 +194,19 @@ impl GameState {
             .sum()
     }
 
-    /// Step 5: every anti-armour attack rolled and its damage taken
-    /// (14.0). Phasing fire pools by target hex and is shifted by the
-    /// hex and the hexside crossed; non-phasing fire from a defended hex
-    /// goes at the armour assaulting it (R-015). Damage is absorbed by
+    /// Step 5: every anti-armour attack rolled at the strength each side
+    /// has as the step opens, the damage landed after the last roll
+    /// (14.0: all fire is simultaneous). Phasing fire pools by target
+    /// hex and is shifted by the hex and the hexside crossed; non-phasing
+    /// fire from a defended hex goes at every armoured unit assigned
+    /// against it in either role (14.11, R-015). Damage is absorbed by
     /// armour protection, the best-protected points first (14.4x).
     pub(crate) fn resolve_anti_armour(&mut self, data: &Data, events: &mut Vec<Event>) {
         let Some(phasing) = self.phasing() else {
             return;
         };
         let other = phasing.other();
+        let mut attacks: Vec<AntiArmourAttack> = Vec::new();
         // Phasing fire, by target hex.
         let mut by_target: BTreeMap<HexId, Vec<Commit>> = BTreeMap::new();
         for (c, t) in self.phasing_commits(phasing, false) {
@@ -175,7 +214,7 @@ impl GameState {
         }
         for (target, firers) in by_target {
             let raw = self.raw_sum(data, &firers, Kind::AntiArmour);
-            let points = cna_rules::strength::actual(raw);
+            // A prohibited hexside was refused at assignment (14.35).
             let hexside = firers
                 .iter()
                 .map(|c| hexside_shift(data, &c.hex, &target, Kind::AntiArmour).unwrap_or(0))
@@ -187,20 +226,6 @@ impl GameState {
                 hex_shift(data, &target, Kind::AntiArmour).unwrap_or(0),
                 hexside,
             );
-            let reading = self.rng.two_dice_sequential();
-            events.push(Event::DieRolled {
-                purpose: format!("anti-armour fire at {target}"),
-                value: reading,
-            });
-            let damage = damage_for(&data.anti_armour, points, shift, true, reading);
-            events.push(Event::AntiArmour {
-                side: phasing,
-                target: target.clone(),
-                points,
-                shift,
-                reading,
-                damage,
-            });
             // Committed defenders, and units that retreated in (14.13).
             let mut shares: Vec<Share> = self
                 .defending_commits(data, other, &target, false)
@@ -223,14 +248,17 @@ impl GameState {
                     });
                 }
             }
-            self.absorb(data, &mut shares, |p| p.protection, damage, events);
-            let hexes: BTreeSet<HexId> = firers.iter().map(|c| c.hex.clone()).collect();
-            for h in hexes {
-                self.charge_combat_hex(&h, PHASING_CEILING, Cp::ZERO, events);
-            }
-            self.charge_combat_hex(&target, NON_PHASING_CEILING, Cp::ZERO, events);
+            attacks.push(AntiArmourAttack {
+                side: phasing,
+                from: firers.iter().map(|c| c.hex.clone()).collect(),
+                target,
+                points: cna_rules::strength::actual(raw),
+                shift,
+                shares,
+            });
         }
-        // Non-phasing fire from each defended hex at the armour assaulting it.
+        // Non-phasing fire from each defended hex at the armour assigned
+        // against it, whichever role.
         let defended: BTreeSet<HexId> = self
             .combat
             .assignments
@@ -240,12 +268,15 @@ impl GameState {
             .filter(|a| !a.anti_armour.is_empty())
             .filter_map(|a| self.pieces[&a.piece].hex().cloned())
             .collect();
-        let assaults = self.phasing_commits(phasing, true);
+        let against: Vec<(Commit, HexId)> = self
+            .phasing_commits(phasing, false)
+            .into_iter()
+            .chain(self.phasing_commits(phasing, true))
+            .collect();
         for hex in defended {
             let firers = self.defending_commits(data, other, &hex, false);
             let raw = self.raw_sum(data, &firers, Kind::AntiArmour);
-            let points = cna_rules::strength::actual(raw);
-            let armour: Vec<&Commit> = assaults
+            let armour: Vec<&Commit> = against
                 .iter()
                 .filter(|(c, t)| {
                     *t == hex
@@ -271,29 +302,53 @@ impl GameState {
                 .unwrap_or(0);
             let shift =
                 cna_rules::anti_armour::terrain_shift(&self.ruleset, false, hex_of_armour, hexside);
+            attacks.push(AntiArmourAttack {
+                side: other,
+                from: BTreeSet::from([hex.clone()]),
+                target: hex,
+                points: cna_rules::strength::actual(raw),
+                shift,
+                shares: armour
+                    .iter()
+                    .map(|c| Share {
+                        piece: c.piece.clone(),
+                        points: c.points,
+                    })
+                    .collect(),
+            });
+        }
+        // Every roll, then every loss.
+        let mut rolled: Vec<(AntiArmourAttack, u32)> = Vec::new();
+        for a in attacks {
             let reading = self.rng.two_dice_sequential();
+            let purpose = if a.side == phasing {
+                format!("anti-armour fire at {}", a.target)
+            } else {
+                format!("anti-armour fire from {}", a.target)
+            };
             events.push(Event::DieRolled {
-                purpose: format!("anti-armour fire from {hex}"),
+                purpose,
                 value: reading,
             });
-            let damage = damage_for(&data.anti_armour, points, shift, false, reading);
+            let damage = damage_for(&data.anti_armour, a.points, a.shift, a.side == phasing, reading);
             events.push(Event::AntiArmour {
-                side: other,
-                target: hex.clone(),
-                points,
-                shift,
+                side: a.side,
+                target: a.target.clone(),
+                points: a.points,
+                shift: a.shift,
                 reading,
                 damage,
             });
-            let mut shares: Vec<Share> = armour
-                .iter()
-                .map(|c| Share {
-                    piece: c.piece.clone(),
-                    points: c.points,
-                })
-                .collect();
-            self.absorb(data, &mut shares, |p| p.protection, damage, events);
-            self.charge_combat_hex(&hex, NON_PHASING_CEILING, Cp::ZERO, events);
+            rolled.push((a, damage));
+        }
+        for (mut a, damage) in rolled {
+            self.absorb(data, &mut a.shares, |p| p.protection, damage, events);
+            if a.side == phasing {
+                for h in &a.from {
+                    self.charge_combat_hex(h, PHASING_CEILING, Cp::ZERO, events);
+                }
+            }
+            self.charge_combat_hex(&a.target, NON_PHASING_CEILING, Cp::ZERO, events);
         }
     }
 
@@ -401,10 +456,12 @@ impl GameState {
             .map(|(c, _)| c)
             .collect();
         if attackers.is_empty() {
-            return Err(Illegal::new(
-                "15.2x",
-                format!("no close assault was assigned against {target}"),
-            ));
+            let reason = if self.assault_assigned(phasing, target) {
+                format!("every unit assigned to assault {target} has been eliminated")
+            } else {
+                format!("no close assault was assigned against {target}")
+            };
+            return Err(Illegal::new("15.2x", reason));
         }
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
@@ -1653,5 +1710,201 @@ mod tests {
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(state.pending, None);
         assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
+    }
+
+    /// Steps 1–3 passed with the anti-tank company forward; the
+    /// Commonwealth to assign.
+    fn assigning_against_the_anti_tank_coy(data: &Data, state: &mut GameState) {
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (
+                Side::Axis,
+                Order::GunPositions {
+                    forward: vec![pid("unit:it:1st-libyan-anti-tank-coy")],
+                },
+            ),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+        ] {
+            state.apply(data, side, order).unwrap();
+        }
+        assert_eq!(state.clock.segment, Some(Segment::ForceAssignment));
+    }
+
+    fn anti_armour_events(events: &[Event]) -> Vec<(Side, u32, u32)> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::AntiArmour {
+                    side,
+                    points,
+                    damage,
+                    ..
+                } => Some((*side, *points, *damage)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Sets a one-weapon piece to `points` TOE points.
+    fn set_points(state: &mut GameState, id: &str, points: u32) {
+        let p = state.pieces.get_mut(&pid(id)).unwrap();
+        p.weapons[0].points = points;
+        p.toe = points;
+    }
+
+    #[test]
+    fn return_fire_hits_armour_in_the_anti_armour_role_too() {
+        // 14.11: every armoured unit committed to either role is a
+        // target; 1 RTR fires anti-armour only and is still shot at.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![alloc(Some("C4020"), 7)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 2)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        let fired = anti_armour_events(&events);
+        // 21 raw cruiser points are 2 actual; the two 47/32s, 8 raw, 1.
+        assert_eq!(fired.len(), 2, "{fired:?}");
+        assert_eq!((fired[0].0, fired[0].1), (Side::Cw, 2));
+        assert_eq!((fired[1].0, fired[1].1), (Side::Axis, 1));
+        let damage = fired[1].2;
+        assert_eq!(state.pieces[&pid("unit:cw:1-rtr")].toe, 7 - damage.min(7));
+    }
+
+    #[test]
+    fn anti_armour_fire_is_simultaneous() {
+        // 14.0: both sides fire at the strength they had before any
+        // damage landed. The I(M) tank battalion (seven M 11/39, AA 2,
+        // protection 2) joins the anti-tank company at C4020; 1 RTR,
+        // raised to 30 A9 points, fires 25 of them (75 raw, 8 actual:
+        // at least 8 damage, four M 11/39 points) and assaults with 5.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        state
+            .pieces
+            .get_mut(&pid("unit:it:im-tank-bn"))
+            .unwrap()
+            .location = Location::Hex(hex("C4020"));
+        set_points(&mut state, "unit:cw:1-rtr", 30);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![alloc(Some("C4020"), 25)],
+                        vec![alloc(Some("C4020"), 5)],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![
+                        assign(
+                            "unit:it:1st-libyan-anti-tank-coy",
+                            vec![alloc(None, 2)],
+                            vec![],
+                        ),
+                        assign("unit:it:im-tank-bn", vec![alloc(None, 7)], vec![]),
+                    ],
+                },
+            )
+            .unwrap();
+        let fired = anti_armour_events(&events);
+        assert_eq!(fired.len(), 2, "{fired:?}");
+        assert_eq!((fired[0].0, fired[0].1), (Side::Cw, 8));
+        assert!(fired[0].2 >= 8, "{fired:?}");
+        assert!(state.pieces[&pid("unit:it:im-tank-bn")].toe <= 3);
+        // The Axis fired 8 + 14 = 22 raw, 2 actual: its strength before
+        // the cruisers' fire landed, not after.
+        assert_eq!((fired[1].0, fired[1].1), (Side::Axis, 2));
+    }
+
+    #[test]
+    fn an_assault_whose_attackers_were_all_killed_no_longer_blocks_the_step() {
+        // 1 RTR, down to one A9 point, is the only unit assigned to
+        // assault C4020; seven 47/32 points (28 raw, 3 actual: at least
+        // 1 damage on any roll) kill it in step 5.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        set_points(&mut state, "unit:cw:1-rtr", 1);
+        set_points(&mut state, "unit:it:1st-libyan-anti-tank-coy", 7);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![],
+                        vec![alloc(Some("C4020"), 1)],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 7)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        assert!(events.contains(&Event::Eliminated {
+            piece: pid("unit:cw:1-rtr")
+        }));
+        assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
+        assert_eq!(state.to_act(), Some(Side::Cw));
+        // Nobody is left to make the assault, and the step can end.
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "15.2x");
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
+        assert!(!state.combat.assaults.contains_key(&hex("C4020")));
     }
 }

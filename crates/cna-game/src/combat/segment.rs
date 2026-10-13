@@ -13,7 +13,6 @@ use crate::event::{Event, Illegal};
 use crate::order::Order;
 use crate::piece::{Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
-use cna_data::map::HexId;
 use cna_data::scenario::Side;
 
 impl GameState {
@@ -279,19 +278,7 @@ impl GameState {
     /// rule is checked and reserve release opens.
     pub(crate) fn end_close_assault_step(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         if let Some(phasing) = self.phasing() {
-            let unresolved: Vec<&HexId> = self
-                .combat
-                .assignments
-                .get(&phasing)
-                .map(|a| {
-                    a.iter()
-                        .flat_map(|x| x.close_assault.iter())
-                        .filter_map(|al| al.target.as_ref())
-                        .filter(|h| !self.combat.assaults.contains_key(*h))
-                        .collect()
-                })
-                .unwrap_or_default();
-            if let Some(h) = unresolved.first() {
+            if let Some(h) = self.unresolved_assaults(phasing).first() {
                 return Err(Illegal::new(
                     "15.2x",
                     format!("the assault assigned against {h} has not been resolved"),
