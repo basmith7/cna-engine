@@ -64,13 +64,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- From PR #23's review, for the same polish slice: `check_invariants`
-  stops at the plan's list, so a hostile save can still panic the engine
-  later (a combat plot naming a ghost piece, a piece on a hex that does
-  not exist, a duplicate side in `waiting`, a reaction whose eligible
-  piece is the other side's); extend it to every piece and hex reference
-  in `combat`, `moved`/`continuing`/`shifted`/`zoc` and piece locations.
-  A Load or Continue opens with no curtain, so whoever loads sees
+- From PR #23's review: hostile saves are now refused (PR #26 checks
+  every piece and hex a save names). Still open: a Load or Continue opens with no curtain, so whoever loads sees
   `to_act`'s (redacted) view; consider dropping the curtain on load.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
