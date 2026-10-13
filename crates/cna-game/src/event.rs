@@ -3,6 +3,8 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
+use crate::combat::SealedStep;
+use crate::order::{Assignment, Fire};
 use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
 use cna_data::cp::Cp;
@@ -103,6 +105,27 @@ pub enum Event {
     /// Reserve II (18.2x).
     ReserveFlipped {
         pieces: Vec<PieceId>,
+    },
+    /// A sealed combat answer was accepted; its content waits for the
+    /// other side's (11.0).
+    Sealed {
+        side: Side,
+        step: SealedStep,
+    },
+    /// Step 1 revealed: this side's forward guns (12.1x).
+    GunPositionsSet {
+        side: Side,
+        forward: Vec<PieceId>,
+    },
+    /// Step 2 revealed: this side's barrages (12.2x).
+    BarragePlotted {
+        side: Side,
+        fires: Vec<Fire>,
+    },
+    /// Step 4 revealed: this side's roles (14.1x).
+    ForcesAssigned {
+        side: Side,
+        assignments: Vec<Assignment>,
     },
     /// Combat CP charged to a unit by its hex's role this segment (11.2x).
     CombatCp {

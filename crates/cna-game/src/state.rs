@@ -4,7 +4,7 @@
 //! the log.
 
 use crate::clock::Clock;
-use crate::combat::CombatSegment;
+use crate::combat::{CombatSegment, RetreatReason, SealedStep};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::order::{LoggedOrder, Order};
@@ -45,6 +45,24 @@ pub enum Pending {
     },
     /// The non-phasing side may react with these units (8.5x).
     Reaction { side: Side, eligible: Vec<PieceId> },
+    /// A combat step both players answer in secret (11.0): the sides
+    /// still to answer, in order; nothing is revealed until the last.
+    Sealed {
+        step: SealedStep,
+        waiting: Vec<Side>,
+    },
+    /// Combat step 3: the non-phasing side may retreat before assault
+    /// (13.x) until it passes.
+    RetreatBeforeAssault { side: Side },
+    /// A stack must retreat `hexes` hexes from `from` (15.82, 10.36),
+    /// or stand and pay where the ruleset lets it (R-012).
+    ForcedRetreat {
+        side: Side,
+        pieces: Vec<PieceId>,
+        hexes: u32,
+        from: Vec<HexId>,
+        reason: RetreatReason,
+    },
 }
 
 impl Pending {
@@ -52,7 +70,10 @@ impl Pending {
         match self {
             Pending::SetUp { side }
             | Pending::DeclareZoc { side, .. }
-            | Pending::Reaction { side, .. } => *side,
+            | Pending::Reaction { side, .. }
+            | Pending::RetreatBeforeAssault { side }
+            | Pending::ForcedRetreat { side, .. } => *side,
+            Pending::Sealed { waiting, .. } => waiting[0],
         }
     }
 }
@@ -216,6 +237,43 @@ impl GameState {
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
+            (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {
+                self.sealed(data, player, order)
+            }
+            (Some(Pending::Sealed { step, waiting }), _) => Err(Illegal::new(
+                "11.0",
+                format!("{} must first give its {step:?}", waiting[0]),
+            )),
+            (
+                None,
+                Order::GunPositions { .. } | Order::Barrage { .. } | Order::AssignForces { .. },
+            ) => Err(Illegal::new("11.0", "no sealed combat step is pending")),
+            (
+                Some(Pending::RetreatBeforeAssault { .. }),
+                Order::RetreatBeforeAssault { pieces, path },
+            ) => self.retreat_before_assault(data, player, pieces, path),
+            (Some(Pending::RetreatBeforeAssault { .. }), Order::Pass) => {
+                self.end_retreat_before_assault(data)
+            }
+            (Some(Pending::RetreatBeforeAssault { side }), _) => Err(Illegal::new(
+                "13.1",
+                format!("{side} is retreating before assault: only RetreatBeforeAssault or Pass"),
+            )),
+            (None, Order::RetreatBeforeAssault { .. }) => {
+                Err(Illegal::new("13.1", "no retreat before assault is pending"))
+            }
+            (Some(Pending::ForcedRetreat { .. }), Order::Retreat { path }) => {
+                self.forced_retreat(data, player, Some(path))
+            }
+            (Some(Pending::ForcedRetreat { .. }), Order::Pass) => {
+                self.forced_retreat(data, player, None)
+            }
+            (Some(Pending::ForcedRetreat { side, hexes, .. }), _) => Err(Illegal::new(
+                "15.82",
+                format!("{side} must retreat {hexes} hexes: only Retreat or Pass"),
+            )),
+            (None, Order::Retreat { .. }) => Err(Illegal::new("15.82", "no retreat is pending")),
+            (None, Order::Assault { target }) => self.assault(data, player, target),
             (None, Order::DeclareInitiative { player_a }) => {
                 self.declare_initiative(data, *player_a)
             }
@@ -288,13 +346,21 @@ pub(crate) mod test_support {
     }
 
     /// The holder declares itself Player A, then both players pass
-    /// through F and G, until the OpStage changes; the events of every
-    /// order, in order.
+    /// through F and G (the combat steps answered with nothing), until
+    /// the OpStage changes; the events of every order, in order.
     pub fn pass_stage(data: &Data, state: &mut GameState) -> Vec<Event> {
         let (gt, stage) = (state.clock.game_turn, state.clock.stage);
         let mut events = Vec::new();
         while !state.over && (state.clock.game_turn, state.clock.stage) == (gt, stage) {
             let player = state.to_act().unwrap();
+            if state.clock.phase == crate::clock::Phase::MovementCombat
+                && state.clock.segment == Some(crate::clock::Segment::Movement)
+                && state.pending.is_none()
+                && state.sides_adjacent(data)
+            {
+                events.extend(through_combat(data, state));
+                continue;
+            }
             let order = if state.clock.phase == crate::clock::Phase::InitiativeDeclaration {
                 Order::DeclareInitiative { player_a: player }
             } else {
@@ -303,6 +369,40 @@ pub(crate) mod test_support {
             events.extend(state.apply(data, player, order).unwrap());
         }
         events
+    }
+
+    /// Ends the movement segment and answers every combat step that
+    /// opens with nothing, to reserve release; the events, in order.
+    pub fn through_combat(data: &Data, state: &mut GameState) -> Vec<Event> {
+        let player = state.to_act().unwrap();
+        let mut events = state.apply(data, player, Order::EndSegment).unwrap();
+        events.extend(drain_combat(data, state));
+        events
+    }
+
+    /// Answers every pending combat step with nothing until reserve
+    /// release opens.
+    pub fn drain_combat(data: &Data, state: &mut GameState) -> Vec<Event> {
+        use crate::combat::SealedStep;
+        let mut events = Vec::new();
+        loop {
+            let player = state.to_act().unwrap();
+            let order = match &state.pending {
+                Some(Pending::Sealed { step, .. }) => match step {
+                    SealedStep::GunPositions => Order::GunPositions { forward: vec![] },
+                    SealedStep::Barrage => Order::Barrage { fires: vec![] },
+                    SealedStep::AssignForces => Order::AssignForces {
+                        assignments: vec![],
+                    },
+                },
+                Some(Pending::RetreatBeforeAssault { .. }) => Order::Pass,
+                None if state.clock.segment == Some(crate::clock::Segment::CloseAssault) => {
+                    Order::Pass
+                }
+                _ => return events,
+            };
+            events.extend(state.apply(data, player, order).unwrap());
+        }
     }
 
     /// Places every pending piece on the first hex the engine accepts,
@@ -700,13 +800,17 @@ mod tests {
         assert_eq!(state.clock.phase, Phase::MovementCombat);
         assert_eq!(state.clock.segment, Some(crate::clock::Segment::Movement));
         assert_eq!(state.to_act(), Some(Side::Axis));
-        // G: Pass ends the phase; H, J, K, L are skipped; Player B's F.
+        // G: with units next to the enemy the combat segment is walked
+        // first; from reserve release Pass ends the phase; H, J, K, L
+        // are skipped; Player B's F.
+        test_support::through_combat(&data, &mut state);
         let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
         assert_eq!(skipped(&events), ['H', 'J', 'K', 'L']);
         assert_eq!(state.clock.phase, Phase::ReserveDesignation);
         assert_eq!(state.clock.half, Some(crate::clock::Half::B));
         assert_eq!(state.to_act(), Some(Side::Cw));
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        test_support::through_combat(&data, &mut state);
         let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_eq!(skipped(&events), ['H', 'J', 'K', 'L']);
         // Then OpStage 2's phase A, the Axis still holding initiative.
@@ -728,6 +832,9 @@ mod tests {
             while (s.clock.phase, s.clock.half)
                 != (Phase::MovementCombat, Some(crate::clock::Half::B))
             {
+                if s.clock.phase == Phase::MovementCombat && s.sides_adjacent(&data) {
+                    test_support::through_combat(&data, &mut s);
+                }
                 let player = s.to_act().unwrap();
                 let order = if s.clock.phase == Phase::InitiativeDeclaration {
                     Order::DeclareInitiative { player_a: player }
@@ -737,6 +844,7 @@ mod tests {
                 s.apply(&data, player, order).unwrap();
             }
             assert_eq!((s.clock.game_turn, s.clock.stage), (1, 3));
+            test_support::through_combat(&data, &mut s);
             s
         };
         // Seeds were searched for a tie on the first pair (Commonwealth 3

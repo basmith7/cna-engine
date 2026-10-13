@@ -44,6 +44,28 @@ pub enum Order {
         pieces: Vec<PieceId>,
         to: OffMapPlace,
     },
+    /// Combat step 1: these gun-class units stand *forward* for the
+    /// segment; every other gun unit is *back* (12.1x).
+    GunPositions { forward: Vec<PieceId> },
+    /// Combat step 2, sealed: some of a unit's TOE points fire at one
+    /// enemy unit in an adjacent hex (12.2x).
+    Barrage { fires: Vec<Fire> },
+    /// Combat step 3: the non-phasing player pulls a stack back along
+    /// `path`, paid as movement (13.2x); `Pass` ends the step.
+    RetreatBeforeAssault {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
+    },
+    /// Combat step 4, sealed: each unit's TOE points split between
+    /// anti-armour fire and close assault; an unlisted unit is withheld
+    /// (14.1x, 15.2x).
+    AssignForces { assignments: Vec<Assignment> },
+    /// Combat step 6: resolve the close assault assigned against this
+    /// hex (15.2x); `Pass` ends the step once every assault is resolved.
+    Assault { target: HexId },
+    /// A forced retreat (15.82, 10.36): the stack's path; `Pass` stands
+    /// and pays per hex not retreated where the ruleset allows (R-012).
+    Retreat { path: Vec<HexId> },
     /// Phase F: these units go into Reserve I (18.1x).
     DesignateReserve { pieces: Vec<PieceId> },
     /// A reserve release segment: these units, all in the same reserve
@@ -54,6 +76,34 @@ pub enum Order {
     EndSegment,
     /// Nothing more this phase: ends F or G for the phasing player.
     Pass,
+}
+
+/// Some of one unit's TOE points barraging one enemy unit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Fire {
+    pub piece: PieceId,
+    pub points: u32,
+    pub target: PieceId,
+}
+
+/// Some TOE points in one role: against `target` for the phasing
+/// player (an adjacent enemy hex), at whoever assaults the unit's own
+/// hex for the non-phasing player (`target` none, 14.12).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Allocation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<HexId>,
+    pub points: u32,
+}
+
+/// One unit's roles for the segment; a point is never in both (14.0).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Assignment {
+    pub piece: PieceId,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub anti_armour: Vec<Allocation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub close_assault: Vec<Allocation>,
 }
 
 /// An accepted order and who gave it.

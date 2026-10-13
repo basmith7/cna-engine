@@ -424,7 +424,7 @@ mod tests {
         // The next segment opens with the Axis asked again (the
         // declarations are per segment), then 1 KRRC is in contact and
         // pays 2 CP to leave, on top of the terrain.
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
         assert_eq!(state.clock.segment, Some(Segment::Movement));
         assert_eq!(

@@ -59,6 +59,9 @@ impl GameState {
                 ));
             }
         }
+        if self.clock.segment == Some(crate::clock::Segment::CloseAssault) {
+            return self.end_close_assault_step(data);
+        }
         let mut events = Vec::new();
         self.before_leaving_g(data, &mut events)?;
         self.cycle = 0;

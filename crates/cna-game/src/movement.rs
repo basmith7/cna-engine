@@ -416,7 +416,10 @@ impl GameState {
             if plan.ends_in_zoc {
                 return Err(Illegal::new(
                     "18.2x",
-                    format!("{}: a unit in reserve never shifts into an enemy ZOC", path[0]),
+                    format!(
+                        "{}: a unit in reserve never shifts into an enemy ZOC",
+                        path[0]
+                    ),
                 ));
             }
             for step in &mut plan.steps {
@@ -840,7 +843,7 @@ mod tests {
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923"]))
             .unwrap();
-        state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        crate::state::test_support::through_combat(&data, &mut state);
         assert!(state.continuing.contains(&pid("unit:cw:11-hus")));
         assert!(!state.continuing.contains(&pid("unit:cw:1-krrc")));
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
@@ -856,6 +859,7 @@ mod tests {
             .unwrap();
         // A new phase starts afresh: in the Axis half every Axis unit may
         // make its first move.
+        crate::state::test_support::through_combat(&data, &mut state);
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
         state.apply(&data, Side::Axis, Order::Pass).unwrap();
         assert_eq!(state.cycle, 0);
