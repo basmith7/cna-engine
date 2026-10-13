@@ -36,11 +36,18 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Mission 3, Part 0:** write the UI spec (`docs/designs/`) and slice
-  plans on `autopilot/m3-spec`; it reads `cna-game`'s `GameState`,
-  `Order`, `Event` and `VictoryReport` (`state.over`). Brian's review is
-  not required by the queue, but the spec should say what runs where
-  (`cna-game` compiles without the file system; `Data::load` is native).
+- **Mission 3 is being built** (minimal browser UI). The spec merged as
+  PR #7 (`docs/designs/2026-10-13-minimal-ui-design.md`); slices follow
+  `docs/plans/2026-10-13-m3-slice-{1..6}-*.md`, one PR each on
+  `autopilot/m3-slice-N-<slug>`, worktrees under `~/Projects/cna-engine-m3/`.
+  An interactive session started them on 2026-10-13 and may run out of
+  quota mid-slice. The autopilot picks up from the open `autopilot` PR as
+  usual: read its body and the last journal entry, finish the slice, merge
+  once the gates and a review pass, then the next slice. Each UI slice
+  names the screenshot that proves it; take it and look at it.
+- Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
+  bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
+  cna 4184683.
 
 ## Requests for cna
 
