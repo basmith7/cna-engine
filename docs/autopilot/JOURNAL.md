@@ -129,3 +129,16 @@ Done: the one blocking finding, test-first. `refund_combat_hex` lowered `cp_spen
 In flight: nothing.
 Next: merge PR #14 once CI passes, then slice 6. Still open: the must-attack retreat (10.36) question in the PR body; 15.83's 10 % per hex short applied after rounding; the rule tests listed last time; state-unchanged checks on rejections; a holding-off barrage test; `adjusted_morale` tie-breaking.
 Blocked: none.
+
+## 2026-10-12 — autopilot/m2-slice-4-fixes (PR #11 review, after merge)
+Done: PR #11's review landed after the merge, so the fixes are a follow-up branch from main. Blocking, test-first: an engaged unit pays the 4 CP disengage wherever it stands, not only in an enemy ZOC (dfde862, 8.6x; live on main since slice 5 sets `engaged`); a railroad opens swamp and major-river hexsides as a road does, swamp by rail at the road rate (63ec94b, 8.37 and footnote 11). Nonblocking one-liners: a vehicle in delta stays put in rain unless it leaves by road or rail (fc12093, 29.5x); Reserve II units are not offered a reaction, and a unit in contact is tested not to be (c313533); a Move from a hex next to an undeclared enemy is checked for adjacency, map, enemy and Marble Arch before it is parked on the declaration (6733317). Two cna requests posted (swamp-by-rail price, seam `up`).
+In flight: nothing.
+Next: slice 6. Left from the review, not one-liners: 18.23/18.24 caps are checked against own-half CP only (arguable; Brian's call); 6.15 read per piece rather than the stack's lowest CPA (recorded deviation; Brian should confirm); 9.13 top-HQ stacking without shells (recorded); `Data::load` reads disk and shells to git (Mission 3 needs an in-memory constructor); a shared `CARGO_TARGET_DIR` across trees leaves stale rlibs (use one per tree).
+Blocked: none.
+
+## 2026-10-13 00:40 MST — autopilot/m2-slice-6-victory
+Done: Mission 2 slice 6 (victory and the golden game) complete, PR #15 ready: `victory` typed in cna-data (b4aa9a6); `cna_game::victory::evaluate` with the R-110 route trace and hand-built tests per level, a holder cut off by enemy ZOC and one traced around it (eed6ac7); `GameState::over: Option<VictoryReport>`, `Event::GameOver { report }`, orders refused with 60.22, `cna-play show` prints the report (e13e2fc); `tests/games/graziani-short.json`, 446 orders, final state SHA-256 and report pinned (ede3aec); the determinism property test (3588794, 1c1992b); README, NOT_SIMULATED.md *Systems* table, spec Status, AUTOPILOT queue, PROGRESS.md (this commit). 112 cna-game tests; all three gates pass.
+**MISSION 2 COMPLETE.**
+In flight: nothing.
+Next: Mission 3 Part 0, the UI spec, on `autopilot/m3-spec`. Slice 5's nonblocking follow-ups stay open (none touches the scripted games): 15.83's short percentage is rounded separately, a must-attack `Pass` surrenders a stack that has a path (10.36), withheld points in the defender's loss base (15.1x vs 15.83, asked of cna in PROGRESS.md), rule tests for 15.36, 6.26, 13.1, 15.1x, 13.2x, and the empty sealed `waiting` panic on a malformed save. Decisions this slice: the trace runs in normal weather (a route, not a move); an HQ alone holds nothing; a points victory (other scenarios) is reported unchecked.
+Blocked: none.

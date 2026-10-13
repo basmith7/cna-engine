@@ -60,7 +60,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-107 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-108 | scenario ruling (El Alamein scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
 | R-109 | scenario ruling (campaign games); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-110 | Land-only victory supply in Graziani's Offensive: no game state yet; Mission 2 slice 6 implements it as a route trace (spec, PR #5) |
 | R-111 | Air Game: not in the engine yet |
 | R-112 | Air Game: not in the engine yet |
 | R-113 | Air Game: not in the engine yet |
@@ -84,6 +83,7 @@ rulings*). Each names where it is enforced.
 | R-010 | retreat before assault is ordinary movement in any direction under the 13.2x limits (`cna-game::combat::retreat::retreat_before_assault`) |
 | R-023 | a defender reading of 34–36 on the +2 column inflicts 5 % (`cna-rules::close_assault::loss_pct_decided`) |
 | R-024 | a morale reading of 56 at cohesion −4 is −2 (`cna-game::combat::assault::adjusted_morale`) |
+| R-110 | Land-only victory supply is a route a medium truck could follow from the holding unit to the level's source, through no enemy hex and no enemy-ZOC hex without a friendly piece (`cna-game::victory`); every enemy hex able to exert a ZOC does, since 10.16's declarations belong to a movement segment |
 
 # Combat systems not simulated (Mission 2 slice 5)
 
@@ -102,3 +102,24 @@ mission, and the engine neither models nor approximates them.
 | The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |
 | Patrol identification of barrage targets (12.2x) | the firer names any target in the hex |
 | Divisions in the size table (15.53) | the largest unit is a brigade at most, so no division shift arises |
+
+# Systems not simulated (Mission 2)
+
+The game state plays Graziani's Offensive with the Land Game's movement
+and combat only. Each of these is a later mission; the sequence of play
+passes through its phase with a `PhaseSkipped` event, so adding one changes
+only that phase.
+
+| System | What the engine does instead |
+|---|---|
+| Abstract supply and supply units (§32) | every unit is supplied with unlimited ammunition and fuel; supply units are placed, captured when left alone in an enemy ZOC (10.29), and otherwise inert; motorisation points are not tracked |
+| Breakdown (§21) | the breakdown segment of phase G is skipped |
+| Organisation (§20): attachment, detachment, replacements | phase C is skipped; the set-up's attachments are fixed for the game |
+| Engineering and construction (§24–26) | no minefields, fortifications, roads or airfields are built or demolished; the scenario starts with none (60.7) |
+| Repair (phase K) and vehicle breakdown pools | skipped; destroyed armour leaves the map |
+| Patrols (phase L, §27) | skipped; barrage targets need no identification |
+| Rail (phase J, §31) | skipped; the railroad to Mersa Matruh carries nothing |
+| The Commonwealth fleet and the Axis convoy (phases E, II) | skipped; reinforcements arrive by the schedule at Cairo and Tripoli |
+| The Air Game (§33–47) | left out, as 60.9 allows |
+| The Logistics Game (§48–58) | left out, as 60.92 allows; victory's supply clause is R-110's route trace |
+| Limited intelligence (3.6x), dummy supply units as hidden information | the state holds everything; a per-player view waits for the server |

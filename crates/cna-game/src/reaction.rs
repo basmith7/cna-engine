@@ -5,7 +5,7 @@
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, Piece, PieceId, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
 use crate::zoc::Zoc;
 use cna_data::map::HexId;
@@ -64,6 +64,7 @@ impl GameState {
                     || p.contact
                     || p.engaged
                     || p.status == Some(Status::InTraining)
+                    || p.reserve == Some(Reserve::II)
                     || (assault && self.pins(data, pinner_sp, pinner_cpa, p))
                 {
                     continue;
@@ -288,6 +289,28 @@ mod tests {
             .apply(&data, Side::Cw, react(&["unit:cw:4-rha"], &["C3822"]))
             .unwrap_err();
         assert_eq!(err.case, "5.2");
+    }
+
+    #[test]
+    fn units_in_contact_or_in_reserve_ii_are_not_offered_a_reaction() {
+        let data = graziani();
+        // 7 Med is in contact (R-008) and 4 RHA sits in Reserve II
+        // (18.2x): neither may react, so no reaction is offered at all.
+        let mut state = tanks_near_halfaya_after(&data, |state| {
+            state.pieces.get_mut(&pid("unit:cw:7-med")).unwrap().contact = true;
+            state.pieces.get_mut(&pid("unit:cw:4-rha")).unwrap().reserve = Some(Reserve::II);
+        });
+        let events = state
+            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .unwrap();
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::ReactionOffered { .. })),
+            "{events:?}"
+        );
+        assert_eq!(state.pending, None);
+        assert_eq!(state.to_act(), Some(Side::Axis));
     }
 
     #[test]
