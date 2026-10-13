@@ -3,7 +3,7 @@
 //! keeps orders, not events.
 
 use crate::clock::Clock;
-use crate::combat::SealedStep;
+use crate::combat::{RetreatReason, SealedStep};
 use crate::order::{Assignment, Fire};
 use crate::piece::{Location, PieceId, Reserve};
 use crate::state::Weather;
@@ -140,6 +140,55 @@ pub enum Event {
         pieces: Vec<PieceId>,
         to: HexId,
     },
+    /// One anti-armour attack rolled (14.0): phasing fire at a hex, or
+    /// non-phasing fire at the armour assaulting `target`.
+    AntiArmour {
+        side: Side,
+        target: HexId,
+        points: u32,
+        shift: i32,
+        reading: u8,
+        damage: u32,
+    },
+    /// One close assault or probe resolved (15.x).
+    Assault {
+        target: HexId,
+        attackers: Vec<PieceId>,
+        probe: bool,
+        attacker_raw: u32,
+        defender_raw: u32,
+        basic: i32,
+        /// Column shifts applied: terrain, size, morale and the rest.
+        shifts: i32,
+        column: String,
+        attacker: AssaultRoll,
+        defender: AssaultRoll,
+    },
+    /// A side's losses were partly prisoners (15.89).
+    Prisoners {
+        side: Side,
+        points: u32,
+    },
+    /// Pieces that surrendered when assaulted (15.88, E-009).
+    Surrendered {
+        pieces: Vec<PieceId>,
+    },
+    /// Units locked to the enemy by an assault (15.81).
+    Engaged {
+        pieces: Vec<PieceId>,
+    },
+    /// A stack must retreat (15.82, 15.29, 10.36).
+    RetreatOrdered {
+        pieces: Vec<PieceId>,
+        hexes: u32,
+        reason: RetreatReason,
+    },
+    /// A forced retreat stood (or stopped) `short` hexes short, at 10 %
+    /// of its raw points per hex (15.82, R-012).
+    RetreatBoughtOut {
+        pieces: Vec<PieceId>,
+        short: u32,
+    },
     /// TOE points destroyed; `toe` is what is left.
     Losses {
         piece: PieceId,
@@ -167,6 +216,20 @@ pub enum Event {
     },
     /// The scenario's last OpStage is over.
     GameOver,
+}
+
+/// One side's reading of the Close Assault CRT (15.7x).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssaultRoll {
+    pub reading: u8,
+    pub pct: u8,
+    /// Raw points lost, before absorption.
+    pub raw_lost: u32,
+    /// TOE points removed.
+    pub toe_lost: u32,
+    pub engaged: bool,
+    pub retreat: u32,
+    pub captured: bool,
 }
 
 /// A rejected order: the case (or case group) it breaks and why.

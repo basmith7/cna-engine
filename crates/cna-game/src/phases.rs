@@ -115,7 +115,8 @@ impl GameState {
     }
 
     /// The bookkeeping between OpStages: unspent CP are lost (6.16), a
-    /// unit that spent none rests (6.24), and reserve ends (18.2x).
+    /// unit that spent none rests (6.24), reserve ends (18.2x), and
+    /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
@@ -126,6 +127,7 @@ impl GameState {
             p.reserve = None;
             p.released = None;
             p.landed = false;
+            p.engaged = false;
         }
     }
 

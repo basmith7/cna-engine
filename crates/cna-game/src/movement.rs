@@ -212,6 +212,19 @@ impl GameState {
         from: &HexId,
         path: &[HexId],
     ) -> Result<Plan, Illegal> {
+        self.plan_with(data, pieces, from, path, false)
+    }
+
+    /// `plan`, where `forced` lets a stack leave an enemy ZOC it entered
+    /// this segment: a forced retreat (15.82) is no voluntary move.
+    pub(crate) fn plan_with(
+        &self,
+        data: &Data,
+        pieces: &[PieceId],
+        from: &HexId,
+        path: &[HexId],
+        forced: bool,
+    ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
@@ -234,7 +247,7 @@ impl GameState {
                     .iter()
                     .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
                 let cancelled = self.friendly_combat_in(from, side, pieces);
-                if !tied && !cancelled {
+                if !tied && !cancelled && !forced {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(

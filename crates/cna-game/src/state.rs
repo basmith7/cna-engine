@@ -62,6 +62,9 @@ pub enum Pending {
         hexes: u32,
         from: Vec<HexId>,
         reason: RetreatReason,
+        /// The raw points the 10 % per hex short is taken of (15.82).
+        #[serde(default)]
+        raw: u32,
     },
 }
 
@@ -395,7 +398,8 @@ pub(crate) mod test_support {
                         assignments: vec![],
                     },
                 },
-                Some(Pending::RetreatBeforeAssault { .. }) => Order::Pass,
+                Some(Pending::RetreatBeforeAssault { .. })
+                | Some(Pending::ForcedRetreat { .. }) => Order::Pass,
                 None if state.clock.segment == Some(crate::clock::Segment::CloseAssault) => {
                     Order::Pass
                 }

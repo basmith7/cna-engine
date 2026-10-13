@@ -1,12 +1,19 @@
 //! Retreats: before assault (SPI 13.x) and forced (15.82, 10.36).
 
+use super::RetreatReason;
+use super::losses::Share;
+use super::strength::Kind;
+use crate::clock::Segment;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use crate::state::Pending;
+use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::close_assault::may_buy_out;
 
 impl GameState {
     /// `Order::RetreatBeforeAssault` (13.2x): ordinary voluntary movement
@@ -121,14 +128,190 @@ impl GameState {
         Ok(events)
     }
 
-    /// `Order::Retreat` or `Pass` while a forced retreat is pending.
+    /// Hexes from `a` to `b`, up to `limit`; `limit + 1` beyond it.
+    fn distance(data: &Data, a: &HexId, b: &HexId, limit: u32) -> u32 {
+        (0..=limit)
+            .find(|n| data.map.within(a, *n).contains(b))
+            .unwrap_or(limit + 1)
+    }
+
+    /// `Order::Retreat` or `Pass` while a forced retreat is pending
+    /// (15.82, 15.29, 10.36): the stack walks `path` as a move that may
+    /// leave an enemy ZOC, ending at least the ordered hexes from every
+    /// hex that forced it; each hex short costs 10 % of its raw points
+    /// where the ruleset lets it stand (R-012). A must-attack retreat
+    /// may not stop short; with no path the stack surrenders.
     pub(crate) fn forced_retreat(
         &mut self,
-        _data: &Data,
-        _player: Side,
-        _path: Option<&[HexId]>,
+        data: &Data,
+        player: Side,
+        path: Option<&[HexId]>,
     ) -> Result<Vec<Event>, Illegal> {
-        Err(Illegal::new("15.82", "forced retreats are not built yet"))
+        let Some(Pending::ForcedRetreat {
+            side,
+            pieces,
+            hexes,
+            from,
+            reason,
+            raw,
+        }) = self.pending.clone()
+        else {
+            return Err(Illegal::new("15.82", "no retreat is pending"));
+        };
+        if player != side {
+            return Err(Illegal::new(
+                "15.82",
+                format!("{side} retreats, not {player}"),
+            ));
+        }
+        let pieces: Vec<PieceId> = pieces
+            .into_iter()
+            .filter(|id| self.pieces[id].hex().is_some())
+            .collect();
+        let mut events = Vec::new();
+        let Some(start) = pieces.first().and_then(|id| self.pieces[id].hex().cloned()) else {
+            self.pending = None;
+            return Ok(events);
+        };
+        let phasing = self.phasing() == Some(side);
+        let (end, plan) = match path {
+            Some(path) => {
+                let plan = self.plan_with(data, &pieces, &start, path, true)?;
+                if let Some((before, _)) = &plan.interrupt {
+                    return Err(Illegal::new(
+                        "15.82",
+                        format!(
+                            "{before}: an undeclared enemy ZOC on a retreat path is not supported"
+                        ),
+                    ));
+                }
+                (
+                    plan.steps
+                        .last()
+                        .map(|(h, _)| h.clone())
+                        .unwrap_or(start.clone()),
+                    Some(plan),
+                )
+            }
+            None => (start.clone(), None),
+        };
+        let reached = from
+            .iter()
+            .map(|f| Self::distance(data, f, &end, hexes))
+            .min()
+            .unwrap_or(hexes);
+        let short = hexes.saturating_sub(reached);
+        if short > 0 {
+            match reason {
+                RetreatReason::MustAttack => {
+                    if path.is_some() {
+                        return Err(Illegal::new(
+                            "10.36",
+                            format!("a must-attack retreat goes the full {hexes} hexes"),
+                        ));
+                    }
+                }
+                _ => {
+                    let path_exists = data.map.neighbours(&start).iter().any(|n| {
+                        !self.pieces.values().any(|q| q.hex() == Some(n))
+                            && self.zoc_at(data, n, side) == Zoc::Clear
+                    });
+                    if !may_buy_out(&self.ruleset, path_exists) {
+                        return Err(Illegal::new(
+                            "15.82",
+                            format!("the stack must retreat the full {hexes} hexes (R-012)"),
+                        ));
+                    }
+                }
+            }
+        }
+        if let Some(plan) = plan {
+            let break_off = |p: &Piece| {
+                if p.engaged {
+                    Cp::whole(4)
+                } else if p.contact {
+                    Cp::whole(2)
+                } else {
+                    Cp::ZERO
+                }
+            };
+            if plan.break_off {
+                for id in &pieces {
+                    let cost = break_off(&self.pieces[id]);
+                    if cost > Cp::ZERO {
+                        events.push(Event::ContactBroken {
+                            piece: id.clone(),
+                            cost,
+                        });
+                        self.charge(id, cost, !phasing, &mut events);
+                    }
+                }
+            }
+            for id in &pieces {
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.contact = false;
+                p.engaged = false;
+            }
+            let mut at = start.clone();
+            for (to, cost) in plan.steps {
+                for id in &pieces {
+                    self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
+                }
+                events.push(Event::Moved {
+                    pieces: pieces.clone(),
+                    from: at,
+                    to: to.clone(),
+                    cost,
+                });
+                for id in &pieces {
+                    self.charge(id, cost, !phasing, &mut events);
+                }
+                at = to;
+            }
+            if at != start {
+                self.release_contact_around(data, &start, side);
+            }
+        }
+        self.pending = None;
+        if short > 0 {
+            if reason == RetreatReason::MustAttack {
+                let toe: Vec<(PieceId, u32)> = pieces
+                    .iter()
+                    .map(|id| (id.clone(), self.pieces[id].toe))
+                    .collect();
+                for (id, n) in toe {
+                    self.take_loss(&id, n, &mut events);
+                }
+                events.push(Event::Surrendered {
+                    pieces: pieces.clone(),
+                });
+            } else {
+                events.push(Event::RetreatBoughtOut {
+                    pieces: pieces.clone(),
+                    short,
+                });
+                let lost = (raw * 10 * short).div_ceil(100);
+                let paren_ok = !self.plain_in_hex(data, &start, Kind::Defence);
+                let mut shares: Vec<Share> = pieces
+                    .iter()
+                    .map(|id| Share {
+                        piece: id.clone(),
+                        points: self.pieces[id].toe,
+                    })
+                    .collect();
+                self.absorb(
+                    data,
+                    &mut shares,
+                    |p| p.per_point(Kind::Defence, paren_ok),
+                    lost,
+                    &mut events,
+                );
+            }
+        }
+        if reason == RetreatReason::MustAttack && !self.end_close_assault(data, &mut events) {
+            self.open_step(data, Segment::ReserveRelease, &mut events);
+        }
+        Ok(events)
     }
 }
 
