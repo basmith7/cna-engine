@@ -236,13 +236,15 @@ impl GameState {
             .iter()
             .map(|id| self.mobility(data, &self.pieces[id]))
             .collect();
-        let mut plan = Plan::default();
         // A stack in contact or engaged breaks off before it moves (8.6x).
         // Contact only exists in an enemy ZOC; an engaged unit need not
         // be in one, so this is the pieces' state, not the hex's.
-        plan.break_off = pieces
-            .iter()
-            .any(|id| self.pieces[id].contact || self.pieces[id].engaged);
+        let mut plan = Plan {
+            break_off: pieces
+                .iter()
+                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            ..Plan::default()
+        };
         // Where the stack stands: in an enemy ZOC it either breaks off
         // or is stopped (10.22), unless another friendly combat unit
         // there cancels the ZOC (10.26), as it did when the stack entered.
