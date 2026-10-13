@@ -5,13 +5,16 @@
   // clickable: a click picks the piece to place (spec, *Placements*).
   import Counter from "./Counter.svelte";
   import { BOX_NAMES, COUNTER, label, offMap } from "./counters";
+  import { tickable } from "./moves";
   import type { Piece, PieceId, Side, View } from "./types";
 
   let {
     view,
     picked = null,
     onpick,
-  }: { view: View; picked?: PieceId | null; onpick?: (id: PieceId) => void } = $props();
+    ticked = [],
+    ontick,
+  }: { view: View; picked?: PieceId | null; onpick?: (id: PieceId) => void; ticked?: PieceId[]; ontick?: (id: PieceId) => void } = $props();
 
   /** The side whose tray may be clicked: the one the engine is waiting on to set up. */
   const placing: Side | null = $derived(view.pending && "set-up" in view.pending ? view.pending["set-up"].side : null);
@@ -23,13 +26,30 @@
   };
 </script>
 
+<!-- A box's pieces: the side to act's are buttons that tick them for an off-map move (spec, *Off-map pieces*). -->
 {#snippet counters(pieces: Piece[], where: string)}
   <div class="counters" data-where={where} data-count={pieces.length}>
     {#each pieces as p (p.id)}
-      <svg class="mini" viewBox="0 0 {COUNTER} {COUNTER}" data-unit={p.id} role="img" aria-label={label(p).long}>
-        <title>{label(p).long}</title>
-        <Counter piece={p} />
-      </svg>
+      {#if tickable(p, view.to_act)}
+        <button
+          type="button"
+          class="pick"
+          class:picked={ticked.includes(p.id)}
+          data-unit={p.id}
+          aria-pressed={ticked.includes(p.id)}
+          title={label(p).long}
+          onclick={() => ontick?.(p.id)}
+        >
+          <svg class="mini" viewBox="0 0 {COUNTER} {COUNTER}" role="img" aria-label={label(p).long}>
+            <Counter piece={p} />
+          </svg>
+        </button>
+      {:else}
+        <svg class="mini" viewBox="0 0 {COUNTER} {COUNTER}" data-unit={p.id} role="img" aria-label={label(p).long}>
+          <title>{label(p).long}</title>
+          <Counter piece={p} />
+        </svg>
+      {/if}
     {/each}
   </div>
 {/snippet}
@@ -66,7 +86,13 @@
     <h3>In transit <span class="n">{off.transit.length}</span></h3>
     <ul class="transit">
       {#each off.transit as p (p.id)}
-        <li data-unit={p.id}>{label(p).short} · {transitLine(p)}</li>
+        <li data-unit={p.id}>
+          {#if tickable(p, view.to_act)}
+            <button type="button" class="transit-pick" class:picked={ticked.includes(p.id)} aria-pressed={ticked.includes(p.id)} onclick={() => ontick?.(p.id)}>{label(p).short} · {transitLine(p)}</button>
+          {:else}
+            {label(p).short} · {transitLine(p)}
+          {/if}
+        </li>
       {/each}
     </ul>
   {/if}
@@ -136,5 +162,17 @@
   .transit {
     margin: 0;
     padding-left: 1.2rem;
+  }
+  .transit-pick {
+    font: inherit;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    cursor: pointer;
+  }
+  .transit-pick.picked {
+    border-color: #e07b00;
+    background: #fff4d6;
   }
 </style>

@@ -13,6 +13,7 @@ use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
+use cna_game::reach::Purpose;
 use cna_game::state::GameState;
 use serde_json::{Value, json};
 
@@ -88,10 +89,32 @@ impl Game {
         Ok(json!(self.state.placements(data(), &id)))
     }
 
+    /// The hexes a stack of `side`'s can end a move of `purpose`
+    /// (`move` / `react`) in now, with the cheapest path and cost to
+    /// each (`GameState::reachable`): `{"ok": [Reach]}`, or
+    /// `{"illegal": {"case", "reason"}}` when the stack cannot move at
+    /// all, as `apply` would say. `pieces` is a JSON array of piece ids.
+    pub fn reachable(&self, side: &str, pieces: &str, purpose: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
+        let purpose: Purpose = serde_json::from_value(Value::String(purpose.to_owned()))
+            .with_context(|| format!("purpose {purpose:?}"))?;
+        Ok(match self.state.reachable(data(), side, &pieces, purpose) {
+            Ok(reaches) => json!({ "ok": reaches }),
+            Err(illegal) => {
+                json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
+            }
+        })
+    }
+
+    fn side(side: &str) -> Result<Side> {
+        serde_json::from_value(Value::String(side.to_owned()))
+            .with_context(|| format!("side {side:?}"))
+    }
+
     /// One order from `side`.
     pub fn apply(&mut self, side: &str, order: &str) -> Result<Value> {
-        let side: Side = serde_json::from_value(Value::String(side.to_owned()))
-            .with_context(|| format!("side {side:?}"))?;
+        let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
         Ok(match self.state.apply(data(), side, order) {
             Ok(events) => json!({ "ok": events }),
@@ -226,6 +249,79 @@ mod tests {
         assert!(game.apply("allies", r#""pass""#).is_err());
         assert!(game.apply("axis", r#"{"teleport":{}}"#).is_err());
         assert!(game.apply("axis", "not json").is_err());
+        assert!(
+            game.reachable("axis", r#"["unit:it:ixl-tank-bn"]"#, "stroll")
+                .is_err()
+        );
+        assert!(
+            game.reachable("axis", "unit:it:ixl-tank-bn", "move")
+                .is_err()
+        );
+    }
+
+    /// The golden game replayed to just before order `n`.
+    fn golden_before(n: usize) -> (Game, Log) {
+        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut prefix = log.clone();
+        prefix.orders.truncate(n);
+        let state = replay(data(), &prefix).unwrap();
+        (Game::load(&state.to_json().unwrap()).unwrap(), log)
+    }
+
+    #[test]
+    fn reachable_names_golden_order_61_s_hex_with_its_path_and_cost() {
+        let (game, log) = golden_before(61);
+        let Order::Move { pieces, .. } = &log.orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let r = game
+            .reachable("axis", &serde_json::to_string(pieces).unwrap(), "move")
+            .unwrap();
+        let reaches = r["ok"].as_array().unwrap_or_else(|| panic!("{r}"));
+        let c4021 = reaches
+            .iter()
+            .find(|x| x["hex"] == "C4021")
+            .unwrap_or_else(|| panic!("{reaches:?}"));
+        assert_eq!(
+            c4021,
+            &json!({
+                "hex": "C4021",
+                "cp": 1.0,
+                "path": ["C4021"],
+                "dp": 0,
+                "ends_in_zoc": false,
+                "may_be_interrupted": false
+            })
+        );
+        // Not the Commonwealth's turn; a supply unit cannot move.
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "5.2", "{r}");
+        let r = game
+            .reachable("axis", r#"["supply:axis:1"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "32.x", "{r}");
+    }
+
+    #[test]
+    fn reachable_for_a_reaction_names_golden_order_62_s_hex() {
+        let (game, _) = golden_before(62);
+        assert_eq!(game.view().unwrap()["to_act"], "cw");
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "react")
+            .unwrap();
+        let reaches = r["ok"].as_array().unwrap_or_else(|| panic!("{r}"));
+        assert!(
+            reaches
+                .iter()
+                .any(|x| x["hex"] == "C3923" && x["path"] == json!(["C3923"]))
+        );
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "8.5x", "{r}");
     }
 
     #[test]
@@ -252,38 +348,155 @@ mod tests {
         assert!(Game::load("{}").is_err());
     }
 
-    /// The golden game's set-up (orders 0–58 of `graziani-short.json`)
-    /// replayed, as the hash of its save.
-    fn set_up_done_sha256() -> String {
-        use sha2::{Digest, Sha256};
+    fn golden_log() -> Log {
         let path = cna_data::repo_root().join("tests/games/graziani-short.json");
-        let mut log: Log =
-            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-        log.orders.truncate(59);
-        let state = replay(data(), &log).unwrap();
-        assert_eq!(state.to_act(), Some(Side::Axis));
-        assert!(state.pending.is_none());
-        format!("{:x}", Sha256::digest(state.to_json().unwrap()))
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
-    fn set_up_done_fixture() -> std::path::PathBuf {
-        cna_data::repo_root().join("web/tests/fixtures/set-up-done.sha256")
+    /// The golden game replayed through its first `n` orders.
+    fn golden_prefix(n: usize) -> GameState {
+        let mut log = golden_log();
+        log.orders.truncate(n);
+        replay(data(), &log).unwrap()
     }
 
-    /// The Playwright set-up e2e ends with `save()` hashing to this
-    /// fixture (`web/tests/setup.spec.ts`); regenerate it with
-    /// `cargo test -p cna-web -- --ignored regenerate_set_up_done_fixture`
-    /// after a deliberate change to the rules or the golden game.
+    fn sha256(s: &str) -> String {
+        use sha2::{Digest, Sha256};
+        format!("{:x}", Sha256::digest(s))
+    }
+
+    fn fixtures_dir() -> std::path::PathBuf {
+        cna_data::repo_root().join("web/tests/fixtures")
+    }
+
+    /// The e2e fixtures (spec, *Testing*): states the Playwright specs
+    /// start from, each built from a golden prefix through the public
+    /// API and checked to be what its name says.
+    ///
+    /// - `set-up-done`: orders 0–58, GT1 phase A, the Axis to act.
+    /// - `reserve`: orders 0–59, phase F, the Axis to designate.
+    /// - `reserve-release`: the Libyans designated, the segment ended
+    ///   and the combat steps answered with nothing, so the release
+    ///   segment waits on the Axis.
+    /// - `off-map`: orders 0–60, the Axis movement segment, the Tripoli
+    ///   box full; a box stack's `move-off-map` is accepted.
+    /// - `declare-zoc`: orders 0–60 and then the cheapest flagged move of
+    ///   the 1st Libyan Division's stack that the engine stops for a ZOC
+    ///   declaration, so the Commonwealth is asked.
+    fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
+        use cna_game::reach::Purpose;
+        use cna_game::state::Pending;
+        let set_up_done = golden_prefix(59);
+        assert_eq!(set_up_done.to_act(), Some(Side::Axis));
+        assert!(set_up_done.pending.is_none());
+        assert_eq!(set_up_done.clock.phase, cna_game::clock::Phase::InitiativeDeclaration);
+
+        let reserve = golden_prefix(60);
+        assert_eq!(reserve.clock.phase, cna_game::clock::Phase::ReserveDesignation);
+        assert_eq!(reserve.to_act(), Some(Side::Axis));
+        let Order::Move { pieces: libyans, .. } = &golden_log().orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let mut reserve_release = reserve.clone();
+        reserve_release
+            .apply(data(), Side::Axis, Order::DesignateReserve { pieces: libyans.clone() })
+            .unwrap();
+        reserve_release.apply(data(), Side::Axis, Order::Pass).unwrap();
+        reserve_release.apply(data(), Side::Axis, Order::EndSegment).unwrap();
+        // The combat steps, answered with nothing (as the scripted games do).
+        while reserve_release.clock.segment != Some(cna_game::clock::Segment::ReserveRelease) {
+            use cna_game::combat::SealedStep;
+            let player = reserve_release.to_act().unwrap();
+            let order = match &reserve_release.pending {
+                Some(Pending::Sealed { step: SealedStep::GunPositions, .. }) => Order::GunPositions { forward: vec![] },
+                Some(Pending::Sealed { step: SealedStep::Barrage, .. }) => Order::Barrage { fires: vec![] },
+                Some(Pending::Sealed { step: SealedStep::AssignForces, .. }) => Order::AssignForces { assignments: vec![] },
+                _ => Order::Pass,
+            };
+            reserve_release.apply(data(), player, order).unwrap();
+        }
+        assert_eq!(reserve_release.to_act(), Some(Side::Axis));
+        assert!(reserve_release.pending.is_none());
+
+        let off_map = golden_prefix(61);
+        assert_eq!(off_map.clock.segment, Some(cna_game::clock::Segment::Movement));
+        let in_tripoli: Vec<PieceId> = off_map
+            .pieces
+            .values()
+            .filter(|p| p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli))
+            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .take(2)
+            .collect();
+        assert_eq!(in_tripoli.len(), 2);
+        let mut probe = off_map.clone();
+        probe
+            .apply(
+                data(),
+                Side::Axis,
+                Order::MoveOffMap { pieces: in_tripoli, to: cna_data::off_map::OffMapPlace::Tripolitania },
+            )
+            .expect("a Tripoli stack may leave for Tripolitania");
+
+        let Order::Move { pieces, .. } = &golden_log().orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let mut reaches = off_map
+            .reachable(data(), Side::Axis, pieces, Purpose::Move)
+            .unwrap();
+        reaches.sort_by_key(|r| (r.cp, r.path.len()));
+        let declare_zoc = reaches
+            .iter()
+            .filter(|r| r.may_be_interrupted)
+            .find_map(|r| {
+                let mut probe = off_map.clone();
+                probe
+                    .apply(data(), Side::Axis, Order::Move { pieces: pieces.clone(), path: r.path.clone(), assault: false })
+                    .ok()?;
+                matches!(probe.pending, Some(Pending::DeclareZoc { .. })).then_some(probe)
+            })
+            .expect("a flagged move of the Libyans is stopped for a declaration");
+        assert_eq!(declare_zoc.to_act(), Some(Side::Cw));
+
+        vec![
+            ("set-up-done", set_up_done),
+            ("reserve", reserve),
+            ("reserve-release", reserve_release),
+            ("off-map", off_map),
+            ("declare-zoc", declare_zoc),
+        ]
+    }
+
+    /// The Playwright specs start from `web/tests/fixtures/<name>.json`
+    /// and end at states pinned by hash; regenerate all of them with
+    /// `cargo test -p cna-web -- --ignored regenerate_e2e_fixtures` after
+    /// a deliberate change to the rules or the golden game.
     #[test]
-    fn the_set_up_done_fixture_is_current() {
-        let pinned = std::fs::read_to_string(set_up_done_fixture()).unwrap();
-        assert_eq!(pinned.trim(), set_up_done_sha256());
+    fn the_e2e_fixtures_are_current() {
+        for (name, state) in e2e_fixtures() {
+            let pinned = std::fs::read_to_string(fixtures_dir().join(format!("{name}.json")))
+                .unwrap_or_else(|e| panic!("{name}.json: {e}"));
+            assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
+        }
+        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+            let pinned = std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
+            assert_eq!(pinned.trim(), sha256(&golden_prefix(n).to_json().unwrap()), "{name}.sha256");
+        }
     }
 
     #[test]
     #[ignore]
-    fn regenerate_set_up_done_fixture() {
-        std::fs::write(set_up_done_fixture(), set_up_done_sha256() + "\n").unwrap();
+    fn regenerate_e2e_fixtures() {
+        for (name, state) in e2e_fixtures() {
+            std::fs::write(fixtures_dir().join(format!("{name}.json")), state.to_json().unwrap()).unwrap();
+        }
+        for (name, n) in [("set-up-done", 59), ("movement-done", 66)] {
+            std::fs::write(
+                fixtures_dir().join(format!("{name}.sha256")),
+                sha256(&golden_prefix(n).to_json().unwrap()) + "\n",
+            )
+            .unwrap();
+        }
     }
 
     #[test]

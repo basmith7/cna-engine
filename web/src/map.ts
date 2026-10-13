@@ -19,6 +19,8 @@ const BY_ID = new Map(HEXES.map((h) => [h.id, h]));
 const PLACE_AT = new Map(PLACES.map((p) => [p.hex, p]));
 
 export const HEX_IDS: HexId[] = HEXES.map((h) => h.id);
+/** The map end of the off-map road (8.8x): where `move-off-map` lands and leaves. */
+export const NOFILIA: HexId = PLACES.find((p) => p.id === "nofilia")!.hex;
 export const THEATRE_BOUNDS = bounds(HEX_IDS);
 /** The start view: sheets B–E, where Graziani is fought (spec, *Pan and zoom*). */
 export const START_BOUNDS = bounds(HEXES.filter((h) => "BCDE".includes(h.sheet)).map((h) => h.id));

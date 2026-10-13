@@ -1,8 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { expectDomMatchesView, shoot as shootInto, shotsDir } from "./helpers.ts";
+import { clickHex, expectDomMatchesView, here, shoot as shootInto, shotsDir } from "./helpers.ts";
 
 // Slice 3's proving screenshots.
 const shots = shotsDir("slice-3");
@@ -10,22 +9,12 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 type Logged = { player: "axis" | "cw"; order: { place: { piece: string; hex: string } } };
 
-const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 /** The golden game's 59 free placements: orders 0–58 of `tests/games/graziani-short.json`. */
 const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-short.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 59);
 /** `cna-play replay` of those 59 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
 const setUpDone = readFileSync(here("fixtures/set-up-done.sha256"), "utf8").trim();
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
-
-/** Clicks the hex as a player would: go to it, then click what is drawn there (the stack if one is, else the polygon). */
-async function clickHex(page: Page, hex: string) {
-  await page.getByLabel("Go to hex").fill(hex);
-  await page.getByLabel("Go to hex").press("Enter");
-  await expect(page.getByTestId("hex")).toHaveText(`hex ${hex}`);
-  const stack = page.locator(`[data-stack="${hex}"]`);
-  await ((await stack.count()) > 0 ? stack : page.locator(`polygon.hex[data-hex="${hex}"]`)).click();
-}
 
 /** Picks a tray piece; a click on the one already picked would unpick it. */
 async function pick(page: Page, side: string, piece: string) {

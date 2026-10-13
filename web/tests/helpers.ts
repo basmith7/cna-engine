@@ -1,9 +1,37 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { View } from "../src/types.ts";
 import "./cna.d.ts";
+
+/** A file beside the specs. */
+export const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
+
+/** Opens the app and, for test builds, replaces the game with a fixture state from `tests/fixtures/<name>.json`. */
+export async function openFixture(page: Page, name: string) {
+  await page.goto("/");
+  await page.locator("[data-stack]").first().waitFor();
+  await page.evaluate((json) => window.__cna.load(json), readFileSync(here(`fixtures/${name}.json`), "utf8"));
+  await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(0);
+}
+
+/** Clicks the hex as a player would: go to it, then click what is drawn there (the stack if one is, else the polygon). */
+export async function clickHex(page: Page, hex: string, modifiers: ("Shift" | "Control")[] = []) {
+  await page.getByLabel("Go to hex").fill(hex);
+  await page.getByLabel("Go to hex").press("Enter");
+  await expect(page.getByTestId("hex")).toHaveText(`hex ${hex}`);
+  const stack = page.locator(`[data-stack="${hex}"]`);
+  await ((await stack.count()) > 0 ? stack : page.locator(`polygon.hex[data-hex="${hex}"]`)).click({ modifiers });
+}
+
+/** Dismisses the hot-seat curtain, which must be down for `side`. */
+export async function throughCurtain(page: Page, side: "axis" | "cw") {
+  await expect(page.getByTestId("curtain")).toHaveAttribute("data-side", side);
+  await page.getByTestId("curtain").click();
+  await expect(page.getByTestId("curtain")).toHaveCount(0);
+}
 
 /** Where a slice's proving screenshots go (spec, Testing, Screenshots); CI overrides with CNA_SHOTS. */
 export function shotsDir(slice: string): string {

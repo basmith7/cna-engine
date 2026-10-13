@@ -213,6 +213,35 @@ impl GameState {
         Ok(events)
     }
 
+    /// Why an order of any other kind is refused while something is
+    /// pending: the case and reason `apply` gives for it.
+    pub(crate) fn pending_refusal(&self) -> Option<Illegal> {
+        Some(match self.pending.as_ref()? {
+            Pending::SetUp { side } => {
+                Illegal::new("59.2", format!("{side} still has pieces to place"))
+            }
+            Pending::DeclareZoc { side, hexes, .. } => Illegal::new(
+                "10.16",
+                format!("{side} must first say whether {hexes:?} exert a ZOC"),
+            ),
+            Pending::Reaction { side, .. } => {
+                Illegal::new("8.5x", format!("{side} is reacting: only React or Pass"))
+            }
+            Pending::Sealed { step, waiting } => Illegal::new(
+                "11.0",
+                format!("{} must first give its {step:?}", waiting[0]),
+            ),
+            Pending::RetreatBeforeAssault { side } => Illegal::new(
+                "13.1",
+                format!("{side} is retreating before assault: only RetreatBeforeAssault or Pass"),
+            ),
+            Pending::ForcedRetreat { side, hexes, .. } => Illegal::new(
+                "15.82",
+                format!("{side} must retreat {hexes} hexes: only Retreat or Pass"),
+            ),
+        })
+    }
+
     fn apply_checked(
         &mut self,
         data: &Data,
@@ -223,17 +252,11 @@ impl GameState {
             (Some(Pending::SetUp { .. }), Order::Place { piece, hex }) => {
                 self.place(data, player, piece, hex)
             }
-            (Some(Pending::SetUp { side }), _) => Err(Illegal::new(
-                "59.2",
-                format!("{side} still has pieces to place"),
-            )),
+            (Some(Pending::SetUp { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
                 self.declare_zoc(data, player, exerting)
             }
-            (Some(Pending::DeclareZoc { side, hexes, .. }), _) => Err(Illegal::new(
-                "10.16",
-                format!("{side} must first say whether {hexes:?} exert a ZOC"),
-            )),
+            (Some(Pending::DeclareZoc { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::DeclareZoc { .. }) => {
                 Err(Illegal::new("10.16", "no ZOC declaration is pending"))
             }
@@ -241,10 +264,7 @@ impl GameState {
                 self.react(data, player, pieces, path)
             }
             (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
-            (Some(Pending::Reaction { side, .. }), _) => Err(Illegal::new(
-                "8.5x",
-                format!("{side} is reacting: only React or Pass"),
-            )),
+            (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
             (None, Order::Place { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
@@ -252,10 +272,7 @@ impl GameState {
             (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {
                 self.sealed(data, player, order)
             }
-            (Some(Pending::Sealed { step, waiting }), _) => Err(Illegal::new(
-                "11.0",
-                format!("{} must first give its {step:?}", waiting[0]),
-            )),
+            (Some(Pending::Sealed { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (
                 None,
                 Order::GunPositions { .. } | Order::Barrage { .. } | Order::AssignForces { .. },
@@ -267,10 +284,9 @@ impl GameState {
             (Some(Pending::RetreatBeforeAssault { .. }), Order::Pass) => {
                 self.end_retreat_before_assault(data)
             }
-            (Some(Pending::RetreatBeforeAssault { side }), _) => Err(Illegal::new(
-                "13.1",
-                format!("{side} is retreating before assault: only RetreatBeforeAssault or Pass"),
-            )),
+            (Some(Pending::RetreatBeforeAssault { .. }), _) => {
+                Err(self.pending_refusal().expect("pending"))
+            }
             (None, Order::RetreatBeforeAssault { .. }) => {
                 Err(Illegal::new("13.1", "no retreat before assault is pending"))
             }
@@ -280,10 +296,9 @@ impl GameState {
             (Some(Pending::ForcedRetreat { .. }), Order::Pass) => {
                 self.forced_retreat(data, player, None)
             }
-            (Some(Pending::ForcedRetreat { side, hexes, .. }), _) => Err(Illegal::new(
-                "15.82",
-                format!("{side} must retreat {hexes} hexes: only Retreat or Pass"),
-            )),
+            (Some(Pending::ForcedRetreat { .. }), _) => {
+                Err(self.pending_refusal().expect("pending"))
+            }
             (None, Order::Retreat { .. }) => Err(Illegal::new("15.82", "no retreat is pending")),
             (None, Order::Assault { target }) => self.assault(data, player, target),
             (None, Order::DeclareInitiative { player_a }) => {

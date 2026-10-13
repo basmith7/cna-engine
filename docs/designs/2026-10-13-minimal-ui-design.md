@@ -177,8 +177,10 @@ at the start of GT7.
 
 The golden game never uses `declare-zoc`, `move-off-map`,
 `designate-reserve`, `release-reserve`, a `retreat-before-assault` other
-than `pass`, `retreat`, or `move` with `assault: true`; those panels need
-their own e2e fixtures.
+than `pass`, or `retreat`; those panels need their own e2e fixtures. It
+does use `move` with `assault: true` once (order 61, the Libyans into
+Sollum), which the slice 4 e2e covers. (Corrected after slice 4 review:
+an earlier draft listed the assault flag among the gaps.)
 
 **What the browser cannot use yet.**
 
@@ -365,7 +367,7 @@ needs only merged code: Mission 2 is complete.
   the per-order DOM check is sampled (every order of 0–87, then every
   OpStage boundary); it never skips an order.
 - **Coverage gaps in the golden game.** Off-map moves, reserves, ZOC
-  declarations, retreats and the assault flag are never in it; their e2e
+  declarations and retreats are never in it; their e2e
   rests on generated fixtures, and a forced retreat depends on a die roll,
   so its fixture is found by seed search and pinned.
 - **Malformed saves.** Until slice 6's `from_json` checks land, Load must
