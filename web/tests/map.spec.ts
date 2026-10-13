@@ -23,7 +23,8 @@ async function expectDomMatchesView(page: Page) {
   // only the mismatches come back (hundreds of locator round trips hit
   // Playwright's test timeout on a CI runner).
   const found = await page.evaluate(() => {
-    const view = window.__cna.view();
+    // Inside the page the record's value type is lost; the view is the engine's.
+    const view: View = window.__cna.view();
     const missing: string[] = [];
     let placed = 0;
     const pending = { axis: 0, cw: 0 };
