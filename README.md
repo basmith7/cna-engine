@@ -33,7 +33,10 @@ cargo run -p cna-play -- replay log.json -o replayed.json
 
 An illegal order is rejected with the SPI case it breaks and the state is
 left as it was; a log replays to the same state byte for byte on the same
-`vendor/cna` commit. `tests/games/` holds scripted games the tests replay.
+`vendor/cna` commit. `tests/games/` holds scripted games the tests replay;
+a scripted game pins that commit and the ruleset defaults, so a submodule
+bump or a changed default fails its replay test until the fixture is
+regenerated (`cargo test -p cna-game -- --ignored regenerate_setup_fixture`).
 
 ## Probes
 
