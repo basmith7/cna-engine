@@ -46,8 +46,8 @@ small scenario in cna, a headless game state for it here, then a minimal UI.
 | # | Mission | Needs from cna | State |
 |---|---|---|---|
 | 1 | Rules core and ruling probes (combat, cohesion, construction) | | done |
-| 2 | **Game state, headless, for one small scenario.** Load `vendor/cna/data/map/`; place the scenario's units as typed state; enforce the turn sequence (§5, §7) and movement (CP and CPA §6, terrain §8, stacking and ZOC §9–10, §18); combat from the existing rules core. Scripted orders in, illegal ones rejected, a replayable log out; the state serialises to JSON and back. No AI, no UI. **Brian reviews the spec before any building** (below) | one small scenario: set-up, OA, victory conditions (cna Mission 6, Part 1) | next |
-| 3 | **A minimal UI** on top of Mission 2's game state: the map, the units, legal moves shown from the rules core, orders entered by clicking. Local only | | queued |
+| 2 | **Game state, headless, for one small scenario.** Load `vendor/cna/data/map/`; place the scenario's units as typed state; enforce the turn sequence (§5, §7) and movement (CP and CPA §6, terrain §8, stacking and ZOC §9–10, §18); combat from the existing rules core. Scripted orders in, illegal ones rejected, a replayable log out; the state serialises to JSON and back. No AI, no UI. **Brian reviews the spec before any building** (below) | one small scenario: set-up, OA, victory conditions (cna Mission 6, Part 1) | done |
+| 3 | **A minimal UI** on top of Mission 2's game state: the map, the units, legal moves shown from the rules core, orders entered by clicking. Local only | | next |
 
 **Later, in no fixed order.** When Mission 3 is done, take the one that
 moves the game closest to **The goal**, add it as a row with its own spec,

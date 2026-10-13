@@ -82,6 +82,33 @@ fn show(state: &GameState) -> String {
         out.push_str(&format!(" ({p:?})"));
     }
     out.push('\n');
+    if let Some(report) = &state.over {
+        let level = |l: Option<cna_data::scenario::VictoryLevel>| {
+            l.map_or("no victory".to_owned(), |l| format!("{l} victory"))
+        };
+        out.push_str(&format!(
+            "victory: axis {}, cw {}\n",
+            level(report.axis),
+            level(report.cw)
+        ));
+        for c in &report.checked {
+            out.push_str(&format!(
+                "  {} {}: {} {} (held {})\n",
+                c.side,
+                c.level,
+                c.objective,
+                if c.met { "met" } else { "not met" },
+                c.held
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ));
+        }
+        for u in &report.unchecked {
+            out.push_str(&format!("  unchecked: {u}\n"));
+        }
+    }
     if let Some(i) = state.initiative {
         out.push_str(&format!("initiative: {i}"));
         if let Some(a) = state.player_a {
