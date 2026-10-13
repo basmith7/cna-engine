@@ -1,13 +1,20 @@
 <script lang="ts">
   // The pieces not on a hex (spec, *Off-map pieces*): each side's "to
   // place" tray, the six off-map boxes and the units in transit, each
-  // piece as a small counter. Read-only this slice; slice 3 makes the
-  // tray clickable and shows each piece's constraint prose.
+  // piece as a small counter. The tray of the side setting up is
+  // clickable: a click picks the piece to place (spec, *Placements*).
   import Counter from "./Counter.svelte";
   import { BOX_NAMES, COUNTER, label, offMap } from "./counters";
-  import type { Piece, View } from "./types";
+  import type { Piece, PieceId, Side, View } from "./types";
 
-  let { view }: { view: View } = $props();
+  let {
+    view,
+    picked = null,
+    onpick,
+  }: { view: View; picked?: PieceId | null; onpick?: (id: PieceId) => void } = $props();
+
+  /** The side whose tray may be clicked: the one the engine is waiting on to set up. */
+  const placing: Side | null = $derived(view.pending && "set-up" in view.pending ? view.pending["set-up"].side : null);
 
   const off = $derived(offMap(view));
   const transitLine = (p: Piece) => {
@@ -27,11 +34,32 @@
   </div>
 {/snippet}
 
+{#snippet tray(pieces: Piece[], side: Side)}
+  <div class="counters" data-where="tray-{side}" data-count={pieces.length}>
+    {#each pieces as p (p.id)}
+      <button
+        type="button"
+        class="pick"
+        class:picked={p.id === picked}
+        data-unit={p.id}
+        disabled={side !== placing}
+        aria-pressed={p.id === picked}
+        title={label(p).long}
+        onclick={() => onpick?.(p.id)}
+      >
+        <svg class="mini" viewBox="0 0 {COUNTER} {COUNTER}" role="img" aria-label={label(p).long}>
+          <Counter piece={p} />
+        </svg>
+      </button>
+    {/each}
+  </div>
+{/snippet}
+
 <section class="offmap" data-testid="off-map">
   {#each ["axis", "cw"] as const as side (side)}
     {#if off.tray[side].length > 0}
       <h3 data-testid="tray-{side}">To place · {side === "axis" ? "Axis" : "Commonwealth"} <span class="n">{off.tray[side].length}</span></h3>
-      {@render counters(off.tray[side], `tray-${side}`)}
+      {@render tray(off.tray[side], side)}
     {/if}
   {/each}
   {#if off.transit.length > 0}
@@ -83,6 +111,26 @@
     width: 44px;
     height: 44px;
     display: block;
+  }
+  .pick {
+    padding: 0;
+    margin: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    line-height: 0;
+  }
+  .pick:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .pick:not(:disabled):hover {
+    border-color: #e9c46a;
+  }
+  .pick.picked {
+    border-color: #ffb703;
+    background: #fff4d6;
   }
   .transit {
     margin: 0;
