@@ -19,25 +19,35 @@ async function shoot(page: Page, name: string) {
 
 /** Every placed piece has a counter at its hex and every pending piece is in its side's tray; nothing else carries a data-unit. */
 async function expectDomMatchesView(page: Page) {
-  // Playwright's return type for evaluate loses the record's value type; the view is the engine's.
-  const view: View = await page.evaluate(() => window.__cna.view());
-  let placed = 0;
-  const pending = { axis: 0, cw: 0 };
-  for (const p of Object.values(view.pieces)) {
-    const loc = p.location;
-    if (typeof loc !== "object") continue;
-    if ("hex" in loc) {
-      await expect(page.locator(`svg.map g[data-unit="${p.id}"][data-hex="${loc.hex}"]`)).toHaveCount(1);
-      placed++;
-    } else if ("pending" in loc) {
-      await expect(page.locator(`[data-where="tray-${p.side}"] [data-unit="${p.id}"]`)).toHaveCount(1);
-      pending[p.side]++;
-    } else if ("box" in loc) {
-      await expect(page.locator(`[data-where="box-${loc.box}"] [data-unit="${p.id}"]`)).toHaveCount(1);
+  // One trip into the page: the DOM is compared with the view there, and
+  // only the mismatches come back (hundreds of locator round trips hit
+  // Playwright's test timeout on a CI runner).
+  const found = await page.evaluate(() => {
+    const view = window.__cna.view();
+    const missing: string[] = [];
+    let placed = 0;
+    const pending = { axis: 0, cw: 0 };
+    const one = (sel: string) => {
+      if (document.querySelectorAll(sel).length !== 1) missing.push(sel);
+    };
+    for (const p of Object.values(view.pieces)) {
+      const loc = p.location;
+      if (typeof loc !== "object") continue;
+      if ("hex" in loc) {
+        one(`svg.map g[data-unit="${p.id}"][data-hex="${loc.hex}"]`);
+        placed++;
+      } else if ("pending" in loc) {
+        one(`[data-where="tray-${p.side}"] [data-unit="${p.id}"]`);
+        pending[p.side]++;
+      } else if ("box" in loc) {
+        one(`[data-where="box-${loc.box}"] [data-unit="${p.id}"]`);
+      }
     }
-  }
-  await expect(page.locator("svg.map g[data-unit]")).toHaveCount(placed);
-  return { placed, pending };
+    return { missing, placed, pending, onMap: document.querySelectorAll("svg.map g[data-unit]").length };
+  });
+  expect(found.missing).toEqual([]);
+  expect(found.onMap).toBe(found.placed);
+  return { placed: found.placed, pending: found.pending };
 }
 
 test("a new game shows the theatre, every placed piece at its hex and the set-up trays", async ({ page }) => {
@@ -92,7 +102,6 @@ test("zooms to Sidi Barrani, where a stack badge and the stack panel show the th
   const stack = page.locator("[data-stack=C4131]");
   await expect(stack).toHaveAttribute("data-count", "3");
   await expect(stack.locator(".badge text")).toHaveText("3");
-  await stack.click();
   const panel = page.getByTestId("stack-panel");
   await expect(panel).toContainText("Sidi Barrani");
   await expect(panel.locator("[data-unit]")).toHaveCount(3);
@@ -101,6 +110,38 @@ test("zooms to Sidi Barrani, where a stack badge and the stack panel show the th
   await expect(panel.locator('[data-unit="supply:cw:6"]')).toContainText("Supply unit");
   await expect(panel.locator('[data-unit="supply:cw:6"]')).not.toContainText("supply:cw:6");
 
+  // A click on another hex after the go-to moves the panel there.
+  await page.locator("polygon.hex[data-hex=C4130]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4130");
+  await expect(panel).toContainText("Nothing here.");
+  await page.locator("[data-stack=C4131]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4131");
+  await expect(panel.locator("[data-unit]")).toHaveCount(3);
+  await shoot(page, "sidi-barrani.png");
+});
+
+test("a mouse click alone selects a hex, and a stack; a drag pans without selecting", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("[data-stack]").first().waitFor();
+  await expect(page.getByTestId("stack-panel")).toContainText("Click a hex to see what is in it.");
+
+  // An empty hex at the fitted view, then a stack, by click only: no go-to.
+  await page.locator("polygon.hex[data-hex=D2010]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex D2010");
+  await expect(page.getByTestId("stack-panel")).toContainText("Nothing here.");
+  await page.locator("[data-stack=C4131]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4131");
+  await expect(page.locator("[data-stack=C4131]")).toHaveClass(/selected/);
+  await expect(page.getByTestId("stack-panel").locator("[data-unit]")).toHaveCount(3);
+
+  // A click after a wheel zoom still lands on the hex under the pointer.
+  const box = (await page.locator("polygon.hex[data-hex=C4131]").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < 10; i++) await page.mouse.wheel(0, -100);
+  await expect(page.getByTestId("map")).not.toHaveClass(/far/);
+  await page.locator("polygon.hex[data-hex=C4229]").click();
+  await expect(page.getByTestId("hex")).toHaveText("hex C4229");
+
   // Dragging pans without selecting.
   const before = await page.getByTestId("map").getAttribute("viewBox");
   await page.mouse.move(600, 500);
@@ -108,8 +149,7 @@ test("zooms to Sidi Barrani, where a stack badge and the stack panel show the th
   await page.mouse.move(500, 450, { steps: 5 });
   await page.mouse.up();
   expect(await page.getByTestId("map").getAttribute("viewBox")).not.toBe(before);
-  await expect(page.getByTestId("hex")).toHaveText("hex C4131");
-  await shoot(page, "sidi-barrani.png");
+  await expect(page.getByTestId("hex")).toHaveText("hex C4229");
 });
 
 test("stays usable at a phone width", async ({ page }) => {

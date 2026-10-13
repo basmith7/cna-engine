@@ -28,12 +28,15 @@
   const far = $derived(isFar(vb, port));
   const px = $derived(scale(vb, port));
 
-  // Drag to pan; a click that did not drag selects a hex.
-  let drag: { x: number; y: number; moved: boolean } | null = null;
+  // Drag to pan; a click that did not drag selects a hex. The hex is read
+  // at pointerdown: the pointer is captured by the svg for the drag, so
+  // pointerup's target is the svg, never the polygon.
+  let drag: { x: number; y: number; moved: boolean; hex: string | null } | null = null;
 
   function down(e: PointerEvent) {
     if (e.button !== 0) return;
-    drag = { x: e.clientX, y: e.clientY, moved: false };
+    const hex = (e.target as Element).closest("[data-hex]")?.getAttribute("data-hex") ?? null;
+    drag = { x: e.clientX, y: e.clientY, moved: false, hex };
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
@@ -46,13 +49,11 @@
     drag.x = e.clientX;
     drag.y = e.clientY;
   }
-  function up(e: PointerEvent) {
+  function up() {
     if (!drag) return;
-    const wasDrag = drag.moved;
+    const { moved, hex } = drag;
     drag = null;
-    if (wasDrag) return;
-    const hex = (e.target as Element).closest("[data-hex]")?.getAttribute("data-hex");
-    if (hex) onhex?.(hex);
+    if (!moved && hex) onhex?.(hex);
   }
 
   function wheel(e: WheelEvent) {
