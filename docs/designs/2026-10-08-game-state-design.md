@@ -2,9 +2,10 @@
 
 **Date:** 2026-10-08
 **Mission:** 2 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** proposed, waiting for Brian's review (PR labelled `needs-brian`).
-Nothing in this mission is built until **Feedback** in
-`docs/autopilot/PROGRESS.md` approves it.
+**Status:** built. Brian approved the spec on 2026-10-12 (PR #5); the six
+slices merged as PRs #6, #8, #9, #11, #12 and #15 (2026-10-12/13), with
+their deviations in each PR's body and the journal. Mission 3 (a browser
+UI) builds on `cna-game`'s state, orders and the victory report.
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with

@@ -19,9 +19,17 @@ cargo run -p cna-probe -- run
 
 ## Playing headless
 
-`cna-game` is the game state for one scenario (Mission 2, in progress:
-set-up, the sequence of play, initiative and weather so far). `cna-play`
-drives it from files:
+`cna-game` is the game state for one scenario, **Graziani's Offensive**
+(SPI 60.22, Land Game only), played from `vendor/cna`'s data: set-up with
+free placements, the sequence of play (§5, §7) with initiative and weather,
+movement with CP, terrain, roads, stacking, zones of control, reaction and
+reserves (§6, §8–10, §18), the six combat steps (§11–15) on the rules core,
+and victory at the end of Game-Turn 6 (60.8, with R-110's route trace for
+the supply clause). Every order is validated before anything changes; an
+illegal one is rejected with the SPI case it breaks. When the game is over
+the state carries the victory report: each side's level and every
+objective checked. Phases and systems the engine passes through are in
+`NOT_SIMULATED.md`. `cna-play` drives it from files:
 
 ```bash
 cargo run -p cna-play -- new grazianis-offensive --seed 7 -o state.json
@@ -31,12 +39,17 @@ cargo run -p cna-play -- log state.json -o log.json
 cargo run -p cna-play -- replay log.json -o replayed.json
 ```
 
-An illegal order is rejected with the SPI case it breaks and the state is
-left as it was; a log replays to the same state byte for byte on the same
-`vendor/cna` commit. `tests/games/` holds scripted games the tests replay;
-a scripted game pins that commit and the ruleset defaults, so a submodule
-bump or a changed default fails its replay test until the fixture is
-regenerated (`cargo test -p cna-game -- --ignored regenerate_setup_fixture`).
+A log is the scenario, the ruleset, the seed, the `vendor/cna` commit and
+the accepted orders; it replays to the same state byte for byte on the same
+commit. `tests/games/` holds scripted games the tests replay:
+`setup.json` (set-up and one OpStage passed through) and
+`graziani-short.json` (set-up, two OpStages of moves, a reaction, barrages
+and a close assault, then passes to the end; its final state's SHA-256 and
+victory report are pinned). A scripted game pins the commit and the
+ruleset defaults, so a submodule bump or a changed default fails its
+replay test until the fixture is regenerated (`cargo test -p cna-game --
+--ignored regenerate_setup_fixture` and `... regenerate_graziani_short_fixture`,
+then pin the hash the latter prints).
 
 ## Probes
 
