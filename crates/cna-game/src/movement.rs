@@ -31,6 +31,27 @@ pub(crate) struct Plan {
     pub(crate) ends_in_zoc: bool,
 }
 
+/// A stack as a plan prices it: who it is, how each piece moves, and
+/// whether it breaks off first.
+#[derive(Debug)]
+pub(crate) struct Mover {
+    pub(crate) side: Side,
+    /// A combat unit is in it, so it may enter an enemy ZOC (10.29).
+    pub(crate) combat: bool,
+    pub(crate) break_off: bool,
+    mobilities: Vec<Mobility>,
+    pub(crate) pieces: Vec<PieceId>,
+}
+
+/// Where a stack starts from, as far as ZOC goes.
+#[derive(Debug)]
+pub(crate) enum Start {
+    /// Standing in an enemy ZOC (true) or clear of one.
+    In(bool),
+    /// Next to these enemy hexes that have not declared (10.16).
+    Undeclared(Vec<HexId>),
+}
+
 impl GameState {
     /// The weather over a hex, for movement (29.4x, 29.5x).
     pub(crate) fn weather_at(&self, hex: &HexId) -> StepWeather {
@@ -228,99 +249,31 @@ impl GameState {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
-        let side = self.pieces[&pieces[0]].side;
-        let combat = pieces
-            .iter()
-            .any(|id| self.pieces[id].kind == PieceKind::Combat);
-        let mobilities: Vec<Mobility> = pieces
-            .iter()
-            .map(|id| self.mobility(data, &self.pieces[id]))
-            .collect();
-        // A stack in contact or engaged breaks off before it moves (8.6x).
-        // Contact only exists in an enemy ZOC; an engaged unit need not
-        // be in one, so this is the pieces' state, not the hex's.
+        let mover = self.mover(data, pieces);
         let mut plan = Plan {
-            break_off: pieces
-                .iter()
-                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            break_off: mover.break_off,
             ..Plan::default()
         };
-        // Where the stack stands: in an enemy ZOC it either breaks off
-        // or is stopped (10.22), unless another friendly combat unit
-        // there cancels the ZOC (10.26), as it did when the stack entered.
-        let mut at_in_zoc = match self.zoc_at(data, from, side) {
-            Zoc::Exerts => {
-                let cancelled = self.friendly_combat_in(from, side, pieces);
-                if !plan.break_off && !cancelled && !forced {
-                    return Err(Illegal::new(
-                        "10.2x",
-                        format!(
-                            "{} entered an enemy ZOC at {from} this segment and stays until a later one",
-                            pieces[0]
-                        ),
-                    ));
-                }
-                !cancelled
-            }
-            Zoc::Clear => false,
-            Zoc::Undeclared(hexes) => {
+        let mut at_in_zoc = match self.start(data, &mover, from, forced)? {
+            Start::In(in_zoc) => in_zoc,
+            Start::Undeclared(hexes) => {
                 // The first step is checked before the move is parked on
                 // the declaration: an order that could never be taken is
                 // refused, not logged (8.1x).
-                self.entry(data, side, from, &path[0])?;
+                self.entry(data, mover.side, from, &path[0])?;
                 plan.interrupt = Some((path[0].clone(), hexes));
                 return Ok(plan);
             }
         };
         let mut at = from.clone();
         for to in path {
-            let hex = self.entry(data, side, &at, to)?;
-            let hexside = data.map.hexside(&at, to);
-            let step = Step {
-                from: data.map.hex(&at).expect("on the map"),
-                to: hex,
-                hexside,
-                climbs: hexside.is_some_and(|hs| hs.climbs(&at, to)),
-                weather: self.weather_at(to),
-            };
-            let mut cost = Cp::ZERO;
-            for (id, m) in pieces.iter().zip(&mobilities) {
-                match step_cost(&data.terrain, *m, &step) {
-                    Ok(c) => cost = cost.max(c),
-                    Err(p) => {
-                        return Err(Illegal::new(
-                            p.case,
-                            format!("{id} may not enter {to} from {at}: {}", p.reason),
-                        ));
-                    }
-                }
-            }
-            let cancelled = self.friendly_combat_in(to, side, pieces);
-            let zoc = if cancelled {
-                Zoc::Clear
-            } else {
-                self.zoc_at(data, to, side)
-            };
+            let (cost, zoc) = self.step_into(data, &mover, &at, to, at_in_zoc)?;
             match zoc {
                 Zoc::Undeclared(hexes) => {
                     plan.interrupt = Some((to.clone(), hexes));
                     return Ok(plan);
                 }
                 Zoc::Exerts => {
-                    if at_in_zoc {
-                        return Err(Illegal::new(
-                            "10.2x",
-                            format!("{at} and {to} are both enemy-controlled: no ZOC-to-ZOC move"),
-                        ));
-                    }
-                    if !combat {
-                        return Err(Illegal::new(
-                            "10.29",
-                            format!(
-                                "{to} is an unoccupied enemy-controlled hex: no non-combat unit enters one"
-                            ),
-                        ));
-                    }
                     plan.steps.push((to.clone(), Cp::ZERO));
                     plan.ends_in_zoc = true;
                     if path.last() != Some(to) {
@@ -338,6 +291,118 @@ impl GameState {
             at = to.clone();
         }
         Ok(plan)
+    }
+
+    /// The fixed facts about a stack a plan prices.
+    pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId]) -> Mover {
+        Mover {
+            side: self.pieces[&pieces[0]].side,
+            combat: pieces
+                .iter()
+                .any(|id| self.pieces[id].kind == PieceKind::Combat),
+            // A stack in contact or engaged breaks off before it moves
+            // (8.6x). Contact only exists in an enemy ZOC; an engaged
+            // unit need not be in one, so this is the pieces' state, not
+            // the hex's.
+            break_off: pieces
+                .iter()
+                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            mobilities: pieces
+                .iter()
+                .map(|id| self.mobility(data, &self.pieces[id]))
+                .collect(),
+            pieces: pieces.to_vec(),
+        }
+    }
+
+    /// Where the stack stands: in an enemy ZOC it either breaks off or
+    /// is stopped (10.22), unless another friendly combat unit there
+    /// cancels the ZOC (10.26), as it did when the stack entered; next
+    /// to enemy units that have not said whether they exert one, the
+    /// move waits (10.16).
+    pub(crate) fn start(
+        &self,
+        data: &Data,
+        mover: &Mover,
+        from: &HexId,
+        forced: bool,
+    ) -> Result<Start, Illegal> {
+        Ok(match self.zoc_at(data, from, mover.side) {
+            Zoc::Exerts => {
+                let cancelled = self.friendly_combat_in(from, mover.side, &mover.pieces);
+                if !mover.break_off && !cancelled && !forced {
+                    return Err(Illegal::new(
+                        "10.2x",
+                        format!(
+                            "{} entered an enemy ZOC at {from} this segment and stays until a later one",
+                            mover.pieces[0]
+                        ),
+                    ));
+                }
+                Start::In(!cancelled)
+            }
+            Zoc::Clear => Start::In(false),
+            Zoc::Undeclared(hexes) => Start::Undeclared(hexes),
+        })
+    }
+
+    /// One step of the stack from `at` into `to`: what it costs (the
+    /// dearest piece's price, R-004) and the enemy ZOC it finds there,
+    /// with the refusals of 8.1x, the chart, and 10.2x: never straight
+    /// from one ZOC into another, and a non-combat stack never into one
+    /// unoccupied (10.29). Entering a ZOC is free (10.2x): the cost is
+    /// returned for the caller to drop.
+    pub(crate) fn step_into(
+        &self,
+        data: &Data,
+        mover: &Mover,
+        at: &HexId,
+        to: &HexId,
+        at_in_zoc: bool,
+    ) -> Result<(Cp, Zoc), Illegal> {
+        let hex = self.entry(data, mover.side, at, to)?;
+        let hexside = data.map.hexside(at, to);
+        let step = Step {
+            from: data.map.hex(at).expect("on the map"),
+            to: hex,
+            hexside,
+            climbs: hexside.is_some_and(|hs| hs.climbs(at, to)),
+            weather: self.weather_at(to),
+        };
+        let mut cost = Cp::ZERO;
+        for (id, m) in mover.pieces.iter().zip(&mover.mobilities) {
+            match step_cost(&data.terrain, *m, &step) {
+                Ok(c) => cost = cost.max(c),
+                Err(p) => {
+                    return Err(Illegal::new(
+                        p.case,
+                        format!("{id} may not enter {to} from {at}: {}", p.reason),
+                    ));
+                }
+            }
+        }
+        let zoc = if self.friendly_combat_in(to, mover.side, &mover.pieces) {
+            Zoc::Clear
+        } else {
+            self.zoc_at(data, to, mover.side)
+        };
+        if zoc == Zoc::Exerts {
+            if at_in_zoc {
+                return Err(Illegal::new(
+                    "10.2x",
+                    format!("{at} and {to} are both enemy-controlled: no ZOC-to-ZOC move"),
+                ));
+            }
+            if !mover.combat {
+                return Err(Illegal::new(
+                    "10.29",
+                    format!(
+                        "{to} is an unoccupied enemy-controlled hex: no non-combat unit enters one"
+                    ),
+                ));
+            }
+        }
+        Ok((cost, zoc))
     }
 
     /// Whether a unit of `side` may step from `at` into `to` at all
@@ -405,16 +470,14 @@ impl GameState {
         }
     }
 
-    /// `Order::Move`: the stack walks `path` in the phasing player's
-    /// movement segment.
-    pub(crate) fn move_pieces(
-        &mut self,
-        data: &Data,
+    /// What a voluntary move needs before any path is looked at: a
+    /// movement segment, and a stack of the player's that may move now;
+    /// where it stands and whether it is a Reserve I shift (18.2x).
+    pub(crate) fn stack_to_move(
+        &self,
         player: Side,
         pieces: &[PieceId],
-        path: &[HexId],
-        assault: bool,
-    ) -> Result<Vec<Event>, Illegal> {
+    ) -> Result<(HexId, bool), Illegal> {
         if self.clock.phase != Phase::MovementCombat
             || self.clock.segment != Some(Segment::Movement)
         {
@@ -431,6 +494,31 @@ impl GameState {
             .all(|id| self.pieces.get(id).is_some_and(|p| p.reserve.is_some()));
         let from = self.moving_stack(player, pieces, !shift)?;
         let shift = self.reserve_shift(pieces)?;
+        Ok((from, shift))
+    }
+
+    /// What breaking off costs a piece (8.6x).
+    pub(crate) fn break_off_cost(p: &Piece) -> Cp {
+        if p.engaged {
+            Cp::whole(4)
+        } else if p.contact {
+            Cp::whole(2)
+        } else {
+            Cp::ZERO
+        }
+    }
+
+    /// `Order::Move`: the stack walks `path` in the phasing player's
+    /// movement segment.
+    pub(crate) fn move_pieces(
+        &mut self,
+        data: &Data,
+        player: Side,
+        pieces: &[PieceId],
+        path: &[HexId],
+        assault: bool,
+    ) -> Result<Vec<Event>, Illegal> {
+        let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
         if shift {
             // A Reserve I unit shifts one hex a segment, free, never into
@@ -466,15 +554,7 @@ impl GameState {
             step.1 = Cp::ZERO;
         }
         let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
-        let break_off = |p: &Piece| {
-            if p.engaged {
-                Cp::whole(4)
-            } else if p.contact {
-                Cp::whole(2)
-            } else {
-                Cp::ZERO
-            }
-        };
+        let break_off = Self::break_off_cost;
         if plan.break_off && !plan.steps.is_empty() {
             total += pieces
                 .iter()

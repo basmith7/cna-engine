@@ -13,6 +13,7 @@ use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
+use cna_game::reach::Purpose;
 use cna_game::state::GameState;
 use serde_json::{Value, json};
 
@@ -88,10 +89,32 @@ impl Game {
         Ok(json!(self.state.placements(data(), &id)))
     }
 
+    /// The hexes a stack of `side`'s can end a move of `purpose`
+    /// (`move` / `react`) in now, with the cheapest path and cost to
+    /// each (`GameState::reachable`): `{"ok": [Reach]}`, or
+    /// `{"illegal": {"case", "reason"}}` when the stack cannot move at
+    /// all, as `apply` would say. `pieces` is a JSON array of piece ids.
+    pub fn reachable(&self, side: &str, pieces: &str, purpose: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
+        let purpose: Purpose = serde_json::from_value(Value::String(purpose.to_owned()))
+            .with_context(|| format!("purpose {purpose:?}"))?;
+        Ok(match self.state.reachable(data(), side, &pieces, purpose) {
+            Ok(reaches) => json!({ "ok": reaches }),
+            Err(illegal) => {
+                json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
+            }
+        })
+    }
+
+    fn side(side: &str) -> Result<Side> {
+        serde_json::from_value(Value::String(side.to_owned()))
+            .with_context(|| format!("side {side:?}"))
+    }
+
     /// One order from `side`.
     pub fn apply(&mut self, side: &str, order: &str) -> Result<Value> {
-        let side: Side = serde_json::from_value(Value::String(side.to_owned()))
-            .with_context(|| format!("side {side:?}"))?;
+        let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
         Ok(match self.state.apply(data(), side, order) {
             Ok(events) => json!({ "ok": events }),
@@ -226,6 +249,79 @@ mod tests {
         assert!(game.apply("allies", r#""pass""#).is_err());
         assert!(game.apply("axis", r#"{"teleport":{}}"#).is_err());
         assert!(game.apply("axis", "not json").is_err());
+        assert!(
+            game.reachable("axis", r#"["unit:it:ixl-tank-bn"]"#, "stroll")
+                .is_err()
+        );
+        assert!(
+            game.reachable("axis", "unit:it:ixl-tank-bn", "move")
+                .is_err()
+        );
+    }
+
+    /// The golden game replayed to just before order `n`.
+    fn golden_before(n: usize) -> (Game, Log) {
+        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut prefix = log.clone();
+        prefix.orders.truncate(n);
+        let state = replay(data(), &prefix).unwrap();
+        (Game::load(&state.to_json().unwrap()).unwrap(), log)
+    }
+
+    #[test]
+    fn reachable_names_golden_order_61_s_hex_with_its_path_and_cost() {
+        let (game, log) = golden_before(61);
+        let Order::Move { pieces, .. } = &log.orders[61].order else {
+            panic!("order 61 is a move");
+        };
+        let r = game
+            .reachable("axis", &serde_json::to_string(pieces).unwrap(), "move")
+            .unwrap();
+        let reaches = r["ok"].as_array().unwrap_or_else(|| panic!("{r}"));
+        let c4021 = reaches
+            .iter()
+            .find(|x| x["hex"] == "C4021")
+            .unwrap_or_else(|| panic!("{reaches:?}"));
+        assert_eq!(
+            c4021,
+            &json!({
+                "hex": "C4021",
+                "cp": 1.0,
+                "path": ["C4021"],
+                "dp": 0,
+                "ends_in_zoc": false,
+                "may_be_interrupted": false
+            })
+        );
+        // Not the Commonwealth's turn; a supply unit cannot move.
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "5.2", "{r}");
+        let r = game
+            .reachable("axis", r#"["supply:axis:1"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "32.x", "{r}");
+    }
+
+    #[test]
+    fn reachable_for_a_reaction_names_golden_order_62_s_hex() {
+        let (game, _) = golden_before(62);
+        assert_eq!(game.view().unwrap()["to_act"], "cw");
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "react")
+            .unwrap();
+        let reaches = r["ok"].as_array().unwrap_or_else(|| panic!("{r}"));
+        assert!(
+            reaches
+                .iter()
+                .any(|x| x["hex"] == "C3923" && x["path"] == json!(["C3923"]))
+        );
+        let r = game
+            .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
+            .unwrap();
+        assert_eq!(r["illegal"]["case"], "8.5x", "{r}");
     }
 
     #[test]
@@ -257,8 +353,7 @@ mod tests {
     fn set_up_done_sha256() -> String {
         use sha2::{Digest, Sha256};
         let path = cna_data::repo_root().join("tests/games/graziani-short.json");
-        let mut log: Log =
-            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
         log.orders.truncate(59);
         let state = replay(data(), &log).unwrap();
         assert_eq!(state.to_act(), Some(Side::Axis));

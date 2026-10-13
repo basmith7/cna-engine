@@ -49,6 +49,20 @@ impl Game {
         Ok(serde_json::to_string(&v)?)
     }
 
+    /// The hexes a stack of `side`'s (`pieces_json`, a JSON array of
+    /// piece ids) can end a `move` or `react` in, as
+    /// `{"ok": [Reach]}` or `{"illegal": {...}}` JSON (see
+    /// `api::Game::reachable`). Throws only on malformed input.
+    pub fn reachable(
+        &self,
+        side: &str,
+        pieces_json: &str,
+        purpose: &str,
+    ) -> Result<String, JsError> {
+        let v = self.0.reachable(side, pieces_json, purpose).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
     /// One order from `side` (`axis` / `cw`) as `Order` JSON; the answer
     /// is `{"ok": [...]}` or `{"illegal": {...}}` JSON. Throws only on
     /// malformed input.

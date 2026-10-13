@@ -67,3 +67,17 @@ fn save_and_load_round_trip() {
     assert_eq!(loaded.view().unwrap(), game.view().unwrap());
     assert!(Game::load("{}").is_err());
 }
+
+#[wasm_bindgen_test]
+fn reachable_answers_like_apply() {
+    let game = Game::new_game(7).unwrap();
+    // Set-up is pending: no move yet, with the case `apply` would give.
+    let r = parse(
+        &game
+            .reachable("axis", r#"["unit:it:ixl-tank-bn"]"#, "move")
+            .unwrap(),
+    );
+    assert_eq!(r["illegal"]["case"], "59.2");
+    assert!(game.reachable("axis", "not json", "move").is_err());
+    assert!(game.reachable("axis", "[]", "stroll").is_err());
+}
