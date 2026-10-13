@@ -197,6 +197,12 @@ In flight: slice 1 (supply state) on `autopilot/m5-slice-1-supply-state`.
 Next: merge #29 once gates pass; merge #28 once its re-run is green; continue slice 1 from its plan. If **Feedback** approves #25, finish the slice in hand and switch to Mission 4.
 Blocked: Mission 4 on Brian's review of PR #25.
 
+## 2026-10-13 14:35 MST — autopilot/m5-slice-1-supply-state
+Done: spec #29 and #28 merged. Slice 1, PR #31: loads (e000001), motorisation points (bb3f138), supply stacking (c7869ef), the `abstract_supply` module and view redaction (7c7248a), browser stays module-off (8cea02f), 32.8x AA thinning (e413911). Gates pass locally. PR #30 fixes the flaky zoom budget (368a941). Slice 2 is PR #32: rates (867ad5d) and the draw range (a650fb8).
+In flight: slice 2 Task 3 (fuel) on `autopilot/m5-slice-2-spending`.
+Next: merge #30, #31 once CI is green, then #32's base becomes main; continue slice 2 at the first unchecked task in its plan.
+Blocked: Mission 4 on Brian's review of PR #25.
+
 ## 2026-10-13 14:45 MST — autopilot/m5-slice-2-spending
 Done: slice 2 Tasks 1–5 on PR #32 (draft, stacked on #31): rates (867ad5d), draw range (a650fb8), `Role::Assault` (a86583e), fuel (672688e), ammunition (a3e0cb0), brigade counters pay per three battalions (d31bdbe), NOT_SIMULATED (58a4a32). Gates pass locally. The module-on golden drops 4 RHA's return move and 7 Med's GT1 barrage (no supply in range).
 In flight: Task 6 (UI) not started.
