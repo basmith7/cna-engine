@@ -10,7 +10,7 @@ pub mod cp;
 mod losses;
 mod plots;
 mod retreat;
-mod segment;
+pub(crate) mod segment;
 pub mod strength;
 pub mod terrain;
 

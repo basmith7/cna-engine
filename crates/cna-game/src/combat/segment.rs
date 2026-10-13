@@ -11,7 +11,7 @@ use crate::combat::{CombatSegment, SealedStep};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::order::Order;
-use crate::piece::{Piece, PieceKind};
+use crate::piece::{Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
@@ -152,6 +152,22 @@ impl GameState {
         self.open_step(data, next, events);
     }
 
+    /// A unit released from Reserve II earns 1 DP for any voluntary
+    /// barrage, anti-armour fire or close assault (18.2x).
+    fn reserve_ii_dp(&mut self, ids: &[PieceId], events: &mut Vec<Event>) {
+        for id in ids {
+            let p = self.pieces.get_mut(id).expect("assigned");
+            if p.released == Some(Reserve::II) {
+                p.cohesion.earn_dp(1);
+                events.push(Event::Disorganised {
+                    piece: id.clone(),
+                    dp: 1,
+                    level: p.cohesion.level,
+                });
+            }
+        }
+    }
+
     /// A sealed answer: checked against the state as it stands, kept,
     /// and acknowledged only as given; the step resolves and is revealed
     /// when the last answer is in.
@@ -217,25 +233,29 @@ impl GameState {
             }
             SealedStep::Barrage => {
                 for side in self.sealed_order() {
-                    events.push(Event::BarragePlotted {
-                        side,
-                        fires: self.combat.plots.get(&side).cloned().unwrap_or_default(),
-                    });
+                    let fires = self.combat.plots.get(&side).cloned().unwrap_or_default();
+                    let firers: Vec<PieceId> = fires.iter().map(|f| f.piece.clone()).collect();
+                    events.push(Event::BarragePlotted { side, fires });
+                    self.reserve_ii_dp(&firers, events);
                 }
                 self.resolve_barrages(data, events);
                 Segment::RetreatBeforeAssault
             }
             SealedStep::AssignForces => {
                 for side in self.sealed_order() {
-                    events.push(Event::ForcesAssigned {
-                        side,
-                        assignments: self
-                            .combat
-                            .assignments
-                            .get(&side)
-                            .cloned()
-                            .unwrap_or_default(),
-                    });
+                    let assignments = self
+                        .combat
+                        .assignments
+                        .get(&side)
+                        .cloned()
+                        .unwrap_or_default();
+                    let active: Vec<PieceId> = assignments
+                        .iter()
+                        .filter(|a| !a.anti_armour.is_empty() || !a.close_assault.is_empty())
+                        .map(|a| a.piece.clone())
+                        .collect();
+                    events.push(Event::ForcesAssigned { side, assignments });
+                    self.reserve_ii_dp(&active, events);
                 }
                 Segment::AntiArmour
             }
@@ -660,5 +680,68 @@ mod tests {
         // Passing with the assault unresolved is refused.
         let err = state.apply(&data, Side::Cw, Order::Pass).unwrap_err();
         assert_eq!(err.case, "15.2x");
+    }
+
+    #[test]
+    fn a_released_unit_assaults_once_and_reserve_ii_pays_a_dp() {
+        let data = graziani();
+        let mut state = at_sollum(&data);
+        // A second enemy hex next to both: XVII Libyan at C3921.
+        state
+            .pieces
+            .get_mut(&pid("unit:it:xvii-libyan-bn"))
+            .unwrap()
+            .location = crate::piece::Location::Hex(hex("C3921"));
+        state
+            .pieces
+            .get_mut(&pid("unit:cw:1-krrc"))
+            .unwrap()
+            .released = Some(Reserve::II);
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        &[],
+                        &[(Some("C4020"), 3), (Some("C3921"), 3)],
+                    )],
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "18.2x");
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign("unit:cw:1-krrc", &[], &[(Some("C4020"), 3)])],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        assert!(events.contains(&Event::Disorganised {
+            piece: pid("unit:cw:1-krrc"),
+            dp: 1,
+            level: -1,
+        }));
     }
 }

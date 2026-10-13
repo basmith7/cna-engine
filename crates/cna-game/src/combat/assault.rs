@@ -339,8 +339,12 @@ impl GameState {
             purpose: format!("morale of {lead}"),
             value: reading,
         });
+        // A `surrender` cell reads as the worst modifier: the automatic
+        // surrender of 15.88 is the −17 threshold above.
         let modifier = match lookup(&data.morale, level, reading) {
             MoraleLookup::Modifier(m) => m.parse::<i32>().unwrap_or(-4),
+            // The printed gap at −4, reading 56, is −2 (R-024).
+            MoraleLookup::Gap if level.clamp(-17, 8) == -4 && reading == 56 => -2,
             MoraleLookup::Gap | MoraleLookup::Overlap(_) => 0,
         };
         basic + modifier

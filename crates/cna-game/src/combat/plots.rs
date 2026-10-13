@@ -293,6 +293,24 @@ impl GameState {
                     self.check_assault_hexside(data, p, &from, h)?;
                 }
             }
+            // A unit released from reserve makes one assault at most
+            // (18.2x).
+            if let Some(released) = p.released {
+                let targets: BTreeSet<&HexId> = a
+                    .close_assault
+                    .iter()
+                    .filter_map(|al| al.target.as_ref())
+                    .collect();
+                if targets.len() > 1 {
+                    return Err(Illegal::new(
+                        "18.2x",
+                        format!(
+                            "{} was released from Reserve {}: one close assault at most",
+                            a.piece, released
+                        ),
+                    ));
+                }
+            }
             // Several hexes from one unit: each adjacent to the unit's
             // hex and to each other (15.21).
             let targets: Vec<&HexId> = a

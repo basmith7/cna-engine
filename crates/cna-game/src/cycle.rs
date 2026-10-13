@@ -468,4 +468,102 @@ mod tests {
         assert_eq!(err.case, "5.2");
         let _ = pid;
     }
+
+    /// Movement, every combat step with something in it, reserve
+    /// release, and the next movement segment with the slate clean.
+    #[test]
+    fn a_full_g_cycle_with_a_fight() {
+        use crate::combat::segment::test_support::at_sollum;
+        use crate::order::{Allocation, Assignment, Fire};
+        use cna_data::cp::Cp;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_sollum(&data);
+        assert_eq!(state.cycle, 1);
+        let rha = pid("unit:cw:4-rha");
+        let krrc = pid("unit:cw:1-krrc");
+        let c4020 = hex("C4020");
+        let orders = [
+            (
+                Side::Cw,
+                Order::GunPositions {
+                    forward: vec![rha.clone()],
+                },
+            ),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (
+                Side::Cw,
+                Order::Barrage {
+                    fires: vec![Fire {
+                        piece: rha.clone(),
+                        points: 6,
+                        target: pid("unit:it:viii-libyan-bn"),
+                    }],
+                },
+            ),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![Assignment {
+                        piece: krrc.clone(),
+                        anti_armour: vec![],
+                        close_assault: vec![Allocation {
+                            target: Some(c4020.clone()),
+                            points: 6,
+                        }],
+                    }],
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+            (
+                Side::Cw,
+                Order::Assault {
+                    target: c4020.clone(),
+                },
+            ),
+        ];
+        let mut all = Vec::new();
+        for (side, order) in orders {
+            all.extend(state.apply(&data, side, order).unwrap());
+        }
+        assert!(all.iter().any(|e| matches!(e, Event::Barrage { .. })));
+        assert!(all.iter().any(|e| matches!(e, Event::Assault { .. })));
+        assert!(state.combat.assaults.contains_key(&c4020));
+        assert_eq!(state.combat.barraged[&c4020], 5);
+        if matches!(
+            state.pending,
+            Some(crate::state::Pending::ForcedRetreat { .. })
+        ) {
+            state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        }
+        // The step ends; reserve release; the next movement segment.
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
+        assert_eq!(state.combat, crate::combat::CombatSegment::default());
+        let events = state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::Movement));
+        assert_eq!(state.cycle, 1);
+        // Both sides paid for the fight; the CP stand into the next cycle.
+        assert_eq!(state.pieces[&krrc].cp_spent, Cp::whole(5));
+        assert!(state.pieces[&pid("unit:it:ix-libyan-bn")].cp_spent >= Cp::whole(1));
+        // The Axis is asked about its ZOC again as the segment opens.
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::PhaseStarted { .. }))
+        );
+        assert!(matches!(
+            state.pending,
+            Some(crate::state::Pending::DeclareZoc {
+                side: Side::Axis,
+                ..
+            })
+        ));
+    }
 }
