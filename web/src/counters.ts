@@ -1,7 +1,7 @@
 // Counters are drawn from the view, never from art (spec, *Counters*):
 // this module decides what each piece shows and how the pieces group,
 // and the Svelte components only draw it.
-import { W } from "./geom";
+import { centre, W } from "./geom";
 import type { Equivalent, HexId, OffMapBox, Piece, PieceId, PieceKind, Side, View } from "./types";
 
 /** A counter's side: 0.8 of a hex (spec, *Counters*). */
@@ -88,7 +88,7 @@ export function nameParts(name: string): { text: string; sup: string | null } {
   return m ? { text: m[1], sup: m[2] } : { text: name, sup: null };
 }
 
-/** The pieces on the map, by hex, each stack top first; hexes in id order. */
+/** The pieces on the map, by hex, each stack top first; hexes north to south, then west to east. */
 export function stacks(view: View): Map<HexId, Piece[]> {
   const byHex = new Map<HexId, Piece[]>();
   for (const p of Object.values(view.pieces)) {
@@ -98,7 +98,15 @@ export function stacks(view: View): Map<HexId, Piece[]> {
       byHex.set(p.location.hex, list);
     }
   }
-  return new Map([...byHex].sort(([a], [b]) => a.localeCompare(b)).map(([h, ps]) => [h, topFirst(ps)]));
+  return new Map(
+    [...byHex]
+      .sort(([a], [b]) => {
+        const [ax, ay] = centre(a);
+        const [bx, by] = centre(b);
+        return ay - by || ax - bx;
+      })
+      .map(([h, ps]) => [h, topFirst(ps)]),
+  );
 }
 
 export const OFF_MAP_BOXES: OffMapBox[] = ["tripoli", "tunisia", "tripolitania", "malta", "italy-sicily", "crete"];

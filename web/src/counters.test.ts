@@ -108,7 +108,7 @@ describe("stacks", () => {
     expect(topFirst([...dummies, ...real]).map((p) => p.id)).toEqual(topFirst([...real, ...dummies]).map((p) => p.id));
   });
 
-  it("groups placed pieces by hex with the HQ on top, then combat, then supply", () => {
+  it("groups placed pieces by hex, north to south so a fan never covers its northern neighbour, with the HQ on top, then combat, then supply", () => {
     const v = view([
       piece({ id: "supply:axis:1", kind: "supply-unit", nation: null, id_code: null, name: null, abbreviation: null }),
       piece({ id: "unit:it:b" }),
@@ -119,7 +119,7 @@ describe("stacks", () => {
       piece({ id: "unit:it:gone", location: "eliminated" }),
     ]);
     const s = stacks(v);
-    expect([...s.keys()]).toEqual(["C4021", "C4131"]);
+    expect([...s.keys()]).toEqual(["C4131", "C4021"]);
     expect(s.get("C4131")!.map((p) => p.id)).toEqual(["unit:it:hq", "unit:it:a", "unit:it:b", "supply:axis:1"]);
     expect(topFirst(s.get("C4131")!)[0].id).toBe("unit:it:hq");
   });
