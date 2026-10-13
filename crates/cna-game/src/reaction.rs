@@ -57,7 +57,11 @@ impl GameState {
         for n in data.map.neighbours(at) {
             let pinned_by_zoc = || self.zoc_at(data, &n, phasing.other()) == Zoc::Exerts;
             let mut any = false;
-            for p in self.pieces.values().filter(|p| p.side != phasing && p.hex() == Some(&n)) {
+            for p in self
+                .pieces
+                .values()
+                .filter(|p| p.side != phasing && p.hex() == Some(&n))
+            {
                 if p.kind != PieceKind::Combat
                     || !self.mobility(data, p).motorised()
                     || p.cohesion.collapsed(&self.ruleset)
@@ -147,7 +151,10 @@ impl GameState {
         // Its new hex is a possible ZOC source the phasing player has not
         // been told about.
         self.zoc.remove(&at);
-        let left: Vec<PieceId> = eligible.into_iter().filter(|id| !pieces.contains(id)).collect();
+        let left: Vec<PieceId> = eligible
+            .into_iter()
+            .filter(|id| !pieces.contains(id))
+            .collect();
         self.pending = (!left.is_empty()).then_some(Pending::Reaction {
             side,
             eligible: left,
@@ -217,7 +224,11 @@ mod tests {
         let data = graziani();
         let mut state = tanks_near_halfaya(&data);
         let events = state
-            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&["unit:it:lxiil-tank-bn"], &["C3923"]),
+            )
             .unwrap();
         // 4 RHA and 7 Med (CPA 20, vehicles) may react; the two foot
         // battalions may not (R-006).
@@ -301,7 +312,11 @@ mod tests {
             state.pieces.get_mut(&pid("unit:cw:4-rha")).unwrap().reserve = Some(Reserve::II);
         });
         let events = state
-            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&["unit:it:lxiil-tank-bn"], &["C3923"]),
+            )
             .unwrap();
         assert!(
             !events
@@ -339,7 +354,11 @@ mod tests {
         });
         assert_eq!(state.stacked(&data, &hex("C3822")), 6);
         state
-            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&["unit:it:lxiil-tank-bn"], &["C3923"]),
+            )
             .unwrap();
         assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
         let before = snapshot(&state);
@@ -423,7 +442,10 @@ mod tests {
             .apply(
                 &data,
                 Side::Axis,
-                mv(&["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"], &["C3021"]),
+                mv(
+                    &["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"],
+                    &["C3021"],
+                ),
             )
             .unwrap();
         assert!(

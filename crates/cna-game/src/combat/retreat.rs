@@ -7,6 +7,7 @@ use crate::clock::Segment;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
+use crate::reach::Purpose;
 use crate::state::GameState;
 use crate::state::Pending;
 use crate::zoc::Zoc;
@@ -199,6 +200,21 @@ impl GameState {
             self.pending = None;
             return Ok(events);
         };
+        // 10.36: a must-attack stack surrenders only when every route is
+        // forced into enemy ZOC, so it may not pass while one is open.
+        if path.is_none()
+            && reason == RetreatReason::MustAttack
+            && !self
+                .reachable(data, side, &pieces, Purpose::ForcedRetreat)?
+                .is_empty()
+        {
+            return Err(Illegal::new(
+                "10.36",
+                format!(
+                    "a must-attack stack surrenders only with no way out; it can retreat {hexes} hexes"
+                ),
+            ));
+        }
         let phasing = self.phasing() == Some(side);
         let (end, plan) = match path {
             Some(path) => {

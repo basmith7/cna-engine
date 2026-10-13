@@ -111,7 +111,10 @@ impl GameState {
         {
             return Err(Illegal::new(
                 "8.8x",
-                format!("off-map movement happens in a movement segment, not at {}", self.clock),
+                format!(
+                    "off-map movement happens in a movement segment, not at {}",
+                    self.clock
+                ),
             ));
         }
         if player != Side::Axis {
@@ -126,7 +129,9 @@ impl GameState {
         let Some(end) = end_of(to) else {
             return Err(Illegal::new(
                 "8.8x",
-                format!("{to} is on the distance chart but is no box of the scenario: no unit can be held there"),
+                format!(
+                    "{to} is on the distance chart but is no box of the scenario: no unit can be held there"
+                ),
             ));
         };
         let nofilia = Self::nofilia(data);
@@ -153,7 +158,9 @@ impl GameState {
             if p.cp_spent != Cp::ZERO {
                 return Err(Illegal::new(
                     "8.8x",
-                    format!("{id} has spent CP this OpStage: off-map movement takes the whole stage"),
+                    format!(
+                        "{id} has spent CP this OpStage: off-map movement takes the whole stage"
+                    ),
                 ));
             }
             let here = match &p.location {
@@ -316,11 +323,19 @@ mod tests {
         // Not the Commonwealth's; not from the map except at Nofilia; not
         // to where it is.
         let err = state
-            .apply(&data, Side::Cw, off_map(&["unit:cw:1-krrc"], OffMapPlace::Tripoli))
+            .apply(
+                &data,
+                Side::Cw,
+                off_map(&["unit:cw:1-krrc"], OffMapPlace::Tripoli),
+            )
             .unwrap_err();
         assert_eq!(err.case, "5.2");
         let err = state
-            .apply(&data, Side::Axis, off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli),
+            )
             .unwrap_err();
         assert_eq!(err.case, "8.8x");
         let err = state
@@ -334,7 +349,11 @@ mod tests {
         assert_eq!(snapshot(&state), before);
         // CPA 30: one stage to Nofilia, the whole CPA spent.
         let events = state
-            .apply(&data, Side::Axis, off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Nofilia))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Nofilia),
+            )
             .unwrap();
         assert_eq!(
             events[0],
@@ -366,7 +385,11 @@ mod tests {
             Location::Box(OffMapBox::Tripolitania)
         );
         let err = state
-            .apply(&data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["A2704"]))
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&["unit:it:lxiil-tank-bn"], &["A2704"]),
+            )
             .unwrap_err();
         assert_eq!(err.case, "8.1x");
     }
@@ -382,7 +405,11 @@ mod tests {
         // the engine cannot hold a unit there; sending it is refused and
         // it is never mistaken for Tunis.
         let err = state
-            .apply(&data, Side::Axis, off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Gabes))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Gabes),
+            )
             .unwrap_err();
         assert_eq!(err.case, "8.8x");
         assert!(err.reason.contains("Gabes"), "{}", err.reason);
@@ -390,7 +417,11 @@ mod tests {
         // Tunis itself is two stages away at CPA 30 (the tunis/tripoli
         // row), not the one of gabes/tripoli.
         state
-            .apply(&data, Side::Axis, off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Tunis))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:lxiil-tank-bn"], OffMapPlace::Tunis),
+            )
             .unwrap();
         assert_eq!(
             state.pieces[&tanks].location,
@@ -426,7 +457,11 @@ mod tests {
         next_axis_movement(&data, &mut state);
         // Only on or back.
         let err = state
-            .apply(&data, Side::Axis, off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tunis))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tunis),
+            )
             .unwrap_err();
         assert_eq!(err.case, "8.8x");
         state
@@ -440,7 +475,11 @@ mod tests {
         // Back toward Tripoli: two stages out, two back.
         next_axis_movement(&data, &mut state);
         state
-            .apply(&data, Side::Axis, off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli),
+            )
             .unwrap();
         assert_eq!(
             state.pieces[&bn].location,
@@ -452,9 +491,16 @@ mod tests {
         );
         next_axis_movement(&data, &mut state);
         state
-            .apply(&data, Side::Axis, off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli))
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:xvii-libyan-bn"], OffMapPlace::Tripoli),
+            )
             .unwrap();
-        assert_eq!(state.pieces[&bn].location, Location::Box(OffMapBox::Tripoli));
+        assert_eq!(
+            state.pieces[&bn].location,
+            Location::Box(OffMapBox::Tripoli)
+        );
     }
 
     #[test]

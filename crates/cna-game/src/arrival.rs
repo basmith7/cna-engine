@@ -108,9 +108,7 @@ mod tests {
             .apply(
                 &data,
                 Side::Axis,
-                Order::DeclareInitiative {
-                    player_a: Side::Cw,
-                },
+                Order::DeclareInitiative { player_a: Side::Cw },
             )
             .unwrap();
         let arrived = events

@@ -511,6 +511,62 @@ mod tests {
     }
 
     #[test]
+    fn a_motorised_unit_never_assaults_up_an_escarpment_or_into_salt_marsh() {
+        // 15.36, judged hexside by hexside: A3933|A4033 is an escarpment
+        // with A4033 above. Foot units are not bound.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = at_sollum(&data);
+        let (motor, foot): (Vec<&Piece>, Vec<&Piece>) = state
+            .pieces
+            .values()
+            .filter(|p| p.kind == PieceKind::Combat && state.cpa(p).is_some())
+            .partition(|p| state.mobility(&data, p).motorised());
+        let (motor, foot) = (motor[0], foot[0]);
+        let check = |p: &Piece, from: &str, to: &str| {
+            state.check_assault_hexside(&data, p, &hex(from), &hex(to))
+        };
+        let up = check(motor, "A3933", "A4033").unwrap_err();
+        assert_eq!(up.case, "15.36");
+        assert!(up.reason.contains("escarpment"), "{}", up.reason);
+        assert!(check(motor, "A4033", "A3933").is_ok());
+        assert!(check(foot, "A3933", "A4033").is_ok());
+        let marsh = data
+            .map
+            .hexes()
+            .find(|h| h.terrain == Terrain::SaltMarsh)
+            .unwrap();
+        let next = data.map.neighbours(&marsh.id)[0].clone();
+        let into = check(motor, next.as_str(), marsh.id.as_str()).unwrap_err();
+        assert_eq!(into.case, "15.36");
+        assert!(into.reason.contains("salt marsh"), "{}", into.reason);
+        assert!(check(foot, next.as_str(), marsh.id.as_str()).is_ok());
+    }
+
+    #[test]
+    fn a_collapsed_unit_may_not_be_assigned_to_an_assault() {
+        // 6.26: at the collapse level a unit neither attacks nor defends.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_sollum(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        let assignment = || Assignment {
+            piece: krrc.clone(),
+            anti_armour: vec![],
+            close_assault: vec![Allocation {
+                target: Some(hex("C4020")),
+                points: 2,
+            }],
+        };
+        state
+            .check_assignments(&data, Side::Cw, &[assignment()])
+            .unwrap();
+        state.pieces.get_mut(&krrc).unwrap().cohesion.level = -cna_rules::cohesion::COLLAPSE;
+        let err = state
+            .check_assignments(&data, Side::Cw, &[assignment()])
+            .unwrap_err();
+        assert_eq!(err.case, "6.26");
+    }
+
+    #[test]
     fn a_plot_whose_points_overflow_is_illegal_not_a_panic() {
         let data = Data::load("grazianis-offensive").unwrap();
         let state = at_sollum(&data);
