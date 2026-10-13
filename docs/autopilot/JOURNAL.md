@@ -196,3 +196,9 @@ Done: merged PR #27 (10.36 must-attack Pass; its run left no journal entry). Re-
 In flight: slice 1 (supply state) on `autopilot/m5-slice-1-supply-state`.
 Next: merge #29 once gates pass; merge #28 once its re-run is green; continue slice 1 from its plan. If **Feedback** approves #25, finish the slice in hand and switch to Mission 4.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-13 14:45 MST — autopilot/m5-slice-2-spending
+Done: slice 2 Tasks 1–5 on PR #32 (draft, stacked on #31): rates (867ad5d), draw range (a650fb8), `Role::Assault` (a86583e), fuel (672688e), ammunition (a3e0cb0), brigade counters pay per three battalions (d31bdbe), NOT_SIMULATED (58a4a32). Gates pass locally. The module-on golden drops 4 RHA's return move and 7 Med's GT1 barrage (no supply in range).
+In flight: Task 6 (UI) not started.
+Next: merge #30 and #31 once CI is green; merge main into #32; Task 6: browser `Game::new` module-on, the golden e2e on `tests/games/graziani-m5.json`, regenerate `web/tests/fixtures` (`cargo test -p cna-web -- --ignored regenerate_e2e_fixtures`), stack panel loads and points, fuel source in the move panel, ammunition in the barrage and assign panels.
+Blocked: Mission 4 on Brian's review of PR #25.
