@@ -184,3 +184,9 @@ Done: PR #23 review. Blocking: the golden e2e never finished because of three dr
 In flight: nothing.
 Next: merge PR #23 once CI passes; then Mission 4's spec (PROGRESS.md, Next steps). Not done from the review, recorded in PROGRESS.md: `check_invariants` extended to every piece and hex reference and duplicate `waiting` sides (a hostile save can still panic the engine later); the curtain on Load/Continue; the 390 px end-dialog table clipping MET.
 Blocked: none.
+
+## 2026-10-13 09:25 MST — autopilot/hostile-saves
+Done: PR #26: `check_invariants` checks every piece and hex a save names, duplicate `waiting` sides, and reaction/forced-retreat pieces' sides (03629f4); 13 failing-first tests and a golden load sweep. Gates pass locally.
+In flight: nothing. Mission 4 waits on Brian's review of PR #25.
+Next: merge #26 once CI passes. Then nothing for Mission 4 until **Feedback** approves #25. Still open from #23's review: no curtain on Load/Continue. Also `arrival.rs`, `off_map.rs` and `reaction.rs` are not rustfmt-clean on `main`.
+Blocked: Brian's review of PR #25.
