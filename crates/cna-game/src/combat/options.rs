@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub enum SealedOptions {
     /// Step 1 (12.1x): the gun-class units that may stand forward.
-    GunPositions { guns: Vec<PieceId> },
+    GunPositions { guns: Vec<Gun> },
     /// Step 2 (12.2x): the units with barrage points that have a target
     /// in reach, and those targets.
     Barrage { firers: Vec<Firer> },
@@ -33,6 +33,15 @@ pub enum SealedOptions {
         phasing: bool,
         units: Vec<Committer>,
     },
+}
+
+/// A gun-class unit that may take a position.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Gun {
+    pub piece: PieceId,
+    /// Standing next to an enemy unit: the position matters now; the
+    /// rest may take one all the same.
+    pub next_to_enemy: bool,
 }
 
 /// A unit that may barrage, with the most points it can fire and the
@@ -95,8 +104,13 @@ impl GameState {
             SealedStep::GunPositions => SealedOptions::GunPositions {
                 guns: own
                     .iter()
-                    .filter(|id| self.may_stand_forward(data, side, id).is_ok())
-                    .map(|id| (*id).clone())
+                    .filter_map(|id| {
+                        let p = self.may_stand_forward(data, side, id).ok()?;
+                        Some(Gun {
+                            piece: (*id).clone(),
+                            next_to_enemy: self.next_to_enemy(data, p),
+                        })
+                    })
                     .collect(),
             },
             SealedStep::Barrage => SealedOptions::Barrage {
@@ -210,8 +224,16 @@ mod tests {
                             forward: vec![id.clone()],
                         },
                     );
-                    assert_eq!(r.is_ok(), guns.contains(id), "{id}: {r:?}");
+                    let gun = guns.iter().find(|g| &g.piece == id);
+                    assert_eq!(r.is_ok(), gun.is_some(), "{id}: {r:?}");
+                    if let Some(g) = gun {
+                        assert_eq!(
+                            g.next_to_enemy,
+                            state.next_to_enemy(data, &state.pieces[id])
+                        );
+                    }
                 }
+                assert!(guns.iter().any(|g| g.next_to_enemy));
             }
             SealedOptions::Barrage { firers } => {
                 assert!(!firers.is_empty());
@@ -387,7 +409,7 @@ mod tests {
             match (&o.order, &options) {
                 (Order::GunPositions { forward }, SealedOptions::GunPositions { guns }) => {
                     assert!(
-                        forward.iter().all(|id| guns.contains(id)),
+                        forward.iter().all(|id| guns.iter().any(|g| &g.piece == id)),
                         "{n}: {forward:?} in {guns:?}"
                     );
                 }

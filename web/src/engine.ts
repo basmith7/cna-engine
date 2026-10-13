@@ -2,7 +2,7 @@
 // parsed into the types of `types.ts`. The engine state is the only game
 // state; the UI reads `view()` whole after every accepted order.
 import init, { Game } from "./pkg/cna_web.js";
-import type { ApplyResult, HexId, Order, PieceId, Purpose, ReachResult, Side, View } from "./types";
+import type { ApplyResult, HexId, Order, PieceId, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
 
 let ready: Promise<void> | undefined;
 
@@ -44,6 +44,11 @@ export class Engine {
   /** Every hex `pieces` (one stack of `side`'s) can end a move of `purpose` in, or why the stack cannot move at all. */
   reachable(side: Side, pieces: PieceId[], purpose: Purpose): ReachResult {
     return JSON.parse(this.game.reachable(side, JSON.stringify(pieces), purpose)) as ReachResult;
+  }
+
+  /** What `side` may answer the pending sealed step with, or why it may not answer now. */
+  sealedOptions(side: Side): SealedOptionsResult {
+    return JSON.parse(this.game.sealedOptions(side)) as SealedOptionsResult;
   }
 
   apply(side: Side, order: Order): ApplyResult {

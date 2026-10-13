@@ -269,7 +269,7 @@ export interface Illegal {
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
 /** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
-export type Purpose = "move" | "react";
+export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat";
 
 /** A hex a stack can end in (`cna_game::reach::Reach`). */
 export interface Reach {
@@ -284,9 +284,43 @@ export interface Reach {
   ends_in_zoc: boolean;
   /** The engine may stop the stack short of it (an undeclared ZOC or a reaction on the way). */
   may_be_interrupted: boolean;
+  /** A forced retreat only: hexes short of the order, paid for at 10 % of the raw points each (15.82). */
+  short: number;
 }
 
 export type ReachResult = { ok: Reach[] } | { illegal: Illegal };
+
+/** A gun-class unit that may take a position (`cna_game::combat::options::Gun`). */
+export interface Gun {
+  piece: PieceId;
+  next_to_enemy: boolean;
+}
+
+/** A unit that may barrage, with its TOE and the enemy units it may target (`cna_game::combat::options::Firer`). */
+export interface Firer {
+  piece: PieceId;
+  points: number;
+  forward: boolean;
+  targets: PieceId[];
+}
+
+/** A unit that may commit TOE points in step 4 (`cna_game::combat::options::Committer`). */
+export interface Committer {
+  piece: PieceId;
+  points: number;
+  anti_armour: boolean;
+  anti_armour_targets: HexId[];
+  close_assault_targets: HexId[];
+  one_assault: boolean;
+}
+
+/** What the side to act may answer the pending sealed step with (`cna_game::combat::options::SealedOptions`). */
+export type SealedOptions =
+  | { "gun-positions": { guns: Gun[] } }
+  | { barrage: { firers: Firer[] } }
+  | { "assign-forces": { phasing: boolean; units: Committer[] } };
+
+export type SealedOptionsResult = { ok: SealedOptions } | { illegal: Illegal };
 
 /** `Game.view()`: the state minus `log` and `rng`, plus `to_act` and each piece's labels. */
 export interface View {
@@ -304,7 +338,17 @@ export interface View {
   zoc: Record<HexId, boolean>;
   continuing: PieceId[];
   shifted: PieceId[];
-  combat: Record<string, unknown>;
+  /** `CombatSegment`; its sets serialise as arrays. The other side's sealed answers are redacted while the step is pending. */
+  combat: {
+    forward?: PieceId[];
+    plots?: Partial<Record<Side, Fire[]>>;
+    assignments?: Partial<Record<Side, Assignment[]>>;
+    pinned?: PieceId[];
+    retreated?: PieceId[];
+    [k: string]: unknown;
+  };
   over: VictoryReport | null;
   to_act: Side | null;
+  /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
+  assaults_to_resolve: HexId[];
 }

@@ -2,18 +2,34 @@
   // One panel per `Pending` variant (spec, *Interrupts*), switched
   // exhaustively through `pendingKind`: the ZOC declaration ticks the
   // hexes asked about; the reaction ticks the eligible pieces (the move
-  // panel and overlay then take over) or passes; the combat pendings are
-  // slice 5's and say so.
+  // panel and overlay then take over) or passes; the three sealed steps
+  // are `SealedPanel`'s, remounted for each side and step; retreat
+  // before assault picks a stack and a shaded hex, or passes; a forced
+  // retreat shows the order and its pieces, a shaded hex answers it, or
+  // Pass with its consequence spelled out.
   import { label } from "./counters";
   import { pendingKind, pendingTitle, zocQuestion } from "./pending";
-  import type { HexId, Order, PieceId, View } from "./types";
+  import { passConsequence, retreatOrderWords } from "./sealed";
+  import SealedPanel from "./SealedPanel.svelte";
+  import type { HexId, Illegal, Order, PieceId, Reach, SealedOptions, View } from "./types";
 
   let {
     view,
     ticked,
     ontoggle,
     onorder,
-  }: { view: View; ticked: PieceId[]; ontoggle: (id: PieceId) => void; onorder: (o: Order) => void } = $props();
+    sealed = null,
+    reaches = [],
+  }: {
+    view: View;
+    ticked: PieceId[];
+    ontoggle: (id: PieceId) => void;
+    onorder: (o: Order) => void;
+    /** The engine's options for the pending sealed step, for the side to act. */
+    sealed?: { ok: SealedOptions } | { ok: null; illegal: Illegal } | null;
+    /** The hexes the ticked stack may retreat to, for the counts. */
+    reaches?: Reach[];
+  } = $props();
 
   const pending = $derived(view.pending!);
   const kind = $derived(pendingKind(pending));
@@ -62,11 +78,28 @@
       </ul>
       <p class="buttons"><button type="button" data-order="pass" onclick={() => onorder("pass")}>Pass: no (more) reaction</button></p>
     {:else if "sealed" in pending}
-      <p class="placeholder">Combat: the sealed {pending.sealed.step} step waits on {pending.sealed.waiting.join(", then ")}. Its panel comes in slice 5.</p>
+      {#if sealed}
+        {#key `${view.to_act}:${pending.sealed.step}`}
+          <SealedPanel {view} options={sealed} {onorder} />
+        {/key}
+      {/if}
     {:else if "retreat-before-assault" in pending}
-      <p class="placeholder">Combat: retreat before assault. Its panel comes in slice 5.</p>
+      <p>Before the assault you may pull stacks back (13.2x): click one of your stacks, tick the pieces, then click a shaded hex. A stack next to no enemy combat unit goes one hex, or further for 4 CP at most (13.22). Pass ends the step.</p>
+      {#if ticked.length > 0}
+        <p class="count" data-testid="retreat-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} to retreat to for the {ticked.length} ticked.</p>
+      {/if}
+      <p class="buttons"><button type="button" data-order="pass" onclick={() => onorder("pass")}>Pass: no (more) retreat</button></p>
     {:else if "forced-retreat" in pending}
-      <p class="placeholder">Combat: a forced retreat of {pending["forced-retreat"].hexes} hexes. Its panel comes in slice 5.</p>
+      {@const d = pending["forced-retreat"]}
+      <p data-testid="retreat-order">{retreatOrderWords(d)}</p>
+      <ul class="pieces">
+        {#each d.pieces as id (id)}
+          <li data-unit={id}>{name(id)}</li>
+        {/each}
+      </ul>
+      <p class="count" data-testid="retreat-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} shaded; click one to retreat there{reaches.some((r) => r.short > 0) ? " (an amber one stops short and pays)" : ""}.</p>
+      <p class="consequence" data-testid="pass-consequence">{passConsequence(d.reason, d.hexes, d.raw)}</p>
+      <p class="buttons"><button type="button" data-order="pass" onclick={() => onorder("pass")}>{d.reason === "must-attack" ? "Pass: surrender" : "Pass: stand and pay"}</button></p>
     {/if}
   </section>
 {/if}
@@ -108,8 +141,10 @@
     border-radius: 4px;
     cursor: pointer;
   }
-  .placeholder {
-    color: #555;
-    font-style: italic;
+  .count {
+    color: #444;
+  }
+  .consequence {
+    color: #7a3e00;
   }
 </style>
