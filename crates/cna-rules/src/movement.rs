@@ -167,12 +167,22 @@ pub fn step_cost(chart: &Terrain, mobility: Mobility, step: &Step) -> Result<Cp,
             ),
         ));
     }
-    if motorised && to == Fill::Delta && step.weather == Weather::Rainstorm && !road_or_rail {
+    // In a rainstorm vehicles enter delta by road or rail only, and
+    // those already in a delta hex leave it the same way (29.5x).
+    if motorised
+        && (to == Fill::Delta || from == Fill::Delta)
+        && step.weather == Weather::Rainstorm
+        && !road_or_rail
+    {
         return Err(no(
             "29.5x",
             format!(
-                "{} is delta in a rainstorm: vehicles by road or rail only",
-                step.to.id
+                "{} is delta in a rainstorm: vehicles enter and leave by road or rail only",
+                if to == Fill::Delta {
+                    &step.to.id
+                } else {
+                    &step.from.id
+                }
             ),
         ));
     }
@@ -444,6 +454,14 @@ mod tests {
             "29.5x"
         );
         assert_eq!(rain(Mobility::Foot, "E3614", "E3514"), Ok(Cp::whole(2)));
+        // A vehicle already in delta stays put unless it leaves by road
+        // or rail: E3514 to E3513 (clear) across a plain hexside is
+        // refused in rain; a foot unit goes.
+        assert_eq!(
+            rain(Mobility::Vehicle, "E3514", "E3513").unwrap_err().case,
+            "29.5x"
+        );
+        assert_eq!(rain(Mobility::Foot, "E3514", "E3513"), Ok(Cp::whole(2)));
     }
 
     #[test]
