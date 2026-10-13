@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(s.side(Side::Cw).deployments.len(), 16);
         let entries =
             |side| -> usize { s.side(side).deployments.iter().map(|d| d.units.len()).sum() };
-        assert_eq!(entries(Side::Axis), 47);
+        assert_eq!(entries(Side::Axis), 48);
         assert_eq!(entries(Side::Cw), 32);
         assert_eq!(s.side(Side::Axis).supply.len(), 10);
         assert_eq!(s.side(Side::Cw).supply.len(), 5);

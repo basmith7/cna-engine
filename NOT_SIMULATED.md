@@ -72,3 +72,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-111 | Air Game: not in the engine yet |
 | R-112 | Air Game: not in the engine yet |
 | R-113 | Air Game: not in the engine yet |
+| R-114 | Air Game: not in the engine yet |
+| R-115 | Air Game: not in the engine yet |
+| R-116 | Air Game: not in the engine yet |
