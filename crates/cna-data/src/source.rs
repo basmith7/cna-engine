@@ -59,9 +59,7 @@ impl MemSource {
         for dir in dirs {
             for name in src.list(dir)? {
                 let rel = format!("{dir}/{name}");
-                if let Ok(text) = src.read(&rel) {
-                    files.insert(rel, text);
-                }
+                files.insert(rel.clone(), src.read(&rel)?);
             }
         }
         Ok(MemSource { files })
@@ -130,5 +128,22 @@ mod tests {
         let m = MemSource::copy_from(&Fs, &["errata", "tables"]).unwrap();
         assert_eq!(m.list("errata").unwrap(), Fs.list("errata").unwrap());
         assert_eq!(m.list("tables").unwrap(), Fs.list("tables").unwrap());
+    }
+
+    #[test]
+    fn copy_from_fails_on_a_file_it_cannot_read() {
+        // Lists a file it then cannot read; the copy must not silently
+        // drop it and surface later as a confusing "no such file".
+        struct Listed;
+        impl Source for Listed {
+            fn read(&self, rel: &str) -> Result<String> {
+                anyhow::bail!("cannot read {rel}")
+            }
+            fn list(&self, _: &str) -> Result<Vec<String>> {
+                Ok(vec!["a.json".to_owned()])
+            }
+        }
+        let err = MemSource::copy_from(&Listed, &["tables"]).unwrap_err();
+        assert!(err.to_string().contains("tables/a.json"), "{err}");
     }
 }
