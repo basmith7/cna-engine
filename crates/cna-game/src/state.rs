@@ -66,6 +66,9 @@ pub enum Pending {
         /// The raw points the 10 % per hex short is taken of (15.82).
         #[serde(default)]
         raw: u32,
+        /// An overrun result: the loss rounds up, not down (15.83).
+        #[serde(default)]
+        overrun: bool,
     },
 }
 

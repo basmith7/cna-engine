@@ -330,7 +330,13 @@ impl GameState {
                 purpose,
                 value: reading,
             });
-            let damage = damage_for(&data.anti_armour, a.points, a.shift, a.side == phasing, reading);
+            let damage = damage_for(
+                &data.anti_armour,
+                a.points,
+                a.shift,
+                a.side == phasing,
+                reading,
+            );
             events.push(Event::AntiArmour {
                 side: a.side,
                 target: a.target.clone(),
@@ -414,7 +420,12 @@ impl GameState {
             if a.close_assault.is_empty() {
                 continue;
             }
-            let most = a.close_assault.iter().map(|al| al.points).max().unwrap_or(0);
+            let most = a
+                .close_assault
+                .iter()
+                .map(|al| al.points)
+                .max()
+                .unwrap_or(0);
             if most * 2 < self.pieces[&a.piece].toe {
                 probing.insert(a.piece.clone());
             }
@@ -558,6 +569,7 @@ impl GameState {
                 attackers.iter().map(|c| c.hex.clone()).collect(),
                 RetreatReason::Withheld,
                 raw,
+                false,
                 &mut events,
             );
             return Ok(events);
@@ -817,6 +829,7 @@ impl GameState {
                 attackers.iter().map(|c| c.hex.clone()).collect(),
                 RetreatReason::AssaultResult,
                 defender_base,
+                overrun,
                 &mut events,
             );
         } else if !probe {
@@ -958,6 +971,7 @@ impl GameState {
         from: Vec<HexId>,
         reason: RetreatReason,
         raw: u32,
+        overrun: bool,
         events: &mut Vec<Event>,
     ) {
         events.push(Event::RetreatOrdered {
@@ -972,6 +986,7 @@ impl GameState {
             from,
             reason,
             raw,
+            overrun,
         });
     }
 
@@ -1064,6 +1079,7 @@ impl GameState {
                 sources,
                 RetreatReason::MustAttack,
                 0,
+                false,
                 events,
             );
             return true;
@@ -1391,6 +1407,7 @@ mod tests {
                 from: vec![hex("C4021")],
                 reason: RetreatReason::Withheld,
                 raw: 40,
+                overrun: false,
             })
         );
         for id in &all {
@@ -1607,6 +1624,7 @@ mod tests {
                 from: vec![hex("C4020")],
                 reason: RetreatReason::MustAttack,
                 raw: 0,
+                overrun: false,
             })
         );
         let krrc = pid("unit:cw:1-krrc");
@@ -1940,7 +1958,11 @@ mod tests {
                 Order::AssignForces {
                     assignments: vec![
                         assign("unit:cw:1-krrc", vec![], vec![alloc(Some("C4020"), 6)]),
-                        assign("unit:cw:1-rtr", vec![], vec![alloc(Some("C4020"), rtr_points)]),
+                        assign(
+                            "unit:cw:1-rtr",
+                            vec![],
+                            vec![alloc(Some("C4020"), rtr_points)],
+                        ),
                     ],
                 },
             )

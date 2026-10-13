@@ -154,6 +154,7 @@ impl GameState {
             from,
             reason,
             raw,
+            overrun,
         }) = self.pending.clone()
         else {
             return Err(Illegal::new("15.82", "no retreat is pending"));
@@ -298,8 +299,14 @@ impl GameState {
                     pieces: pieces.clone(),
                     short,
                 });
-                // The defender's loss, rounded down (15.83).
-                let lost = raw * 10 * short / 100;
+                // The defender's loss rounds down, or up in an overrun
+                // (15.83).
+                let raw_pct = raw * 10 * short;
+                let lost = if overrun {
+                    raw_pct.div_ceil(100)
+                } else {
+                    raw_pct / 100
+                };
                 let paren_ok = !self.plain_in_hex(data, &start, Kind::Defence);
                 let mut shares: Vec<Share> = pieces
                     .iter()
@@ -327,10 +334,12 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::super::segment::test_support::at_sollum;
+    use crate::combat::RetreatReason;
     use crate::data::Data;
     use crate::event::Event;
     use crate::movement::test_support::{hex, pid};
     use crate::order::Order;
+    use crate::piece::PieceId;
     use crate::state::{GameState, Pending};
     use cna_data::cp::Cp;
     use cna_data::scenario::Side;
@@ -447,5 +456,39 @@ mod tests {
             )
             .unwrap();
         assert_eq!(state.pieces[&bn].hex(), Some(&hex("C3616")));
+    }
+
+    /// 15.83: the stand-and-pay loss rounds down like any defender loss,
+    /// except in an overrun, where every defender loss rounds up. One
+    /// hex short of two at 42 raw is 4.2: 4 raw, or 5 overrun.
+    #[test]
+    fn a_bought_out_retreat_rounds_up_only_in_an_overrun() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        for (overrun, lost) in [(false, 4), (true, 5)] {
+            let mut state = retreating(&data);
+            let pieces: Vec<PieceId> = state
+                .pieces
+                .values()
+                .filter(|p| p.hex() == Some(&hex("C4020")))
+                .map(|p| p.id.clone())
+                .collect();
+            let before: u32 = pieces.iter().map(|id| state.pieces[id].toe).sum();
+            state.pending = Some(Pending::ForcedRetreat {
+                side: Side::Axis,
+                pieces: pieces.clone(),
+                hexes: 2,
+                from: vec![hex("C4021")],
+                reason: RetreatReason::AssaultResult,
+                raw: 42,
+                overrun,
+            });
+            let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+            assert!(events.contains(&Event::RetreatBoughtOut {
+                pieces: pieces.clone(),
+                short: 1,
+            }));
+            let after: u32 = pieces.iter().map(|id| state.pieces[id].toe).sum();
+            assert_eq!(before - after, lost, "overrun={overrun}");
+        }
     }
 }
