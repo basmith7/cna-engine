@@ -69,7 +69,12 @@ pub struct WeaponSystems {
 impl WeaponSystems {
     /// Loads the chart, checking every OA name maps to a row.
     pub fn load() -> Result<WeaponSystems> {
-        let table: Table = serde_json::from_value(load_table("weapon-systems")?)
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<WeaponSystems> {
+        let table: Table = serde_json::from_value(load_table(src, "weapon-systems")?)
             .context("parsing weapon-systems")?;
         let mut rows = BTreeMap::new();
         for r in table.rows {

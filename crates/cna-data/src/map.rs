@@ -6,8 +6,8 @@
 //! northward, columns eastward, each sheet saying whether its odd rows sit
 //! half a hex east or west of the even rows.
 
-use crate::cna_root;
-use anyhow::{Context, Result, bail};
+use crate::source::{Fs, Source};
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -363,11 +363,8 @@ struct HexesFile {
     hexes: Vec<Hex>,
 }
 
-fn read_json<T: serde::de::DeserializeOwned>(name: &str) -> Result<T> {
-    let path = cna_root().join("data/map").join(name);
-    let text =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))
+fn read_json<T: serde::de::DeserializeOwned>(src: &dyn Source, name: &str) -> Result<T> {
+    crate::source::read_json(src, &format!("map/{name}"))
 }
 
 fn pair_key(a: HexId, b: HexId) -> (HexId, HexId) {
@@ -379,9 +376,14 @@ impl Map {
     /// and `regions.json`. Map corrections are already
     /// applied in those files.
     pub fn load() -> Result<Map> {
-        let sheets = read_json::<SheetsFile>("sheets.json")?.sheets;
+        Map::load_from(&Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn Source) -> Result<Map> {
+        let sheets = read_json::<SheetsFile>(src, "sheets.json")?.sheets;
         let mut hexes = BTreeMap::new();
-        for h in read_json::<HexesFile>("hexes.json")?.hexes {
+        for h in read_json::<HexesFile>(src, "hexes.json")?.hexes {
             if !sheets.contains_key(&h.sheet) {
                 bail!("{}: sheet {} is not in sheets.json", h.id, h.sheet);
             }
@@ -391,7 +393,7 @@ impl Map {
         }
         let mut hexsides = BTreeMap::new();
         let mut edges = BTreeMap::new();
-        for r in read_json::<HexsidesFile>("hexsides.json")?.hexsides {
+        for r in read_json::<HexsidesFile>(src, "hexsides.json")?.hexsides {
             if !hexes.contains_key(&r.a) {
                 bail!("hexside {}: {} is not a hex", r.a, r.a);
             }
@@ -413,7 +415,7 @@ impl Map {
             }
         }
         let mut places = BTreeMap::new();
-        for p in read_json::<PlacesFile>("places.json")?.places {
+        for p in read_json::<PlacesFile>(src, "places.json")?.places {
             for h in &p.hexes {
                 if !hexes.contains_key(h) {
                     bail!("place {}: {} is not a hex", p.id, h);
@@ -423,7 +425,7 @@ impl Map {
                 bail!("duplicate place in places.json");
             }
         }
-        let regions: Regions = read_json("regions.json")?;
+        let regions: Regions = read_json(src, "regions.json")?;
         for sheet in regions
             .whole_sheets
             .keys()
@@ -435,7 +437,7 @@ impl Map {
         }
         let mut seams: BTreeMap<HexId, Vec<HexId>> = BTreeMap::new();
         let mut seam_pairs = 0;
-        for seam in read_json::<SeamsFile>("seams.json")?.seams {
+        for seam in read_json::<SeamsFile>(src, "seams.json")?.seams {
             for p in seam.pairs {
                 for h in [&p.west, &p.east] {
                     if !hexes.contains_key(h) {

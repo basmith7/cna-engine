@@ -3,9 +3,9 @@
 //! and takes every top-level block it does not give. `land_only` applies the
 //! Land-Game-only abstraction (60.92 for Group One).
 
-use crate::cna_root;
 use crate::map::{Country, HexId};
 use crate::oa::{ToeEntry, UnitId};
+use crate::source::{Fs, Source};
 use crate::time::GameTime;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
@@ -465,25 +465,22 @@ pub struct Scenario {
     pub abstractions: Option<Abstractions>,
 }
 
-fn read_value(slug: &str) -> Result<Value> {
-    let path = cna_root().join(format!("data/scenarios/{slug}.json"));
-    let text =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))
+fn read_value(src: &dyn Source, slug: &str) -> Result<Value> {
+    crate::source::read_json(src, &format!("scenarios/{slug}.json"))
 }
 
 /// The file as a JSON object with its parent's blocks filled in.
-fn read_merged(slug: &str, depth: u8) -> Result<Value> {
+fn read_merged(src: &dyn Source, slug: &str, depth: u8) -> Result<Value> {
     if depth > 8 {
         bail!("scenario {slug}: extends chain too deep");
     }
-    let mut v = read_value(slug)?;
+    let mut v = read_value(src, slug)?;
     if let Some(parent) = v.get("extends").and_then(Value::as_str) {
         let parent_slug = parent
             .strip_prefix("scenario:")
             .with_context(|| format!("scenario {slug}: bad extends {parent:?}"))?
             .to_owned();
-        let base = read_merged(&parent_slug, depth + 1)?;
+        let base = read_merged(src, &parent_slug, depth + 1)?;
         let (Some(obj), Some(base)) = (v.as_object_mut(), base.as_object()) else {
             bail!("scenario {slug}: not an object");
         };
@@ -497,7 +494,13 @@ fn read_merged(slug: &str, depth: u8) -> Result<Value> {
 impl Scenario {
     /// Loads `data/scenarios/<slug>.json`, following `extends`.
     pub fn load(slug: &str) -> Result<Scenario> {
-        serde_json::from_value(read_merged(slug, 0)?).with_context(|| format!("scenario {slug}"))
+        Scenario::load_from(&Fs, slug)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn Source, slug: &str) -> Result<Scenario> {
+        serde_json::from_value(read_merged(src, slug, 0)?)
+            .with_context(|| format!("scenario {slug}"))
     }
 
     /// A side's set-up, empty if the file gives none.

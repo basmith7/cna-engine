@@ -141,7 +141,12 @@ pub struct Characteristics {
 impl Characteristics {
     /// Loads the chart with its errata applied.
     pub fn load() -> Result<Characteristics> {
-        let table: Table = serde_json::from_value(load_table("unit-characteristics")?)
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Characteristics> {
+        let table: Table = serde_json::from_value(load_table(src, "unit-characteristics")?)
             .context("parsing unit-characteristics")?;
         let mut rows = BTreeMap::new();
         for r in table.rows {

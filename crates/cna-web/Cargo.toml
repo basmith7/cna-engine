@@ -1,0 +1,19 @@
+[package]
+name = "cna-web"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "cna-game for the browser: the Graziani data embedded, the Game API as JSON strings"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cna-data = { path = "../cna-data" }
+cna-game = { path = "../cna-game" }
+serde_json.workspace = true
+anyhow.workspace = true
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

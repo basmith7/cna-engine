@@ -1,0 +1,280 @@
+// Hand-written mirrors of the engine's serde JSON (cna-game: state.rs,
+// order.rs, event.rs, piece.rs, clock.rs, victory.rs). Kebab-case tags
+// as serde writes them. If these drift from the Rust, generating them
+// (tsify / ts-rs) is the later option (slice plan, task 3).
+
+export type Side = "axis" | "cw";
+export type HexId = string;
+export type PieceId = string;
+export type Nation = "it" | "cw" | "de";
+
+export type Phase =
+  | "initiative-declaration"
+  | "weather"
+  | "organisation"
+  | "arrival"
+  | "cw-fleet"
+  | "reserve-designation"
+  | "movement-combat"
+  | "truck-convoy"
+  | "rail"
+  | "repair"
+  | "patrol";
+
+export type Half = "A" | "B";
+
+export type Segment =
+  | "movement"
+  | "breakdown"
+  | "position-determination"
+  | "barrage"
+  | "retreat-before-assault"
+  | "force-assignment"
+  | "anti-armour"
+  | "close-assault"
+  | "reserve-release";
+
+export interface Clock {
+  game_turn: number;
+  stage: number;
+  phase: Phase;
+  half: Half | null;
+  segment: Segment | null;
+}
+
+export type Weather =
+  | "normal"
+  | "hot"
+  | { sandstorm: { sheets: string[] } }
+  | { rainstorm: { sheets: string[] } };
+
+export type OffMapBox = "tripoli" | "tunisia" | "tripolitania" | "malta" | "italy-sicily" | "crete";
+export type OffMapPlace = "tunis" | "gabes" | "tripoli" | "tripolitania" | "nofilia";
+
+export interface Placement {
+  hexes?: HexId[];
+  place?: string;
+  box?: OffMapBox;
+  sheets?: string[];
+  not_within?: { of: string; hexes: number } | null;
+  constraint?: string | null;
+}
+
+export type Location =
+  | { hex: HexId }
+  | { box: OffMapBox }
+  | { transit: { from: OffMapPlace; to: OffMapPlace; done: number } }
+  | { pending: Placement }
+  | "eliminated";
+
+export type PieceKind = "combat" | "hq" | "supply-unit" | "dummy-supply-unit";
+export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
+export type Reserve = "I" | "II";
+
+export interface Piece {
+  id: PieceId;
+  side: Side;
+  kind: PieceKind;
+  nation: Nation | null;
+  id_code: string | null;
+  parent: string | null;
+  toe: number;
+  weapons?: { weapon: string; points: number }[];
+  /** The characteristics cell as printed, e.g. "10" or "8*". */
+  cpa: string | null;
+  morale: number | null;
+  status: "in-training" | "broken-down" | null;
+  equivalent: Equivalent | null;
+  garrison_of?: HexId;
+  location: Location;
+  cp_spent: number;
+  cp_enemy_half: number;
+  cohesion: { level: number; dp_tally: number };
+  contact: boolean;
+  engaged: boolean;
+  reserve?: Reserve;
+  released?: Reserve;
+  landed?: boolean;
+  /** Added by `view()`: the characteristics chart's unit type, null off the chart. */
+  unit_type: string | null;
+}
+
+export type SealedStep = "gun-positions" | "barrage" | "assign-forces";
+export type RetreatReason = "assault-result" | "withheld" | "must-attack";
+
+export type Pending =
+  | { "set-up": { side: Side } }
+  | { "declare-zoc": { side: Side; hexes: HexId[]; at_start: boolean } }
+  | { reaction: { side: Side; eligible: PieceId[] } }
+  | { sealed: { step: SealedStep; waiting: Side[] } }
+  | { "retreat-before-assault": { side: Side } }
+  | {
+      "forced-retreat": {
+        side: Side;
+        pieces: PieceId[];
+        hexes: number;
+        from: HexId[];
+        reason: RetreatReason;
+        raw: number;
+        overrun: boolean;
+      };
+    };
+
+export interface Fire {
+  piece: PieceId;
+  points: number;
+  target: PieceId;
+}
+
+export interface Allocation {
+  target?: HexId;
+  points: number;
+}
+
+export interface Assignment {
+  piece: PieceId;
+  anti_armour?: Allocation[];
+  close_assault?: Allocation[];
+}
+
+export type Order =
+  | { place: { piece: PieceId; hex: HexId } }
+  | { "declare-initiative": { player_a: Side } }
+  | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean } }
+  | { react: { pieces: PieceId[]; path: HexId[] } }
+  | { "declare-zoc": { exerting: HexId[] } }
+  | { "move-off-map": { pieces: PieceId[]; to: OffMapPlace } }
+  | { "gun-positions": { forward: PieceId[] } }
+  | { barrage: { fires: Fire[] } }
+  | { "retreat-before-assault": { pieces: PieceId[]; path: HexId[] } }
+  | { "assign-forces": { assignments: Assignment[] } }
+  | { assault: { target: HexId } }
+  | { retreat: { path: HexId[] } }
+  | { "designate-reserve": { pieces: PieceId[] } }
+  | { "release-reserve": { pieces: PieceId[] } }
+  | "end-segment"
+  | "pass";
+
+export type VictoryLevel = string;
+
+export interface Condition {
+  side: Side;
+  level: VictoryLevel;
+  objective: string;
+  hexes: HexId[];
+  any_hex: boolean;
+  held: HexId[];
+  unsupplied: PieceId[];
+  met: boolean;
+}
+
+export interface VictoryReport {
+  axis: VictoryLevel | null;
+  cw: VictoryLevel | null;
+  checked: Condition[];
+  unchecked: string[];
+}
+
+export type BarrageResult = "no-effect" | "pinned" | { lose: number } | "unresolved";
+
+export interface AssaultRoll {
+  reading: number;
+  pct: number;
+  raw_lost: number;
+  toe_lost: number;
+  engaged: boolean;
+  retreat: number;
+  captured: boolean;
+}
+
+/** The 38 event variants of `cna_game::event::Event`, externally tagged. */
+export type Event =
+  | { "phase-started": { clock: Clock } }
+  | { "phase-skipped": { clock: Clock } }
+  | { "die-rolled": { purpose: string; value: number } }
+  | { "initiative-determined": { holder: Side; rolled: boolean } }
+  | { "initiative-declared": { player_a: Side } }
+  | { "weather-set": { weather: Weather } }
+  | { placed: { piece: PieceId; hex: HexId } }
+  | "set-up-complete"
+  | { arrived: { pieces: PieceId[]; at: Location } }
+  | { "moved-off-map": { piece: PieceId; location: Location } }
+  | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost: number } }
+  | { disorganised: { piece: PieceId; dp: number; level: number } }
+  | { "move-interrupted": { pieces: PieceId[]; at: HexId; before: HexId; declare: HexId[] } }
+  | { "zoc-declared": { hex: HexId; exerts: boolean } }
+  | { "reaction-offered": { pieces: PieceId[]; at: HexId } }
+  | { "contact-broken": { piece: PieceId; cost: number } }
+  | { "reserve-designated": { pieces: PieceId[] } }
+  | { "reserve-released": { pieces: PieceId[]; from: Reserve } }
+  | { "reserve-flipped": { pieces: PieceId[] } }
+  | { sealed: { side: Side; step: SealedStep } }
+  | { "gun-positions-set": { side: Side; forward: PieceId[] } }
+  | { "barrage-plotted": { side: Side; fires: Fire[] } }
+  | {
+      barrage: {
+        side: Side;
+        firers: PieceId[];
+        target: PieceId;
+        points: number;
+        shift: number;
+        reading: number;
+        result: BarrageResult;
+      };
+    }
+  | { "retreated-before-assault": { pieces: PieceId[]; to: HexId } }
+  | { "anti-armour": { side: Side; target: HexId; points: number; shift: number; reading: number; damage: number } }
+  | {
+      assault: {
+        target: HexId;
+        attackers: PieceId[];
+        probe: boolean;
+        attacker_raw: number;
+        defender_raw: number;
+        basic: number;
+        shifts: number;
+        column: string;
+        attacker: AssaultRoll;
+        defender: AssaultRoll;
+      };
+    }
+  | { prisoners: { side: Side; points: number } }
+  | { surrendered: { pieces: PieceId[] } }
+  | { engaged: { pieces: PieceId[] } }
+  | { "retreat-ordered": { pieces: PieceId[]; hexes: number; reason: RetreatReason } }
+  | { "retreat-bought-out": { pieces: PieceId[]; short: number } }
+  | { losses: { piece: PieceId; points: number; toe: number } }
+  | { eliminated: { piece: PieceId } }
+  | { "forces-assigned": { side: Side; assignments: Assignment[] } }
+  | { "combat-cp": { piece: PieceId; cost: number } }
+  | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
+  | { captured: { piece: PieceId; hex: HexId } }
+  | { "game-over": { report: VictoryReport } };
+
+export interface Illegal {
+  case: string;
+  reason: string;
+}
+
+export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
+
+/** `Game.view()`: the state minus `log` and `rng`, plus `to_act` and `unit_type`. */
+export interface View {
+  scenario: string;
+  rules_commit: string;
+  ruleset: Record<string, number>;
+  clock: Clock;
+  initiative: Side | null;
+  player_a: Side | null;
+  weather: Weather;
+  pieces: Record<PieceId, Piece>;
+  pending: Pending | null;
+  cycle: number;
+  moved: PieceId[];
+  zoc: Record<HexId, boolean>;
+  continuing: PieceId[];
+  shifted: PieceId[];
+  combat: Record<string, unknown>;
+  over: VictoryReport | null;
+  to_act: Side | null;
+}

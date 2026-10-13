@@ -4,9 +4,10 @@
 //! and loading one checks both against the `Data` it is given.
 //!
 //! The engine never touches the file system or spawns a process itself
-//! (the spec's condition for a WebAssembly build): `Data::load` is a
-//! native convenience that reads `vendor/cna` and asks git for its
-//! commit; another host fills the same struct by other means.
+//! (the spec's condition for a WebAssembly build): `Data::load_from`
+//! reads every table through a `cna_data::source::Source`, and
+//! `Data::load` is the native convenience that uses the `vendor/cna`
+//! checkout and asks git for its commit.
 
 use anyhow::Result;
 use cna_data::anti_armour::AntiArmour;
@@ -22,11 +23,13 @@ use cna_data::off_map::OffMapDistances;
 use cna_data::prisoners::Prisoners;
 use cna_data::scenario::Scenario;
 use cna_data::schedule::Schedule;
+use cna_data::source::{Fs, Source};
 use cna_data::stacking::StackingPoints;
 use cna_data::terrain::Terrain;
 use cna_data::weapons::WeaponSystems;
 use cna_data::weather::Weather;
 
+#[derive(Debug)]
 pub struct Data {
     /// The `vendor/cna` commit the tables were read from; what a new
     /// game records as `rules_commit` and a loaded one is checked against.
@@ -54,25 +57,31 @@ impl Data {
     /// Loads `data/scenarios/<slug>.json` and the tables and map it needs
     /// from the `vendor/cna` checkout, recording its commit. Native only.
     pub fn load(slug: &str) -> Result<Data> {
+        Data::load_from(slug, &Fs, cna_data::rules_commit()?)
+    }
+
+    /// The same from any `Source`, with the `vendor/cna` commit the
+    /// source's files came from.
+    pub fn load_from(slug: &str, src: &dyn Source, rules_commit: String) -> Result<Data> {
         Ok(Data {
-            rules_commit: cna_data::rules_commit()?,
-            scenario: Scenario::load(slug)?,
-            oa: Oa::load_all()?,
-            chars: Characteristics::load()?,
-            weapons: WeaponSystems::load()?,
-            map: Map::load()?,
-            terrain: Terrain::load()?,
-            stacking: StackingPoints::load()?,
-            weather: Weather::load()?,
-            initiative: InitiativeRatings::load()?,
-            schedule: Schedule::load()?,
-            off_map: OffMapDistances::load()?,
-            barrage: Barrage::load()?,
-            anti_armour: AntiArmour::load()?,
-            close_assault: CloseAssault::load()?,
-            morale: MoraleModifier::load()?,
-            size_shifts: AssaultSizeShifts::load()?,
-            prisoners: Prisoners::load()?,
+            rules_commit,
+            scenario: Scenario::load_from(src, slug)?,
+            oa: Oa::load_from(src)?,
+            chars: Characteristics::load_from(src)?,
+            weapons: WeaponSystems::load_from(src)?,
+            map: Map::load_from(src)?,
+            terrain: Terrain::load_from(src)?,
+            stacking: StackingPoints::load_from(src)?,
+            weather: Weather::load_from(src)?,
+            initiative: InitiativeRatings::load_from(src)?,
+            schedule: Schedule::load_from(src)?,
+            off_map: OffMapDistances::load_from(src)?,
+            barrage: Barrage::load_from(src)?,
+            anti_armour: AntiArmour::load_from(src)?,
+            close_assault: CloseAssault::load_from(src)?,
+            morale: MoraleModifier::load_from(src)?,
+            size_shifts: AssaultSizeShifts::load_from(src)?,
+            prisoners: Prisoners::load_from(src)?,
         })
     }
 
@@ -82,5 +91,59 @@ impl Data {
             .id
             .strip_prefix("scenario:")
             .unwrap_or(&self.scenario.id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cna_data::source::MemSource;
+
+    /// The directories `Data` reads: what a WebAssembly build embeds.
+    pub const DIRS: [&str; 5] = ["map", "tables", "oa", "scenarios", "errata"];
+
+    /// Each field's `Debug` form: every field derives `Debug`, and the
+    /// maps inside are `BTreeMap`s, so equal data prints equally.
+    fn fields(d: &Data) -> Vec<(&'static str, String)> {
+        vec![
+            ("rules_commit", format!("{:?}", d.rules_commit)),
+            ("scenario", format!("{:?}", d.scenario)),
+            ("oa", format!("{:?}", d.oa)),
+            ("chars", format!("{:?}", d.chars)),
+            ("weapons", format!("{:?}", d.weapons)),
+            ("map", format!("{:?}", d.map)),
+            ("terrain", format!("{:?}", d.terrain)),
+            ("stacking", format!("{:?}", d.stacking)),
+            ("weather", format!("{:?}", d.weather)),
+            ("initiative", format!("{:?}", d.initiative)),
+            ("schedule", format!("{:?}", d.schedule)),
+            ("off_map", format!("{:?}", d.off_map)),
+            ("barrage", format!("{:?}", d.barrage)),
+            ("anti_armour", format!("{:?}", d.anti_armour)),
+            ("close_assault", format!("{:?}", d.close_assault)),
+            ("morale", format!("{:?}", d.morale)),
+            ("size_shifts", format!("{:?}", d.size_shifts)),
+            ("prisoners", format!("{:?}", d.prisoners)),
+        ]
+    }
+
+    #[test]
+    fn a_memory_source_loads_the_same_data_as_the_checkout() {
+        let from_fs = Data::load("grazianis-offensive").unwrap();
+        let mem = MemSource::copy_from(&Fs, &DIRS).unwrap();
+        let from_mem =
+            Data::load_from("grazianis-offensive", &mem, from_fs.rules_commit.clone()).unwrap();
+        for ((name, a), (_, b)) in fields(&from_fs).into_iter().zip(fields(&from_mem)) {
+            assert!(a == b, "{name} differs between Fs and MemSource");
+        }
+    }
+
+    #[test]
+    fn a_source_missing_a_table_fails_naming_it() {
+        let mem = MemSource::copy_from(&Fs, &["scenarios", "oa"]).unwrap();
+        let err = Data::load_from("grazianis-offensive", &mem, String::new())
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unit-characteristics"), "{err}");
     }
 }

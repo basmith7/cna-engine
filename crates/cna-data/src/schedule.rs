@@ -45,7 +45,12 @@ impl Schedule {
     /// Loads the schedule with its errata applied. Rows that bring no
     /// counter (`unplaced`) are not read.
     pub fn load() -> Result<Schedule> {
-        let t: Table = serde_json::from_value(load_table("reinforcement-schedule")?)
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Schedule> {
+        let t: Table = serde_json::from_value(load_table(src, "reinforcement-schedule")?)
             .context("parsing reinforcement-schedule")?;
         Ok(Schedule {
             through: t.through,

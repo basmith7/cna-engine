@@ -16,6 +16,7 @@ pub mod off_map;
 pub mod prisoners;
 pub mod scenario;
 pub mod schedule;
+pub mod source;
 pub mod stacking;
 pub mod terrain;
 pub mod time;

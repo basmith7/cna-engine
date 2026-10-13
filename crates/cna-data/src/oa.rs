@@ -4,7 +4,7 @@
 //! reading of them (TOE points, pieces) lives in `cna-game`.
 
 use crate::characteristics::Equivalent;
-use crate::cna_root;
+use crate::source::{Fs, Source};
 use crate::time::GameTime;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
@@ -245,6 +245,11 @@ impl Oa {
     /// Loads all three nations' sheets and checks every id is unique and
     /// every parent is a unit on the same sheet.
     pub fn load_all() -> Result<Oa> {
+        Oa::load_from(&Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn Source) -> Result<Oa> {
         let mut oa = Oa {
             formations: Vec::new(),
             by_formation_id: BTreeMap::new(),
@@ -252,13 +257,11 @@ impl Oa {
             children: BTreeMap::new(),
         };
         for nation in [Nation::It, Nation::Cw, Nation::De] {
-            let path = cna_root().join(format!("data/oa/{nation}.json"));
-            let text = std::fs::read_to_string(&path)
-                .with_context(|| format!("reading {}", path.display()))?;
-            let file: OaFile = serde_json::from_str(&text)
-                .with_context(|| format!("parsing {}", path.display()))?;
+            let path = format!("oa/{nation}.json");
+            let file: OaFile = serde_json::from_str(&src.read(&path)?)
+                .with_context(|| format!("parsing {path}"))?;
             if file.nation != nation {
-                bail!("{}: nation is {}", path.display(), file.nation);
+                bail!("{path}: nation is {}", file.nation);
             }
             for mut f in file.formations {
                 f.id = format!("{nation}:{}", f.id);

@@ -62,9 +62,14 @@ pub struct Weather {
 
 impl Weather {
     pub fn load() -> Result<Weather> {
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Weather> {
         Ok(Weather {
-            table: serde_json::from_value(load_table("weather")?)?,
-            location: serde_json::from_value(load_table("foul-weather-location")?)?,
+            table: serde_json::from_value(load_table(src, "weather")?)?,
+            location: serde_json::from_value(load_table(src, "foul-weather-location")?)?,
         })
     }
 

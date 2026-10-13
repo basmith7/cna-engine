@@ -48,7 +48,15 @@ impl AxisSituation {
 
 impl InitiativeRatings {
     pub fn load() -> Result<InitiativeRatings> {
-        Ok(serde_json::from_value(load_table("initiative-ratings")?)?)
+        Self::load_from(&crate::source::Fs)
+    }
+
+    /// The same, from any `Source`.
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<InitiativeRatings> {
+        Ok(serde_json::from_value(load_table(
+            src,
+            "initiative-ratings",
+        )?)?)
     }
 
     pub fn commonwealth(&self, game_turn: u8) -> Result<u8> {
