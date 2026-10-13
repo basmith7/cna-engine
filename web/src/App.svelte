@@ -1,5 +1,7 @@
 <script lang="ts">
   import Counters from "./Counters.svelte";
+  import Curtain from "./Curtain.svelte";
+  import { curtainAfter } from "./curtain";
   import { Engine, initEngine } from "./engine";
   import Map from "./Map.svelte";
   import OffMap from "./OffMap.svelte";
@@ -7,7 +9,7 @@
   import SetupPanel from "./SetupPanel.svelte";
   import StackPanel from "./StackPanel.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { HexId, Order, PieceId, View } from "./types";
+  import type { HexId, Order, PieceId, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -17,6 +19,8 @@
   let picked: PieceId | null = $state(null);
   /** The engine's last refusal, until the next order. */
   let illegal: string | null = $state(null);
+  /** The side the curtain is down for, until they click it away. */
+  let curtain: Side | null = $state(null);
 
   // Re-read from the engine whenever the view is replaced: the engine is
   // not reactive, the view standing in for its version.
@@ -36,7 +40,10 @@
       return false;
     }
     illegal = null;
+    const before = view.to_act;
     view = engine.view();
+    curtain = curtainAfter(before, view.to_act);
+    if (curtain) picked = null;
     return true;
   }
 
@@ -77,6 +84,9 @@
 </script>
 
 <div class="app">
+  {#if curtain}
+    <Curtain side={curtain} ondismiss={() => (curtain = null)} />
+  {/if}
   {#if view}
     <TopBar {view} {hex} />
     <div class="body">
