@@ -10,6 +10,8 @@ writes is **Feedback**.
 
 ## Addressed
 
+- 2026-10-12 (Brian) approved the Mission 2 spec, PR #5, in an interactive session → merged 2026-10-12; that session builds slices 1–6 and holds the autopilot lock while it does.
+
 ## Status
 
 **Mission 2 (headless game state for Graziani's Offensive) Part 0 is up
