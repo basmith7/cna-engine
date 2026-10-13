@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/cna-data", "crates/cna-rules", "crates/cna-probe"]
+members = ["crates/cna-data", "crates/cna-rules", "crates/cna-probe", "crates/cna-game"]
 
 [workspace.package]
 edition = "2024"

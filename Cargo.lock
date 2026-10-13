@@ -109,6 +109,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cna-game"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cna-data",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cna-probe"
 version = "0.1.0"
 dependencies = [
