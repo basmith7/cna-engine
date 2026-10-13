@@ -106,7 +106,7 @@ impl GameState {
                 ));
             }
             let total = spent.entry(&f.piece).or_default();
-            *total += f.points;
+            *total = total.checked_add(f.points).unwrap_or(u32::MAX);
             if *total > p.toe {
                 return Err(Illegal::new(
                     "12.2x",
@@ -232,13 +232,13 @@ impl GameState {
                     ),
                 ));
             }
-            let total: u32 = a
+            let total: u64 = a
                 .anti_armour
                 .iter()
                 .chain(&a.close_assault)
-                .map(|al| al.points)
+                .map(|al| u64::from(al.points))
                 .sum();
-            if total > p.toe {
+            if total > u64::from(p.toe) {
                 return Err(Illegal::new(
                     "14.0",
                     format!("{} commits {total} points but has {}", a.piece, p.toe),
@@ -424,7 +424,8 @@ impl GameState {
 mod tests {
     use super::super::segment::test_support::at_sollum;
     use super::*;
-    use crate::movement::test_support::hex;
+    use crate::movement::test_support::{hex, pid};
+    use crate::order::Allocation;
 
     #[test]
     fn anti_armour_fire_never_climbs_an_escarpment() {
@@ -446,5 +447,36 @@ mod tests {
                 .check_anti_armour_hexside(&data, &hex("C4021"), &hex("C4020"))
                 .is_ok()
         );
+    }
+
+    #[test]
+    fn a_plot_whose_points_overflow_is_illegal_not_a_panic() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = at_sollum(&data);
+        let fire = |points| Fire {
+            piece: pid("unit:cw:4-rha"),
+            points,
+            target: pid("unit:it:viii-libyan-bn"),
+        };
+        let err = state
+            .check_barrage(&data, Side::Cw, &[fire(6), fire(u32::MAX - 5)])
+            .unwrap_err();
+        assert_eq!(err.case, "12.2x");
+        let huge = Allocation {
+            target: Some(hex("C4020")),
+            points: 1 << 31,
+        };
+        let err = state
+            .check_assignments(
+                &data,
+                Side::Cw,
+                &[Assignment {
+                    piece: pid("unit:cw:1-krrc"),
+                    anti_armour: vec![],
+                    close_assault: vec![huge.clone(), huge],
+                }],
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "14.0");
     }
 }
