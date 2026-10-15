@@ -6,6 +6,8 @@ Rust. Every ruling in the [`cna`](https://github.com/basmith7/cna) repo's
 chosen option per ruling. The rules data is read directly from `cna`, which
 is a git submodule at `vendor/cna`.
 
+New here? Read [`ARCHITECTURE.md`](ARCHITECTURE.md) to orient.
+
 On top of the core sit *probes*: small programs that measure how a ruling's
 options differ in play (expected losses, how often a case comes up) and
 write the result to `probes/<id>.json` for the `cna` decision board. See
