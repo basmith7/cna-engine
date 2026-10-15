@@ -11,6 +11,8 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: cargo run -p cna-probe -- check
+      - run: cargo test --manifest-path tools/archdoc/Cargo.toml
+      - run: cargo run --manifest-path tools/archdoc/Cargo.toml -- --check
       - run: cargo check -p cna-game --target wasm32-unknown-unknown
       - uses: taiki-e/install-action@v2
         with: { tool: wasm-pack@0.15.0 }
