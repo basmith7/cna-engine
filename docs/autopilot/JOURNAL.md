@@ -244,3 +244,9 @@ Done: #34 (slice 3) ready, gates green locally (Playwright 31/31 + 15/15 after r
 In flight: slice 5 Task 2 (per-piece accumulation and checks) not started.
 Next: merge #34 if CI is green (`gh pr merge 34 --merge`), merge main into #35, then Task 2: `Piece.breakdown` from `cna_rules::breakdown::step_points` at every step (move, react, retreat), a check at each stop, tank BARs from `weapon-systems.json`'s `bar`.
 Blocked: Mission 4 on Brian's review of PR #25; slice 4 on cna's calendar.
+
+## 2026-10-24 11:44 MST — autopilot/m5-slice-5-breakdown
+Done: #34 merged (04a4cf2). Slice 5 on #35: `breakdown` module (8d9141e), checks at each stop for tanks/SP guns with BAR and hot weather (4e0fde6), sandstorm shift (4bf76f3), wrecks kept per hex (8773cde), capture by a battalion (ebcba89). Golden re-pinned (dice moved; report unchanged).
+In flight: full Playwright on #35 (wasm at 0fd4419+breakdown checks); a fresh review of the slice 5 engine diff.
+Next: act on the review; then 21.41 (half left behind near the enemy), phase K towing and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; armoured cars/recce need a typed vehicle class from cna (name-only today).
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
