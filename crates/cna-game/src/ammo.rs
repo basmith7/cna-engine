@@ -106,6 +106,22 @@ impl GameState {
         plan
     }
 
+    /// What one counter would owe in `role` and whether nothing in range
+    /// can pay it, for the sealed options (32.21); (0, false) with the
+    /// module off.
+    pub(crate) fn ammo_quote(
+        &self,
+        data: &Data,
+        id: &PieceId,
+        role: Role,
+        phasing: bool,
+    ) -> (u32, bool) {
+        let plan = self.plan_ammo(data, std::slice::from_ref(id), role, phasing);
+        let paid: u32 = plan.payments.iter().map(|p| p.ammo).sum();
+        let short: u32 = plan.short.iter().map(|(_, owed)| owed).sum();
+        (paid + short, short > 0)
+    }
+
     /// Debits what `plan_ammo` chose.
     pub(crate) fn spend_ammo(&mut self, payments: Vec<AmmoPayment>, events: &mut Vec<Event>) {
         for pay in payments {
@@ -124,6 +140,7 @@ impl GameState {
 
 #[cfg(test)]
 mod tests {
+    use crate::combat::options::SealedOptions;
     use crate::combat::segment::test_support::at_sollum;
     use crate::data::Data;
     use crate::event::Event;
@@ -173,6 +190,46 @@ mod tests {
                 target: pid("unit:it:viii-libyan-bn"),
             }],
         }
+    }
+
+    /// The sealed options' ammunition quote for `piece`: (owed, short).
+    fn quoted(state: &GameState, data: &Data, side: Side, piece: &str) -> (u32, bool) {
+        match state.sealed_options(data, side).unwrap() {
+            SealedOptions::Barrage { firers } => {
+                let f = firers.iter().find(|f| f.piece == pid(piece)).unwrap();
+                (f.ammo, f.ammo_short)
+            }
+            SealedOptions::AssignForces { units, .. } => {
+                let u = units.iter().find(|u| u.piece == pid(piece)).unwrap();
+                (u.ammo, u.ammo_short)
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_barrage_options_quote_each_firer_s_ammunition() {
+        let data = graziani();
+        let (state, _) = sollum(&data, "C4021", 10);
+        assert_eq!(quoted(&state, &data, Side::Cw, "unit:cw:4-rha"), (4, false));
+        let (state, _) = sollum(&data, "C4021", 3);
+        assert_eq!(quoted(&state, &data, Side::Cw, "unit:cw:4-rha"), (4, true));
+        let (mut state, _) = sollum(&data, "C4021", 3);
+        state.modules = Modules::default();
+        assert_eq!(quoted(&state, &data, Side::Cw, "unit:cw:4-rha"), (0, false));
+    }
+
+    #[test]
+    fn the_assign_options_quote_what_an_assault_would_cost() {
+        let data = graziani();
+        let (state, _) = assigning(&data, "C4021", 1);
+        let (owed, short) = quoted(&state, &data, Side::Cw, "unit:cw:1-krrc");
+        assert!(owed > 1 && short, "{owed} {short}");
+        let (state, _) = assigning(&data, "C4021", 40);
+        assert_eq!(
+            quoted(&state, &data, Side::Cw, "unit:cw:1-krrc"),
+            (owed, false)
+        );
     }
 
     #[test]
