@@ -5,6 +5,7 @@
   // While something is pending its own panel holds the answers, Pass
   // included, so the controls stand down.
   import { sideName } from "./clock";
+  import { label } from "./counters";
   import type { PieceId, Side, View } from "./types";
 
   let {
@@ -22,7 +23,8 @@
         | { "designate-reserve": { pieces: PieceId[] } }
         | { "release-reserve": { pieces: PieceId[] } }
         | { "attach-motorisation": { piece: PieceId } }
-        | { "detach-motorisation": { piece: PieceId } },
+        | { "detach-motorisation": { piece: PieceId } }
+        | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } },
     ) => void;
   } = $props();
 
@@ -36,6 +38,10 @@
   const organise = $derived(c.phase === "organisation");
   const supply = $derived(ticked.find((id) => view.pieces[id]?.kind === "supply-unit" || view.pieces[id]?.kind === "dummy-supply-unit") ?? null);
   const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
+  // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
+  const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
+  let ammo = $state(0);
+  let fuel = $state(0);
 </script>
 
 {#if view.pending === null && view.to_act}
@@ -59,6 +65,13 @@
       {:else}
         <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
       {/if}
+      {#if loaded.length >= 2}
+        <span class="transfer" data-testid="transfer">
+          <input type="number" min="0" bind:value={ammo} aria-label="Ammunition to move" data-transfer-ammo />
+          <input type="number" min="0" bind:value={fuel} aria-label="Fuel to move" data-transfer-fuel />
+          <button type="button" data-order="transfer-load" onclick={() => onorder({ "transfer-load": { from: loaded[0], to: loaded[1], ammo, fuel } })}>Move ammo/fuel {label(view.pieces[loaded[0]]).short} → {label(view.pieces[loaded[1]]).short}</button>
+        </span>
+      {/if}
     {/if}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>
@@ -73,6 +86,10 @@
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-bottom: 0.6rem;
+  }
+  .transfer input {
+    width: 4rem;
+    font: 13px system-ui, sans-serif;
   }
   .hint {
     font: 12px system-ui, sans-serif;

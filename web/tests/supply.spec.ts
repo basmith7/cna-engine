@@ -93,3 +93,25 @@ test("phase C: attaching motorisation to a supply unit is the engine's call (32.
   await expect(page.getByTestId("toast")).toContainText("Illegal (32.31)");
   await expect(page.getByTestId("toast")).toContainText("needs 30 motorisation points and C4807 has 5");
 });
+
+test("phase C: two ticked supply units in one hex trade ammunition and fuel within the caps (32.1x)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  // C4321 holds supply:axis:4 and :5, each 10 ammunition and 40 fuel.
+  await clickHex(page, "C4321");
+  await page.locator('[data-unit="supply:axis:4"] input.tick').check();
+  await page.locator('[data-unit="supply:axis:5"] input.tick').check();
+  await controls.locator("[data-transfer-ammo]").fill("5");
+  await controls.locator("[data-transfer-fuel]").fill("20");
+  await controls.locator('[data-order="transfer-load"]').click();
+  // 40 + 20 fuel is the 60 cap: accepted.
+  await expect(page.getByTestId("log-entries").locator("li.event").last()).toContainText("5 ammunition and 20 fuel move from");
+  await expect(page.locator('[data-unit="supply:axis:5"] [data-testid="load"]')).toHaveText("ammo 15 · fuel 60");
+  await expect(page.locator('[data-unit="supply:axis:4"] [data-testid="load"]')).toHaveText("ammo 5 · fuel 20");
+  // One more fuel point would pass it: refused.
+  await controls.locator("[data-transfer-ammo]").fill("0");
+  await controls.locator("[data-transfer-fuel]").fill("1");
+  await controls.locator('[data-order="transfer-load"]').click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.1x)");
+});
