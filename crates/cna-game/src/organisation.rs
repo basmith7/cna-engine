@@ -744,4 +744,34 @@ mod tests {
         );
         assert_eq!(state.motorisation[&Side::Axis][&hex], before + 30);
     }
+
+    #[test]
+    fn a_supply_unit_may_not_move_into_a_hex_already_holding_three_32_1x() {
+        let data = graziani();
+        let (mut state, supply, _, order) = supply_and_escort(&data, 30);
+        let Order::Move { ref path, .. } = order else {
+            unreachable!()
+        };
+        let dest = path.last().unwrap().clone();
+        let others: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit && p.id != supply)
+            .take(3)
+            .map(|p| p.id.clone())
+            .collect();
+        for id in &others {
+            state.pieces.get_mut(id).unwrap().location = crate::piece::Location::Hex(dest.clone());
+        }
+        let major = data
+            .map
+            .hex(&dest)
+            .is_some_and(|h| h.terrain.name() == "major-city");
+        let result = state.apply(&data, Side::Axis, order);
+        if major {
+            assert!(result.is_ok());
+        } else {
+            assert_eq!(result.unwrap_err().case, "32.1x");
+        }
+    }
 }

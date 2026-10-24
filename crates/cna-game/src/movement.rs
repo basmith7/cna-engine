@@ -580,6 +580,22 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
+        // Supply stacking binds where the move ends (32.1x).
+        let supply = pieces
+            .iter()
+            .filter(|id| {
+                matches!(
+                    self.pieces[*id].kind,
+                    PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+                )
+            })
+            .count();
+        if supply > 0
+            && let Some(end) = path.last()
+            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, supply)
+        {
+            return Err(e);
+        }
         if shift {
             // A Reserve I unit shifts one hex a segment, free, never into
             // an enemy ZOC (18.2x).
