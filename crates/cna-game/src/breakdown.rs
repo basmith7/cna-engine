@@ -3,8 +3,10 @@
 //! kind of move, until the OpStage ends (21.2x).
 
 use crate::data::Data;
+use crate::event::Event;
 use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
+use crate::state::Weather;
 use cna_data::map::HexId;
 use cna_rules::movement::Step;
 
@@ -45,6 +47,75 @@ impl GameState {
     }
 }
 
+impl GameState {
+    /// The pieces of a move that has stopped check for breakdown (21.2x):
+    /// each over 3 points in a higher column than its last check rolls
+    /// once per vehicle weapon system, the column shifted by the model's
+    /// BAR and hot weather (21.3x); the points lost are removed. Tanks,
+    /// SP guns and self-propelled anti-tank guns only: armoured cars,
+    /// recce and trucks are not yet told apart in a unit's TOE.
+    pub(crate) fn check_breakdown(
+        &mut self,
+        data: &Data,
+        pieces: &[PieceId],
+        events: &mut Vec<Event>,
+    ) {
+        use cna_rules::breakdown::{column, losses, must_check, percent, weather_shift};
+        if !self.modules.breakdown {
+            return;
+        }
+        let t = &data.breakdown;
+        let hot = matches!(self.weather, Weather::Hot);
+        for id in pieces {
+            let p = &self.pieces[id];
+            if p.hex().is_none() {
+                continue;
+            }
+            let points = f64::from(p.breakdown_halves) / 2.0;
+            let last = p.breakdown_checked.map(usize::from);
+            if !must_check(t, points, last) {
+                continue;
+            }
+            let now = t.band_index(points.ceil() as u32).expect("checked") as u8;
+            let groups: Vec<(String, u32, i32)> = p
+                .weapons
+                .iter()
+                .filter(|w| w.points > 0)
+                .filter_map(|w| {
+                    Some((
+                        w.weapon.clone(),
+                        w.points,
+                        data.weapons.resolve(p.nation?, &w.weapon)?.bar?,
+                    ))
+                })
+                .collect();
+            self.pieces.get_mut(id).expect("listed").breakdown_checked = Some(now);
+            let mut lost = 0;
+            for (weapon, count, bar) in groups {
+                let Some(col) = column(t, points, bar + weather_shift(hot, false)) else {
+                    continue;
+                };
+                let reading = self.rng.d6() * 10 + self.rng.d6();
+                let pct = percent(t, col, reading);
+                let n = losses(count, pct);
+                events.push(Event::BrokeDown {
+                    piece: id.clone(),
+                    weapon: weapon.clone(),
+                    reading,
+                    percent: pct,
+                    points: n,
+                });
+                for _ in 0..n {
+                    if self.take_loss_entry(id, Some(&weapon)) {
+                        lost += 1;
+                    }
+                }
+            }
+            self.note_losses(id, lost, events);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::data::Data;
@@ -72,6 +143,53 @@ mod tests {
             state.apply(data, side, Order::Pass).unwrap();
         }
         state
+    }
+
+    #[test]
+    fn a_tank_battalion_that_stops_past_seventy_points_loses_tanks_21_3x() {
+        use crate::event::Event;
+        use crate::piece::PieceId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = movement(&data, Modules::ALL);
+        // L3s (BAR 2R) at Bardia, already at 100 points this stage: 71+
+        // reads past every escape.
+        let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        state.pieces.get_mut(&tanks).unwrap().breakdown_halves = 200;
+        let at = state.pieces[&tanks].hex().unwrap().clone();
+        let toe = state.pieces[&tanks].toe;
+        let mut moved = None;
+        for n in data.map.neighbours(&at) {
+            let mut s = state.clone();
+            let order = Order::Move {
+                pieces: vec![tanks.clone()],
+                path: vec![n],
+                assault: false,
+                fuel_from: None,
+            };
+            if let Ok(events) = s.apply(&data, Side::Axis, order) {
+                moved = Some((s, events));
+                break;
+            }
+        }
+        let (s, events) = moved.expect("the L3s can step somewhere");
+        let broke: u32 = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::BrokeDown {
+                    piece,
+                    percent,
+                    points,
+                    ..
+                } if *piece == tanks => {
+                    assert!(*percent > 0);
+                    Some(*points)
+                }
+                _ => None,
+            })
+            .sum();
+        assert!(broke > 0);
+        assert_eq!(s.pieces[&tanks].toe, toe - broke);
+        assert_eq!(s.pieces[&tanks].breakdown_checked, Some(8));
     }
 
     #[test]

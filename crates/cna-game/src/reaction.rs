@@ -159,6 +159,8 @@ impl GameState {
             }
             at = to.clone();
         }
+        // It stops: a breakdown check (21.2x).
+        self.check_breakdown(data, pieces, &mut events);
         // Its new hex is a possible ZOC source the phasing player has not
         // been told about.
         self.zoc.remove(&at);

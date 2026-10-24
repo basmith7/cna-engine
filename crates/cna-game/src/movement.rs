@@ -715,6 +715,9 @@ impl GameState {
                 }
             }
         }
+        // The stack stops, for good or for an answer: a breakdown check
+        // (21.2x).
+        self.check_breakdown(data, pieces, &mut events);
         if at != from {
             self.moved.extend(pieces.iter().cloned());
             self.release_contact_around(data, &from, player);

@@ -223,6 +223,15 @@ pub enum Event {
     SupplyDestroyed {
         piece: PieceId,
     },
+    /// A breakdown check (21.3x): `points` of `weapon` broke down on a
+    /// reading of `reading` at `percent` %.
+    BrokeDown {
+        piece: PieceId,
+        weapon: String,
+        reading: u8,
+        percent: u32,
+        points: u32,
+    },
     /// Supply units ran along the railway (8.7x, 32.3x).
     Railed {
         pieces: Vec<PieceId>,

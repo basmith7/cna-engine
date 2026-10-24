@@ -160,6 +160,7 @@ impl GameState {
             p.fuelled = false;
             p.escorted = false;
             p.breakdown_halves = 0;
+            p.breakdown_checked = None;
             p.fuelled_over = false;
             p.engaged = false;
         }

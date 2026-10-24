@@ -118,6 +118,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
   if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
   if ("motorisation-detached" in e) return `${name(e["motorisation-detached"].piece)} gives up its ${e["motorisation-detached"].points} motorisation points.`;
+  if ("broke-down" in e) {
+    const d = e["broke-down"];
+    return `${name(d.piece)} breakdown check, ${d.weapon}: ${d.reading} → ${d.percent} %, ${d.points} broken down.`;
+  }
   if ("railed" in e) {
     const d = e.railed;
     return `${d.pieces.map(name).join(", ")} by rail ${d.from} → ${d.to}.`;

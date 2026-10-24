@@ -2553,7 +2553,8 @@
       },
       "contact": false,
       "engaged": false,
-      "breakdown_halves": 8
+      "breakdown_halves": 8,
+      "breakdown_checked": 1
     },
     "unit:cw:4th-armored-bde-hq": {
       "id": "unit:cw:4th-armored-bde-hq",

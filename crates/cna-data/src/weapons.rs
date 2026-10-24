@@ -41,6 +41,10 @@ pub struct WeaponRow {
     pub close_assault_offence: Option<Rating>,
     pub close_assault_defence: Option<Rating>,
     pub before: Option<Before>,
+    /// The breakdown adjustment rating (21.1x), columns right (positive)
+    /// or left; none for what never breaks down (towed guns).
+    #[serde(default, deserialize_with = "bar")]
+    pub bar: Option<i32>,
 }
 
 impl WeaponRow {
@@ -64,6 +68,30 @@ struct Table {
 pub struct WeaponSystems {
     rows: BTreeMap<String, WeaponRow>,
     oa_names: BTreeMap<Nation, BTreeMap<String, String>>,
+}
+
+/// A BAR as printed: `0`, `"1R"`, `"2L"`.
+fn bar<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<i32>, D::Error> {
+    use serde::de::Error;
+    match Option::<serde_json::Value>::deserialize(d)? {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::Number(n)) => n
+            .as_i64()
+            .map(|n| Some(n as i32))
+            .ok_or_else(|| D::Error::custom(format!("BAR {n}"))),
+        Some(serde_json::Value::String(s)) => {
+            let (n, dir) = s.split_at(s.len() - 1);
+            let n: i32 = n
+                .parse()
+                .map_err(|_| D::Error::custom(format!("BAR {s:?}")))?;
+            match dir {
+                "R" => Ok(Some(n)),
+                "L" => Ok(Some(-n)),
+                _ => Err(D::Error::custom(format!("BAR {s:?}"))),
+            }
+        }
+        Some(v) => Err(D::Error::custom(format!("BAR {v}"))),
+    }
 }
 
 impl WeaponSystems {

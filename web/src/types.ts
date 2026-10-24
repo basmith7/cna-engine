@@ -272,6 +272,7 @@ export type Event =
   | { "motorisation-detached": { piece: PieceId; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
+  | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }

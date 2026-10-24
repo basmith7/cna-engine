@@ -51,6 +51,7 @@ pub struct Data {
     pub morale: MoraleModifier,
     pub size_shifts: AssaultSizeShifts,
     pub prisoners: Prisoners,
+    pub breakdown: cna_data::breakdown::Breakdown,
 }
 
 impl Data {
@@ -82,6 +83,7 @@ impl Data {
             morale: MoraleModifier::load_from(src)?,
             size_shifts: AssaultSizeShifts::load_from(src)?,
             prisoners: Prisoners::load_from(src)?,
+            breakdown: cna_data::breakdown::Breakdown::load_from(src)?,
         })
     }
 
