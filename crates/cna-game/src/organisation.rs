@@ -125,11 +125,33 @@ impl GameState {
             });
             self.scuttled.insert(id.clone());
             if value + bonus <= 3 {
+                self.release_motorisation(&id);
                 self.pieces.get_mut(&id).expect("listed").location = Location::Eliminated;
                 events.push(Event::SupplyDestroyed { piece: id });
             }
         }
         Ok(events)
+    }
+
+    /// A supply unit about to leave the map gives its motorisation points
+    /// back to its hex's pool: points are lost only with a unit they
+    /// carry (32.5x), and the dump is not one.
+    pub(crate) fn release_motorisation(&mut self, id: &PieceId) {
+        let p = &self.pieces[id];
+        let (Some(hex), points, side) = (p.hex().map(|h| h.to_string()), p.motorised, p.side)
+        else {
+            return;
+        };
+        if points == 0 {
+            return;
+        }
+        *self
+            .motorisation
+            .entry(side)
+            .or_default()
+            .entry(hex)
+            .or_default() += points;
+        self.pieces.get_mut(id).expect("checked").motorised = 0;
     }
 
     /// `Order::AttachMotorisation` (32.31).
@@ -682,5 +704,44 @@ mod tests {
             .apply(&data, Side::Axis, Order::DestroySupply { hex })
             .unwrap_err();
         assert_eq!(err.case, "32.1x");
+    }
+
+    #[test]
+    fn a_supply_unit_emptied_by_a_transfer_gives_its_points_back_to_the_hex_32_5x() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        let ids: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side == Side::Axis && p.kind == PieceKind::SupplyUnit && p.hex().is_some()
+            })
+            .take(2)
+            .map(|p| p.id.clone())
+            .collect();
+        let here = state.pieces[&ids[0]].location.clone();
+        state.pieces.get_mut(&ids[1]).unwrap().location = here;
+        state.pieces.get_mut(&ids[0]).unwrap().load = Some(Load { ammo: 5, fuel: 5 });
+        state.pieces.get_mut(&ids[0]).unwrap().motorised = 30;
+        state.pieces.get_mut(&ids[1]).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+        let hex = state.pieces[&ids[0]].hex().unwrap().to_string();
+        let before = pool(&state, &ids[0]);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::TransferLoad {
+                    from: ids[0].clone(),
+                    to: ids[1].clone(),
+                    ammo: 5,
+                    fuel: 5,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.pieces[&ids[0]].location,
+            crate::piece::Location::Eliminated
+        );
+        assert_eq!(state.motorisation[&Side::Axis][&hex], before + 30);
     }
 }

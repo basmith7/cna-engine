@@ -48,8 +48,16 @@ impl GameState {
             .iter()
             .map(|id| cna_rules::stacking::points(&data.stacking, self.pieces[id].equivalent))
             .sum();
+        // Supply units riding along do not slow the pinner (32.5x's CPA 15
+        // is the trucks', not the stack's).
         let pinner_cpa = mover
             .iter()
+            .filter(|id| {
+                !matches!(
+                    self.pieces[*id].kind,
+                    PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+                )
+            })
             .filter_map(|id| self.cpa(&self.pieces[id]))
             .min()
             .unwrap_or(0);

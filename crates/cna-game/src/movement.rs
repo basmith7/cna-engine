@@ -493,7 +493,9 @@ impl GameState {
             p.cp_enemy_half += cost;
         }
         let dp = p.cp_spent.saturating_sub(cpa).floor() - before;
-        if dp > 0 {
+        // Supply units have no cohesion to lose (32.1x: no combat value).
+        let supply = matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
+        if dp > 0 && !supply {
             p.cohesion.earn_dp(dp);
             events.push(Event::Disorganised {
                 piece: id.clone(),

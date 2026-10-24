@@ -202,8 +202,9 @@ impl GameState {
     /// A supply unit with neither ammunition nor fuel left is removed
     /// (32.1x).
     pub(crate) fn retire_if_empty(&mut self, id: &PieceId, events: &mut Vec<Event>) {
-        let p = self.pieces.get_mut(id).expect("checked");
-        if p.load == Some(Load { ammo: 0, fuel: 0 }) {
+        if self.pieces[id].load == Some(Load { ammo: 0, fuel: 0 }) {
+            self.release_motorisation(id);
+            let p = self.pieces.get_mut(id).expect("checked");
             p.location = Location::Eliminated;
             events.push(Event::SupplyUnitSpent { piece: id.clone() });
         }

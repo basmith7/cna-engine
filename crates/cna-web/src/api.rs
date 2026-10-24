@@ -132,6 +132,7 @@ impl Game {
                 if let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() {
                     o.remove("load");
                     o.remove("motorised");
+                    o.remove("escorted");
                 }
             }
         }
