@@ -26,9 +26,11 @@ phase J; a side may destroy its own supply; captured supply goes over
 to the captor. The air lift moved out (cna has no HQ echelons).
 **Slice 4** (arrivals) is planned but blocked on a Game-Turn calendar
 from cna, so **slice 5** (breakdown) went first: draft PR #35. With the new
-`breakdown` module, motorised units collect breakdown points as they
-move and a unit that stops checks its tanks and SP guns; markers,
-capture, towing and repair are next.
+`breakdown` module, motorised units collect breakdown points in moves,
+reactions and retreats; a unit that stops checks its tanks and SP guns
+(BAR per model, hot and sandstorm shifts); broken-down vehicles stay in
+the hex and a battalion moving next to the enemy's takes them. Towing,
+field repair (phase K) and the UI are next.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
