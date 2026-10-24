@@ -201,6 +201,25 @@ impl Game {
         })
     }
 
+    /// The supply units that could pay the fuel of a move by `pieces`
+    /// (`GameState::fuel_sources`), as a JSON array of piece ids: the
+    /// choices for the order's `fuel_from`. Empty unless `side` is to
+    /// act and owns every piece, so no one learns where the other
+    /// side's supply stands (3.61).
+    pub fn fuel_sources(&self, side: &str, pieces: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
+        let own = self.state.to_act() == Some(side)
+            && pieces
+                .iter()
+                .all(|id| self.state.pieces.get(id).is_some_and(|p| p.side == side));
+        Ok(if own {
+            json!(self.state.fuel_sources(data(), &pieces))
+        } else {
+            json!([])
+        })
+    }
+
     fn side(side: &str) -> Result<Side> {
         serde_json::from_value(Value::String(side.to_owned()))
             .with_context(|| format!("side {side:?}"))
@@ -425,9 +444,21 @@ mod tests {
                 "dp": 0,
                 "ends_in_zoc": false,
                 "may_be_interrupted": false,
-                "short": 0
+                "short": 0,
+                "fuel": 1
             })
         );
+        // The fuel quoted is the fuel the order burns.
+        let mut played = Game::load(&game.save().unwrap()).unwrap();
+        let order = serde_json::to_string(&log.orders[58].order).unwrap();
+        let events = played.apply("axis", &order).unwrap();
+        let burnt: u64 = events["ok"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|e| e["fuel-spent"]["fuel"].as_u64())
+            .sum();
+        assert_eq!(burnt, 1, "{events}");
         // Not the Commonwealth's turn; a supply unit cannot move.
         let r = game
             .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
@@ -437,6 +468,30 @@ mod tests {
             .reachable("axis", r#"["supply:axis:1"]"#, "move")
             .unwrap();
         assert_eq!(r["illegal"]["case"], "32.x", "{r}");
+    }
+
+    #[test]
+    fn fuel_sources_are_the_side_to_act_s_own_only() {
+        let (game, _) = golden_before(58);
+        let tank = game
+            .state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && !game
+                        .state
+                        .fuel_sources(data(), std::slice::from_ref(&p.id))
+                        .is_empty()
+            })
+            .expect("an Axis fuel burner near supply")
+            .id
+            .clone();
+        let pieces = serde_json::to_string(&[&tank]).unwrap();
+        let mine = game.fuel_sources("axis", &pieces).unwrap();
+        assert!(!mine.as_array().unwrap().is_empty(), "{mine}");
+        // The Commonwealth may not ask after the Axis' supply (3.61).
+        assert_eq!(game.fuel_sources("cw", &pieces).unwrap(), json!([]));
     }
 
     #[test]

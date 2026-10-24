@@ -61,6 +61,10 @@ pub struct Reach {
     /// must-attack retreat.
     #[serde(default)]
     pub short: u32,
+    /// The fuel the move owes under abstract supply, the whole stack's
+    /// (32.22); 0 with the module off.
+    #[serde(default)]
+    pub fuel: u32,
 }
 
 /// A settled hex of the search.
@@ -353,6 +357,7 @@ impl GameState {
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
                     short: 0,
+                    fuel: self.fuel_owed(data, pieces, cp),
                 }
             })
             .collect();

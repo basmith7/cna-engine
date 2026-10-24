@@ -68,6 +68,47 @@ impl GameState {
         (each * n, first, over)
     }
 
+    /// What a move of `pieces` costing `total` CP owes in fuel, all
+    /// told; 0 with the module off.
+    pub(crate) fn fuel_owed(&self, data: &Data, pieces: &[PieceId], total: Cp) -> u32 {
+        if !self.modules.abstract_supply {
+            return 0;
+        }
+        pieces
+            .iter()
+            .map(|id| self.fuel_due(data, &self.pieces[id], total).0)
+            .sum()
+    }
+
+    /// The supply units with fuel that every fuel-burning piece of
+    /// `pieces` may draw on (32.17), sorted by id: the choices for a
+    /// move's `fuel_from`. Empty with the module off or when nothing in
+    /// the stack burns fuel.
+    pub fn fuel_sources(&self, data: &Data, pieces: &[PieceId]) -> Vec<PieceId> {
+        if !self.modules.abstract_supply {
+            return Vec::new();
+        }
+        let mut sources: Option<Vec<PieceId>> = None;
+        for id in pieces {
+            let Some(p) = self.pieces.get(id) else {
+                continue;
+            };
+            if self.fuel_class(data, p) == FuelClass::Other {
+                continue;
+            }
+            let here = self.supply_in_range(data, id);
+            sources = Some(match sources {
+                None => here,
+                Some(s) => s.into_iter().filter(|q| here.contains(q)).collect(),
+            });
+        }
+        sources
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|q| self.pieces[q].load.is_some_and(|l| l.fuel > 0))
+            .collect()
+    }
+
     /// Chooses the supply unit that pays each fuel-using mover, or
     /// refuses with 32.22 when something owed cannot be paid. Nothing is
     /// changed. `source` is the player's choice for every payer, else the
@@ -176,6 +217,7 @@ mod tests {
     use crate::movement::test_support::moving;
     use crate::order::Order;
     use crate::piece::{Load, Location, PieceId, PieceKind};
+    use crate::reach::Purpose;
     use crate::state::{GameState, Modules};
     use cna_data::characteristics::Equivalent;
     use cna_data::cp::Cp;
@@ -289,6 +331,60 @@ mod tests {
         let events = state.apply(&data, Side::Axis, back).unwrap();
         assert!(!events.iter().any(|e| matches!(e, Event::FuelSpent { .. })));
         assert_eq!(state.pieces[&ids[0]].load.unwrap().fuel, 58);
+    }
+
+    #[test]
+    fn each_reach_says_the_fuel_its_move_owes() {
+        let data = graziani();
+        let mut state = game(&data);
+        let (tank, _) = tank_and_move(&data, &state);
+        let here = state.pieces[&tank].hex().unwrap().clone();
+        supply_at(&mut state, &here, 60);
+        let reaches = state
+            .reachable(
+                &data,
+                Side::Axis,
+                std::slice::from_ref(&tank),
+                Purpose::Move,
+            )
+            .unwrap();
+        let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
+        assert!(!reaches.is_empty());
+        for r in &reaches {
+            // 2 for the stage's first move, 2 more past the CPA (32.22).
+            let want = if r.cp > cpa { 4 } else { 2 };
+            assert_eq!(r.fuel, want, "{r:?}");
+        }
+        let mut off = state.clone();
+        off.modules = Modules::default();
+        let reaches = off
+            .reachable(
+                &data,
+                Side::Axis,
+                std::slice::from_ref(&tank),
+                Purpose::Move,
+            )
+            .unwrap();
+        assert!(reaches.iter().all(|r| r.fuel == 0));
+    }
+
+    #[test]
+    fn fuel_sources_are_the_supply_units_in_range_with_fuel() {
+        let data = graziani();
+        let mut state = game(&data);
+        let (tank, _) = tank_and_move(&data, &state);
+        let here = state.pieces[&tank].hex().unwrap().clone();
+        let ids = supply_at(&mut state, &here, 60);
+        assert_eq!(
+            state.fuel_sources(&data, std::slice::from_ref(&tank)),
+            vec![ids[0].clone()]
+        );
+        state.pieces.get_mut(&ids[0]).unwrap().load = Some(Load { ammo: 10, fuel: 0 });
+        assert!(
+            state
+                .fuel_sources(&data, std::slice::from_ref(&tank))
+                .is_empty()
+        );
     }
 
     #[test]
