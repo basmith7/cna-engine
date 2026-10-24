@@ -50,7 +50,8 @@ broken-down vehicles.
 
 - [x] Broken-down points kept per hex and side, by weapon system (`GameState.broken_down`): a map of wrecks rather than marker pieces, so no piece-kind match changes.
 - [x] Capture (21.5x) by a battalion or brigade moving next to unguarded enemy wrecks out of enemy ZOC; they change sides where they stand.
-- [ ] 21.41's half left in the start hex near the enemy; capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22).
+- [x] 21.41: a move begun next to an enemy brigade-equivalent, or two hexes from one through an open hex (no friendly unit, no friendly ZOC, not sea), leaves at least half of what breaks down in its start hex.
+- [ ] Capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22); wrecks in the UI.
 
 ### Task 4: UI, golden, docs
 

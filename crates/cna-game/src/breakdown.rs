@@ -77,6 +77,36 @@ pub(crate) fn mostly_in_sandstorm<'a>(
 }
 
 impl GameState {
+    /// Whether a move from `start` began within two hexes of an enemy
+    /// combat unit bigger than a battalion with nothing between (21.41):
+    /// adjacent, or two away through a hex that holds no friendly unit,
+    /// lies in no friendly ZOC, and could be entered (not sea).
+    fn began_near_the_enemy(&self, data: &Data, start: &HexId, side: Side) -> bool {
+        use cna_data::characteristics::Equivalent;
+        let big = |h: &HexId| {
+            self.pieces.values().any(|p| {
+                p.side != side
+                    && p.kind == PieceKind::Combat
+                    && p.hex() == Some(h)
+                    && p.equivalent == Some(Equivalent::Brigade)
+            })
+        };
+        let open = |h: &HexId| {
+            self.holder(h) != Some(side)
+                && self.zoc_at(data, h, side.other()) == crate::zoc::Zoc::Clear
+                && data
+                    .map
+                    .hex(h)
+                    .is_some_and(|x| x.terrain != cna_data::map::Terrain::Sea)
+        };
+        let first = data.map.neighbours(start);
+        first.iter().any(big)
+            || first
+                .iter()
+                .filter(|h| open(h))
+                .any(|h| data.map.neighbours(h).iter().any(big))
+    }
+
     /// A battalion or bigger of `pieces` now at `at` captures the enemy's
     /// broken-down vehicles in `at` and the hexes next to it (21.5x),
     /// unless enemy combat units or HQs stand with them or an enemy ZOC
@@ -149,6 +179,7 @@ impl GameState {
         data: &Data,
         pieces: &[PieceId],
         storm: bool,
+        start: &HexId,
         events: &mut Vec<Event>,
     ) {
         use cna_rules::breakdown::{column, losses, must_check, percent, weather_shift};
@@ -181,7 +212,9 @@ impl GameState {
                     groups.entry(bar).or_default().push(w.weapon.clone());
                 }
             }
+            let side = p.side;
             self.pieces.get_mut(id).expect("listed").breakdown_checked = Some(now);
+            let near = self.began_near_the_enemy(data, start, side);
             let mut lost = 0;
             for (bar, models) in groups {
                 let Some(col) = column(t, points, bar + weather_shift(hot, storm)) else {
@@ -196,6 +229,9 @@ impl GameState {
                 let reading = self.rng.d6() * 10 + self.rng.d6();
                 let pct = percent(t, col, reading);
                 let n = losses(count, pct);
+                // Near the enemy, at least half stays where the move
+                // began (21.41).
+                let behind = if near { n.div_ceil(2) } else { 0 };
                 events.push(Event::BrokeDown {
                     piece: id.clone(),
                     weapon: models.join(", "),
@@ -203,7 +239,7 @@ impl GameState {
                     percent: pct,
                     points: n,
                 });
-                for _ in 0..n {
+                for i in 0..n {
                     let Some(weapon) = self.pieces[id]
                         .weapons
                         .iter()
@@ -217,10 +253,12 @@ impl GameState {
                         break;
                     }
                     lost += 1;
-                    // They stay where the unit stopped (21.41).
+                    // They stay where the unit stopped, or where it began
+                    // (21.41).
                     let p = &self.pieces[id];
                     let (side, nation) = (p.side, p.nation);
-                    let Some(at) = p.hex().cloned() else { break };
+                    let Some(stop) = p.hex().cloned() else { break };
+                    let at = if i < behind { start.clone() } else { stop };
                     let wrecks = self.broken_down.entry(at).or_default();
                     match wrecks
                         .iter_mut()
@@ -268,6 +306,62 @@ mod tests {
             state.apply(data, side, Order::Pass).unwrap();
         }
         state
+    }
+
+    #[test]
+    fn near_a_big_enemy_unit_half_the_breakdown_stays_where_the_move_began_21_41() {
+        use crate::piece::{Location, PieceId};
+        use cna_data::characteristics::Equivalent;
+        use cna_data::map::HexId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = movement(&data, Modules::ALL);
+        let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        state.pieces.get_mut(&tanks).unwrap().breakdown_halves = 200;
+        let start = state.pieces[&tanks].hex().unwrap().clone();
+        // Graziani's Commonwealth has no brigade-equivalent: make one.
+        let brigade = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::Combat && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&brigade).unwrap().equivalent = Some(Equivalent::Brigade);
+        // The brigade next door, the tanks stopped one hex further on
+        // (placed directly: a real move from there would first wait on
+        // the brigade's ZOC declaration).
+        let mut hexes = data
+            .map
+            .neighbours(&start)
+            .into_iter()
+            .filter(|h| state.holder(h).is_none());
+        let (next, stop) = (hexes.next().unwrap(), hexes.next().unwrap());
+        state.pieces.get_mut(&brigade).unwrap().location = Location::Hex(next);
+        assert!(state.began_near_the_enemy(&data, &start, Side::Axis));
+        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(stop.clone());
+        let mut events = Vec::new();
+        state.check_breakdown(
+            &data,
+            std::slice::from_ref(&tanks),
+            false,
+            &start,
+            &mut events,
+        );
+        let lost = state
+            .broken_down
+            .values()
+            .flatten()
+            .map(|w| w.points)
+            .sum::<u32>();
+        assert!(lost > 0);
+        let at = |h: &HexId| {
+            state
+                .broken_down
+                .get(h)
+                .map_or(0, |v| v.iter().map(|w| w.points).sum::<u32>())
+        };
+        assert_eq!(at(&start), lost.div_ceil(2));
+        assert_eq!(at(&stop), lost - lost.div_ceil(2));
     }
 
     #[test]

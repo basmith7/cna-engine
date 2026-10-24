@@ -97,7 +97,7 @@ impl GameState {
             at = to;
         }
         // It stops: a breakdown check (21.2x).
-        self.check_breakdown(data, pieces, storm, &mut events);
+        self.check_breakdown(data, pieces, storm, &from, &mut events);
         if at != from {
             self.release_contact_around(data, &from, player);
         }
@@ -321,7 +321,7 @@ impl GameState {
                 }
                 at = to;
             }
-            self.check_breakdown(data, &pieces, storm, &mut events);
+            self.check_breakdown(data, &pieces, storm, &start, &mut events);
             if at != start {
                 self.release_contact_around(data, &start, side);
             }
