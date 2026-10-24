@@ -415,7 +415,7 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
-          <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
+          <PhaseControls {view} {ticked} {hex} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />

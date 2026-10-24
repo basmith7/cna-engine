@@ -115,3 +115,14 @@ test("phase C: two ticked supply units in one hex trade ammunition and fuel with
   await controls.locator('[data-order="transfer-load"]').click();
   await expect(page.getByTestId("toast")).toContainText("Illegal (32.1x)");
 });
+
+test("the movement segment: a side destroys its own supply in a hex before moving, one die each (32.1x)", async ({ page }) => {
+  await toMovement(page);
+  await clickHex(page, "C4321");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="destroy-supply"]').click();
+  // C4321 holds supply:axis:4 and :5: two dice.
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "Die for destroy supply" })).toHaveCount(2);
+  const left = await page.evaluate(() => ["supply:axis:4", "supply:axis:5"].filter((id) => window.__cna.view().pieces[id].location !== "eliminated").length);
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "destroyed by its own side." })).toHaveCount(2 - left);
+});

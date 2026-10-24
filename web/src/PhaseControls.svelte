@@ -6,15 +6,18 @@
   // included, so the controls stand down.
   import { sideName } from "./clock";
   import { label } from "./counters";
-  import type { PieceId, Side, View } from "./types";
+  import type { HexId, PieceId, Side, View } from "./types";
 
   let {
     view,
     ticked,
+    hex = null,
     onorder,
   }: {
     view: View;
     ticked: PieceId[];
+    /** The selected hex, for orders about a whole hex. */
+    hex?: HexId | null;
     onorder: (
       o:
         | "end-segment"
@@ -24,7 +27,8 @@
         | { "release-reserve": { pieces: PieceId[] } }
         | { "attach-motorisation": { piece: PieceId } }
         | { "detach-motorisation": { piece: PieceId } }
-        | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } },
+        | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+        | { "destroy-supply": { hex: HexId } },
     ) => void;
   } = $props();
 
@@ -40,6 +44,12 @@
   const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
   // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
   const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
+  // The movement segment: the selected hex holds the side to act's supply units, which it may destroy before moving anything (32.1x).
+  const scuttle = $derived(
+    c.phase === "movement-combat" && c.segment === "movement" && view.moved.length === 0 && hex !== null
+      ? Object.values(view.pieces).some((p) => p.side === view.to_act && (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex)
+      : false,
+  );
   let ammo = $state(0);
   let fuel = $state(0);
 </script>
@@ -72,6 +82,9 @@
           <button type="button" data-order="transfer-load" onclick={() => onorder({ "transfer-load": { from: loaded[0], to: loaded[1], ammo, fuel } })}>Move ammo/fuel {label(view.pieces[loaded[0]]).short} → {label(view.pieces[loaded[1]]).short}</button>
         </span>
       {/if}
+    {/if}
+    {#if scuttle && hex}
+      <button type="button" data-order="destroy-supply" onclick={() => onorder({ "destroy-supply": { hex } })}>Destroy supply at {hex}</button>
     {/if}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>
