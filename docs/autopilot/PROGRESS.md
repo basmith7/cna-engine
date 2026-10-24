@@ -137,6 +137,17 @@ the bullet once it lands and `vendor/cna` is bumped.
   Needed: points per unit (or per stacking point / TOE point) as data or
   a ruling for the abstract game. Blocks motorising infantry in Mission 5
   slice 3 (PR #34), not the rest of it.
+- **HQ echelons as data, for the air lift (32.3x).** The air lift goes
+  only to a hex holding a friendly *division or brigade HQ (not a battle
+  group)*, and not past the farthest hex row held by a friendly
+  *division, shell or full*. The OA data has no echelon: an HQ is a unit
+  with a parent or without one, and the only clue is its name ("7th
+  Armored Div HQ", "Polish Brigade HQ", "Selby Force/The Matruh
+  Garrison"). Wanted: an `echelon` on each HQ (`division`, `brigade`,
+  `battle-group`, …) and a ruling on what "held by a division, shell or
+  full" means on the map (its HQ's hex? any hex of its units?). Blocks
+  the air lift in Mission 5 (moved out of slice 3); §20 organisation
+  will want the same.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
