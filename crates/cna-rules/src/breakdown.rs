@@ -1,7 +1,58 @@
 //! Breakdown checks (SPI 21.2x, 21.3x): which column a group of vehicles
 //! reads, what one reading breaks, and when a stopped unit must check.
 
+use crate::movement::{Along, Step, along};
 pub use cna_data::breakdown::Breakdown;
+use cna_data::map::{HexsideFeature, Terrain as Fill};
+use cna_data::terrain::{Breakdown as Value, Terrain};
+
+/// A chart row's breakdown points; none (`none`, or no figure) is 0.
+fn value(chart: &Terrain, kind: &str, name: &str) -> f64 {
+    match chart.row(kind, name).and_then(|r| r.breakdown.as_ref()) {
+        Some(Value::Points(p)) => *p,
+        _ => 0.0,
+    }
+}
+
+/// The breakdown points one step collects (21.2x): the hex entered, by
+/// road at the road's figure (in a rainstorm a road is a track, 21.37),
+/// by track at half the hex's, plus the hexside crossed. As with CP
+/// (8.33), a road ignores hexside features and a track halves them;
+/// swamp, entered only by road or railroad, takes the road's figure
+/// (R-117).
+pub fn step_points(chart: &Terrain, step: &Step) -> f64 {
+    let mode = along(step.hexside, step.weather);
+    let to = step.to.terrain;
+    let hex = match mode {
+        Along::Road => value(chart, "hex", "road"),
+        _ if to == Fill::Swamp => value(chart, "hex", "road"),
+        Along::Track => value(chart, "hex", to.name()) / 2.0,
+        Along::Country => value(chart, "hex", to.name()),
+    };
+    let side: f64 = match (mode, step.hexside) {
+        (Along::Road, _) | (_, None) => 0.0,
+        (_, Some(hs)) => {
+            hs.features
+                .iter()
+                .map(|f| match f {
+                    HexsideFeature::Ridge => value(chart, "hexside", "ridge"),
+                    HexsideFeature::Slope if step.climbs => value(chart, "hexside", "up-slope"),
+                    HexsideFeature::Slope => value(chart, "hexside", "down-slope"),
+                    HexsideFeature::Escarpment if step.climbs => {
+                        value(chart, "hexside", "up-escarpment")
+                    }
+                    HexsideFeature::Escarpment => value(chart, "hexside", "down-escarpment"),
+                    HexsideFeature::Wadi => value(chart, "hexside", "wadi"),
+                    HexsideFeature::MajorRiver => value(chart, "hexside", "major-river"),
+                    HexsideFeature::MinorRiver => value(chart, "hexside", "minor-river"),
+                    _ => 0.0,
+                })
+                .sum::<f64>()
+                * if mode == Along::Track { 0.5 } else { 1.0 }
+        }
+    };
+    hex + side
+}
 
 /// Weather's shift on a check (21.37): hot, one column right; a
 /// sandstorm, one right when at least half the move's CP was spent on a
@@ -62,6 +113,54 @@ mod tests {
 
     fn id(t: &Breakdown, c: Option<usize>) -> Option<&str> {
         c.map(|c| t.table.bands[c].id.as_str())
+    }
+
+    #[test]
+    fn the_worked_example_of_21_2x() {
+        // Two road hexes (½ each), rough (8) across a ridge (2), then
+        // clear (4): 15 points.
+        use crate::movement::Weather;
+        use cna_data::map::{Hex, HexId, Hexside};
+        let chart = Terrain::load().unwrap();
+        let hex = |fill: Fill| Hex {
+            id: HexId::parse("C0101").unwrap(),
+            sheet: 'C',
+            terrain: fill,
+            settlement: None,
+            coastal: false,
+        };
+        let (clear, rough) = (hex(Fill::Clear), hex(Fill::Rough));
+        let road = Hexside {
+            features: vec![HexsideFeature::Road],
+            up: None,
+        };
+        let ridge = Hexside {
+            features: vec![HexsideFeature::Ridge],
+            up: None,
+        };
+        let step = |to, hexside| Step {
+            from: &clear,
+            to,
+            hexside,
+            climbs: false,
+            weather: Weather::Normal,
+        };
+        let total: f64 = [
+            step(&clear, Some(&road)),
+            step(&clear, Some(&road)),
+            step(&rough, Some(&ridge)),
+            step(&clear, None),
+        ]
+        .iter()
+        .map(|s| step_points(&chart, s))
+        .sum();
+        assert_eq!(total, 15.0);
+        // In a rainstorm the road is a track: half the clear hex's 4.
+        let wet = Step {
+            weather: Weather::Rainstorm,
+            ..step(&clear, Some(&road))
+        };
+        assert_eq!(step_points(&chart, &wet), 2.0);
     }
 
     #[test]
