@@ -43,8 +43,9 @@ broken-down vehicles.
 - [x] At each stop a check per vehicle weapon system in a higher column
   (`Piece.breakdown_checked`), BAR by model from `weapon-systems.json`,
   hot weather one right; losses leave the TOE.
-- [ ] Armoured cars, recce and trucks inside a unit's TOE; the sandstorm
-  shift (needs the CP spent under sandstorm per move).
+- [ ] Armoured cars, recce and trucks inside a unit's TOE. The sandstorm
+  shift is done, read per order rather than per phase.
+  shift.
 
 ### Task 3: markers, capture, towing, repair
 

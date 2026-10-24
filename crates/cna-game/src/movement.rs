@@ -690,6 +690,8 @@ impl GameState {
             .any(|id| self.pieces[id].kind == PieceKind::Combat);
         let mut at = from.clone();
         let mut reaction = None;
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
@@ -717,7 +719,7 @@ impl GameState {
         }
         // The stack stops, for good or for an answer: a breakdown check
         // (21.2x).
-        self.check_breakdown(data, pieces, &mut events);
+        self.check_breakdown(data, pieces, storm, &mut events);
         if at != from {
             self.moved.extend(pieces.iter().cloned());
             self.release_contact_around(data, &from, player);

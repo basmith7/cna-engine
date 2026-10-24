@@ -47,17 +47,35 @@ impl GameState {
     }
 }
 
+/// Whether at least half of a move's CP went on sandstorm hexes (21.37),
+/// from its steps' (hex entered, cost).
+pub(crate) fn mostly_in_sandstorm<'a>(
+    state: &GameState,
+    steps: impl IntoIterator<Item = (&'a HexId, cna_data::cp::Cp)>,
+) -> bool {
+    let (mut all, mut storm) = (cna_data::cp::Cp::ZERO, cna_data::cp::Cp::ZERO);
+    for (to, cost) in steps {
+        all += cost;
+        if state.weather_at(to) == cna_rules::movement::Weather::Sandstorm {
+            storm += cost;
+        }
+    }
+    all > cna_data::cp::Cp::ZERO && storm + storm >= all
+}
+
 impl GameState {
     /// The pieces of a move that has stopped check for breakdown (21.2x):
     /// each over 3 points in a higher column than its last check rolls
     /// once per vehicle weapon system, the column shifted by the model's
-    /// BAR and hot weather (21.3x); the points lost are removed. Tanks,
+    /// BAR and the weather (21.3x): hot, or `storm` (at least half the
+    /// move's CP spent under a sandstorm); the points lost are removed. Tanks,
     /// SP guns and self-propelled anti-tank guns only: armoured cars,
     /// recce and trucks are not yet told apart in a unit's TOE.
     pub(crate) fn check_breakdown(
         &mut self,
         data: &Data,
         pieces: &[PieceId],
+        storm: bool,
         events: &mut Vec<Event>,
     ) {
         use cna_rules::breakdown::{column, losses, must_check, percent, weather_shift};
@@ -92,7 +110,7 @@ impl GameState {
             self.pieces.get_mut(id).expect("listed").breakdown_checked = Some(now);
             let mut lost = 0;
             for (weapon, count, bar) in groups {
-                let Some(col) = column(t, points, bar + weather_shift(hot, false)) else {
+                let Some(col) = column(t, points, bar + weather_shift(hot, storm)) else {
                     continue;
                 };
                 let reading = self.rng.d6() * 10 + self.rng.d6();
@@ -143,6 +161,24 @@ mod tests {
             state.apply(data, side, Order::Pass).unwrap();
         }
         state
+    }
+
+    #[test]
+    fn a_move_mostly_under_a_sandstorm_shifts_the_check_21_37() {
+        use cna_data::cp::Cp;
+        use cna_data::map::HexId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = movement(&data, Modules::ALL);
+        state.weather = crate::state::Weather::Sandstorm { sheets: vec!['C'] };
+        let (c, d) = (
+            HexId::parse("C3920").unwrap(),
+            HexId::parse("D3714").unwrap(),
+        );
+        let half = [(&c, Cp::whole(2)), (&d, Cp::whole(2))];
+        assert!(super::mostly_in_sandstorm(&state, half));
+        let less = [(&c, Cp::whole(1)), (&d, Cp::whole(2))];
+        assert!(!super::mostly_in_sandstorm(&state, less));
+        assert!(!super::mostly_in_sandstorm(&state, []));
     }
 
     #[test]
