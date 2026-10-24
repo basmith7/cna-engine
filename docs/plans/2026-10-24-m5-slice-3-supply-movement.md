@@ -34,16 +34,16 @@ needs the naval convoy stage, slice 4).
 
 ### Task 1: points on supply units, phase C
 
-- [ ] Failing test: a module-on game reaches phase C and stops for
+- [x] Failing test: a module-on game reaches phase C and stops for
   Player A (not `PhaseSkipped`); module off, C is still skipped.
-- [ ] `Order::AttachMotorisation { piece }` and `DetachMotorisation {
+- [x] `Order::AttachMotorisation { piece }` and `DetachMotorisation {
   piece }`: 30 or 6 points from or to the hex's pool; refused outside C
   (32.31), for a piece not a supply unit, with too few points in the
   hex, or when already attached; `MotorisationAttached` /
   `MotorisationDetached` events.
-- [ ] `Order::TransferLoad { from, to, ammo, fuel }` between supply units
+- [x] `Order::TransferLoad { from, to, ammo, fuel }` between supply units
   in one hex (32.1x), within 40/60.
-- [ ] View and redaction: `motorised` is the owner's only (3.61).
+- [x] View and redaction: `motorised` is the owner's only (3.61).
 
 ### Task 2: moving in G and H
 
