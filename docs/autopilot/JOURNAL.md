@@ -228,7 +228,7 @@ Next: phase J rail (40-movement.md *Rail movement*, R-005: one stack each way, a
 Blocked: Mission 4 on Brian's review of PR #25.
 
 ## 2026-10-24 09:56 MST — autopilot/m5-slice-3-supply-movement
-Done: Playwright 30/30 at 65bf6ba; review-pass fixes (points back to the pool when a dump goes, no DP or pin drag from supply units, escorted redacted).
+Done: Playwright 30/30 at 65bf6ba; review-pass fixes (points back to the pool when a dump goes, no DP or pin drag from supply units, escorted redacted); supply stacking now binds at a move's end (32.1x; was set-up only). Supply and movement specs 11/11 after.
 In flight: nothing uncommitted. #34 stays draft.
 Next: the review's open items in #34's body (H ZOC declaration and stacking check, the escort rule's start/stay reading), then phase J rail (R-005), the air lift, capture for the captor's use, Task 4's golden extension.
 Blocked: Mission 4 on Brian's review of PR #25.
