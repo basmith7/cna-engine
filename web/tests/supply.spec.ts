@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clickHex, openFixture } from "./helpers.ts";
+import type { Piece } from "../src/types.ts";
 
 // Mission 5 slice 2: fuel in the move panel, loads in the stack panel
 // (32.1x, 32.22), on the module-on golden game's set-up.
@@ -47,7 +48,7 @@ test("a refused move: no supply in range has fuel, and the engine says 32.22", a
   await expect(page.getByTestId("fuel-none")).toBeVisible();
   const target = await page.evaluate(() => {
     const v = window.__cna.view();
-    const held = new Set(Object.values(v.pieces).map((p) => (typeof p.location === "object" && "hex" in p.location ? p.location.hex : "")));
+    const held = new Set((Object.values(v.pieces) as Piece[]).map((p) => (typeof p.location === "object" && "hex" in p.location ? p.location.hex : "")));
     const hexes = [...document.querySelectorAll("polygon.reach")].map((e) => e.getAttribute("data-hex")!);
     return hexes.find((h) => !held.has(h)) ?? null;
   });

@@ -29,3 +29,9 @@ export function sourceLabel(view: View, id: PieceId, name: (id: PieceId) => stri
   const at = p && typeof p.location === "object" && "hex" in p.location ? ` at ${p.location.hex}` : "";
   return `${name(id)}${at}, fuel ${p?.load?.fuel ?? "?"}`;
 }
+
+/** What a firer's or committer's fire or assault owes in ammunition (32.21), and whether nothing in range can pay; null when nothing is owed. */
+export function ammoNote(q: { ammo?: number; ammo_short?: boolean }, act: "fire" | "assault"): string | null {
+  if (!q.ammo) return null;
+  return `${act === "fire" ? "firing" : "assaulting"} costs ${q.ammo} ammunition${q.ammo_short ? ": none in range" : ""}`;
+}

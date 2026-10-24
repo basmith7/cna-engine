@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fuelSummary, loadLabel, motorisationAt, sourceLabel } from "./supply";
+import { ammoNote, fuelSummary, loadLabel, motorisationAt, sourceLabel } from "./supply";
 import type { Reach, View } from "./types";
 
 describe("a supply unit's load", () => {
@@ -51,5 +51,16 @@ describe("a fuel source's label", () => {
 
   it("says where it stands and what fuel it has", () => {
     expect(sourceLabel(view, "s:1", (id) => id.toUpperCase())).toBe("S:1 at C4807, fuel 30");
+  });
+});
+
+describe("the ammunition a fire or an assault owes", () => {
+  it("is nothing with the module off or nothing owed", () => {
+    expect(ammoNote({ ammo: 0, ammo_short: false }, "fire")).toBeNull();
+  });
+
+  it("names the amount, and says when no supply in range can pay", () => {
+    expect(ammoNote({ ammo: 4, ammo_short: false }, "fire")).toBe("firing costs 4 ammunition");
+    expect(ammoNote({ ammo: 3, ammo_short: true }, "assault")).toBe("assaulting costs 3 ammunition: none in range");
   });
 });

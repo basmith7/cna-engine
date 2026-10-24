@@ -310,6 +310,9 @@ export interface Firer {
   points: number;
   forward: boolean;
   targets: PieceId[];
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** A unit that may commit TOE points in step 4 (`cna_game::combat::options::Committer`). */
@@ -320,6 +323,9 @@ export interface Committer {
   anti_armour_targets: HexId[];
   close_assault_targets: HexId[];
   one_assault: boolean;
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** What the side to act may answer the pending sealed step with (`cna_game::combat::options::SealedOptions`). */
