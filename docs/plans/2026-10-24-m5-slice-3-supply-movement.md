@@ -55,13 +55,13 @@ needs the naval convoy stage, slice 4).
   Deviation: H waits only when the phasing player has a motorised supply
   unit that did not move in G, and is skipped otherwise (as phase D is
   when nothing arrives), so the golden game does not churn.
-- [ ] Capture carries points to the captor.
+- [ ] Capture carries points to the captor. Not started: capture today removes the supply unit (10.29), so there is nothing to carry yet; capture for the captor's use (32.1x) comes first.
 
 ### Task 3: rail and air
 
 - [ ] Phase J: Commonwealth rail moves, two per stage, one direction.
 - [ ] Air lift in C with its limits and 12 fuel.
-- [ ] Destroying one's own supply.
+- [x] Destroying one's own supply: `DestroySupply { hex }` before anything moves in the segment, half CPA from every unit there, a die per supply unit (1–3, +1 at 1 SP or less), once per unit per segment.
 
 ### Task 4: UI and the golden game
 
