@@ -250,3 +250,9 @@ Done: #34 merged (04a4cf2). Slice 5 on #35: `breakdown` module (8d9141e), checks
 In flight: full Playwright on #35 (wasm at 0fd4419+breakdown checks); a fresh review of the slice 5 engine diff.
 Next: act on the review; then 21.41 (half left behind near the enemy), phase K towing and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; armoured cars/recce need a typed vehicle class from cna (name-only today).
 Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-24 11:52 MST — autopilot/m5-slice-5-breakdown
+Done: review of slice 5 acted on (cb4897b: retreats collect and check, one check per BAR, no reaction to a self-destroyed stack, reactions capture; 67e92a6 retreat test). Playwright 32/32 at ebcba89's wasm; requests for cna on main: Game-Turn calendar, HQ echelons, vehicle classes.
+In flight: a last full Playwright run on 67e92a6 (result in the PR #35 comments if it landed, else rerun).
+Next: 21.41 (half left in the start hex near the enemy), phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; then mark #35 ready. Slice 6 if cna's calendar is still missing.
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
