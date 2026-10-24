@@ -126,6 +126,10 @@ pub struct GameState {
     pub initiative: Option<Side>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
+    /// Supply units their side tried to destroy this movement segment
+    /// (32.1x: one attempt each).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub scuttled: BTreeSet<PieceId>,
     /// Phase C under abstract supply: Player A has passed and Player B
     /// is organising.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -212,6 +216,7 @@ impl GameState {
             initiative: None,
             player_a: None,
             organised: false,
+            scuttled: BTreeSet::new(),
             weather: Weather::Normal,
             pieces,
             pending: None,
@@ -397,6 +402,7 @@ impl GameState {
                     fuel,
                 },
             ) => self.transfer_load(player, from, to, *ammo, *fuel),
+            (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

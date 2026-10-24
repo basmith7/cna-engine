@@ -219,6 +219,10 @@ pub enum Event {
     SupplyUnitSpent {
         piece: PieceId,
     },
+    /// A supply unit its own side destroyed (32.1x).
+    SupplyDestroyed {
+        piece: PieceId,
+    },
     /// Motorisation points attached to a supply unit (32.31).
     MotorisationAttached {
         piece: PieceId,

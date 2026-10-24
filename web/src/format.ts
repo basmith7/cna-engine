@@ -115,6 +115,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("ammunition-spent" in e) return `${name(e["ammunition-spent"].piece)} fires ${e["ammunition-spent"].ammo} ammunition from ${name(e["ammunition-spent"].from)}.`;
   if ("ammunition-short" in e) return `${name(e["ammunition-short"].piece)} has no ammunition in range and fights at full strength anyway.`;
   if ("supply-unit-spent" in e) return `${name(e["supply-unit-spent"].piece)} is empty and removed.`;
+  if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
   if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
   if ("motorisation-detached" in e) return `${name(e["motorisation-detached"].piece)} gives up its ${e["motorisation-detached"].points} motorisation points.`;
   if ("load-transferred" in e) {

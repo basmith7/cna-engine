@@ -3,9 +3,12 @@
 //! and moves loads between supply units in one hex, then passes.
 
 use crate::clock::Phase;
+use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Load, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::cp::Cp;
+use cna_data::map::HexId;
 use cna_data::scenario::Side;
 
 /// The points that move a real supply unit and a dummy (32.31).
@@ -55,6 +58,78 @@ impl GameState {
                 .pieces
                 .values()
                 .any(|p| p.side == side && p.motorised > 0 && !p.escorted && p.hex().is_some())
+    }
+
+    /// `Order::DestroySupply` (32.1x): before any movement in the
+    /// segment, every unit of the player's in the hex spends half its
+    /// CPA (rounded up), and each of its supply units there not yet tried
+    /// this segment goes on a die of 1–3, +1 when the hex holds 1 SP or
+    /// less.
+    pub(crate) fn destroy_supply(
+        &mut self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+    ) -> Result<Vec<Event>, Illegal> {
+        if !self.modules.abstract_supply
+            || self.clock.phase != Phase::MovementCombat
+            || self.clock.segment != Some(crate::clock::Segment::Movement)
+            || self.phasing() != Some(player)
+        {
+            return Err(Illegal::new(
+                "32.1x",
+                format!(
+                    "supply is destroyed in one's own movement segment, not at {}",
+                    self.clock
+                ),
+            ));
+        }
+        if !self.moved.is_empty() {
+            return Err(Illegal::new(
+                "32.1x",
+                "supply is destroyed before anything moves in the segment",
+            ));
+        }
+        let here = |p: &&crate::piece::Piece| p.side == player && p.hex() == Some(hex);
+        let targets: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(here)
+            .filter(|p| matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
+            .filter(|p| !self.scuttled.contains(&p.id))
+            .map(|p| p.id.clone())
+            .collect();
+        if targets.is_empty() {
+            return Err(Illegal::new(
+                "32.1x",
+                format!("{player} has no supply unit at {hex} left to destroy this segment"),
+            ));
+        }
+        let payers: Vec<(PieceId, u32)> = self
+            .pieces
+            .values()
+            .filter(here)
+            .filter(|p| matches!(p.kind, PieceKind::Combat | PieceKind::Hq))
+            .filter_map(|p| Some((p.id.clone(), self.cpa(p)?)))
+            .collect();
+        let bonus = u8::from(self.stacked(data, hex) <= 1);
+        let mut events = Vec::new();
+        for (id, cpa) in payers {
+            self.charge(&id, Cp::whole(cpa.div_ceil(2)), false, &mut events);
+        }
+        for id in targets {
+            let value = self.rng.d6();
+            events.push(Event::DieRolled {
+                purpose: "destroy supply".into(),
+                value,
+            });
+            self.scuttled.insert(id.clone());
+            if value + bonus <= 3 {
+                self.pieces.get_mut(&id).expect("listed").location = Location::Eliminated;
+                events.push(Event::SupplyDestroyed { piece: id });
+            }
+        }
+        Ok(events)
     }
 
     /// `Order::AttachMotorisation` (32.31).
@@ -565,5 +640,47 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "32.31");
+    }
+
+    #[test]
+    fn destroying_one_s_own_supply_costs_half_the_cpa_and_a_die_32_1x() {
+        let data = graziani();
+        let (mut state, supply, escort, order) = supply_and_escort(&data, 30);
+        let hex = state.pieces[&supply].hex().unwrap().clone();
+        let cpa = state.cpa(&state.pieces[&escort]).unwrap();
+        let sp = state.stacked(&data, &hex);
+        let events = state
+            .apply(&data, Side::Axis, Order::DestroySupply { hex: hex.clone() })
+            .unwrap();
+        let roll = events
+            .iter()
+            .find_map(|e| match e {
+                Event::DieRolled { purpose, value } if purpose == "destroy supply" => Some(*value),
+                _ => None,
+            })
+            .expect("one die per supply unit");
+        let destroyed = events.contains(&Event::SupplyDestroyed {
+            piece: supply.clone(),
+        });
+        assert_eq!(destroyed, roll + u8::from(sp <= 1) <= 3, "{events:?}");
+        assert_eq!(
+            state.pieces[&escort].cp_spent,
+            cna_data::cp::Cp::whole(cpa.div_ceil(2))
+        );
+        // One attempt per unit per segment.
+        if !destroyed {
+            let err = state
+                .apply(&data, Side::Axis, Order::DestroySupply { hex: hex.clone() })
+                .unwrap_err();
+            assert_eq!(err.case, "32.1x");
+        }
+        // Not once anything has moved this segment.
+        let (mut state, _, _, order2) = supply_and_escort(&data, 30);
+        let _ = order;
+        state.apply(&data, Side::Axis, order2).unwrap();
+        let err = state
+            .apply(&data, Side::Axis, Order::DestroySupply { hex })
+            .unwrap_err();
+        assert_eq!(err.case, "32.1x");
     }
 }
