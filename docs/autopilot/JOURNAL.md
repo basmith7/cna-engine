@@ -226,3 +226,9 @@ Done: on #34, phase H for supply units (H skipped unless a motorised, unescorted
 In flight: a final full Playwright run and a review pass on #34's engine diff.
 Next: phase J rail (40-movement.md *Rail movement*, R-005: one stack each way, any distance on finished track, units and supply), then the air lift, capture for the captor's use, and Task 4 (the golden game attaching points and moving a supply unit).
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:56 MST — autopilot/m5-slice-3-supply-movement
+Done: Playwright 30/30 at 65bf6ba; review-pass fixes (points back to the pool when a dump goes, no DP or pin drag from supply units, escorted redacted).
+In flight: nothing uncommitted. #34 stays draft.
+Next: the review's open items in #34's body (H ZOC declaration and stacking check, the escort rule's start/stay reading), then phase J rail (R-005), the air lift, capture for the captor's use, Task 4's golden extension.
+Blocked: Mission 4 on Brian's review of PR #25.
