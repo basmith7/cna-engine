@@ -148,6 +148,16 @@ the bullet once it lands and `vendor/cna` is bumped.
   full" means on the map (its HQ's hex? any hex of its units?). Blocks
   the air lift in Mission 5 (moved out of slice 3); §20 organisation
   will want the same.
+- **A Game-Turn calendar as data.** The engine cannot tell which month
+  (and week) a Game-Turn falls in: GT1 is September 1940 and GT35 is
+  June I 1941 (`rules/logistics/50-ports-and-shipping.md`), so months do
+  not hold a fixed four turns, and `seasons.json` is keyed by month and
+  week while `weather.json` carries its own turn bands. Wanted: a table
+  of Game-Turn → year, month and week (I–V). Blocks Mission 5 slice 4:
+  the Axis tonnage letter for the planning month
+  (`axis-convoy-level.json`), the Commonwealth supply period of the
+  arrival turn (`simplified-supply.json`), and the monthly motorisation
+  losses (`motorisation-losses.json`, 32.5x) are all read by month.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
