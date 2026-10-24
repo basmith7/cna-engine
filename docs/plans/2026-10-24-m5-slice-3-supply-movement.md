@@ -47,11 +47,14 @@ needs the naval convoy stage, slice 4).
 
 ### Task 2: moving in G and H
 
-- [ ] A supply unit without points in a move is refused (32.31).
-- [ ] With points, only alongside a friendly combat unit, whole path;
-  CPA 15 caps the stack's supply units (32.5x); `moved_supply` per stage
-  forbids the other phase.
-- [ ] Phase H un-skipped for the module; supply units move alone; `pass`.
+- [x] A supply unit without points in a move is refused (32.31).
+- [x] With points, only alongside a friendly combat unit, whole path;
+  CPA 15 caps the stack's supply units (32.5x); `Piece.escorted` marks a
+  supply unit that moved in G, which may not move in H.
+- [x] Phase H un-skipped for the module; supply units move alone; `pass`.
+  Deviation: H waits only when the phasing player has a motorised supply
+  unit that did not move in G, and is skipped otherwise (as phase D is
+  when nothing arrives), so the golden game does not churn.
 - [ ] Capture carries points to the captor.
 
 ### Task 3: rail and air

@@ -214,3 +214,9 @@ Done: slice 2 Task 6 (UI). The log names the four supply events (4bb6c4f; it thr
 In flight: the full Playwright run and gates before marking #32 ready.
 Next: if #32 is merged, slice 3 from `docs/plans/2026-10-13-m5-slices-3-6.md`.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:33 MST — autopilot/m5-slice-3-supply-movement
+Done: #32 merged (39b403a; Playwright 27/27 locally, CI green). Slice 3 PR #34 (draft): plan; phase C waits on A then B with attach/detach motorisation and load transfers (golden re-recorded, 477 orders, cna-web indices and fixtures +2); PhaseControls attach/detach; motorised supply units move in G with a combat unit at CPA 15 and alone in H (H skipped when nothing to move).
+In flight: Playwright on #34's head.
+Next: Task 2's capture of points; Task 3 (phase J rail, air lift, destroying supply); a transfer-load panel; then the golden game through C/H with a real attach and supply move (Task 4).
+Blocked: Mission 4 on Brian's review of PR #25.
