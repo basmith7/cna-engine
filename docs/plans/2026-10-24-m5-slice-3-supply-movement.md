@@ -55,7 +55,8 @@ needs the naval convoy stage, slice 4).
   Deviation: H waits only when the phasing player has a motorised supply
   unit that did not move in G, and is skipped otherwise (as phase D is
   when nothing arrives), so the golden game does not churn.
-- [ ] Capture carries points to the captor. Not started: capture today removes the supply unit (10.29), so there is nothing to carry yet; capture for the captor's use (32.1x) comes first.
+- [x] Capture carries points to the captor: a real supply unit captured alone in an enemy ZOC (10.29) changes sides with its load and points (32.1x, 32.5x); dummies are still removed. Capture by entering a hex of lone enemy supply waits: entering an enemy hex is refused (8.1x).
+- [x] The escort is one the supply unit started the segment with (or has moved with), from the review of #34.
 
 ### Task 3: rail and air
 
@@ -67,16 +68,19 @@ needs the naval convoy stage, slice 4).
   when the Commonwealth has a supply unit that may ride, so the golden
   passes J once (495 orders). Combat units do not ride yet (R-005's
   units half).
-- [ ] Air lift in C with its limits and 12 fuel.
+- [ ] Air lift in C with its limits and 12 fuel. **Moved out of this slice**: its limits name division and brigade HQs and "the farthest hex row held by a division", and the OA data has no echelon; a request for cna is on `main`. It lands with §20 organisation (slice 6), which needs echelons too.
 - [x] Destroying one's own supply: `DestroySupply { hex }` before anything moves in the segment, half CPA from every unit there, a die per supply unit (1–3, +1 at 1 SP or less), once per unit per segment.
 
 ### Task 4: UI and the golden game
 
-- [ ] Panels: an organisation panel for C (attach, detach, transfer,
-  lift), supply units tickable in G and H, a rail panel for J.
-- [ ] `tests/games/graziani-m5.json` re-recorded through the new phases;
-  hashes and e2e fixtures re-pinned; Playwright drives one attach, one
-  supply move and one rail move.
+- [x] Panels: phase C's controls (attach, detach, transfer), supply
+  units tickable in G and H, rail in the move panel for J.
+- [x] `tests/games/graziani-m5.json` re-recorded through the new phases
+  (C and J passes, 495 orders); hashes and e2e fixtures re-pinned;
+  Playwright drives one attach with a supply move in G, and one rail
+  run. Deviation: the golden game itself passes C and J rather than
+  attaching and moving supply, so the pinned fight is unchanged; the
+  specs in `web/tests/supply.spec.ts` carry those orders.
 - [ ] `NOT_SIMULATED.md`, journal; gates.
 
 ## Requests for cna
