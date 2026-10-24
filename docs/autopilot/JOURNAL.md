@@ -232,3 +232,9 @@ Done: Playwright 30/30 at 65bf6ba; review-pass fixes (points back to the pool wh
 In flight: nothing uncommitted. #34 stays draft.
 Next: the review's open items in #34's body (H ZOC declaration and stacking check, the escort rule's start/stay reading), then phase J rail (R-005), the air lift, capture for the captor's use, Task 4's golden extension.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 11:12 MST — autopilot/m5-slice-3-supply-movement
+Done: merged main; phase J rail for Commonwealth supply (dcd235d: `rail.rs`, `Order::Rail`, `Event::Railed`, golden 495 orders re-pinned); `Purpose::Rail` in the reach query, the move panel, H/J default-tick supply, rail e2e (0477d24, ff78d22). Fixed `golden-done` pinned at 477 of 495 orders.
+In flight: full Playwright run on ff78d22.
+Next: the air lift in phase C (32.3x), then capture for the captor's use and Task 4's golden extension; then mark #34 ready.
+Blocked: Mission 4 on Brian's review of PR #25.

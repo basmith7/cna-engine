@@ -59,7 +59,14 @@ needs the naval convoy stage, slice 4).
 
 ### Task 3: rail and air
 
-- [ ] Phase J: Commonwealth rail moves, two per stage, one direction.
+- [x] Phase J: Commonwealth rail moves, two per stage, one direction.
+  The railway is the shortest finished line from Mersa Matruh to
+  Alexandria's west hex (the Delta lines are not part of it; extension
+  by construction waits for engineering). Outside G no ZOC declaration
+  is asked: any Axis hex that could exert one counts (8.7x). J waits only
+  when the Commonwealth has a supply unit that may ride, so the golden
+  passes J once (495 orders). Combat units do not ride yet (R-005's
+  units half).
 - [ ] Air lift in C with its limits and 12 fuel.
 - [x] Destroying one's own supply: `DestroySupply { hex }` before anything moves in the segment, half CPA from every unit there, a die per supply unit (1–3, +1 at 1 SP or less), once per unit per segment.
 
