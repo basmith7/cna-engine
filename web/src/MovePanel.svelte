@@ -72,7 +72,7 @@
       <div class="fuel" data-testid="fuel">
         <p>Fuel owed (32.22): <span data-testid="fuel-owed">{fuel}</span>{#if under}, <span data-testid="fuel-hovered">{under.fuel} to {under.hex}</span>{/if}.</p>
         {#if fuelSources.length === 0}
-          <p class="refusal" data-testid="fuel-none">No supply unit in range has fuel: the engine will refuse the move.</p>
+          <p class="refusal" data-testid="fuel-none">No supply unit in range has fuel: a move that owes some is refused.</p>
         {:else}
           <label>
             Paid by

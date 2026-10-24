@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clickHex, openFixture } from "./helpers.ts";
-import type { Piece } from "../src/types.ts";
+import type { Firer, Piece } from "../src/types.ts";
 
 // Mission 5 slice 2: fuel in the move panel, loads in the stack panel
 // (32.1x, 32.22), on the module-on golden game's set-up.
@@ -55,4 +55,22 @@ test("a refused move: no supply in range has fuel, and the engine says 32.22", a
   expect(target).not.toBeNull();
   await page.locator(`polygon.hex[data-hex="${target}"]`).click();
   await expect(page.getByTestId("log-entries").locator("li.illegal").last()).toContainText("Illegal (32.22)");
+});
+
+test("the barrage panel says what each firer's fire costs in ammunition, as the engine quotes it", async ({ page }) => {
+  const gun = "unit:it:1st-libyan-artillery-regt";
+  await openFixture(page, "combat-start");
+  const sealed = page.getByTestId("sealed-panel");
+  await sealed.locator(`[data-gun="${gun}"]`).check();
+  await sealed.locator('[data-order="gun-positions"]').click();
+  await page.getByTestId("curtain").click();
+  await sealed.locator('[data-order="gun-positions"]').click();
+  await page.getByTestId("curtain").click();
+  await expect(page.getByTestId("pending")).toContainText("Sealed barrage · Axis");
+  const quote = await page.evaluate((gun) => {
+    const o = window.__cna.sealedOptions();
+    return "ok" in o && "barrage" in o.ok ? o.ok.barrage.firers.find((f: Firer) => f.piece === gun)?.ammo : undefined;
+  }, gun);
+  expect(quote).toBeGreaterThan(0);
+  await expect(sealed.locator(`[data-unit="${gun}"] [data-ammo]`)).toHaveText(`firing costs ${quote} ammunition`);
 });
