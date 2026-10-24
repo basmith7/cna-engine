@@ -204,6 +204,10 @@ pub struct Piece {
     /// a real one, 6 for a dummy, or none.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub motorised: u32,
+    /// A supply unit that moved with a combat unit in G this OpStage:
+    /// it may not move again in H (32.31).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub escorted: bool,
 }
 
 fn is_zero(n: &u32) -> bool {

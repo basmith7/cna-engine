@@ -43,6 +43,20 @@ impl GameState {
             .ok_or_else(|| Illegal::new(case, format!("{id} is not on the map")))
     }
 
+    /// Phase H waits on the phasing player only when it has a supply
+    /// unit on the map with its motorisation points (32.31); otherwise
+    /// there is nothing to do and it is skipped.
+    pub(crate) fn trucks_to_move(&self) -> bool {
+        let Some(side) = self.phasing() else {
+            return false;
+        };
+        self.modules.abstract_supply
+            && self
+                .pieces
+                .values()
+                .any(|p| p.side == side && p.motorised > 0 && !p.escorted && p.hex().is_some())
+    }
+
     /// `Order::AttachMotorisation` (32.31).
     pub(crate) fn attach_motorisation(
         &mut self,
@@ -430,6 +444,126 @@ mod tests {
             fuel_from: None,
         };
         let err = state.apply(&data, Side::Axis, alone).unwrap_err();
+        assert_eq!(err.case, "32.31");
+    }
+
+    /// Plays the default answers (as `pass_stage` does) until phase H or
+    /// the end of the Axis half.
+    fn to_truck_convoy(data: &Data, state: &mut GameState) {
+        use crate::state::Pending;
+        use crate::state::test_support::through_combat;
+        while state.clock.phase != Phase::TruckConvoy
+            && state.clock.half != Some(crate::clock::Half::B)
+        {
+            let player = state.to_act().unwrap();
+            if state.clock.phase == Phase::MovementCombat
+                && state.clock.segment == Some(crate::clock::Segment::Movement)
+                && state.pending.is_none()
+                && state.sides_adjacent(data)
+            {
+                through_combat(data, state);
+                continue;
+            }
+            let order = match &state.pending {
+                Some(Pending::DeclareZoc { .. }) => Order::DeclareZoc { exerting: vec![] },
+                _ => Order::Pass,
+            };
+            state.apply(data, player, order).unwrap();
+        }
+    }
+
+    #[test]
+    fn phase_h_waits_when_the_phasing_player_has_a_motorised_supply_unit_32_31() {
+        let data = graziani();
+        let (mut state, supply, _, order) = supply_and_escort(&data, 30);
+        let Order::Move { path, .. } = order else {
+            unreachable!()
+        };
+        to_truck_convoy(&data, &mut state);
+        assert_eq!(state.clock.phase, Phase::TruckConvoy);
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        // A combat unit may not move in H; the supply unit moves alone.
+        let combat = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Move {
+                    pieces: vec![combat],
+                    path: path.clone(),
+                    assault: false,
+                    fuel_from: None,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.31");
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Move {
+                    pieces: vec![supply.clone()],
+                    path: path.clone(),
+                    assault: false,
+                    fuel_from: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&supply].hex(), path.last());
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert_ne!(state.clock.phase, Phase::TruckConvoy);
+    }
+
+    #[test]
+    fn phase_h_is_skipped_without_a_motorised_supply_unit() {
+        let data = graziani();
+        let (mut state, _, _, _) = supply_and_escort(&data, 0);
+        to_truck_convoy(&data, &mut state);
+        assert_ne!(state.clock.phase, Phase::TruckConvoy);
+    }
+
+    #[test]
+    fn a_supply_unit_that_moved_in_g_may_not_move_in_h_32_31() {
+        let data = graziani();
+        let (mut state, supply, escort, order) = supply_and_escort(&data, 30);
+        state.apply(&data, Side::Axis, order).unwrap();
+        let at = state.pieces[&escort].hex().unwrap().clone();
+        // H opens for another motorised supply unit; the escorted one has
+        // nothing to do there.
+        let other = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == PieceKind::SupplyUnit
+                    && p.hex().is_some()
+                    && p.id != supply
+            })
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&other).unwrap().motorised = 30;
+        to_truck_convoy(&data, &mut state);
+        assert_eq!(state.clock.phase, Phase::TruckConvoy);
+        let next = data.map.neighbours(&at)[0].clone();
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Move {
+                    pieces: vec![supply],
+                    path: vec![next],
+                    assault: false,
+                    fuel_from: None,
+                },
+            )
+            .unwrap_err();
         assert_eq!(err.case, "32.31");
     }
 }

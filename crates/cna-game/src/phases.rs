@@ -45,7 +45,7 @@ impl GameState {
     /// Nothing more this phase (F or G).
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
-            Phase::ReserveDesignation | Phase::MovementCombat => {}
+            Phase::ReserveDesignation | Phase::MovementCombat | Phase::TruckConvoy => {}
             Phase::Organisation => {
                 // Player A hands phase C to Player B; B's pass ends it.
                 if !self.organised {
@@ -120,6 +120,10 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                Phase::TruckConvoy if self.trucks_to_move() => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -145,6 +149,7 @@ impl GameState {
             p.released = None;
             p.landed = false;
             p.fuelled = false;
+            p.escorted = false;
             p.fuelled_over = false;
             p.engaged = false;
         }

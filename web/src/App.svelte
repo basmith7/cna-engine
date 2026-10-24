@@ -63,7 +63,7 @@
   const placements: HexId[] = $derived.by(() => (view && picked && engine ? engine.placements(picked) : []));
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
 
-  /** What a click on a reachable hex would send: a move in a movement segment, a reaction while one is offered, a retreat while one is asked. */
+  /** What a click on a reachable hex would send: a move in a movement segment or the truck convoy phase, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
     if (!view || !view.to_act) return null;
     if (view.pending) {
@@ -72,6 +72,8 @@
       if ("forced-retreat" in view.pending) return "forced-retreat";
       return null;
     }
+    // Phase H (abstract supply): supply units move alone, by the same order.
+    if (view.clock.phase === "truck-convoy") return "move";
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
   /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */

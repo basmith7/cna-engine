@@ -511,6 +511,30 @@ impl GameState {
         player: Side,
         pieces: &[PieceId],
     ) -> Result<(HexId, bool), Illegal> {
+        if self.clock.phase == Phase::TruckConvoy && self.modules.abstract_supply {
+            // The truck convoy phase moves supply units alone, and only
+            // those that did not move in G (32.31).
+            for id in pieces {
+                let p = self
+                    .pieces
+                    .get(id)
+                    .ok_or_else(|| Illegal::new("32.31", format!("no piece {id}")))?;
+                if !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit) {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id}: only supply units move in the truck convoy phase"),
+                    ));
+                }
+                if p.escorted {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id} moved in the movement and combat phase: not again in H"),
+                    ));
+                }
+            }
+            let from = self.moving_stack(player, pieces, false)?;
+            return Ok((from, false));
+        }
         if self.clock.phase != Phase::MovementCombat
             || self.clock.segment != Some(Segment::Movement)
         {
@@ -667,8 +691,13 @@ impl GameState {
             if shift {
                 self.shifted.extend(pieces.iter().cloned());
             }
+            let in_g = self.clock.phase == Phase::MovementCombat;
             for id in pieces {
-                self.pieces.get_mut(id).expect("checked").landed = false;
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.landed = false;
+                // A supply unit moves in G or in H, not both (32.31).
+                p.escorted |=
+                    in_g && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
             }
         }
         if let Some(eligible) = reaction {
