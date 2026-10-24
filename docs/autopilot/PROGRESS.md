@@ -25,10 +25,11 @@ fuel and barrages and assaults pay ammunition from supply in range, and
 the browser now plays module-on games: loads and motorisation points in
 the stack panel, the fuel owed and a payer picker in the move panel,
 ammunition costs in the barrage and assign panels. **Slice 3** (supply
-movement) is draft PR #34: phase C now waits on both players for
-motorisation attach/detach and load transfers, and a supply unit with
-its points moves in G alongside a combat unit at CPA 15. Phase H, rail,
-the air lift and the golden game through the new phases are next.
+movement) is draft PR #34: phase C waits on both players to attach or
+detach motorisation and trade loads; supply units with their points
+move alongside combat units in G or alone in H; a side may destroy its
+own supply. Rail (J), the air lift and the golden game through the new
+phases are next.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -129,6 +130,13 @@ the bullet once it lands and `vendor/cna` is bumped.
   prose (`abstractions.air_and_logistics.motorisation`); a typed count
   per deployment or side would let the engine stop reading `trucks`.
   Not blocking: Mission 5 slice 1 reads `trucks.medium`.
+- **Motorisation points to motorise a foot unit (32.5x).** The rule says
+  points are medium trucks and any foot infantry may be motorised
+  (historically motorised battalions first), but how many points carry
+  one battalion (or a gun) lives in the Logistics Game's truck rules.
+  Needed: points per unit (or per stacking point / TOE point) as data or
+  a ruling for the abstract game. Blocks motorising infantry in Mission 5
+  slice 3 (PR #34), not the rest of it.
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
