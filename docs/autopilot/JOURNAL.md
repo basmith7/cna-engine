@@ -256,3 +256,9 @@ Done: review of slice 5 acted on (cb4897b: retreats collect and check, one check
 In flight: a last full Playwright run on 67e92a6 (result in the PR #35 comments if it landed, else rerun).
 Next: 21.41 (half left in the start hex near the enemy), phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; then mark #35 ready. Slice 6 if cna's calendar is still missing.
 Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-24 11:56 MST — autopilot/m5-slice-5-breakdown
+Done: 21.41 (fd815bb): a move begun next to an enemy brigade-equivalent, or two hexes from one through an open hex, leaves half of what breaks down in its start hex. PROGRESS on main (c905fd1).
+In flight: full Playwright on 67e92a6's wasm (result in a #35 comment if it landed, else rerun on fd815bb).
+Next: capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`); wrecks in the stack panel; then mark #35 ready.
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
