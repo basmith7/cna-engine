@@ -212,6 +212,13 @@ impl GameState {
         if pieces.is_empty() {
             return Err(Illegal::new("8.7x", "a rail run carries something"));
         }
+        if let Some(id) = pieces
+            .iter()
+            .enumerate()
+            .find_map(|(i, id)| pieces[..i].contains(id).then_some(id))
+        {
+            return Err(Illegal::new("8.7x", format!("{id} is listed twice")));
+        }
         if self.railed.len() + pieces.len() > RAIL_SUPPLY {
             return Err(Illegal::new(
                 "32.3x",
@@ -374,6 +381,11 @@ mod tests {
         // Mersa Matruh holds the Commonwealth's other supply at the start.
         let path: Vec<HexId> = line[1..line.len() - 1].iter().rev().cloned().collect();
         let loads: Vec<_> = ids.iter().map(|id| state.pieces[id].load).collect();
+        let twice = [ids[0].clone(), ids[0].clone()];
+        let err = state
+            .apply(&data, Side::Cw, run(&twice, &path))
+            .unwrap_err();
+        assert_eq!(err.case, "8.7x");
         state.apply(&data, Side::Cw, run(&ids, &path)).unwrap();
         for (id, load) in ids.iter().zip(loads) {
             assert_eq!(state.pieces[id].hex(), Some(&line[1]));

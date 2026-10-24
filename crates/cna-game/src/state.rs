@@ -151,6 +151,10 @@ pub struct GameState {
     /// 9.31).
     #[serde(default)]
     pub moved: BTreeSet<PieceId>,
+    /// This movement segment's escorts: the combat units each supply
+    /// unit has moved with (32.31).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escorts: BTreeMap<PieceId, BTreeSet<PieceId>>,
     /// The non-phasing player's ZOC declarations this movement segment,
     /// by its hex (10.16).
     #[serde(default)]
@@ -230,6 +234,7 @@ impl GameState {
             pending: None,
             cycle: 0,
             moved: BTreeSet::new(),
+            escorts: BTreeMap::new(),
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),

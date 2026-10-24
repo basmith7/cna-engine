@@ -181,6 +181,7 @@ impl GameState {
             .collect();
         self.cycle += 1;
         self.moved.clear();
+        self.escorts.clear();
         Ok(())
     }
 

@@ -161,6 +161,7 @@ impl GameState {
     pub(crate) fn open_movement_segment(&mut self, data: &Data, events: &mut Vec<Event>) {
         self.zoc.clear();
         self.moved.clear();
+        self.escorts.clear();
         self.scuttled.clear();
         self.shifted.clear();
         let Some(phasing) = self.phasing() else {
@@ -263,8 +264,11 @@ impl GameState {
                 p.contact = false;
                 if module && p.kind == PieceKind::SupplyUnit {
                     // The captor may use it at once (32.1x), its points
-                    // with it (32.5x).
+                    // with it (32.5x); its old owner's stage is over.
                     p.side = side.other();
+                    p.escorted = false;
+                    self.scuttled.remove(&id);
+                    self.railed.remove(&id);
                 } else {
                     p.location = Location::Eliminated;
                 }
@@ -645,6 +649,7 @@ mod tests {
         let p = state.pieces.get_mut(&supply).unwrap();
         p.location = Location::Hex(hex("C4021"));
         p.motorised = 30;
+        p.escorted = true;
         let load = p.load;
         assert!(load.is_some());
         state
@@ -670,5 +675,6 @@ mod tests {
         assert_eq!(p.location, Location::Hex(hex("C4021")));
         assert_eq!(p.load, load);
         assert_eq!(p.motorised, 30);
+        assert!(!p.escorted, "the old owner's G move is not the captor's");
     }
 }

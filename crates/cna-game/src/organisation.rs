@@ -536,10 +536,22 @@ mod tests {
         assert_eq!(err.case, "32.31");
         // Both moved together already (a move resumed after a stop):
         // still together.
-        let mut resumed = state;
-        resumed.moved.insert(escort);
-        resumed.moved.insert(supply);
-        resumed.apply(&data, Side::Axis, order).unwrap();
+        let mut resumed = state.clone();
+        resumed.moved.insert(escort.clone());
+        resumed.moved.insert(supply.clone());
+        resumed
+            .escorts
+            .entry(supply.clone())
+            .or_default()
+            .insert(escort.clone());
+        resumed.apply(&data, Side::Axis, order.clone()).unwrap();
+        // The supply unit moved with another unit, then this escort came
+        // in: not the one it started with.
+        let mut joined = state;
+        joined.moved.insert(escort);
+        joined.moved.insert(supply);
+        let err = joined.apply(&data, Side::Axis, order).unwrap_err();
+        assert_eq!(err.case, "32.31");
     }
 
     #[test]

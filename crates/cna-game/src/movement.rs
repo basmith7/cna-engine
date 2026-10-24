@@ -170,19 +170,24 @@ impl GameState {
             }
         }
         // In the movement segment a supply unit goes only with a friendly
-        // combat unit, which it starts and ends stacked with (32.31): one
-        // that has not moved this segment, or that has moved with it.
+        // combat unit, which it starts and ends stacked with (32.31): both
+        // unmoved this segment, or one it has moved with.
         let kind = |id: &PieceId| self.pieces[id].kind;
-        let supply: Vec<&PieceId> = pieces
-            .iter()
-            .filter(|id| matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
-            .collect();
-        let travelled = supply.iter().all(|id| self.moved.contains(*id));
+        let escorted = |s: &PieceId| {
+            pieces.iter().any(|c| {
+                kind(c) == PieceKind::Combat
+                    && if self.moved.contains(s) {
+                        self.escorts.get(s).is_some_and(|e| e.contains(c))
+                    } else {
+                        !self.moved.contains(c)
+                    }
+            })
+        };
         if phasing
-            && !supply.is_empty()
-            && !pieces
-                .iter()
-                .any(|id| kind(id) == PieceKind::Combat && (travelled || !self.moved.contains(id)))
+            && pieces.iter().any(|id| {
+                matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && !escorted(id)
+            })
         {
             return Err(Illegal::new(
                 "32.31",
@@ -716,7 +721,23 @@ impl GameState {
                 self.shifted.extend(pieces.iter().cloned());
             }
             let in_g = self.clock.phase == Phase::MovementCombat;
+            let combat: Vec<PieceId> = pieces
+                .iter()
+                .filter(|id| self.pieces[*id].kind == PieceKind::Combat)
+                .cloned()
+                .collect();
             for id in pieces {
+                if in_g
+                    && matches!(
+                        self.pieces[id].kind,
+                        PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+                    )
+                {
+                    self.escorts
+                        .entry(id.clone())
+                        .or_default()
+                        .extend(combat.iter().cloned());
+                }
                 let p = self.pieces.get_mut(id).expect("checked");
                 p.landed = false;
                 // A supply unit moves in G or in H, not both (32.31).
