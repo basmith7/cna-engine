@@ -115,6 +115,17 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("ammunition-spent" in e) return `${name(e["ammunition-spent"].piece)} fires ${e["ammunition-spent"].ammo} ammunition from ${name(e["ammunition-spent"].from)}.`;
   if ("ammunition-short" in e) return `${name(e["ammunition-short"].piece)} has no ammunition in range and fights at full strength anyway.`;
   if ("supply-unit-spent" in e) return `${name(e["supply-unit-spent"].piece)} is empty and removed.`;
+  if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
+  if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
+  if ("motorisation-detached" in e) return `${name(e["motorisation-detached"].piece)} gives up its ${e["motorisation-detached"].points} motorisation points.`;
+  if ("railed" in e) {
+    const d = e.railed;
+    return `${d.pieces.map(name).join(", ")} by rail ${d.from} → ${d.to}.`;
+  }
+  if ("load-transferred" in e) {
+    const d = e["load-transferred"];
+    return `${d.ammo} ammunition and ${d.fuel} fuel move from ${name(d.from)} to ${name(d.to)}.`;
+  }
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
   if ("forces-assigned" in e) {
     const d = e["forces-assigned"];

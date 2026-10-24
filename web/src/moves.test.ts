@@ -24,6 +24,12 @@ describe("defaultTicked", () => {
     expect(defaultTicked(view, "C4020", null)).toEqual([]);
     expect(defaultTicked(view, "C9999", "axis")).toEqual([]);
   });
+  it("in phases H and J ticks the side's supply units instead, the only pieces that move there (32.31, 32.3x)", () => {
+    for (const phase of ["truck-convoy", "rail"]) {
+      const v = { ...view, clock: { phase } } as unknown as View;
+      expect(defaultTicked(v, "C4020", "axis")).toEqual(["supply"]);
+    }
+  });
 });
 
 describe("tickable", () => {

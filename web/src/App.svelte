@@ -63,7 +63,7 @@
   const placements: HexId[] = $derived.by(() => (view && picked && engine ? engine.placements(picked) : []));
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
 
-  /** What a click on a reachable hex would send: a move in a movement segment, a reaction while one is offered, a retreat while one is asked. */
+  /** What a click on a reachable hex would send: a move in a movement segment or the truck convoy phase, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
     if (!view || !view.to_act) return null;
     if (view.pending) {
@@ -72,6 +72,10 @@
       if ("forced-retreat" in view.pending) return "forced-retreat";
       return null;
     }
+    // Phase H (abstract supply): supply units move alone, by the same order.
+    if (view.clock.phase === "truck-convoy") return "move";
+    // Phase J (abstract supply): Commonwealth supply units ride the railway.
+    if (view.clock.phase === "rail") return "rail";
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
   /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */
@@ -182,7 +186,9 @@
           ? { "retreat-before-assault": { pieces: ticked, path } }
           : purpose === "forced-retreat"
             ? { retreat: { path } }
-            : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
+            : purpose === "rail"
+              ? { rail: { pieces: ticked, path } }
+              : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
     const ok = send(order);
     if (ok) assault = false;
     return ok;
@@ -413,7 +419,7 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
-          <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
+          <PhaseControls {view} {ticked} {hex} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />

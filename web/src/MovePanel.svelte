@@ -47,7 +47,7 @@
     onoffmap: (to: OffMapPlace) => void;
   } = $props();
 
-  const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat" };
+  const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat", rail: "Rail" };
   const title = $derived(TITLES[purpose]);
   const shorts = $derived(reaches.filter((r) => r.short > 0).length);
   const zocStops = $derived(reaches.filter((r) => r.ends_in_zoc).length);
@@ -67,7 +67,11 @@
   {:else if !onMap && !offMap}
     <p class="refusal" data-testid="move-refusal">The ticked pieces are not all in one place.</p>
   {:else if onMap}
-    <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
+    {#if purpose === "rail"}
+      <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} along the railway, no CP or fuel. Click one to go there.</p>
+    {:else}
+      <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
+    {/if}
     {#if fuel}
       <div class="fuel" data-testid="fuel">
         <p>Fuel owed (32.22): <span data-testid="fuel-owed">{fuel}</span>{#if under}, <span data-testid="fuel-hovered">{under.fuel} to {under.hex}</span>{/if}.</p>

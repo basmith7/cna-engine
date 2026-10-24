@@ -45,7 +45,22 @@ impl GameState {
     /// Nothing more this phase (F or G).
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
-            Phase::ReserveDesignation | Phase::MovementCombat => {}
+            Phase::ReserveDesignation
+            | Phase::MovementCombat
+            | Phase::TruckConvoy
+            | Phase::Rail => {}
+            Phase::Organisation => {
+                // Player A hands phase C to Player B; B's pass ends it.
+                if !self.organised {
+                    self.organised = true;
+                    return Ok(Vec::new());
+                }
+                self.organised = false;
+                let mut events = Vec::new();
+                self.clock = self.clock.next();
+                self.advance(data, &mut events);
+                return Ok(events);
+            }
             Phase::InitiativeDeclaration => {
                 return Err(Illegal::new(
                     "7.1x",
@@ -104,6 +119,18 @@ impl GameState {
                         events.push(Event::PhaseSkipped { clock });
                     }
                 }
+                Phase::Organisation if self.modules.abstract_supply => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::TruckConvoy if self.trucks_to_move() => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::Rail if self.rail_to_move(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -119,6 +146,8 @@ impl GameState {
     /// unit that spent none rests (6.24), reserve ends (18.2x), and
     /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
+        self.railed.clear();
+        self.rail_east = None;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
                 p.cohesion.rest();
@@ -129,6 +158,7 @@ impl GameState {
             p.released = None;
             p.landed = false;
             p.fuelled = false;
+            p.escorted = false;
             p.fuelled_over = false;
             p.engaged = false;
         }

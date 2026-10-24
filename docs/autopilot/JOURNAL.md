@@ -214,3 +214,27 @@ Done: slice 2 Task 6 (UI). The log names the four supply events (4bb6c4f; it thr
 In flight: the full Playwright run and gates before marking #32 ready.
 Next: if #32 is merged, slice 3 from `docs/plans/2026-10-13-m5-slices-3-6.md`.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:33 MST — autopilot/m5-slice-3-supply-movement
+Done: #32 merged (39b403a; Playwright 27/27 locally, CI green). Slice 3 PR #34 (draft): plan; phase C waits on A then B with attach/detach motorisation and load transfers (golden re-recorded, 477 orders, cna-web indices and fixtures +2); PhaseControls attach/detach; motorised supply units move in G with a combat unit at CPA 15 and alone in H (H skipped when nothing to move).
+In flight: Playwright on #34's head.
+Next: Task 2's capture of points; Task 3 (phase J rail, air lift, destroying supply); a transfer-load panel; then the golden game through C/H with a real attach and supply move (Task 4).
+Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:45 MST — autopilot/m5-slice-3-supply-movement
+Done: on #34, phase H for supply units (H skipped unless a motorised, unescorted supply unit exists, so the golden is unchanged), the transfer-load control, DestroySupply (engine, button, e2e), NOT_SIMULATED's §32 row; Playwright 29/29 at the transfer commit. PROGRESS on main: status, and a request for cna (motorisation points per foot unit).
+In flight: a final full Playwright run and a review pass on #34's engine diff.
+Next: phase J rail (40-movement.md *Rail movement*, R-005: one stack each way, any distance on finished track, units and supply), then the air lift, capture for the captor's use, and Task 4 (the golden game attaching points and moving a supply unit).
+Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:56 MST — autopilot/m5-slice-3-supply-movement
+Done: Playwright 30/30 at 65bf6ba; review-pass fixes (points back to the pool when a dump goes, no DP or pin drag from supply units, escorted redacted); supply stacking now binds at a move's end (32.1x; was set-up only). Supply and movement specs 11/11 after.
+In flight: nothing uncommitted. #34 stays draft.
+Next: the review's open items in #34's body (H ZOC declaration and stacking check, the escort rule's start/stay reading), then phase J rail (R-005), the air lift, capture for the captor's use, Task 4's golden extension.
+Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 11:12 MST — autopilot/m5-slice-3-supply-movement
+Done: merged main; phase J rail for Commonwealth supply (dcd235d: `rail.rs`, `Order::Rail`, `Event::Railed`, golden 495 orders re-pinned); `Purpose::Rail` in the reach query, the move panel, H/J default-tick supply, rail e2e (0477d24, ff78d22). Fixed `golden-done` pinned at 477 of 495 orders.
+In flight: full Playwright run on ff78d22.
+Next: the air lift in phase C (32.3x), then capture for the captor's use and Task 4's golden extension; then mark #34 ready.
+Blocked: Mission 4 on Brian's review of PR #25.

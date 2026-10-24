@@ -50,6 +50,11 @@ const cases: [Event, string][] = [
   [{ "ammunition-spent": { piece: "u:a", from: "u:s", ammo: 3 } }, "A fires 3 ammunition from S."],
   [{ "ammunition-short": { piece: "u:b" } }, "B has no ammunition in range and fights at full strength anyway."],
   [{ "supply-unit-spent": { piece: "u:s" } }, "S is empty and removed."],
+  [{ "supply-destroyed": { piece: "u:s" } }, "S destroyed by its own side."],
+  [{ "motorisation-attached": { piece: "u:s", points: 30 } }, "S takes 30 motorisation points."],
+  [{ "motorisation-detached": { piece: "u:s", points: 6 } }, "S gives up its 6 motorisation points."],
+  [{ "load-transferred": { from: "u:s", to: "u:a", ammo: 5, fuel: 10 } }, "5 ammunition and 10 fuel move from S to A."],
+  [{ railed: { pieces: ["u:s", "u:a"], from: "E3613", to: "D3715" } }, "S, A by rail E3613 → D3715."],
   [{ eliminated: { piece: "u:b" } }, "B eliminated."],
   [
     { "forces-assigned": { side: "axis", assignments: [{ piece: "u:a", anti_armour: [{ target: "C4130", points: 2 }], close_assault: [{ points: 4 }] }] } },
@@ -65,9 +70,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 42 variants", () => {
+  it("covers all 47 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(42);
+    expect(tags.size).toBe(47);
   });
 
   it.each(cases)("%j", (event, line) => {

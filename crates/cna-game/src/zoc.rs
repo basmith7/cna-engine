@@ -161,6 +161,8 @@ impl GameState {
     pub(crate) fn open_movement_segment(&mut self, data: &Data, events: &mut Vec<Event>) {
         self.zoc.clear();
         self.moved.clear();
+        self.escorts.clear();
+        self.scuttled.clear();
         self.shifted.clear();
         let Some(phasing) = self.phasing() else {
             return;
@@ -237,7 +239,8 @@ impl GameState {
     /// Contact at the start of a movement segment (R-003): every unit in
     /// an enemy ZOC is in contact until it breaks off. A non-combat piece
     /// with no strength, alone in an enemy ZOC during the enemy's phase,
-    /// is captured (10.29).
+    /// is captured (10.29): removed, or under abstract supply a real
+    /// supply unit goes over to the captor whole (32.1x).
     fn fix_contact(&mut self, data: &Data, events: &mut Vec<Event>) {
         let phasing = self.phasing();
         let ids: Vec<_> = self.pieces.keys().cloned().collect();
@@ -256,9 +259,19 @@ impl GameState {
                 && p.toe == 0
                 && !self.friendly_combat_in(&hex, side, &[])
             {
+                let module = self.modules.abstract_supply;
                 let p = self.pieces.get_mut(&id).expect("listed");
-                p.location = Location::Eliminated;
                 p.contact = false;
+                if module && p.kind == PieceKind::SupplyUnit {
+                    // The captor may use it at once (32.1x), its points
+                    // with it (32.5x); its old owner's stage is over.
+                    p.side = side.other();
+                    p.escorted = false;
+                    self.scuttled.remove(&id);
+                    self.railed.remove(&id);
+                } else {
+                    p.location = Location::Eliminated;
+                }
                 events.push(Event::Captured {
                     piece: id.clone(),
                     hex: hex.clone(),
@@ -624,5 +637,44 @@ mod tests {
             hex: hex("C4021")
         }));
         assert_eq!(state.pieces[&supply].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn under_abstract_supply_a_captured_supply_unit_changes_sides_with_its_load_and_points_32_1x() {
+        use crate::state::Modules;
+        let data = graziani();
+        let mut state = GameState::with_modules(&data, 3, Modules::ALL).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let supply = PieceId::supply(Side::Cw, 1);
+        let p = state.pieces.get_mut(&supply).unwrap();
+        p.location = Location::Hex(hex("C4021"));
+        p.motorised = 30;
+        p.escorted = true;
+        let load = p.load;
+        assert!(load.is_some());
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        let mut events = Vec::new();
+        while state.clock.segment != Some(Segment::Movement) {
+            let side = state.to_act().unwrap();
+            events.extend(state.apply(&data, side, Order::Pass).unwrap());
+        }
+        assert!(events.contains(&Event::Captured {
+            piece: supply.clone(),
+            hex: hex("C4021")
+        }));
+        let p = &state.pieces[&supply];
+        assert_eq!(p.side, Side::Axis);
+        assert_eq!(p.location, Location::Hex(hex("C4021")));
+        assert_eq!(p.load, load);
+        assert_eq!(p.motorised, 30);
+        assert!(!p.escorted, "the old owner's G move is not the captor's");
     }
 }

@@ -219,6 +219,33 @@ pub enum Event {
     SupplyUnitSpent {
         piece: PieceId,
     },
+    /// A supply unit its own side destroyed (32.1x).
+    SupplyDestroyed {
+        piece: PieceId,
+    },
+    /// Supply units ran along the railway (8.7x, 32.3x).
+    Railed {
+        pieces: Vec<PieceId>,
+        from: HexId,
+        to: HexId,
+    },
+    /// Motorisation points attached to a supply unit (32.31).
+    MotorisationAttached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// A supply unit's motorisation points back in its hex's pool.
+    MotorisationDetached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// Ammunition and fuel moved between supply units in one hex (32.1x).
+    LoadTransferred {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
     /// A piece whose last TOE point went.
     Eliminated {
         piece: PieceId,

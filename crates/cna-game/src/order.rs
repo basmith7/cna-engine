@@ -78,7 +78,30 @@ pub enum Order {
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,
-    /// Nothing more this phase: ends F or G for the phasing player.
+    /// Phase C, abstract supply: the supply unit takes its motorisation
+    /// points (30 real, 6 dummy) from its hex's pool (32.31).
+    AttachMotorisation { piece: PieceId },
+    /// Phase C: the supply unit's points go back to its hex's pool.
+    DetachMotorisation { piece: PieceId },
+    /// Phase C: ammunition and fuel move between two supply units in one
+    /// hex (32.1x).
+    TransferLoad {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
+    /// A movement segment, before anything moves: the player's supply
+    /// units in `hex` are put to the torch, one die each (32.1x).
+    DestroySupply { hex: HexId },
+    /// Phase J, abstract supply: the Commonwealth's supply units ride the
+    /// railway hex by hex along `path` (8.7x, 32.3x).
+    Rail {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
+    },
+    /// Nothing more this phase: ends F or G for the phasing player, or
+    /// C for one player.
     Pass,
 }
 

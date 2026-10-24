@@ -202,8 +202,9 @@ impl GameState {
     /// A supply unit with neither ammunition nor fuel left is removed
     /// (32.1x).
     pub(crate) fn retire_if_empty(&mut self, id: &PieceId, events: &mut Vec<Event>) {
-        let p = self.pieces.get_mut(id).expect("checked");
-        if p.load == Some(Load { ammo: 0, fuel: 0 }) {
+        if self.pieces[id].load == Some(Load { ammo: 0, fuel: 0 }) {
+            self.release_motorisation(id);
+            let p = self.pieces.get_mut(id).expect("checked");
             p.location = Location::Eliminated;
             events.push(Event::SupplyUnitSpent { piece: id.clone() });
         }
@@ -241,7 +242,10 @@ mod tests {
                 },
             )
             .unwrap();
-        state.apply(data, Side::Axis, Order::Pass).unwrap();
+        // Phase C (both players), then F.
+        for side in [Side::Axis, Side::Cw, Side::Axis] {
+            state.apply(data, side, Order::Pass).unwrap();
+        }
         state
     }
 

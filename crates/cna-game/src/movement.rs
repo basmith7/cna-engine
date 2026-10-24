@@ -68,8 +68,16 @@ impl GameState {
 
     /// The CPA a piece moves on (6.1x): its printed allowance, or for an
     /// HQ the slowest unit under it (its whole subtree, 6.15); none for a
-    /// printed 0, which cannot move on its own.
+    /// printed 0, which cannot move on its own. A supply unit moves on 15
+    /// with its motorisation points, else not at all (32.5x).
     pub(crate) fn cpa(&self, piece: &Piece) -> Option<u32> {
+        // The points carrying a supply unit move it at CPA 15 (32.5x).
+        if matches!(
+            piece.kind,
+            PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+        ) {
+            return (self.modules.abstract_supply && piece.motorised > 0).then_some(15);
+        }
         let own = piece.cpa.as_ref()?.value?;
         let mut cpa = own;
         if piece.kind == PieceKind::Hq
@@ -161,6 +169,31 @@ impl GameState {
                 ));
             }
         }
+        // In the movement segment a supply unit goes only with a friendly
+        // combat unit, which it starts and ends stacked with (32.31): both
+        // unmoved this segment, or one it has moved with.
+        let kind = |id: &PieceId| self.pieces[id].kind;
+        let escorted = |s: &PieceId| {
+            pieces.iter().any(|c| {
+                kind(c) == PieceKind::Combat
+                    && if self.moved.contains(s) {
+                        self.escorts.get(s).is_some_and(|e| e.contains(c))
+                    } else {
+                        !self.moved.contains(c)
+                    }
+            })
+        };
+        if phasing
+            && pieces.iter().any(|id| {
+                matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && !escorted(id)
+            })
+        {
+            return Err(Illegal::new(
+                "32.31",
+                "a supply unit moves in the movement segment only with a friendly combat unit it started the segment with",
+            ));
+        }
         Ok(from.expect("at least one piece"))
     }
 
@@ -169,10 +202,21 @@ impl GameState {
         match p.kind {
             PieceKind::Combat | PieceKind::Hq => {}
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
-                return Err(Illegal::new(
-                    "32.x",
-                    format!("{}: supply units are inert in this mission", p.id),
-                ));
+                if !self.modules.abstract_supply {
+                    return Err(Illegal::new(
+                        "32.x",
+                        format!("{}: supply units are inert without abstract supply", p.id),
+                    ));
+                }
+                if p.motorised == 0 {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!(
+                            "{}: a supply unit moves only with its motorisation points",
+                            p.id
+                        ),
+                    ));
+                }
             }
         }
         if self.cpa(p).is_none() {
@@ -460,7 +504,9 @@ impl GameState {
             p.cp_enemy_half += cost;
         }
         let dp = p.cp_spent.saturating_sub(cpa).floor() - before;
-        if dp > 0 {
+        // Supply units have no cohesion to lose (32.1x: no combat value).
+        let supply = matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
+        if dp > 0 && !supply {
             p.cohesion.earn_dp(dp);
             events.push(Event::Disorganised {
                 piece: id.clone(),
@@ -478,6 +524,30 @@ impl GameState {
         player: Side,
         pieces: &[PieceId],
     ) -> Result<(HexId, bool), Illegal> {
+        if self.clock.phase == Phase::TruckConvoy && self.modules.abstract_supply {
+            // The truck convoy phase moves supply units alone, and only
+            // those that did not move in G (32.31).
+            for id in pieces {
+                let p = self
+                    .pieces
+                    .get(id)
+                    .ok_or_else(|| Illegal::new("32.31", format!("no piece {id}")))?;
+                if !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit) {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id}: only supply units move in the truck convoy phase"),
+                    ));
+                }
+                if p.escorted {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id} moved in the movement and combat phase: not again in H"),
+                    ));
+                }
+            }
+            let from = self.moving_stack(player, pieces, false)?;
+            return Ok((from, false));
+        }
         if self.clock.phase != Phase::MovementCombat
             || self.clock.segment != Some(Segment::Movement)
         {
@@ -521,6 +591,22 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
+        // Supply stacking binds where the move ends (32.1x).
+        let supply = pieces
+            .iter()
+            .filter(|id| {
+                matches!(
+                    self.pieces[*id].kind,
+                    PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+                )
+            })
+            .count();
+        if supply > 0
+            && let Some(end) = path.last()
+            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, supply)
+        {
+            return Err(e);
+        }
         if shift {
             // A Reserve I unit shifts one hex a segment, free, never into
             // an enemy ZOC (18.2x).
@@ -634,8 +720,29 @@ impl GameState {
             if shift {
                 self.shifted.extend(pieces.iter().cloned());
             }
+            let in_g = self.clock.phase == Phase::MovementCombat;
+            let combat: Vec<PieceId> = pieces
+                .iter()
+                .filter(|id| self.pieces[*id].kind == PieceKind::Combat)
+                .cloned()
+                .collect();
             for id in pieces {
-                self.pieces.get_mut(id).expect("checked").landed = false;
+                if in_g
+                    && matches!(
+                        self.pieces[id].kind,
+                        PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+                    )
+                {
+                    self.escorts
+                        .entry(id.clone())
+                        .or_default()
+                        .extend(combat.iter().cloned());
+                }
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.landed = false;
+                // A supply unit moves in G or in H, not both (32.31).
+                p.escorted |=
+                    in_g && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
             }
         }
         if let Some(eligible) = reaction {

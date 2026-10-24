@@ -126,6 +126,20 @@ pub struct GameState {
     pub initiative: Option<Side>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
+    /// Supply units their side tried to destroy this movement segment
+    /// (32.1x: one attempt each).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub scuttled: BTreeSet<PieceId>,
+    /// Supply units that rode the railway this OpStage (32.3x: two).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub railed: BTreeSet<PieceId>,
+    /// Which way this OpStage's rail runs went: east or not (32.3x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail_east: Option<bool>,
+    /// Phase C under abstract supply: Player A has passed and Player B
+    /// is organising.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub organised: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
@@ -137,6 +151,10 @@ pub struct GameState {
     /// 9.31).
     #[serde(default)]
     pub moved: BTreeSet<PieceId>,
+    /// This movement segment's escorts: the combat units each supply
+    /// unit has moved with (32.31).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escorts: BTreeMap<PieceId, BTreeSet<PieceId>>,
     /// The non-phasing player's ZOC declarations this movement segment,
     /// by its hex (10.16).
     #[serde(default)]
@@ -207,11 +225,16 @@ impl GameState {
             pending_motorisation,
             initiative: None,
             player_a: None,
+            organised: false,
+            scuttled: BTreeSet::new(),
+            railed: BTreeSet::new(),
+            rail_east: None,
             weather: Weather::Normal,
             pieces,
             pending: None,
             cycle: 0,
             moved: BTreeSet::new(),
+            escorts: BTreeMap::new(),
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),
@@ -239,6 +262,11 @@ impl GameState {
         }
         if let Some(p) = &self.pending {
             return Some(p.side());
+        }
+        if self.clock.phase == crate::clock::Phase::Organisation {
+            return self
+                .player_a
+                .map(|a| if self.organised { a.other() } else { a });
         }
         match self.clock.half {
             None => self.initiative,
@@ -376,6 +404,19 @@ impl GameState {
             }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
+            (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
+            (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
+            (
+                None,
+                Order::TransferLoad {
+                    from,
+                    to,
+                    ammo,
+                    fuel,
+                },
+            ) => self.transfer_load(player, from, to, *ammo, *fuel),
+            (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
+            (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

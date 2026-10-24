@@ -200,6 +200,18 @@ pub struct Piece {
     /// Paid again for spending past its CPA this OpStage (32.22).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub fuelled_over: bool,
+    /// Motorisation points attached to this supply unit (32.31): 30 for
+    /// a real one, 6 for a dummy, or none.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub motorised: u32,
+    /// A supply unit that moved with a combat unit in G this OpStage:
+    /// it may not move again in H (32.31).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub escorted: bool,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 impl Piece {
