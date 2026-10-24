@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { clickHex, openFixture, throughCurtain } from "./helpers.ts";
+import { readFileSync } from "node:fs";
+import { clickHex, here, openFixture, openStart, throughCurtain } from "./helpers.ts";
 import type { Firer, Piece } from "../src/types.ts";
 
 // Mission 5 slice 2: fuel in the move panel, loads in the stack panel
@@ -150,4 +151,49 @@ test("phase J: two Commonwealth supply units ride the railway west from Alexandr
   await expect(page.getByTestId("move-refusal")).toContainText("32.3x");
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).not.toContainText("rail");
+});
+
+test("a supply unit takes its points in phase C and moves with a combat unit in G (32.31)", async ({ page }) => {
+  // The set-up, with 30 motorisation points at Bardia (C4321) to attach.
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  save.motorisation.axis.C4321 = 30;
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C4321");
+  await page.locator('[data-unit="supply:axis:4"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "takes 30 motorisation points." })).toHaveCount(1);
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "cw");
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "axis");
+  await controls.locator('[data-order="pass"]').click();
+  await expect(page.getByTestId("clock")).toContainText("movement");
+  // G: a tank battalion takes the supply unit along; nothing else moves.
+  await clickHex(page, "C4321");
+  const checked = page.locator('[data-testid="stack-panel"] input.tick:checked');
+  while ((await checked.count()) > 0) await checked.first().uncheck();
+  await page.locator('[data-unit="unit:it:lxl-tank-bn"] input.tick').check();
+  await page.locator('[data-unit="supply:axis:4"] input.tick').check();
+  await expect(page.getByTestId("reach-count")).toBeVisible();
+  const target = await page.evaluate(() => {
+    const v = window.__cna.view();
+    const held = new Set((Object.values(v.pieces) as Piece[]).map((p) => (typeof p.location === "object" && "hex" in p.location ? p.location.hex : "")));
+    // The nearest free hex on screen.
+    const centre = (e: Element) => {
+      const b = (e as SVGGraphicsElement).getBBox();
+      return [b.x + b.width / 2, b.y + b.height / 2];
+    };
+    const [x0, y0] = centre(document.querySelector('polygon.hex[data-hex="C4321"]')!);
+    const free = [...document.querySelectorAll("polygon.reach")].filter((e) => !held.has(e.getAttribute("data-hex")!));
+    free.sort((a, b) => Math.hypot(centre(a)[0] - x0, centre(a)[1] - y0) - Math.hypot(centre(b)[0] - x0, centre(b)[1] - y0));
+    return free[0]?.getAttribute("data-hex") ?? null;
+  });
+  expect(target).not.toBeNull();
+  await page.locator(`polygon.hex[data-hex="${target}"]`).click();
+  const at = await page.evaluate(() => ["unit:it:lxl-tank-bn", "supply:axis:4"].map((id) => window.__cna.view().pieces[id].location));
+  expect(at).toEqual([{ hex: target }, { hex: target }]);
 });
