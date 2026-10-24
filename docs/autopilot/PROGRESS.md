@@ -19,14 +19,17 @@ writes is **Feedback**.
 is not idle while Brian reviews #25: the spec for the rest of the Land
 Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`;
 abstract supply §32 first, then breakdown and repair, organisation,
-dumps and prisoners). **Slice 1** (supply state: loads, motorisation
-points, supply stacking, 32.8x AA thinning) merged as PR #31, behind an
-`abstract_supply` module flag that new `cna-play` games turn on and old
-saves and logs leave off. **Slice 2** (spending: fuel on land moves,
-ammunition for barrages and assaults, from supply in range) is PR #32,
-draft: Tasks 1–5 done and passing locally; the UI task (the browser
-turning the module on) is next. Mission 4 resumes first the moment
-**Feedback** approves #25.
+dumps and prisoners). **Slice 1** (supply state) merged as PR #31.
+**Slice 2** (spending) merged as PR #32 on 2026-10-24: land moves pay
+fuel and barrages and assaults pay ammunition from supply in range, and
+the browser now plays module-on games: loads and motorisation points in
+the stack panel, the fuel owed and a payer picker in the move panel,
+ammunition costs in the barrage and assign panels. **Slice 3** (supply
+movement) is draft PR #34: phase C now waits on both players for
+motorisation attach/detach and load transfers, and a supply unit with
+its points moves in G alongside a combat unit at CPA 15. Phase H, rail,
+the air lift and the golden game through the new phases are next.
+Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
 slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
@@ -77,6 +80,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
+- Mission 5 is Graziani's whole land turn; slices 3–6 continue unattended (#34 next).
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
