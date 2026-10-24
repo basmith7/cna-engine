@@ -279,6 +279,8 @@ export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retr
 
 /** A hex a stack can end in (`cna_game::reach::Reach`). */
 export interface Reach {
+  /** The fuel the move owes under abstract supply, the whole stack's (32.22); 0 with the module off. */
+  fuel: number;
   hex: HexId;
   /** What the stack pays in all, breaking off included. */
   cp: number;

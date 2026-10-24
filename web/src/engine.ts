@@ -46,6 +46,11 @@ export class Engine {
     return JSON.parse(this.game.reachable(side, JSON.stringify(pieces), purpose)) as ReachResult;
   }
 
+  /** The supply units that could pay the fuel of a move by `pieces`; empty unless `side` is to act and owns them. */
+  fuelSources(side: Side, pieces: PieceId[]): PieceId[] {
+    return JSON.parse(this.game.fuelSources(side, JSON.stringify(pieces))) as PieceId[];
+  }
+
   /** What `side` may answer the pending sealed step with, or why it may not answer now. */
   sealedOptions(side: Side): SealedOptionsResult {
     return JSON.parse(this.game.sealedOptions(side)) as SealedOptionsResult;

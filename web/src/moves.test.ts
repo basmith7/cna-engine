@@ -62,7 +62,7 @@ describe("extendPath", () => {
 
 describe("byHex", () => {
   it("indexes reaches by hex", () => {
-    const r = { hex: "C1", cp: 1, path: ["C1"], dp: 0, ends_in_zoc: false, may_be_interrupted: false, short: 0 };
+    const r = { hex: "C1", cp: 1, path: ["C1"], dp: 0, ends_in_zoc: false, may_be_interrupted: false, short: 0, fuel: 0 };
     expect(byHex([r]).get("C1")).toBe(r);
   });
 });
