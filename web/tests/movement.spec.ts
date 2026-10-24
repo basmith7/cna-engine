@@ -31,8 +31,16 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   // 59: the Axis, holding the initiative, declares itself Player A.
   const controls = page.getByTestId("phase-controls");
   await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
-  await expect(lastLine(page)).toContainText("F · reserve designation");
+  await expect(lastLine(page)).toContainText("C · organisation");
   await expect(log(page).filter({ hasText: "Axis declares itself Player A." })).toHaveCount(1);
+  // Phase C (abstract supply): the Axis, then the Commonwealth, organise
+  // nothing; the curtain hands over each way.
+  await expect(page.getByTestId("organise-hint")).toBeVisible();
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "cw");
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "axis");
+  await expect(lastLine(page)).toContainText("F · reserve designation");
   // 60: nothing in reserve.
   await controls.locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · G · movement and combat · Player A · movement");

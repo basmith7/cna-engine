@@ -102,6 +102,8 @@ export interface Piece {
   reserve?: Reserve;
   released?: Reserve;
   landed?: boolean;
+  /** Motorisation points attached to a supply unit (32.31); absent for none. */
+  motorised?: number;
   /** A supply unit's ammunition and fuel (32.1x); only on the side to act's own. */
   load?: { ammo: number; fuel: number };
   /** Added by `view()`: the characteristics chart's unit type, null off the chart. */
@@ -165,6 +167,9 @@ export type Order =
   | { "designate-reserve": { pieces: PieceId[] } }
   | { "release-reserve": { pieces: PieceId[] } }
   | "end-segment"
+  | { "attach-motorisation": { piece: PieceId } }
+  | { "detach-motorisation": { piece: PieceId } }
+  | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | "pass";
 
 export type VictoryLevel = string;
@@ -199,7 +204,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 42 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 45 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -260,6 +265,9 @@ export type Event =
   | { "ammunition-spent": { piece: PieceId; from: PieceId; ammo: number } }
   | { "ammunition-short": { piece: PieceId } }
   | { "supply-unit-spent": { piece: PieceId } }
+  | { "motorisation-attached": { piece: PieceId; points: number } }
+  | { "motorisation-detached": { piece: PieceId; points: number } }
+  | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }

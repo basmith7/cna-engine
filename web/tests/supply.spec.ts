@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { clickHex, openFixture } from "./helpers.ts";
+import { clickHex, openFixture, throughCurtain } from "./helpers.ts";
 import type { Firer, Piece } from "../src/types.ts";
 
 // Mission 5 slice 2: fuel in the move panel, loads in the stack panel
@@ -12,6 +12,11 @@ async function toMovement(page: Page) {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");
   await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  // Phase C: the Axis, then the Commonwealth, pass; then F.
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "cw");
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "axis");
   await controls.locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).toContainText("movement");
 }
@@ -73,4 +78,18 @@ test("the barrage panel says what each firer's fire costs in ammunition, as the 
   }, gun);
   expect(quote).toBeGreaterThan(0);
   await expect(sealed.locator(`[data-unit="${gun}"] [data-ammo]`)).toHaveText(`firing costs ${quote} ammunition`);
+});
+
+test("phase C: attaching motorisation to a supply unit is the engine's call (32.31)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await expect(page.getByTestId("clock")).toContainText("C · organisation");
+  await expect(page.getByTestId("organise-hint")).toBeVisible();
+  // supply:axis:1 stands at C4807 with 5 points in the hex: short of 30.
+  await clickHex(page, "C4807");
+  await page.locator('[data-unit="supply:axis:1"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.31)");
+  await expect(page.getByTestId("toast")).toContainText("needs 30 motorisation points and C4807 has 5");
 });

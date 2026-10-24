@@ -14,7 +14,16 @@
   }: {
     view: View;
     ticked: PieceId[];
-    onorder: (o: "end-segment" | "pass" | { "declare-initiative": { player_a: Side } } | { "designate-reserve": { pieces: PieceId[] } } | { "release-reserve": { pieces: PieceId[] } }) => void;
+    onorder: (
+      o:
+        | "end-segment"
+        | "pass"
+        | { "declare-initiative": { player_a: Side } }
+        | { "designate-reserve": { pieces: PieceId[] } }
+        | { "release-reserve": { pieces: PieceId[] } }
+        | { "attach-motorisation": { piece: PieceId } }
+        | { "detach-motorisation": { piece: PieceId } },
+    ) => void;
   } = $props();
 
   const c = $derived(view.clock);
@@ -23,6 +32,10 @@
   const release = $derived(c.phase === "movement-combat" && c.segment === "reserve-release");
   const endSegment = $derived(c.phase === "movement-combat" && (c.segment === "movement" || c.segment === "close-assault" || c.segment === "reserve-release"));
   const n = $derived(ticked.length);
+  // Phase C under abstract supply: the first ticked supply unit takes or gives up its motorisation points (32.31).
+  const organise = $derived(c.phase === "organisation");
+  const supply = $derived(ticked.find((id) => view.pieces[id]?.kind === "supply-unit" || view.pieces[id]?.kind === "dummy-supply-unit") ?? null);
+  const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
 </script>
 
 {#if view.pending === null && view.to_act}
@@ -38,6 +51,15 @@
     {#if release}
       <button type="button" data-order="release-reserve" onclick={() => onorder({ "release-reserve": { pieces: ticked } })}>Release reserve ({n} ticked)</button>
     {/if}
+    {#if organise}
+      {#if supply === null}
+        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31).</span>
+      {:else if motorised}
+        <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: supply } })}>Detach motorisation</button>
+      {:else}
+        <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
+      {/if}
+    {/if}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>
     {/if}
@@ -51,6 +73,11 @@
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-bottom: 0.6rem;
+  }
+  .hint {
+    font: 12px system-ui, sans-serif;
+    color: #555;
+    align-self: center;
   }
   button {
     font: 14px system-ui, sans-serif;

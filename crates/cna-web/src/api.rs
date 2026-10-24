@@ -107,7 +107,8 @@ impl Game {
                 }
             }
         }
-        // 3.61: loads and motorisation points are the owner's secret.
+        // 3.61: loads and motorisation points (pooled or attached) are
+        // the owner's secret.
         if let Some(acting) = self.state.to_act() {
             let other = serde_json::to_value(acting.other())?
                 .as_str()
@@ -130,6 +131,7 @@ impl Game {
             for p in self.state.pieces.values().filter(|p| p.side != acting) {
                 if let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() {
                     o.remove("load");
+                    o.remove("motorised");
                 }
             }
         }
@@ -340,6 +342,18 @@ mod tests {
         assert!(save["pieces"]["supply:cw:1"]["load"].is_object());
         assert!(save["motorisation"]["cw"].is_object());
         assert!(save["pending_motorisation"].is_object());
+    }
+
+    #[test]
+    fn the_view_hides_the_other_side_s_attached_motorisation() {
+        let mut game = Game::with_modules(7, Modules::ALL).unwrap();
+        for id in ["supply:axis:1", "supply:cw:1"] {
+            game.state.pieces.get_mut(&serde_json::from_value::<PieceId>(json!(id)).unwrap()).unwrap().motorised = 30;
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["pieces"]["supply:axis:1"]["motorised"], 30);
+        assert!(view["pieces"]["supply:cw:1"].get("motorised").is_none());
     }
 
     #[test]
