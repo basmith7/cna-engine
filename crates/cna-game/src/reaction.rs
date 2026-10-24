@@ -147,6 +147,7 @@ impl GameState {
         let mut events = Vec::new();
         let mut at = from.clone();
         for (to, cost) in &plan.steps {
+            self.collect_breakdown(data, pieces, &at, to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at.clone(),

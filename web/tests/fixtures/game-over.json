@@ -10,7 +10,8 @@
     "R-018": 2
   },
   "modules": {
-    "abstract_supply": true
+    "abstract_supply": true,
+    "breakdown": true
   },
   "clock": {
     "game_turn": 7,

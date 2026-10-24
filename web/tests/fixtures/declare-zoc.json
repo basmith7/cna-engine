@@ -10,7 +10,8 @@
     "R-018": 2
   },
   "modules": {
-    "abstract_supply": true
+    "abstract_supply": true,
+    "breakdown": true
   },
   "clock": {
     "game_turn": 1,
@@ -3868,7 +3869,8 @@
         "dp_tally": 0
       },
       "contact": false,
-      "engaged": false
+      "engaged": false,
+      "breakdown_halves": 4
     },
     "unit:it:1st-libyan-artillery-regt": {
       "id": "unit:it:1st-libyan-artillery-regt",
@@ -3899,7 +3901,8 @@
       },
       "contact": false,
       "engaged": false,
-      "fuelled": true
+      "fuelled": true,
+      "breakdown_halves": 4
     },
     "unit:it:1st-libyan-infantry-hq": {
       "id": "unit:it:1st-libyan-infantry-hq",

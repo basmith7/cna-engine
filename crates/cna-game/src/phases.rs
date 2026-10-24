@@ -159,6 +159,7 @@ impl GameState {
             p.landed = false;
             p.fuelled = false;
             p.escorted = false;
+            p.breakdown_halves = 0;
             p.fuelled_over = false;
             p.engaged = false;
         }

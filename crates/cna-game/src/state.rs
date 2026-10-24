@@ -92,12 +92,16 @@ pub struct Modules {
     /// Supply units carry loads and motorisation points exist (§32, 60.92).
     #[serde(default)]
     pub abstract_supply: bool,
+    /// Vehicles collect breakdown points as they move (§21).
+    #[serde(default)]
+    pub breakdown: bool,
 }
 
 impl Modules {
     /// Every module on: what a new game of the app plays.
     pub const ALL: Modules = Modules {
         abstract_supply: true,
+        breakdown: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
