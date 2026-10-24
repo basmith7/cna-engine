@@ -125,13 +125,13 @@ only that phase.
 
 | System | What the engine does instead |
 |---|---|
-| Abstract supply and supply units (§32), Mission 5 in progress | with the `abstract_supply` module on (new `cna-play` and browser games): supply units carry loads, motorisation points stand where the trucks did, supply stacking and 32.8x's AA thinning apply, land moves pay fuel and barrages and assaults pay ammunition from supply in range; in phase C supply units take or give up their motorisation points and trade loads, and with them move alongside combat units in G or alone in H; a side may destroy its own supply. Not yet: rail and air movement of supply, motorising infantry, capture of supply for the captor's use (captured supply is removed), arrivals and convoys, motorisation losses, reactions and retreats paying fuel. With the module off (older saves and logs) every unit is supplied without limit and supply units are inert |
+| Abstract supply and supply units (§32), Mission 5 in progress | with the `abstract_supply` module on (new `cna-play` and browser games): supply units carry loads, motorisation points stand where the trucks did, supply stacking and 32.8x's AA thinning apply, land moves pay fuel and barrages and assaults pay ammunition from supply in range; in phase C supply units take or give up their motorisation points and trade loads, and with them move alongside combat units in G or alone in H; a side may destroy its own supply; in phase J the Commonwealth runs two supply units a stage one way along the Mersa Matruh–Alexandria railway; a real supply unit captured alone in an enemy ZOC (10.29) goes over to the captor with its load and points. Not yet: the air lift (needs HQ echelons from cna), combat units by rail, motorising infantry, capture by entering a hex of lone enemy supply (refused as entering an enemy hex), arrivals and convoys, motorisation losses, reactions and retreats paying fuel. With the module off (older saves and logs) every unit is supplied without limit and supply units are inert |
 | Breakdown (§21) | the breakdown segment of phase G is skipped |
 | Organisation (§20): attachment, detachment, replacements | phase C is skipped; the set-up's attachments are fixed for the game |
 | Engineering and construction (§24–26) | no minefields, fortifications, roads or airfields are built or demolished; the scenario starts with none (60.7) |
 | Repair (phase K) and vehicle breakdown pools | skipped; destroyed armour leaves the map |
 | Patrols (phase L, §27) | skipped; barrage targets need no identification |
-| Rail (phase J, §31) | skipped; the railroad to Mersa Matruh carries nothing |
+| Rail (phase J, §31) | with the `abstract_supply` module on, Commonwealth supply units only (32.3x); combat units do not ride (R-005's units half), the line ends at Mersa Matruh (no construction), no bombing. Module off: skipped |
 | The Commonwealth fleet and the Axis convoy (phases E, II) | skipped; reinforcements arrive by the schedule at Cairo and Tripoli |
 | The Air Game (§33–47) | left out, as 60.9 allows |
 | The Logistics Game (§48–58) | left out, as 60.92 allows; victory's supply clause is R-110's route trace |
