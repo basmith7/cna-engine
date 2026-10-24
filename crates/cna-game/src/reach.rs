@@ -62,7 +62,7 @@ pub struct Reach {
     #[serde(default)]
     pub short: u32,
     /// The fuel the move owes under abstract supply, the whole stack's
-    /// (32.22); 0 with the module off.
+    /// (32.22); 0 with the module off and for any purpose but `Move`.
     #[serde(default)]
     pub fuel: u32,
 }
@@ -357,7 +357,13 @@ impl GameState {
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
                     short: 0,
-                    fuel: self.fuel_owed(data, pieces, cp),
+                    // Only a move order pays fuel; reactions and
+                    // retreats do not yet (NOT_SIMULATED).
+                    fuel: if purpose == Purpose::Move {
+                        self.fuel_owed(data, pieces, cp)
+                    } else {
+                        0
+                    },
                 }
             })
             .collect();
@@ -761,6 +767,26 @@ mod tests {
             .apply(&data, Side::Axis, log.orders[61].order.clone())
             .unwrap();
         assert_eq!(charged(&events), (Cp::whole(1), false));
+    }
+
+    #[test]
+    fn a_reaction_quotes_no_fuel_since_only_a_move_pays_it() {
+        let data = graziani();
+        let log: crate::log::Log = serde_json::from_str(
+            &std::fs::read_to_string(cna_data::repo_root().join("tests/games/graziani-m5.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let mut prefix = log.clone();
+        prefix.orders.truncate(59);
+        let state = crate::log::replay(&data, &prefix).unwrap();
+        assert!(state.modules.abstract_supply);
+        assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
+        let reaches = state
+            .reachable(&data, Side::Cw, &ids(&["unit:cw:4-rha"]), Purpose::React)
+            .unwrap();
+        assert!(!reaches.is_empty());
+        assert!(reaches.iter().all(|r| r.fuel == 0), "{reaches:?}");
     }
 
     #[test]
