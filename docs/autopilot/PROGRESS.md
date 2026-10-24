@@ -157,6 +157,16 @@ the bullet once it lands and `vendor/cna` is bumped.
   (`axis-convoy-level.json`), the Commonwealth supply period of the
   arrival turn (`simplified-supply.json`), and the monthly motorisation
   losses (`motorisation-losses.json`, 32.5x) are all read by month.
+- **Which TOE points are armoured cars, armoured recce or trucks
+  (21.1x).** Breakdown hits tanks, SP guns, armoured cars (BAR 1L),
+  armoured recce (0) and trucks (2L). Tanks and SP guns carry a `bar` in
+  `weapon-systems.json`; recce and armoured-car units list no weapons and
+  their characteristics row says only "Recce Bn-Eq" or "Reconnaissance
+  Battalion-Eq", so 11th Hussars' armoured cars and a recce battalion
+  look alike. Wanted: a vehicle class (and BAR) per unit-characteristics
+  row or per weapon entry, and how many of a unit's TOE points are its
+  own trucks where that matters. Not blocking: Mission 5 slice 5 checks
+  tanks and SP guns only (PR #35).
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
