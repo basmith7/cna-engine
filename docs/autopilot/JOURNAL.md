@@ -238,3 +238,9 @@ Done: merged main; phase J rail for Commonwealth supply (dcd235d: `rail.rs`, `Or
 In flight: full Playwright run on ff78d22.
 Next: the air lift in phase C (32.3x), then capture for the captor's use and Task 4's golden extension; then mark #34 ready.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 11:26 MST — autopilot/m5-slice-5-breakdown
+Done: #34 (slice 3) ready, gates green locally (Playwright 31/31 + 15/15 after review fixes 0ea83e2, 53f8439); CI running at handoff. Air lift moved out (needs HQ echelons; request on main). Slice 4 plan on `autopilot/m5-slice-4-arrivals` (no PR), blocked on a Game-Turn calendar (request on main). Slice 5 draft PR #35: breakdown tables and rules core (b5edb02, 28a197d).
+In flight: slice 5 Task 2 (per-piece accumulation and checks) not started.
+Next: merge #34 if CI is green (`gh pr merge 34 --merge`), merge main into #35, then Task 2: `Piece.breakdown` from `cna_rules::breakdown::step_points` at every step (move, react, retreat), a check at each stop, tank BARs from `weapon-systems.json`'s `bar`.
+Blocked: Mission 4 on Brian's review of PR #25; slice 4 on cna's calendar.
