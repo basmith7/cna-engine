@@ -220,3 +220,9 @@ Done: #32 merged (39b403a; Playwright 27/27 locally, CI green). Slice 3 PR #34 (
 In flight: Playwright on #34's head.
 Next: Task 2's capture of points; Task 3 (phase J rail, air lift, destroying supply); a transfer-load panel; then the golden game through C/H with a real attach and supply move (Task 4).
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:45 MST — autopilot/m5-slice-3-supply-movement
+Done: on #34, phase H for supply units (H skipped unless a motorised, unescorted supply unit exists, so the golden is unchanged), the transfer-load control, DestroySupply (engine, button, e2e), NOT_SIMULATED's §32 row; Playwright 29/29 at the transfer commit. PROGRESS on main: status, and a request for cna (motorisation points per foot unit).
+In flight: a final full Playwright run and a review pass on #34's engine diff.
+Next: phase J rail (40-movement.md *Rail movement*, R-005: one stack each way, any distance on finished track, units and supply), then the air lift, capture for the captor's use, and Task 4 (the golden game attaching points and moving a supply unit).
+Blocked: Mission 4 on Brian's review of PR #25.
