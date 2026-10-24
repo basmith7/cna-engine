@@ -525,6 +525,24 @@ mod tests {
     }
 
     #[test]
+    fn an_escort_that_arrived_this_segment_may_not_carry_a_supply_unit_off_32_31() {
+        let data = graziani();
+        let (state, supply, escort, order) = supply_and_escort(&data, 30);
+        // The escort has moved into the supply unit's hex this segment:
+        // they did not start the segment together.
+        let mut arrived = state.clone();
+        arrived.moved.insert(escort.clone());
+        let err = arrived.apply(&data, Side::Axis, order.clone()).unwrap_err();
+        assert_eq!(err.case, "32.31");
+        // Both moved together already (a move resumed after a stop):
+        // still together.
+        let mut resumed = state;
+        resumed.moved.insert(escort);
+        resumed.moved.insert(supply);
+        resumed.apply(&data, Side::Axis, order).unwrap();
+    }
+
+    #[test]
     fn a_supply_unit_without_points_or_without_an_escort_may_not_move_32_31() {
         let data = graziani();
         let (mut state, _, _, order) = supply_and_escort(&data, 0);

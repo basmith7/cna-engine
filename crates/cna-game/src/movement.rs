@@ -170,17 +170,23 @@ impl GameState {
             }
         }
         // In the movement segment a supply unit goes only with a friendly
-        // combat unit, which it starts and ends stacked with (32.31).
+        // combat unit, which it starts and ends stacked with (32.31): one
+        // that has not moved this segment, or that has moved with it.
         let kind = |id: &PieceId| self.pieces[id].kind;
+        let supply: Vec<&PieceId> = pieces
+            .iter()
+            .filter(|id| matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
+            .collect();
+        let travelled = supply.iter().all(|id| self.moved.contains(*id));
         if phasing
-            && pieces
+            && !supply.is_empty()
+            && !pieces
                 .iter()
-                .any(|id| matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
-            && !pieces.iter().any(|id| kind(id) == PieceKind::Combat)
+                .any(|id| kind(id) == PieceKind::Combat && (travelled || !self.moved.contains(id)))
         {
             return Err(Illegal::new(
                 "32.31",
-                "a supply unit moves in the movement segment only with a friendly combat unit",
+                "a supply unit moves in the movement segment only with a friendly combat unit it started the segment with",
             ));
         }
         Ok(from.expect("at least one piece"))
