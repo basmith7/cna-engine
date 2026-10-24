@@ -17,19 +17,16 @@ writes is **Feedback**.
 
 **MISSION 5 started ahead of Mission 4** (2026-10-13), so the autopilot
 is not idle while Brian reviews #25: the spec for the rest of the Land
-Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`;
-abstract supply §32 first, then breakdown and repair, organisation,
-dumps and prisoners). **Slice 1** (supply state) merged as PR #31.
-**Slice 2** (spending) merged as PR #32 on 2026-10-24: land moves pay
-fuel and barrages and assaults pay ammunition from supply in range, and
-the browser now plays module-on games: loads and motorisation points in
-the stack panel, the fuel owed and a payer picker in the move panel,
-ammunition costs in the barrage and assign panels. **Slice 3** (supply
-movement) is draft PR #34: phase C waits on both players to attach or
-detach motorisation and trade loads; supply units with their points
-move alongside combat units in G or alone in H; a side may destroy its
-own supply. Rail (J), the air lift and the golden game through the new
-phases are next.
+Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`).
+Slices 1 (supply state, #31) and 2 (spending, #32) are merged. **Slice 3**
+(supply movement) is PR #34, ready, CI running at the last handoff:
+phase C attaches motorisation and trades loads; supply units move with
+an escort in G or alone in H; the Commonwealth rails two a stage in
+phase J; a side may destroy its own supply; captured supply goes over
+to the captor. The air lift moved out (cna has no HQ echelons).
+**Slice 4** (arrivals) is planned but blocked on a Game-Turn calendar
+from cna, so **slice 5** (breakdown) went first: draft PR #35, rules
+core in.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -81,7 +78,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 is Graziani's whole land turn; slices 3–6 continue unattended (#34 next).
+- Mission 5 continues unattended: merge #34 once CI is green, then slice 5 (#35); slice 4 waits on cna's calendar.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
