@@ -261,3 +261,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-12 16:53 | 0 | 66→? | 0→? | $0.31 | 4 | I built nothing this run: the Mission 2 spec (PR #5) still needs your review, and the standing orders don't allow any Mission 2 work until you approve it under  |
 | 2026-10-13 08:53 | 29 | 1→4 | 10→68 | $4.03 | 3 | Brian, the Mission 4 spec is up as **PR #25**, labelled `needs-brian`, and nothing for Mission 4 will be built until you approve it under **Feedback**. **What's |
 | 2026-10-13 12:53 | 11 | 6→7 | 93→100 | $2.51 | 1 | You've hit your session limit · resets 1:30pm (America/Phoenix) |
+| 2026-10-24 08:53 | 67 | 20→21 | 0→4 | $15.17 | 246 | Mission 5 slice 2 is merged (PR #32). Slice 3 (supply movement) is about half built on draft PR #34. Everything is pushed and the gates pass locally: clippy, `c |
