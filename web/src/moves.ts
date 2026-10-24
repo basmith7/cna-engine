@@ -46,12 +46,14 @@ export function toggleOffMap(view: View, ticked: PieceId[], id: PieceId): PieceI
   return same ? toggle(ticked, id) : [id];
 }
 
-/** The pieces of `hex` that start ticked for `side`: its own combat units and HQs, top of the stack first. Supply units are inert, so they start unticked. */
+/** The pieces of `hex` that start ticked for `side`: its own combat units and HQs, top of the stack first; in phases H and J its supply units, which alone move there. */
 export function defaultTicked(view: View, hex: HexId, side: Side | null): PieceId[] {
   if (!side) return [];
+  // Only supply units move in the truck convoy phase and by rail.
+  const supplyOnly = view.clock?.phase === "truck-convoy" || view.clock?.phase === "rail";
   return Object.values(view.pieces)
     .filter((p) => p.side === side && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex)
-    .filter((p) => p.kind === "combat" || p.kind === "hq")
+    .filter((p) => (supplyOnly ? p.kind === "supply-unit" || p.kind === "dummy-supply-unit" : p.kind === "combat" || p.kind === "hq"))
     .map((p) => p.id);
 }
 

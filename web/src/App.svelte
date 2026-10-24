@@ -74,6 +74,8 @@
     }
     // Phase H (abstract supply): supply units move alone, by the same order.
     if (view.clock.phase === "truck-convoy") return "move";
+    // Phase J (abstract supply): Commonwealth supply units ride the railway.
+    if (view.clock.phase === "rail") return "rail";
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
   /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */
@@ -184,7 +186,9 @@
           ? { "retreat-before-assault": { pieces: ticked, path } }
           : purpose === "forced-retreat"
             ? { retreat: { path } }
-            : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
+            : purpose === "rail"
+              ? { rail: { pieces: ticked, path } }
+              : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
     const ok = send(order);
     if (ok) assault = false;
     return ok;

@@ -36,6 +36,8 @@ pub enum Purpose {
     RetreatBeforeAssault,
     /// `Order::Retreat` answering a `forced-retreat` (15.82, 10.36).
     ForcedRetreat,
+    /// `Order::Rail` in the Commonwealth's phase J (8.7x, 32.3x).
+    Rail,
 }
 
 /// A hex the stack can end in.
@@ -103,6 +105,8 @@ impl GameState {
         }
         let mut forced: Option<(u32, Vec<HexId>, RetreatReason)> = None;
         let (from, shift) = match purpose {
+            // The railway is its own graph (8.7x); nothing below applies.
+            Purpose::Rail => return self.rail_reaches(data, pieces),
             Purpose::Move => {
                 if let Some(e) = self.pending_refusal() {
                     return Err(e);
@@ -167,6 +171,7 @@ impl GameState {
         )? {
             Start::In(in_zoc) => (in_zoc, false),
             Start::Undeclared(hexes) => match purpose {
+                Purpose::Rail => unreachable!("rail returned above"),
                 // The move is parked on the declaration (10.16); the
                 // hexes are priced as if it then went on unhindered.
                 Purpose::Move => (false, true),
@@ -231,7 +236,10 @@ impl GameState {
                         .map(|(cap, _, _)| cap.saturating_sub(self.pieces[id].cp_own_half()))
                 })
                 .min(),
-            Purpose::React | Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => None,
+            Purpose::React
+            | Purpose::RetreatBeforeAssault
+            | Purpose::ForcedRetreat
+            | Purpose::Rail => None,
         };
         if margin.is_some_and(|m| break_off > m) {
             return Ok(Vec::new());
@@ -1224,6 +1232,10 @@ mod tests {
                 path,
             },
             Purpose::ForcedRetreat => Order::Retreat { path },
+            Purpose::Rail => Order::Rail {
+                pieces: stack.to_vec(),
+                path,
+            },
         }
     }
 
@@ -1286,7 +1298,7 @@ mod tests {
         let (walks, max_len) = match purpose {
             Purpose::Move => (40, 6),
             Purpose::React => (300, 12),
-            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => (200, 5),
+            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat | Purpose::Rail => (200, 5),
         };
         let mut accepted = 0;
         for _ in 0..walks {

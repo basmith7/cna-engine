@@ -171,6 +171,7 @@ export type Order =
   | { "attach-motorisation": { piece: PieceId } }
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+  | { rail: { pieces: PieceId[]; path: HexId[] } }
   | "pass";
 
 export type VictoryLevel = string;
@@ -270,6 +271,7 @@ export type Event =
   | { "motorisation-attached": { piece: PieceId; points: number } }
   | { "motorisation-detached": { piece: PieceId; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+  | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
@@ -285,7 +287,7 @@ export interface Illegal {
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
 /** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
-export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat";
+export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat" | "rail";
 
 /** A hex a stack can end in (`cna_game::reach::Reach`). */
 export interface Reach {

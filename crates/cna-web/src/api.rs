@@ -974,6 +974,12 @@ mod tests {
             "standing still is two hexes short"
         );
 
+        // Phase J of GT1 OpStage 1: the Commonwealth's supply at Mersa
+        // Matruh may ride the railway east (golden order 86 passes).
+        let rail = golden_prefix(85);
+        assert_eq!(rail.clock.phase, cna_game::clock::Phase::Rail);
+        assert_eq!(rail.to_act(), Some(Side::Cw));
+
         let game_over = replay(data(), &golden_log()).unwrap();
         assert!(game_over.is_over());
         assert_eq!(game_over.to_act(), None);
@@ -987,6 +993,7 @@ mod tests {
             ("combat-start", combat_start),
             ("retreat-before-assault", retreat_before_assault),
             ("forced-retreat", forced_retreat),
+            ("rail", rail),
             ("game-over", game_over),
         ]
     }
@@ -999,7 +1006,7 @@ mod tests {
         ("set-up-done", 56),
         ("movement-done", 65),
         ("combat-done", 76),
-        ("golden-done", 477),
+        ("golden-done", 495),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`
@@ -1013,6 +1020,7 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{name}.json: {e}"));
             assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
         }
+        assert_eq!(HASHED[3].1, golden_log().orders.len(), "golden-done is the whole game");
         for (name, n) in HASHED {
             let pinned =
                 std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();

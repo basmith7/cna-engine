@@ -156,6 +156,39 @@ impl GameState {
         out
     }
 
+    /// `reachable` for `Purpose::Rail`: each hex the run may end in,
+    /// with its path along the line; rail costs no CP and no fuel.
+    pub(crate) fn rail_reaches(
+        &self,
+        data: &Data,
+        pieces: &[PieceId],
+    ) -> Result<Vec<crate::reach::Reach>, Illegal> {
+        let line = railway(data);
+        let at = self.rail_start(data, &line, pieces)?;
+        Ok(self
+            .rail_destinations(data, pieces)
+            .into_iter()
+            .map(|hex| {
+                let to = line.iter().position(|h| *h == hex).expect("on the line");
+                let path = if to > at {
+                    line[at + 1..=to].to_vec()
+                } else {
+                    line[to..at].iter().rev().cloned().collect()
+                };
+                crate::reach::Reach {
+                    hex,
+                    cp: Cp::ZERO,
+                    path,
+                    dp: 0,
+                    ends_in_zoc: false,
+                    may_be_interrupted: false,
+                    short: 0,
+                    fuel: 0,
+                }
+            })
+            .collect())
+    }
+
     /// Where on the railway the run of `pieces` starts: all in one hex,
     /// each free to ride, within the stage's two.
     fn rail_start(
@@ -209,38 +242,32 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
     ) -> Result<Vec<Event>, Illegal> {
-        let line = railway(data);
-        let at = self.rail_start(data, &line, pieces)?;
         let Some(end) = path.last() else {
             return Err(Illegal::new("8.7x", "a rail run goes somewhere"));
         };
-        let reach = self.rail_destinations(data, pieces);
-        let Some(to) = line
-            .iter()
-            .position(|h| h == end)
-            .filter(|_| reach.contains(end))
+        let Some(reach) = self
+            .rail_reaches(data, pieces)?
+            .into_iter()
+            .find(|r| r.hex == *end)
         else {
             return Err(Illegal::new(
                 "8.7x",
                 format!("{end} is not on the railway open to this run"),
             ));
         };
-        let east = to > at;
-        let expected: Vec<HexId> = if east {
-            line[at + 1..=to].to_vec()
-        } else {
-            line[to..at].iter().rev().cloned().collect()
-        };
-        if path != expected {
+        if path != reach.path {
             return Err(Illegal::new(
                 "8.7x",
                 "a rail run follows the railway hex by hex",
             ));
         }
+        let from = self.pieces[&pieces[0]].hex().expect("on the line").clone();
+        let line = railway(data);
+        let index = |h: &HexId| line.iter().position(|l| l == h);
+        let east = index(end) > index(&from);
         if let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, pieces.len()) {
             return Err(e);
         }
-        let from = line[at].clone();
         for id in pieces {
             self.pieces.get_mut(id).expect("checked").location = Location::Hex(end.clone());
             self.railed.insert(id.clone());
@@ -440,6 +467,44 @@ mod tests {
             .apply(&data, Side::Axis, run(&ids[1..], &[line[11].clone()]))
             .unwrap_err();
         assert_eq!(err.case, "5.2");
+    }
+
+    #[test]
+    fn reachable_by_rail_is_exactly_what_apply_accepts() {
+        use crate::reach::Purpose;
+        let data = graziani();
+        let line = railway(&data);
+        let (mut state, ids) = at_rail(&data, &line[20].to_string());
+        // An Axis unit on the line closes part of it.
+        let axis = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&axis).unwrap().location = Location::Hex(line[8].clone());
+        let reaches = state
+            .reachable(&data, Side::Cw, &ids, Purpose::Rail)
+            .unwrap();
+        assert!(!reaches.is_empty());
+        for (i, h) in line.iter().enumerate() {
+            let path: Vec<HexId> = if i > 20 {
+                line[21..=i].to_vec()
+            } else {
+                line[i..20].iter().rev().cloned().collect()
+            };
+            let mut probe = state.clone();
+            let got = probe.apply(&data, Side::Cw, run(&ids, &path));
+            match reaches.iter().find(|r| r.hex == *h) {
+                Some(r) => {
+                    assert_eq!(r.path, path);
+                    assert!(got.is_ok(), "{h}: {got:?}");
+                    assert_eq!(probe.pieces[&ids[0]].hex(), Some(h));
+                }
+                None => assert!(got.is_err(), "{h} was refused by reachable"),
+            }
+        }
     }
 
     #[test]

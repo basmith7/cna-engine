@@ -126,3 +126,28 @@ test("the movement segment: a side destroys its own supply in a hex before movin
   const left = await page.evaluate(() => ["supply:axis:4", "supply:axis:5"].filter((id) => window.__cna.view().pieces[id].location !== "eliminated").length);
   await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "destroyed by its own side." })).toHaveCount(2 - left);
 });
+
+test("phase J: two Commonwealth supply units ride the railway west from Alexandria (32.3x)", async ({ page }) => {
+  await openFixture(page, "rail");
+  await expect(page.getByTestId("clock")).toContainText("rail");
+  // Alexandria holds three supply units; all start ticked, one over the two a stage.
+  await clickHex(page, "E3613");
+  await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "rail");
+  await expect(page.getByTestId("move-refusal")).toContainText("32.3x");
+  await page.locator('[data-unit="supply:cw:12"] input.tick').uncheck();
+  await expect(page.getByTestId("reach-count")).toContainText("along the railway");
+  const target = await page.evaluate(() => {
+    const hexes = [...document.querySelectorAll("polygon.reach")].map((e) => e.getAttribute("data-hex")!);
+    return hexes.includes("E3312") ? "E3312" : null;
+  });
+  expect(target).toBe("E3312");
+  await page.locator('polygon.hex[data-hex="E3312"]').click();
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "by rail E3613 → E3312." })).toHaveCount(1);
+  const at = await page.evaluate(() => ["supply:cw:10", "supply:cw:11"].map((id) => window.__cna.view().pieces[id].location));
+  expect(at).toEqual([{ hex: "E3312" }, { hex: "E3312" }]);
+  // The stage's two have ridden: the third may not.
+  await clickHex(page, "E3613");
+  await expect(page.getByTestId("move-refusal")).toContainText("32.3x");
+  await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
+  await expect(page.getByTestId("clock")).not.toContainText("rail");
+});
