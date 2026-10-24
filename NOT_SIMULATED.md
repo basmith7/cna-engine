@@ -125,7 +125,7 @@ only that phase.
 
 | System | What the engine does instead |
 |---|---|
-| Abstract supply and supply units (§32), Mission 5 in progress | with the `abstract_supply` module on (new `cna-play` games; the browser not yet): supply units carry loads, motorisation points stand where the trucks did, supply stacking and 32.8x's AA thinning apply, land moves pay fuel and barrages and assaults pay ammunition from supply in range. Not yet: supply units moving, arrivals and convoys, motorisation losses, destroying one's own supply, reactions and retreats paying fuel. With the module off (older saves and logs) every unit is supplied without limit and supply units are inert |
+| Abstract supply and supply units (§32), Mission 5 in progress | with the `abstract_supply` module on (new `cna-play` and browser games): supply units carry loads, motorisation points stand where the trucks did, supply stacking and 32.8x's AA thinning apply, land moves pay fuel and barrages and assaults pay ammunition from supply in range. Not yet: supply units moving, arrivals and convoys, motorisation losses, destroying one's own supply, reactions and retreats paying fuel. With the module off (older saves and logs) every unit is supplied without limit and supply units are inert |
 | Breakdown (§21) | the breakdown segment of phase G is skipped |
 | Organisation (§20): attachment, detachment, replacements | phase C is skipped; the set-up's attachments are fixed for the game |
 | Engineering and construction (§24–26) | no minefields, fortifications, roads or airfields are built or demolished; the scenario starts with none (60.7) |

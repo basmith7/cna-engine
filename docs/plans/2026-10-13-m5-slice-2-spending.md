@@ -71,12 +71,12 @@ As slice 1.
 
 ### Task 6: UI
 
-- [ ] The browser's new game turns the module on (`api::Game::new`
+- [x] The browser's new game turns the module on (`api::Game::new`
   with `Modules::ALL`); the golden e2e drives `tests/games/graziani-m5.json`
   (re-recorded under this slice's rules) and its hashes are re-pinned.
-- [ ] `StackPanel` shows a supply unit's load and the hex's motorisation
+- [x] `StackPanel` shows a supply unit's load and the hex's motorisation
   points to their owner (slice 1's Task 6); Vitest for the formatting.
-- [ ] The move panel shows the fuel source and cost and offers the other
+- [x] The move panel shows the fuel source and cost and offers the other
   sources in range; the barrage and assign panels show ammunition owed;
   refusals appear in the panel as today. Playwright for one paid move and
   one refused one; the golden e2e re-pinned.
