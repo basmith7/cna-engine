@@ -435,6 +435,41 @@ mod tests {
     }
 
     #[test]
+    fn a_retreat_collects_breakdown_points_and_checks_where_it_stops_21_2x() {
+        use crate::event::Event;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = retreating(&data);
+        state.modules.breakdown = true;
+        // The L3s stand with the Libyans at C4020, already at 100 points.
+        let tanks = pid("unit:it:lxl-tank-bn");
+        let p = state.pieces.get_mut(&tanks).unwrap();
+        p.location = crate::piece::Location::Hex(hex("C4020"));
+        p.breakdown_halves = 200;
+        let away = data
+            .map
+            .neighbours(&hex("C4020"))
+            .into_iter()
+            .find(|n| {
+                !data.map.adjacent(n, &hex("C4021"))
+                    && !state.pieces.values().any(|p| p.hex() == Some(n))
+            })
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[away.as_str()]),
+            )
+            .unwrap();
+        assert!(state.pieces[&tanks].breakdown_halves > 200);
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::BrokeDown { piece, .. } if *piece == tanks))
+        );
+    }
+
+    #[test]
     fn an_adjacent_unit_pulls_back_in_the_enemy_half_unless_pinned() {
         let data = Data::load("grazianis-offensive").unwrap();
         let mut state = retreating(&data);
