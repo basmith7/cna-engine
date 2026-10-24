@@ -9,9 +9,9 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 type Logged = { player: "axis" | "cw"; order: { place: { piece: string; hex: string } } };
 
-/** The golden game's 59 free placements: orders 0–58 of `tests/games/graziani-m5.json`. */
-const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 59);
-/** `cna-play replay` of those 59 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
+/** The golden game's 56 free placements: orders 0–55 of `tests/games/graziani-m5.json`. */
+const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 56);
+/** `cna-play replay` of those 56 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
 const setUpDone = readFileSync(here("fixtures/set-up-done.sha256"), "utf8").trim();
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -69,10 +69,10 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
     await clickHex(page, hex);
     placed++;
     // One line per placement; the last one also starts play (set-up complete, the phase, the initiative).
-    if (i < 58) await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(placed, { timeout: 10_000 });
+    if (i < 55) await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(placed, { timeout: 10_000 });
     else await expect(page.getByTestId("log-entries").locator("li.event").last()).not.toContainText("placed at", { timeout: 10_000 });
     const { pending } = await expectDomMatchesView(page);
-    expect(pending.axis + pending.cw).toBe(59 - placed);
+    expect(pending.axis + pending.cw).toBe(56 - placed);
 
     if (i === 35) {
       // The Axis is done: the curtain drops for the Commonwealth.
@@ -81,8 +81,8 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
       await shoot(page, "curtain.png");
       await page.getByTestId("curtain").click();
       await expect(page.getByTestId("curtain")).toHaveCount(0);
-      await expect(page.getByTestId("setup")).toContainText("Set-up · Commonwealth 23 to place");
-    } else if (i < 58) {
+      await expect(page.getByTestId("setup")).toContainText("Set-up · Commonwealth 20 to place");
+    } else if (i < 55) {
       await expect(page.getByTestId("curtain")).toHaveCount(0);
     }
   }
@@ -100,7 +100,7 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
   await expect(log.locator("li.event", { hasText: "Set-up complete; play begins." })).toHaveCount(1);
   await expect(log.locator("li.event").last()).toContainText("Game-Turn 1 OpStage 1: A · initiative begins.");
 
-  // The state is what `cna-play replay` makes of the same 59 orders.
+  // The state is what `cna-play replay` makes of the same 56 orders.
   const view = await page.evaluate(() => window.__cna.view());
   expect(view.pending).toBeNull();
   expect(view.to_act).toBe("axis");
