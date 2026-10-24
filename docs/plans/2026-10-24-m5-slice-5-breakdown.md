@@ -45,7 +45,6 @@ broken-down vehicles.
   hot weather one right; losses leave the TOE.
 - [ ] Armoured cars, recce and trucks inside a unit's TOE. The sandstorm
   shift is done, read per order rather than per phase.
-  shift.
 
 ### Task 3: markers, capture, towing, repair
 
