@@ -134,6 +134,9 @@ pub struct GameState {
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub scuttled: BTreeSet<PieceId>,
+    /// Broken-down vehicles by hex (21.4x): what each marker stands for.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
     /// Supply units that rode the railway this OpStage (32.3x: two).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub railed: BTreeSet<PieceId>,
@@ -231,6 +234,7 @@ impl GameState {
             player_a: None,
             organised: false,
             scuttled: BTreeSet::new(),
+            broken_down: BTreeMap::new(),
             railed: BTreeSet::new(),
             rail_east: None,
             weather: Weather::Normal,

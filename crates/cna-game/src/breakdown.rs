@@ -8,7 +8,20 @@ use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use crate::state::Weather;
 use cna_data::map::HexId;
+use cna_data::oa::Nation;
+use cna_data::scenario::Side;
 use cna_rules::movement::Step;
+use serde::{Deserialize, Serialize};
+
+/// Broken-down TOE points of one weapon system in a hex (21.4x): no CPA,
+/// no part in combat, until towed or repaired.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Wreck {
+    pub side: Side,
+    pub nation: Option<Nation>,
+    pub weapon: String,
+    pub points: u32,
+}
 
 impl GameState {
     /// The step from `from` to `to` adds its breakdown points to each
@@ -123,9 +136,31 @@ impl GameState {
                     percent: pct,
                     points: n,
                 });
+                let mut taken = 0;
                 for _ in 0..n {
                     if self.take_loss_entry(id, Some(&weapon)) {
-                        lost += 1;
+                        taken += 1;
+                    }
+                }
+                lost += taken;
+                // They stay where the unit stopped (21.41).
+                let p = &self.pieces[id];
+                let (side, nation) = (p.side, p.nation);
+                if taken > 0
+                    && let Some(at) = p.hex().cloned()
+                {
+                    let wrecks = self.broken_down.entry(at).or_default();
+                    match wrecks
+                        .iter_mut()
+                        .find(|w| w.side == side && w.nation == nation && w.weapon == weapon)
+                    {
+                        Some(w) => w.points += taken,
+                        None => wrecks.push(Wreck {
+                            side,
+                            nation,
+                            weapon: weapon.clone(),
+                            points: taken,
+                        }),
                     }
                 }
             }
@@ -225,6 +260,12 @@ mod tests {
             .sum();
         assert!(broke > 0);
         assert_eq!(s.pieces[&tanks].toe, toe - broke);
+        // The broken-down tanks stay in the hex the battalion stopped in.
+        let stop = s.pieces[&tanks].hex().unwrap();
+        assert_eq!(
+            s.broken_down[stop].iter().map(|w| w.points).sum::<u32>(),
+            broke
+        );
         assert_eq!(s.pieces[&tanks].breakdown_checked, Some(8));
     }
 

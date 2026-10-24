@@ -3,7 +3,7 @@
 
 mod ammo;
 mod arrival;
-mod breakdown;
+pub mod breakdown;
 pub mod clock;
 pub mod combat;
 mod cycle;
