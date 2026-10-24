@@ -29,7 +29,8 @@ from cna, so **slice 5** (breakdown) went first: draft PR #35. With the new
 `breakdown` module, motorised units collect breakdown points in moves,
 reactions and retreats; a unit that stops checks its tanks and SP guns
 (BAR per model, hot and sandstorm shifts); broken-down vehicles stay in
-the hex and a battalion moving next to the enemy's takes them. Towing,
+the hex (half in the start hex when the move began near a big enemy
+unit, 21.41) and a battalion moving next to the enemy's takes them. Towing,
 field repair (phase K) and the UI are next.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
