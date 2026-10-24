@@ -1020,7 +1020,11 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{name}.json: {e}"));
             assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
         }
-        assert_eq!(HASHED[3].1, golden_log().orders.len(), "golden-done is the whole game");
+        assert_eq!(
+            HASHED[3].1,
+            golden_log().orders.len(),
+            "golden-done is the whole game"
+        );
         for (name, n) in HASHED {
             let pinned =
                 std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
