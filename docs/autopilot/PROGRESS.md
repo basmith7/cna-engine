@@ -19,12 +19,14 @@ writes is **Feedback**.
 is not idle while Brian reviews #25: the spec for the rest of the Land
 Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`;
 abstract supply §32 first, then breakdown and repair, organisation,
-dumps and prisoners). Slice 1 (supply state: loads, motorisation points,
-supply stacking, 32.8x AA thinning, all behind an `abstract_supply`
-module flag that old saves and logs leave off) is PR #31; slice 2
-(spending) is in progress on `autopilot/m5-slice-2-spending`. The
-browser still plays without the module until slice 2's UI. Mission 4
-resumes first the moment **Feedback** approves #25.
+dumps and prisoners). **Slice 1** (supply state: loads, motorisation
+points, supply stacking, 32.8x AA thinning) merged as PR #31, behind an
+`abstract_supply` module flag that new `cna-play` games turn on and old
+saves and logs leave off. **Slice 2** (spending: fuel on land moves,
+ammunition for barrages and assaults, from supply in range) is PR #32,
+draft: Tasks 1–5 done and passing locally; the UI task (the browser
+turning the module on) is next. Mission 4 resumes first the moment
+**Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
 slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
@@ -77,7 +79,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   the end dialog's table clips its right-hand columns (it scrolls).
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
-  Pass (#27). PR #30 fixes the flaky wheel-zoom budget in `map.spec.ts`.
+  Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
   cna 4184683.
