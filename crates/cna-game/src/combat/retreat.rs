@@ -78,10 +78,13 @@ impl GameState {
             }
         }
         let mut at = from.clone();
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
+            self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at,
@@ -93,6 +96,8 @@ impl GameState {
             }
             at = to;
         }
+        // It stops: a breakdown check (21.2x).
+        self.check_breakdown(data, pieces, storm, &mut events);
         if at != from {
             self.release_contact_around(data, &from, player);
         }
@@ -296,10 +301,15 @@ impl GameState {
                 p.engaged = false;
             }
             let mut at = start.clone();
+            let storm = crate::breakdown::mostly_in_sandstorm(
+                self,
+                plan.steps.iter().map(|(h, c)| (h, *c)),
+            );
             for (to, cost) in plan.steps {
                 for id in &pieces {
                     self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
                 }
+                self.collect_breakdown(data, &pieces, &at, &to);
                 events.push(Event::Moved {
                     pieces: pieces.clone(),
                     from: at,
@@ -311,6 +321,7 @@ impl GameState {
                 }
                 at = to;
             }
+            self.check_breakdown(data, &pieces, storm, &mut events);
             if at != start {
                 self.release_contact_around(data, &start, side);
             }

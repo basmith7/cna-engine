@@ -752,6 +752,8 @@ impl GameState {
                     in_g && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
             }
         }
+        // A stack its own breakdown check destroyed draws no reaction.
+        let reaction = reaction.filter(|_| pieces.iter().any(|id| self.pieces[id].hex().is_some()));
         if let Some(eligible) = reaction {
             events.push(Event::ReactionOffered {
                 pieces: eligible.clone(),

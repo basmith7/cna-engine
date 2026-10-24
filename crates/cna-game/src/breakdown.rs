@@ -168,58 +168,70 @@ impl GameState {
                 continue;
             }
             let now = t.band_index(points.ceil() as u32).expect("checked") as u8;
-            let groups: Vec<(String, u32, i32)> = p
-                .weapons
-                .iter()
-                .filter(|w| w.points > 0)
-                .filter_map(|w| {
-                    Some((
-                        w.weapon.clone(),
-                        w.points,
-                        data.weapons.resolve(p.nation?, &w.weapon)?.bar?,
-                    ))
-                })
-                .collect();
+            // One check per BAR (21.2x: per type, and per BAR within it;
+            // tanks and SP guns are one type), the losses spread over its
+            // models, the most numerous first (21.34).
+            let mut groups: std::collections::BTreeMap<i32, Vec<String>> = Default::default();
+            for w in p.weapons.iter().filter(|w| w.points > 0) {
+                if let Some(bar) = p
+                    .nation
+                    .and_then(|n| data.weapons.resolve(n, &w.weapon))
+                    .and_then(|r| r.bar)
+                {
+                    groups.entry(bar).or_default().push(w.weapon.clone());
+                }
+            }
             self.pieces.get_mut(id).expect("listed").breakdown_checked = Some(now);
             let mut lost = 0;
-            for (weapon, count, bar) in groups {
+            for (bar, models) in groups {
                 let Some(col) = column(t, points, bar + weather_shift(hot, storm)) else {
                     continue;
                 };
+                let count: u32 = self.pieces[id]
+                    .weapons
+                    .iter()
+                    .filter(|w| models.contains(&w.weapon))
+                    .map(|w| w.points)
+                    .sum();
                 let reading = self.rng.d6() * 10 + self.rng.d6();
                 let pct = percent(t, col, reading);
                 let n = losses(count, pct);
                 events.push(Event::BrokeDown {
                     piece: id.clone(),
-                    weapon: weapon.clone(),
+                    weapon: models.join(", "),
                     reading,
                     percent: pct,
                     points: n,
                 });
-                let mut taken = 0;
                 for _ in 0..n {
-                    if self.take_loss_entry(id, Some(&weapon)) {
-                        taken += 1;
+                    let Some(weapon) = self.pieces[id]
+                        .weapons
+                        .iter()
+                        .filter(|w| models.contains(&w.weapon) && w.points > 0)
+                        .max_by_key(|w| w.points)
+                        .map(|w| w.weapon.clone())
+                    else {
+                        break;
+                    };
+                    if !self.take_loss_entry(id, Some(&weapon)) {
+                        break;
                     }
-                }
-                lost += taken;
-                // They stay where the unit stopped (21.41).
-                let p = &self.pieces[id];
-                let (side, nation) = (p.side, p.nation);
-                if taken > 0
-                    && let Some(at) = p.hex().cloned()
-                {
+                    lost += 1;
+                    // They stay where the unit stopped (21.41).
+                    let p = &self.pieces[id];
+                    let (side, nation) = (p.side, p.nation);
+                    let Some(at) = p.hex().cloned() else { break };
                     let wrecks = self.broken_down.entry(at).or_default();
                     match wrecks
                         .iter_mut()
                         .find(|w| w.side == side && w.nation == nation && w.weapon == weapon)
                     {
-                        Some(w) => w.points += taken,
+                        Some(w) => w.points += 1,
                         None => wrecks.push(Wreck {
                             side,
                             nation,
-                            weapon: weapon.clone(),
-                            points: taken,
+                            weapon,
+                            points: 1,
                         }),
                     }
                 }
