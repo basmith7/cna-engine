@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "3e4ab3fa635d7897c403b9691f4a1e3c072b3ea8d248268059166a01ac81391e";
+        "1ab12c5b356464eb2b7186dabac1bf5841401c5210b8aae0a3f0e71755664faa";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -242,6 +242,11 @@ mod tests {
             ]
             .concat(),
         );
+        if modules.abstract_supply {
+            // Phase J: the supply at Mersa Matruh could ride the railway
+            // east (32.3x); it stays.
+            play(data, &mut state, vec![(Cw, Order::Pass)]);
+        }
         // GT1 OpStage 2, Axis half.
         play(
             data,

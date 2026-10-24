@@ -223,6 +223,12 @@ pub enum Event {
     SupplyDestroyed {
         piece: PieceId,
     },
+    /// Supply units ran along the railway (8.7x, 32.3x).
+    Railed {
+        pieces: Vec<PieceId>,
+        from: HexId,
+        to: HexId,
+    },
     /// Motorisation points attached to a supply unit (32.31).
     MotorisationAttached {
         piece: PieceId,

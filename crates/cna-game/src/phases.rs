@@ -45,7 +45,10 @@ impl GameState {
     /// Nothing more this phase (F or G).
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
-            Phase::ReserveDesignation | Phase::MovementCombat | Phase::TruckConvoy => {}
+            Phase::ReserveDesignation
+            | Phase::MovementCombat
+            | Phase::TruckConvoy
+            | Phase::Rail => {}
             Phase::Organisation => {
                 // Player A hands phase C to Player B; B's pass ends it.
                 if !self.organised {
@@ -124,6 +127,10 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                Phase::Rail if self.rail_to_move(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -139,6 +146,8 @@ impl GameState {
     /// unit that spent none rests (6.24), reserve ends (18.2x), and
     /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
+        self.railed.clear();
+        self.rail_east = None;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
                 p.cohesion.rest();

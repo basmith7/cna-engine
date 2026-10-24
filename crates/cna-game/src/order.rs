@@ -94,6 +94,12 @@ pub enum Order {
     /// A movement segment, before anything moves: the player's supply
     /// units in `hex` are put to the torch, one die each (32.1x).
     DestroySupply { hex: HexId },
+    /// Phase J, abstract supply: the Commonwealth's supply units ride the
+    /// railway hex by hex along `path` (8.7x, 32.3x).
+    Rail {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
+    },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

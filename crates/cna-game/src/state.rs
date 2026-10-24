@@ -130,6 +130,12 @@ pub struct GameState {
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub scuttled: BTreeSet<PieceId>,
+    /// Supply units that rode the railway this OpStage (32.3x: two).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub railed: BTreeSet<PieceId>,
+    /// Which way this OpStage's rail runs went: east or not (32.3x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail_east: Option<bool>,
     /// Phase C under abstract supply: Player A has passed and Player B
     /// is organising.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -217,6 +223,8 @@ impl GameState {
             player_a: None,
             organised: false,
             scuttled: BTreeSet::new(),
+            railed: BTreeSet::new(),
+            rail_east: None,
             weather: Weather::Normal,
             pieces,
             pending: None,
@@ -403,6 +411,7 @@ impl GameState {
                 },
             ) => self.transfer_load(player, from, to, *ammo, *fuel),
             (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
+            (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }
