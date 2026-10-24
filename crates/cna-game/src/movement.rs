@@ -68,8 +68,16 @@ impl GameState {
 
     /// The CPA a piece moves on (6.1x): its printed allowance, or for an
     /// HQ the slowest unit under it (its whole subtree, 6.15); none for a
-    /// printed 0, which cannot move on its own.
+    /// printed 0, which cannot move on its own. A supply unit moves on 15
+    /// with its motorisation points, else not at all (32.5x).
     pub(crate) fn cpa(&self, piece: &Piece) -> Option<u32> {
+        // The points carrying a supply unit move it at CPA 15 (32.5x).
+        if matches!(
+            piece.kind,
+            PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
+        ) {
+            return (self.modules.abstract_supply && piece.motorised > 0).then_some(15);
+        }
         let own = piece.cpa.as_ref()?.value?;
         let mut cpa = own;
         if piece.kind == PieceKind::Hq
@@ -161,6 +169,20 @@ impl GameState {
                 ));
             }
         }
+        // In the movement segment a supply unit goes only with a friendly
+        // combat unit, which it starts and ends stacked with (32.31).
+        let kind = |id: &PieceId| self.pieces[id].kind;
+        if phasing
+            && pieces
+                .iter()
+                .any(|id| matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
+            && !pieces.iter().any(|id| kind(id) == PieceKind::Combat)
+        {
+            return Err(Illegal::new(
+                "32.31",
+                "a supply unit moves in the movement segment only with a friendly combat unit",
+            ));
+        }
         Ok(from.expect("at least one piece"))
     }
 
@@ -169,10 +191,21 @@ impl GameState {
         match p.kind {
             PieceKind::Combat | PieceKind::Hq => {}
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
-                return Err(Illegal::new(
-                    "32.x",
-                    format!("{}: supply units are inert in this mission", p.id),
-                ));
+                if !self.modules.abstract_supply {
+                    return Err(Illegal::new(
+                        "32.x",
+                        format!("{}: supply units are inert without abstract supply", p.id),
+                    ));
+                }
+                if p.motorised == 0 {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!(
+                            "{}: a supply unit moves only with its motorisation points",
+                            p.id
+                        ),
+                    ));
+                }
             }
         }
         if self.cpa(p).is_none() {

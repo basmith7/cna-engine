@@ -357,4 +357,79 @@ mod tests {
             Some(Load { ammo: 40, fuel: 60 })
         );
     }
+
+    /// A module-on game in the Axis' first movement segment, with an
+    /// Axis supply unit (motorised by `points`, loaded) stacked with a
+    /// combat unit, and a one-hex move the pair may make.
+    fn supply_and_escort(data: &Data, points: u32) -> (GameState, PieceId, PieceId, Order) {
+        let mut state = declared(data, Modules::ALL);
+        for side in [Side::Axis, Side::Cw, Side::Axis] {
+            state.apply(data, side, Order::Pass).unwrap();
+        }
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        let escorts: Vec<(PieceId, cna_data::map::HexId)> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.reserve.is_none())
+            .filter_map(|p| Some((p.id.clone(), p.hex()?.clone())))
+            .collect();
+        for (escort, at) in escorts {
+            let mut s = state.clone();
+            let q = s.pieces.get_mut(&supply).unwrap();
+            q.location = crate::piece::Location::Hex(at.clone());
+            q.motorised = 30;
+            q.load = Some(Load { ammo: 10, fuel: 50 });
+            for n in data.map.neighbours(&at) {
+                let order = Order::Move {
+                    pieces: vec![escort.clone(), supply.clone()],
+                    path: vec![n],
+                    assault: false,
+                    fuel_from: None,
+                };
+                if s.clone().apply(data, Side::Axis, order.clone()).is_ok() {
+                    s.pieces.get_mut(&supply).unwrap().motorised = points;
+                    return (s, supply, escort, order);
+                }
+            }
+        }
+        panic!("no escort can take a supply unit anywhere");
+    }
+
+    #[test]
+    fn a_motorised_supply_unit_moves_with_a_combat_unit_in_g_32_31() {
+        let data = graziani();
+        let (mut state, supply, escort, order) = supply_and_escort(&data, 30);
+        state.apply(&data, Side::Axis, order).unwrap();
+        assert_eq!(
+            state.pieces[&supply].location,
+            state.pieces[&escort].location
+        );
+        assert_eq!(state.cpa(&state.pieces[&supply]), Some(15));
+    }
+
+    #[test]
+    fn a_supply_unit_without_points_or_without_an_escort_may_not_move_32_31() {
+        let data = graziani();
+        let (mut state, _, _, order) = supply_and_escort(&data, 0);
+        let err = state.apply(&data, Side::Axis, order).unwrap_err();
+        assert_eq!(err.case, "32.31");
+        let (mut state, supply, _, order) = supply_and_escort(&data, 30);
+        let Order::Move { path, .. } = order else {
+            unreachable!()
+        };
+        let alone = Order::Move {
+            pieces: vec![supply],
+            path,
+            assault: false,
+            fuel_from: None,
+        };
+        let err = state.apply(&data, Side::Axis, alone).unwrap_err();
+        assert_eq!(err.case, "32.31");
+    }
 }

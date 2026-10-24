@@ -477,7 +477,7 @@ mod tests {
             .filter_map(|e| e["fuel-spent"]["fuel"].as_u64())
             .sum();
         assert_eq!(burnt, 1, "{events}");
-        // Not the Commonwealth's turn; a supply unit cannot move.
+        // Not the Commonwealth's turn; a supply unit without motorisation points cannot move (32.31).
         let r = game
             .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
             .unwrap();
@@ -485,7 +485,7 @@ mod tests {
         let r = game
             .reachable("axis", r#"["supply:axis:1"]"#, "move")
             .unwrap();
-        assert_eq!(r["illegal"]["case"], "32.x", "{r}");
+        assert_eq!(r["illegal"]["case"], "32.31", "{r}");
     }
 
     #[test]
