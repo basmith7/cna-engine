@@ -9223,6 +9223,14 @@
     },
     {
       "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
       "order": {
         "designate-reserve": {
           "pieces": [

@@ -423,8 +423,8 @@ mod tests {
 
     #[test]
     fn reachable_names_golden_order_61_s_hex_with_its_path_and_cost() {
-        let (game, log) = golden_before(58);
-        let Order::Move { pieces, .. } = &log.orders[58].order else {
+        let (game, log) = golden_before(60);
+        let Order::Move { pieces, .. } = &log.orders[60].order else {
             panic!("order 61 is a move");
         };
         let r = game
@@ -450,7 +450,7 @@ mod tests {
         );
         // The fuel quoted is the fuel the order burns.
         let mut played = Game::load(&game.save().unwrap()).unwrap();
-        let order = serde_json::to_string(&log.orders[58].order).unwrap();
+        let order = serde_json::to_string(&log.orders[60].order).unwrap();
         let events = played.apply("axis", &order).unwrap();
         let burnt: u64 = events["ok"]
             .as_array()
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn fuel_sources_are_the_side_to_act_s_own_only() {
-        let (game, _) = golden_before(58);
+        let (game, _) = golden_before(60);
         let tank = game
             .state
             .pieces
@@ -496,7 +496,7 @@ mod tests {
 
     #[test]
     fn reachable_for_a_reaction_names_golden_order_62_s_hex() {
-        let (game, _) = golden_before(59);
+        let (game, _) = golden_before(61);
         assert_eq!(game.view().unwrap()["to_act"], "cw");
         let r = game
             .reachable("cw", r#"["unit:cw:4-rha"]"#, "react")
@@ -520,7 +520,7 @@ mod tests {
     fn a_sealed_answer_is_redacted_from_the_other_side_s_view_until_revealed() {
         let axis_gun = json!("unit:it:1st-libyan-artillery-regt");
         // 67: the Axis gun stands forward; the Commonwealth sees no forward gun.
-        let (game, _) = golden_before(64);
+        let (game, _) = golden_before(66);
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "cw");
         assert_eq!(view["pending"]["sealed"]["step"], "gun-positions");
@@ -534,7 +534,7 @@ mod tests {
         // The save keeps everything.
         assert!(game.save().unwrap().contains("1st-libyan-artillery-regt\""));
         // 68: revealed, both sides' positions are in the view.
-        let (game, _) = golden_before(65);
+        let (game, _) = golden_before(67);
         let view = game.view().unwrap();
         assert!(
             view["combat"]["forward"]
@@ -545,7 +545,7 @@ mod tests {
             view["combat"]
         );
         // 69: the Axis barrage is plotted; the Commonwealth sees no plot.
-        let (game, _) = golden_before(66);
+        let (game, _) = golden_before(68);
         let view = game.view().unwrap();
         assert_eq!(view["pending"]["sealed"]["step"], "barrage");
         assert!(
@@ -563,7 +563,7 @@ mod tests {
             "step 1 is revealed"
         );
         // 70: revealed.
-        let (game, _) = golden_before(67);
+        let (game, _) = golden_before(69);
         let view = game.view().unwrap();
         assert_eq!(
             view["combat"]["plots"]["axis"][0]["target"],
@@ -571,7 +571,7 @@ mod tests {
         );
         assert!(view["combat"]["plots"]["cw"].as_array().unwrap().is_empty());
         // 72: the Axis assignments are in; the Commonwealth sees none.
-        let (game, _) = golden_before(69);
+        let (game, _) = golden_before(71);
         let view = game.view().unwrap();
         assert_eq!(view["pending"]["sealed"]["step"], "assign-forces");
         assert!(
@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(view["assaults_to_resolve"], json!([]));
         // 73: revealed, and the close assault step waits on the Axis
         // with C3922 to assault.
-        let (game, _) = golden_before(70);
+        let (game, _) = golden_before(72);
         let view = game.view().unwrap();
         assert!(view["pending"].is_null());
         assert_eq!(view["clock"]["segment"], "close-assault");
@@ -607,13 +607,13 @@ mod tests {
             2
         );
         assert_eq!(view["assaults_to_resolve"], json!(["C3922"]));
-        let (game, _) = golden_before(71);
+        let (game, _) = golden_before(73);
         assert_eq!(game.view().unwrap()["assaults_to_resolve"], json!([]));
     }
 
     #[test]
     fn sealed_options_name_the_golden_barrage_and_nothing_at_other_moments() {
-        let (game, _) = golden_before(65);
+        let (game, _) = golden_before(67);
         let r = game.sealed_options("axis").unwrap();
         let firers = r["ok"]["barrage"]["firers"]
             .as_array()
@@ -630,7 +630,7 @@ mod tests {
         );
         assert_eq!(gun["forward"], true);
         assert_eq!(game.sealed_options("cw").unwrap()["illegal"]["case"], "5.2");
-        let (game, _) = golden_before(67);
+        let (game, _) = golden_before(69);
         assert_eq!(
             game.sealed_options("cw").unwrap()["illegal"]["case"],
             "11.0"
@@ -643,7 +643,7 @@ mod tests {
     /// instead, with `short` 0 throughout.
     #[test]
     fn reachable_for_a_retreat_before_assault_at_golden_order_70() {
-        let (game, _) = golden_before(67);
+        let (game, _) = golden_before(69);
         assert_eq!(
             game.view().unwrap()["pending"],
             json!({ "retreat-before-assault": { "side": "cw" } })
@@ -768,7 +768,7 @@ mod tests {
             cna_game::clock::Phase::InitiativeDeclaration
         );
 
-        let reserve = golden_prefix(57);
+        let reserve = golden_prefix(59);
         assert_eq!(
             reserve.clock.phase,
             cna_game::clock::Phase::ReserveDesignation
@@ -776,7 +776,7 @@ mod tests {
         assert_eq!(reserve.to_act(), Some(Side::Axis));
         let Order::Move {
             pieces: libyans, ..
-        } = &golden_log().orders[58].order
+        } = &golden_log().orders[60].order
         else {
             panic!("order 61 is a move");
         };
@@ -822,7 +822,7 @@ mod tests {
         assert_eq!(reserve_release.to_act(), Some(Side::Axis));
         assert!(reserve_release.pending.is_none());
 
-        let off_map = golden_prefix(58);
+        let off_map = golden_prefix(60);
         assert_eq!(
             off_map.clock.segment,
             Some(cna_game::clock::Segment::Movement)
@@ -850,7 +850,7 @@ mod tests {
             )
             .expect("a Tripoli stack may leave for Tripolitania");
 
-        let Order::Move { pieces, .. } = &golden_log().orders[58].order else {
+        let Order::Move { pieces, .. } = &golden_log().orders[60].order else {
             panic!("order 61 is a move");
         };
         let mut reaches = off_map
@@ -879,11 +879,11 @@ mod tests {
             .expect("a flagged move of the Libyans is stopped for a declaration");
         assert_eq!(declare_zoc.to_act(), Some(Side::Cw));
 
-        let combat_start = golden_prefix(63);
+        let combat_start = golden_prefix(65);
         assert_eq!(combat_start.to_act(), Some(Side::Axis));
         assert!(matches!(combat_start.pending, Some(Pending::Sealed { .. })));
 
-        let retreat_before_assault = golden_prefix(67);
+        let retreat_before_assault = golden_prefix(69);
         assert_eq!(
             retreat_before_assault.pending,
             Some(Pending::RetreatBeforeAssault { side: Side::Cw })
@@ -903,7 +903,7 @@ mod tests {
         // by default), so the assault (order 73) orders a three-hex
         // retreat without a die (15.29): the stack stands one hex from
         // its attackers, so Pass is two short and pays.
-        let mut forced_retreat = golden_prefix(69);
+        let mut forced_retreat = golden_prefix(71);
         let withheld = ["unit:cw:1-krrc", "unit:cw:3-cldgds"]
             .into_iter()
             .map(|id| cna_game::order::Assignment {
@@ -922,7 +922,7 @@ mod tests {
             )
             .unwrap();
         forced_retreat
-            .apply(data(), Side::Axis, golden_log().orders[70].order.clone())
+            .apply(data(), Side::Axis, golden_log().orders[72].order.clone())
             .unwrap();
         let Some(Pending::ForcedRetreat {
             side: Side::Cw,
@@ -978,9 +978,9 @@ mod tests {
     /// whole game (slice 6), which `cna_game::golden` pins too.
     const HASHED: [(&str, usize); 4] = [
         ("set-up-done", 56),
-        ("movement-done", 63),
-        ("combat-done", 74),
-        ("golden-done", 441),
+        ("movement-done", 65),
+        ("combat-done", 76),
+        ("golden-done", 477),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`

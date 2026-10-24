@@ -9184,6 +9184,14 @@
           "player_a": "axis"
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     }
   ]
 }
