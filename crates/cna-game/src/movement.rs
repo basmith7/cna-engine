@@ -706,6 +706,7 @@ impl GameState {
             for id in pieces {
                 self.charge(id, cost, false, &mut events);
             }
+            self.capture_wrecks(data, pieces, &to, &mut events);
             at = to;
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.

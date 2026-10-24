@@ -77,6 +77,66 @@ pub(crate) fn mostly_in_sandstorm<'a>(
 }
 
 impl GameState {
+    /// A battalion or bigger of `pieces` now at `at` captures the enemy's
+    /// broken-down vehicles in `at` and the hexes next to it (21.5x),
+    /// unless enemy combat units or HQs stand with them or an enemy ZOC
+    /// covers them. They become the captor's where they stand (the
+    /// three-hex placement and the passable-terrain test are not
+    /// simulated).
+    pub(crate) fn capture_wrecks(
+        &mut self,
+        data: &Data,
+        pieces: &[PieceId],
+        at: &HexId,
+        events: &mut Vec<Event>,
+    ) {
+        use cna_data::characteristics::Equivalent;
+        let Some(captor) = pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .find(|p| {
+                p.kind == PieceKind::Combat
+                    && matches!(
+                        p.equivalent,
+                        Some(Equivalent::Battalion | Equivalent::Brigade)
+                    )
+            })
+            .map(|p| (p.side, p.id.clone()))
+        else {
+            return;
+        };
+        let (side, by) = captor;
+        let mut hexes = data.map.neighbours(at);
+        hexes.push(at.clone());
+        for hex in hexes {
+            let Some(wrecks) = self.broken_down.get(&hex) else {
+                continue;
+            };
+            if !wrecks.iter().any(|w| w.side != side) {
+                continue;
+            }
+            let guarded = self.pieces.values().any(|p| {
+                p.side != side
+                    && p.hex() == Some(&hex)
+                    && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+            });
+            if guarded || self.zoc_at(data, &hex, side) != crate::zoc::Zoc::Clear {
+                continue;
+            }
+            let wrecks = self.broken_down.get_mut(&hex).expect("listed");
+            let mut taken = 0;
+            for w in wrecks.iter_mut().filter(|w| w.side != side) {
+                w.side = side;
+                taken += w.points;
+            }
+            events.push(Event::WrecksCaptured {
+                by: by.clone(),
+                hex: hex.clone(),
+                points: taken,
+            });
+        }
+    }
+
     /// The pieces of a move that has stopped check for breakdown (21.2x):
     /// each over 3 points in a higher column than its last check rolls
     /// once per vehicle weapon system, the column shifted by the model's
@@ -196,6 +256,54 @@ mod tests {
             state.apply(data, side, Order::Pass).unwrap();
         }
         state
+    }
+
+    #[test]
+    fn a_battalion_moving_next_to_enemy_wrecks_takes_them_21_5x() {
+        use crate::breakdown::Wreck;
+        use crate::event::Event;
+        use crate::piece::PieceId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = movement(&data, Modules::ALL);
+        let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        let at = state.pieces[&tanks].hex().unwrap().clone();
+        for n in data.map.neighbours(&at) {
+            let mut s = state.clone();
+            // Commonwealth wrecks one hex beyond the step, out of any ZOC.
+            let Some(beyond) = data.map.neighbours(&n).into_iter().find(|h| {
+                *h != at
+                    && s.holder(h).is_none()
+                    && s.zoc_at(&data, h, Side::Axis) == crate::zoc::Zoc::Clear
+            }) else {
+                continue;
+            };
+            s.broken_down.insert(
+                beyond.clone(),
+                vec![Wreck {
+                    side: Side::Cw,
+                    nation: None,
+                    weapon: "Mark VI Light".into(),
+                    points: 2,
+                }],
+            );
+            let order = Order::Move {
+                pieces: vec![tanks.clone()],
+                path: vec![n.clone()],
+                assault: false,
+                fuel_from: None,
+            };
+            let Ok(events) = s.apply(&data, Side::Axis, order) else {
+                continue;
+            };
+            assert!(events.contains(&Event::WrecksCaptured {
+                by: tanks.clone(),
+                hex: beyond.clone(),
+                points: 2
+            }));
+            assert_eq!(s.broken_down[&beyond][0].side, Side::Axis);
+            return;
+        }
+        panic!("no step with wrecks beyond it");
     }
 
     #[test]

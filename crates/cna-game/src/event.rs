@@ -232,6 +232,12 @@ pub enum Event {
         percent: u32,
         points: u32,
     },
+    /// A battalion took the enemy's broken-down vehicles at `hex` (21.5x).
+    WrecksCaptured {
+        by: PieceId,
+        hex: HexId,
+        points: u32,
+    },
     /// Supply units ran along the railway (8.7x, 32.3x).
     Railed {
         pieces: Vec<PieceId>,
