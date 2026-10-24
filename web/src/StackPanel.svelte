@@ -5,6 +5,7 @@
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { tickable } from "./moves";
+  import { loadLabel, motorisationAt } from "./supply";
   import type { PieceId, View } from "./types";
 
   let {
@@ -16,6 +17,7 @@
 
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
+  const points = $derived(hex ? motorisationAt(view, hex) : null);
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -25,6 +27,9 @@
       <span class="hex">{hex}</span>
       <span class="terrain">{info.place ? `${info.place} · ` : ""}{info.terrain}{info.coastal ? ", coastal" : ""}</span>
     </h2>
+    {#if points !== null}
+      <p class="motorisation" data-testid="motorisation">{points} motorisation point{points === 1 ? "" : "s"} here</p>
+    {/if}
     {#if pieces.length === 0}
       <p class="empty">Nothing here.</p>
     {:else}
@@ -44,6 +49,8 @@
               {sideName(p.side)} · {p.unit_type ?? glyphFor(p.kind, p.unit_type)}
               {#if p.kind !== "supply-unit" && p.kind !== "dummy-supply-unit"}
                 · TOE {p.toe} · CPA {p.cpa ?? "–"} · morale {p.morale ?? "–"} · cohesion {p.cohesion.level}
+              {:else if loadLabel(p)}
+                · <span data-testid="load">{loadLabel(p)}</span>
               {/if}
               {#each markers(p, view) as m (m)}
                 <span class="marker {m}">{m.replace("-", " ")}</span>
@@ -77,6 +84,11 @@
   .terrain {
     color: #555;
     font-weight: 400;
+  }
+  .motorisation {
+    margin: 0 0 0.3rem;
+    font-size: 12px;
+    color: #555;
   }
   .empty {
     margin: 0;

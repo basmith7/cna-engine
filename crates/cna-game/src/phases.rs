@@ -128,6 +128,8 @@ impl GameState {
             p.reserve = None;
             p.released = None;
             p.landed = false;
+            p.fuelled = false;
+            p.fuelled_over = false;
             p.engaged = false;
         }
     }

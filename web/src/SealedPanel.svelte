@@ -8,6 +8,7 @@
   import { sideName } from "./clock";
   import { label } from "./counters";
   import { assignOrder, barrageOrder, committed, fireRowFor, roleRowFor, type FireRow, type RoleRow } from "./sealed";
+  import { ammoNote } from "./supply";
   import type { Committer, Firer, Illegal, Order, PieceId, SealedOptions, View } from "./types";
 
   let {
@@ -93,7 +94,7 @@
       <div class="unit" data-unit={f.piece}>
         <div class="head">
           <span class="name">{name(f.piece)}</span>
-          <span class="facts">TOE {f.points} · {f.forward ? "forward" : "back"}</span>
+          <span class="facts">TOE {f.points} · {f.forward ? "forward" : "back"}{#if ammoNote(f, "fire")} · <span class="ammo" class:short={f.ammo_short} data-ammo>{ammoNote(f, "fire")}</span>{/if}</span>
           <button type="button" class="add" data-add-fire={f.piece} onclick={() => addFire(f)}>+ fire</button>
         </div>
         {#each fires as row, i (i)}
@@ -135,7 +136,7 @@
       <div class="unit" data-unit={u.piece} class:over={used > u.points}>
         <div class="head">
           <span class="name">{name(u.piece)}</span>
-          <span class="facts" data-committed>{used} of {u.points} committed{u.one_assault ? " · one assault at most" : ""}</span>
+          <span class="facts" data-committed>{used} of {u.points} committed{u.one_assault ? " · one assault at most" : ""}{#if phasing && ammoNote(u, "assault")} · <span class="ammo" class:short={u.ammo_short} data-ammo>{ammoNote(u, "assault")}</span>{/if}</span>
           <span class="adds">
             {#if u.anti_armour && (!phasing || u.anti_armour_targets.length > 0)}
               <button type="button" class="add" data-add-role="{u.piece}:anti-armour" onclick={() => addRole(u, "anti-armour", phasing)}>+ anti-armour</button>
@@ -174,6 +175,9 @@
 </div>
 
 <style>
+  .ammo.short {
+    color: #a4161a;
+  }
   p {
     margin: 0 0 0.3rem;
   }

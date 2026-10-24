@@ -368,8 +368,9 @@ impl GameState {
                     pieces,
                     path,
                     assault,
+                    fuel_from,
                 },
-            ) => self.move_pieces(data, player, pieces, path, *assault),
+            ) => self.move_pieces(data, player, pieces, path, *assault, fuel_from.as_ref()),
             (None, Order::MoveOffMap { pieces, to }) => {
                 self.move_off_map(data, player, pieces, *to)
             }

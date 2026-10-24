@@ -21,6 +21,7 @@ use cna_rules::anti_armour::damage_for;
 use cna_rules::close_assault::{column_for, loss_base_factor, resolve_side, shift};
 use cna_rules::morale::{MoraleLookup, lookup};
 use cna_rules::strength::assault_actual;
+use cna_rules::supply::Role;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A unit's points committed to one attack or defence, and where from.
@@ -496,6 +497,17 @@ impl GameState {
         }
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
+        // Ammunition (32.21): each attacker pays double as phasing; an
+        // assault the attacker cannot pay for is refused unchanged.
+        let payers: Vec<PieceId> = attacker_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        let plan = self.plan_ammo(data, &payers, Role::Assault, true);
+        plan.refuse()?;
+        self.spend_ammo(plan.payments, &mut events);
         let probe = attacker_ids
             .iter()
             .all(|id| self.combat.probing.contains(id));
@@ -523,6 +535,14 @@ impl GameState {
         }
 
         let defenders = self.defending_commits(data, other, target, true);
+        // Committed defenders pay one each if they can; one that cannot
+        // still defends at full strength (32.21).
+        let payers: Vec<PieceId> = defenders.iter().map(|c| c.piece.clone()).collect();
+        let plan = self.plan_ammo(data, &payers, Role::Assault, false);
+        self.spend_ammo(plan.payments, &mut events);
+        for (piece, _) in plan.short {
+            events.push(Event::AmmunitionShort { piece });
+        }
         let in_hex: Vec<PieceId> = self
             .pieces
             .values()

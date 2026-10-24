@@ -202,3 +202,15 @@ Done: spec #29 and #28 merged. Slice 1, PR #31: loads (e000001), motorisation po
 In flight: slice 2 Task 3 (fuel) on `autopilot/m5-slice-2-spending`.
 Next: merge #30, #31 once CI is green, then #32's base becomes main; continue slice 2 at the first unchecked task in its plan.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-13 14:45 MST — autopilot/m5-slice-2-spending
+Done: slice 2 Tasks 1–5 on PR #32 (draft, stacked on #31): rates (867ad5d), draw range (a650fb8), `Role::Assault` (a86583e), fuel (672688e), ammunition (a3e0cb0), brigade counters pay per three battalions (d31bdbe), NOT_SIMULATED (58a4a32). Gates pass locally. The module-on golden drops 4 RHA's return move and 7 Med's GT1 barrage (no supply in range).
+In flight: Task 6 (UI) not started.
+Next: merge #30 and #31 once CI is green; merge main into #32; Task 6: browser `Game::new` module-on, the golden e2e on `tests/games/graziani-m5.json`, regenerate `web/tests/fixtures` (`cargo test -p cna-web -- --ignored regenerate_e2e_fixtures`), stack panel loads and points, fuel source in the move panel, ammunition in the barrage and assign panels.
+Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 09:06 MST — autopilot/m5-slice-2-spending
+Done: slice 2 Task 6 (UI). The log names the four supply events (4bb6c4f; it threw on them before); Reach.fuel and fuel_sources (b210689), only a Move quotes fuel; stack panel loads and motorisation, move panel fuel owed, hovered fuel and a payer picker; sealed options and panels quote ammunition. setup/map/golden specs follow the m5 log (56 placements, 441 orders, save after 82); Playwright supply.spec for a paid and a refused move.
+In flight: the full Playwright run and gates before marking #32 ready.
+Next: if #32 is merged, slice 3 from `docs/plans/2026-10-13-m5-slices-3-6.md`.
+Blocked: Mission 4 on Brian's review of PR #25.

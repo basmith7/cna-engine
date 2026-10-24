@@ -111,6 +111,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${list(d.pieces, name)} stand ${d.short} hex${d.short === 1 ? "" : "es"} short of the ordered retreat and pay for it.`;
   }
   if ("losses" in e) return `${name(e.losses.piece)} loses ${e.losses.points} points, TOE now ${e.losses.toe}.`;
+  if ("fuel-spent" in e) return `${name(e["fuel-spent"].piece)} burns ${e["fuel-spent"].fuel} fuel from ${name(e["fuel-spent"].from)}.`;
+  if ("ammunition-spent" in e) return `${name(e["ammunition-spent"].piece)} fires ${e["ammunition-spent"].ammo} ammunition from ${name(e["ammunition-spent"].from)}.`;
+  if ("ammunition-short" in e) return `${name(e["ammunition-short"].piece)} has no ammunition in range and fights at full strength anyway.`;
+  if ("supply-unit-spent" in e) return `${name(e["supply-unit-spent"].piece)} is empty and removed.`;
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
   if ("forces-assigned" in e) {
     const d = e["forces-assigned"];

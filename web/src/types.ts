@@ -102,6 +102,8 @@ export interface Piece {
   reserve?: Reserve;
   released?: Reserve;
   landed?: boolean;
+  /** A supply unit's ammunition and fuel (32.1x); only on the side to act's own. */
+  load?: { ammo: number; fuel: number };
   /** Added by `view()`: the characteristics chart's unit type, null off the chart. */
   unit_type: string | null;
   /** Added by `view()`: the OA unit's name and abbreviation, null for supply units. */
@@ -150,7 +152,7 @@ export interface Assignment {
 export type Order =
   | { place: { piece: PieceId; hex: HexId } }
   | { "declare-initiative": { player_a: Side } }
-  | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean } }
+  | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
   | { "declare-zoc": { exerting: HexId[] } }
   | { "move-off-map": { pieces: PieceId[]; to: OffMapPlace } }
@@ -197,7 +199,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 38 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 42 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -254,6 +256,10 @@ export type Event =
   | { "retreat-ordered": { pieces: PieceId[]; hexes: number; reason: RetreatReason } }
   | { "retreat-bought-out": { pieces: PieceId[]; short: number } }
   | { losses: { piece: PieceId; points: number; toe: number } }
+  | { "fuel-spent": { piece: PieceId; from: PieceId; fuel: number } }
+  | { "ammunition-spent": { piece: PieceId; from: PieceId; ammo: number } }
+  | { "ammunition-short": { piece: PieceId } }
+  | { "supply-unit-spent": { piece: PieceId } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
@@ -273,6 +279,8 @@ export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retr
 
 /** A hex a stack can end in (`cna_game::reach::Reach`). */
 export interface Reach {
+  /** The fuel the move owes under abstract supply, the whole stack's (32.22); 0 with the module off. */
+  fuel: number;
   hex: HexId;
   /** What the stack pays in all, breaking off included. */
   cp: number;
@@ -302,6 +310,9 @@ export interface Firer {
   points: number;
   forward: boolean;
   targets: PieceId[];
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** A unit that may commit TOE points in step 4 (`cna_game::combat::options::Committer`). */
@@ -312,6 +323,9 @@ export interface Committer {
   anti_armour_targets: HexId[];
   close_assault_targets: HexId[];
   one_assault: boolean;
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** What the side to act may answer the pending sealed step with (`cna_game::combat::options::SealedOptions`). */
@@ -348,6 +362,8 @@ export interface View {
     [k: string]: unknown;
   };
   over: VictoryReport | null;
+  /** Abstract supply: motorisation points by hex id (or box), the side to act's own only. */
+  motorisation?: Partial<Record<Side, Record<string, number>>>;
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];

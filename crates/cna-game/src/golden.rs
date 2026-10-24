@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "ad3b9c67cbd5dfd2713bc6d507d3b3cecc056006b3c4df66fbac1b162d64305b";
+        "fefa5658c5c9a1d5baa4de18f461e4a9e9d7b7e9100bb333d1807fc207fb5241";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -117,6 +117,7 @@ mod tests {
             pieces,
             path: path.iter().map(|h| hex(h)).collect(),
             assault,
+            fuel_from: None,
         };
         // GT1 OpStage 1, Axis half.
         play(
@@ -179,39 +180,54 @@ mod tests {
                 (Axis, Order::Pass),
             ],
         );
-        // GT1 OpStage 1, Commonwealth half.
+        // GT1 OpStage 1, Commonwealth half. With the supply module on 4 RHA
+        // (gun-class) owes fuel for the return and no supply unit is in
+        // range (32.22), so the module-on script leaves it at C3923.
+        // Likewise 7 Med's barrage owes 4 ammunition (32.21) and nothing
+        // is in range, so the module-on script plots no fire.
+        let shell = if modules.abstract_supply {
+            Order::Barrage { fires: vec![] }
+        } else {
+            fire("unit:cw:7-med", "unit:it:ix-libyan-bn")
+        };
+        let mut back = vec![(Cw, Order::Pass)];
+        if !modules.abstract_supply {
+            back.push((Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)));
+            back.push((Axis, Order::Pass));
+        }
         play(
             data,
             &mut state,
-            vec![
-                (Cw, Order::Pass),
-                (Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)),
-                (Axis, Order::Pass),
-                (Cw, Order::EndSegment),
-                (
-                    Cw,
-                    Order::GunPositions {
-                        forward: vec![pid("unit:cw:7-med")],
-                    },
-                ),
-                (Axis, Order::GunPositions { forward: vec![] }),
-                (Cw, fire("unit:cw:7-med", "unit:it:ix-libyan-bn")),
-                (Axis, Order::Barrage { fires: vec![] }),
-                (Axis, Order::Pass),
-                (
-                    Cw,
-                    Order::AssignForces {
-                        assignments: vec![],
-                    },
-                ),
-                (
-                    Axis,
-                    Order::AssignForces {
-                        assignments: vec![],
-                    },
-                ),
-                (Cw, Order::Pass),
-            ],
+            [
+                back,
+                vec![
+                    (Cw, Order::EndSegment),
+                    (
+                        Cw,
+                        Order::GunPositions {
+                            forward: vec![pid("unit:cw:7-med")],
+                        },
+                    ),
+                    (Axis, Order::GunPositions { forward: vec![] }),
+                    (Cw, shell),
+                    (Axis, Order::Barrage { fires: vec![] }),
+                    (Axis, Order::Pass),
+                    (
+                        Cw,
+                        Order::AssignForces {
+                            assignments: vec![],
+                        },
+                    ),
+                    (
+                        Axis,
+                        Order::AssignForces {
+                            assignments: vec![],
+                        },
+                    ),
+                    (Cw, Order::Pass),
+                ],
+            ]
+            .concat(),
         );
         // GT1 OpStage 2, Axis half.
         play(

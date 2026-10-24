@@ -14,10 +14,10 @@ test("a new game shows the theatre, every placed piece at its hex and the set-up
   await expect(page.locator("path.hexside.road").first()).toBeAttached();
 
   const { placed, pending } = await expectDomMatchesView(page);
-  expect(placed).toBe(241);
-  expect(pending).toEqual({ axis: 36, cw: 23 });
+  expect(placed).toBe(235);
+  expect(pending).toEqual({ axis: 36, cw: 20 });
   await expect(page.locator("[data-where=tray-axis] [data-unit]")).toHaveCount(36);
-  await expect(page.locator("[data-where=tray-cw] [data-unit]")).toHaveCount(23);
+  await expect(page.locator("[data-where=tray-cw] [data-unit]")).toHaveCount(20);
   await expect(page.locator("[data-where=box-tripoli] [data-unit]")).toHaveCount(30);
 
   // The start view is fitted to sheets B–E: labels are hidden that far out.

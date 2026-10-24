@@ -46,6 +46,10 @@ const cases: [Event, string][] = [
   [{ "retreat-ordered": { pieces: ["u:b"], hexes: 1, reason: "must-attack" } }, "B must retreat 1 hex (must attack or retreat)."],
   [{ "retreat-bought-out": { pieces: ["u:b"], short: 2 } }, "B stand 2 hexes short of the ordered retreat and pay for it."],
   [{ losses: { piece: "u:b", points: 2, toe: 4 } }, "B loses 2 points, TOE now 4."],
+  [{ "fuel-spent": { piece: "u:a", from: "u:s", fuel: 2 } }, "A burns 2 fuel from S."],
+  [{ "ammunition-spent": { piece: "u:a", from: "u:s", ammo: 3 } }, "A fires 3 ammunition from S."],
+  [{ "ammunition-short": { piece: "u:b" } }, "B has no ammunition in range and fights at full strength anyway."],
+  [{ "supply-unit-spent": { piece: "u:s" } }, "S is empty and removed."],
   [{ eliminated: { piece: "u:b" } }, "B eliminated."],
   [
     { "forces-assigned": { side: "axis", assignments: [{ piece: "u:a", anti_armour: [{ target: "C4130", points: 2 }], close_assault: [{ points: 4 }] }] } },
@@ -57,13 +61,13 @@ const cases: [Event, string][] = [
   [{ "game-over": { report } }, "Game over. Axis: no level; Commonwealth: marginal."],
 ];
 
-const names: Record<string, string> = { "u:a": "A", "u:b": "B" };
+const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 38 variants", () => {
+  it("covers all 42 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(38);
+    expect(tags.size).toBe(42);
   });
 
   it.each(cases)("%j", (event, line) => {

@@ -112,6 +112,10 @@
     return "ok" in r ? { ok: r.ok, illegal: null } : { ok: [], illegal: r.illegal };
   });
   const reaches = $derived(reach.ok);
+  /** Who could pay the ticked stack's fuel (32.17), and the player's pick; none picked lets the engine take the nearest. */
+  const fuelSources: PieceId[] = $derived(engine && view?.to_act && purpose === "move" && onMap && reaches.length > 0 ? engine.fuelSources(view.to_act, ticked) : []);
+  let fuelPick: PieceId | null = $state(null);
+  const fuelFrom = $derived(fuelPick && fuelSources.includes(fuelPick) ? fuelPick : null);
   const occupied = $derived(new Set(view ? stacks(view).keys() : []));
   /** The hexes the ZOC declaration asks about, outlined on the map. */
   const asked: HexId[] = $derived(view?.pending && "declare-zoc" in view.pending ? view.pending["declare-zoc"].hexes : []);
@@ -178,7 +182,7 @@
           ? { "retreat-before-assault": { pieces: ticked, path } }
           : purpose === "forced-retreat"
             ? { retreat: { path } }
-            : { move: { pieces: ticked, path, assault } };
+            : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
     const ok = send(order);
     if (ok) assault = false;
     return ok;
@@ -415,7 +419,7 @@
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
           {#if purpose}
-            <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
+            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
           {/if}
           <StackPanel {view} {hex} {ticked} {ontoggle} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />

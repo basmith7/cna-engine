@@ -64,6 +64,15 @@ impl Game {
         Ok(serde_json::to_string(&v)?)
     }
 
+    /// The supply units that could pay a move's fuel, as a JSON array of
+    /// piece ids (see `api::Game::fuel_sources`). Throws only on
+    /// malformed input.
+    #[wasm_bindgen(js_name = fuelSources)]
+    pub fn fuel_sources(&self, side: &str, pieces_json: &str) -> Result<String, JsError> {
+        let v = self.0.fuel_sources(side, pieces_json).map_err(js)?;
+        Ok(serde_json::to_string(&v)?)
+    }
+
     /// What `side` may answer the sealed step now pending with, as
     /// `{"ok": SealedOptions}` or `{"illegal": {...}}` JSON (see
     /// `api::Game::sealed_options`). Throws only on malformed input.

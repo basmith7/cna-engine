@@ -75,6 +75,7 @@ mod tests {
             pieces: vec![id],
             path: vec![to.clone()],
             assault: false,
+            fuel_from: None,
         };
         let mut trial = state.clone();
         if trial.apply(data, side, order.clone()).is_err()

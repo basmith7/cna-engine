@@ -83,6 +83,8 @@ impl GameState {
         out
     }
 
+    // TODO(32.22): fuel is not charged here until cna answers "What a unit may
+    // do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
     /// `Order::React`: some of the units offered a reaction move along
     /// `path` (8.5x, R-007).
     pub(crate) fn react(
@@ -397,6 +399,7 @@ mod tests {
                     pieces: vec![pid("unit:it:lxiil-tank-bn")],
                     path: vec![hex("C3923")],
                     assault: true,
+                    fuel_from: None,
                 },
             )
             .unwrap();

@@ -9,4 +9,5 @@ pub mod movement;
 pub mod ruleset;
 pub mod stacking;
 pub mod strength;
+pub mod supply;
 pub mod zoc;
