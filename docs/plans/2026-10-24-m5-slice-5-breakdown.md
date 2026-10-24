@@ -36,9 +36,15 @@ broken-down vehicles.
 
 ### Task 2: accumulating and checking
 
-- [ ] Failing test: a tank battalion moving through rough stops with the
-  points of 21.2x's example; module on, a check rolls and TOE points go.
-- [ ] `Piece.breakdown`, `Piece.checked_column`; reset in `start_stage`.
+- [x] A `breakdown` module (on in new games) so old logs replay; motorised
+  units collect step points in moves, reactions and retreats
+  (`Piece.breakdown_halves`, whole and half points only), reset at the
+  stage's start.
+- [x] At each stop a check per vehicle weapon system in a higher column
+  (`Piece.breakdown_checked`), BAR by model from `weapon-systems.json`,
+  hot weather one right; losses leave the TOE.
+- [ ] Armoured cars, recce and trucks inside a unit's TOE; the sandstorm
+  shift (needs the CP spent under sandstorm per move).
 
 ### Task 3: markers, capture, towing, repair
 
