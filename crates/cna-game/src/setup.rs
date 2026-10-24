@@ -157,6 +157,7 @@ pub fn expand(
                     landed: false,
                     fuelled: false,
                     fuelled_over: false,
+                    motorised: 0,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -336,6 +337,7 @@ fn piece(
         landed: false,
         fuelled: false,
         fuelled_over: false,
+        motorised: 0,
     }
 }
 

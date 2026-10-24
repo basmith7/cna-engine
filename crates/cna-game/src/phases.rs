@@ -46,6 +46,18 @@ impl GameState {
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
             Phase::ReserveDesignation | Phase::MovementCombat => {}
+            Phase::Organisation => {
+                // Player A hands phase C to Player B; B's pass ends it.
+                if !self.organised {
+                    self.organised = true;
+                    return Ok(Vec::new());
+                }
+                self.organised = false;
+                let mut events = Vec::new();
+                self.clock = self.clock.next();
+                self.advance(data, &mut events);
+                return Ok(events);
+            }
             Phase::InitiativeDeclaration => {
                 return Err(Illegal::new(
                     "7.1x",
@@ -103,6 +115,10 @@ impl GameState {
                     if !self.arrive(data, events) {
                         events.push(Event::PhaseSkipped { clock });
                     }
+                }
+                Phase::Organisation if self.modules.abstract_supply => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
                 }
                 Phase::Organisation
                 | Phase::CwFleet

@@ -15,6 +15,7 @@ pub mod log;
 pub mod movement;
 mod off_map;
 pub mod order;
+mod organisation;
 mod phases;
 pub mod piece;
 mod place;

@@ -126,6 +126,10 @@ pub struct GameState {
     pub initiative: Option<Side>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
+    /// Phase C under abstract supply: Player A has passed and Player B
+    /// is organising.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub organised: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
@@ -207,6 +211,7 @@ impl GameState {
             pending_motorisation,
             initiative: None,
             player_a: None,
+            organised: false,
             weather: Weather::Normal,
             pieces,
             pending: None,
@@ -239,6 +244,11 @@ impl GameState {
         }
         if let Some(p) = &self.pending {
             return Some(p.side());
+        }
+        if self.clock.phase == crate::clock::Phase::Organisation {
+            return self
+                .player_a
+                .map(|a| if self.organised { a.other() } else { a });
         }
         match self.clock.half {
             None => self.initiative,
@@ -376,6 +386,17 @@ impl GameState {
             }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
+            (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
+            (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
+            (
+                None,
+                Order::TransferLoad {
+                    from,
+                    to,
+                    ammo,
+                    fuel,
+                },
+            ) => self.transfer_load(player, from, to, *ammo, *fuel),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

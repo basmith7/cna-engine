@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "fefa5658c5c9a1d5baa4de18f461e4a9e9d7b7e9100bb333d1807fc207fb5241";
+        "3e4ab3fa635d7897c403b9691f4a1e3c072b3ea8d248268059166a01ac81391e";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -90,6 +90,14 @@ mod tests {
         events
     }
 
+    /// Phase C with the abstract supply module: both players pass.
+    fn organise(data: &Data, state: &mut GameState) {
+        while state.clock.phase == crate::clock::Phase::Organisation {
+            let side = state.to_act().unwrap();
+            state.apply(data, side, Order::Pass).unwrap();
+        }
+    }
+
     /// The script. GT1 OpStage 1: the 1st Libyan Division goes up the
     /// coast road from C4020 to Sollum (C4021), 4 RHA reacts out of
     /// Halfaya Pass (C3922) to C3923, the 2nd Libyan Division closes up to
@@ -123,8 +131,13 @@ mod tests {
         play(
             data,
             &mut state,
+            vec![(Axis, Order::DeclareInitiative { player_a: Axis })],
+        );
+        organise(data, &mut state);
+        play(
+            data,
+            &mut state,
             vec![
-                (Axis, Order::DeclareInitiative { player_a: Axis }),
                 (Axis, Order::Pass),
                 (Axis, none(div1, &["C4021"], true)),
                 (
@@ -233,8 +246,13 @@ mod tests {
         play(
             data,
             &mut state,
+            vec![(Axis, Order::DeclareInitiative { player_a: Axis })],
+        );
+        organise(data, &mut state);
+        play(
+            data,
+            &mut state,
             vec![
-                (Axis, Order::DeclareInitiative { player_a: Axis }),
                 (Axis, Order::Pass),
                 (Axis, none(marmarica, &["C3919", "C3920"], false)),
                 (Axis, Order::EndSegment),

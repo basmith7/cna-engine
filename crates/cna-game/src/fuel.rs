@@ -241,7 +241,10 @@ mod tests {
                 },
             )
             .unwrap();
-        state.apply(data, Side::Axis, Order::Pass).unwrap();
+        // Phase C (both players), then F.
+        for side in [Side::Axis, Side::Cw, Side::Axis] {
+            state.apply(data, side, Order::Pass).unwrap();
+        }
         state
     }
 

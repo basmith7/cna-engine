@@ -778,7 +778,7 @@ mod tests {
         )
         .unwrap();
         let mut prefix = log.clone();
-        prefix.orders.truncate(59);
+        prefix.orders.truncate(61);
         let state = crate::log::replay(&data, &prefix).unwrap();
         assert!(state.modules.abstract_supply);
         assert!(matches!(state.pending, Some(Pending::Reaction { .. })));

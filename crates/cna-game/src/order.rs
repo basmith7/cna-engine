@@ -78,7 +78,21 @@ pub enum Order {
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,
-    /// Nothing more this phase: ends F or G for the phasing player.
+    /// Phase C, abstract supply: the supply unit takes its motorisation
+    /// points (30 real, 6 dummy) from its hex's pool (32.31).
+    AttachMotorisation { piece: PieceId },
+    /// Phase C: the supply unit's points go back to its hex's pool.
+    DetachMotorisation { piece: PieceId },
+    /// Phase C: ammunition and fuel move between two supply units in one
+    /// hex (32.1x).
+    TransferLoad {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
+    /// Nothing more this phase: ends F or G for the phasing player, or
+    /// C for one player.
     Pass,
 }
 

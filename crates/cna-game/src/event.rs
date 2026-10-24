@@ -219,6 +219,23 @@ pub enum Event {
     SupplyUnitSpent {
         piece: PieceId,
     },
+    /// Motorisation points attached to a supply unit (32.31).
+    MotorisationAttached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// A supply unit's motorisation points back in its hex's pool.
+    MotorisationDetached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// Ammunition and fuel moved between supply units in one hex (32.1x).
+    LoadTransferred {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
     /// A piece whose last TOE point went.
     Eliminated {
         piece: PieceId,
