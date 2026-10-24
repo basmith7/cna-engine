@@ -348,7 +348,11 @@ mod tests {
     fn the_view_hides_the_other_side_s_attached_motorisation() {
         let mut game = Game::with_modules(7, Modules::ALL).unwrap();
         for id in ["supply:axis:1", "supply:cw:1"] {
-            game.state.pieces.get_mut(&serde_json::from_value::<PieceId>(json!(id)).unwrap()).unwrap().motorised = 30;
+            game.state
+                .pieces
+                .get_mut(&serde_json::from_value::<PieceId>(json!(id)).unwrap())
+                .unwrap()
+                .motorised = 30;
         }
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "axis");
