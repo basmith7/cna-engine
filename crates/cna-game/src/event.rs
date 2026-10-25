@@ -238,6 +238,17 @@ pub enum Event {
         hex: HexId,
         points: u32,
     },
+    /// A field-repair roll (22.2x): `repaired` of `attempted` points of
+    /// `weapon` at `hex` come back as replacement points.
+    FieldRepaired {
+        hex: HexId,
+        weapon: String,
+        attempted: u32,
+        die: u8,
+        repaired: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// Supply units ran along the railway (8.7x, 32.3x).
     Railed {
         pieces: Vec<PieceId>,

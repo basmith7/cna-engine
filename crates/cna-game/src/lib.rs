@@ -23,6 +23,7 @@ mod place;
 mod rail;
 pub mod reach;
 mod reaction;
+mod repair;
 mod reserve;
 pub mod rng;
 pub mod setup;
