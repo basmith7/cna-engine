@@ -19,14 +19,19 @@ writes is **Feedback**.
 is not idle while Brian reviews #25: the spec for the rest of the Land
 Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`).
 Slices 1 (supply state, #31) and 2 (spending, #32) are merged. **Slice 3**
-(supply movement) is PR #34, ready, CI running at the last handoff:
+(supply movement) merged as PR #34 on 2026-10-24:
 phase C attaches motorisation and trades loads; supply units move with
 an escort in G or alone in H; the Commonwealth rails two a stage in
 phase J; a side may destroy its own supply; captured supply goes over
 to the captor. The air lift moved out (cna has no HQ echelons).
 **Slice 4** (arrivals) is planned but blocked on a Game-Turn calendar
-from cna, so **slice 5** (breakdown) went first: draft PR #35, rules
-core in.
+from cna, so **slice 5** (breakdown) went first: draft PR #35. With the new
+`breakdown` module, motorised units collect breakdown points in moves,
+reactions and retreats; a unit that stops checks its tanks and SP guns
+(BAR per model, hot and sandstorm shifts); broken-down vehicles stay in
+the hex (half in the start hex when the move began near a big enemy
+unit, 21.41) and a battalion moving next to the enemy's takes them. Towing,
+field repair (phase K) and the UI are next.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -78,7 +83,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #34 once CI is green, then slice 5 (#35); slice 4 waits on cna's calendar.
+- Mission 5 continues unattended on slice 5 (#35); slice 4 waits on cna's calendar.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -155,6 +160,16 @@ the bullet once it lands and `vendor/cna` is bumped.
   (`axis-convoy-level.json`), the Commonwealth supply period of the
   arrival turn (`simplified-supply.json`), and the monthly motorisation
   losses (`motorisation-losses.json`, 32.5x) are all read by month.
+- **Which TOE points are armoured cars, armoured recce or trucks
+  (21.1x).** Breakdown hits tanks, SP guns, armoured cars (BAR 1L),
+  armoured recce (0) and trucks (2L). Tanks and SP guns carry a `bar` in
+  `weapon-systems.json`; recce and armoured-car units list no weapons and
+  their characteristics row says only "Recce Bn-Eq" or "Reconnaissance
+  Battalion-Eq", so 11th Hussars' armoured cars and a recce battalion
+  look alike. Wanted: a vehicle class (and BAR) per unit-characteristics
+  row or per weapon entry, and how many of a unit's TOE points are its
+  own trucks where that matters. Not blocking: Mission 5 slice 5 checks
+  tanks and SP guns only (PR #35).
 - **Which loss base governs for withheld defenders?** `rules/60-combat.md`
   under 15.1x says withheld TOE points count in the defender's loss base;
   under 15.83 (percentage losses) the defender adds withheld units only in
