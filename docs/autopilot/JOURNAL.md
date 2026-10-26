@@ -430,3 +430,9 @@ Done: #68 merged; PROGRESS on main (7e7ce86). This branch: `Order::Unplace` (59.
 In flight: the draft PR's CI; no browser button yet.
 Next: a "Take back" button in the stack panel for one's own pieces during set-up, with a Playwright test (Rommel's Arrival); then mark ready and merge.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 12:23 MST — autopilot/m3-reach-index
+Done: nothing yet; measured `reachable` (11 Hussars, Graziani's) at 310 ms native, 84 ms with no other pieces.
+In flight: `GameState::pieces_at(hex)` as the one owner of "pieces in a hex", backed by an index `reachable` installs for its search.
+Next: finish, check the reach oracle tests and timing, open a draft PR; abandon if it isn't clean.
+Blocked: none.
