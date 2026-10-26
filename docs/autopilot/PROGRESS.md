@@ -64,13 +64,10 @@ sequence of play, movement, combat, victory. Two scripted games in
 report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
 (Status: built).
 
-Nonblocking combat follow-ups from PR #12's review stay open for a later
-slice (listed in the journal entry of 2026-10-12 and PR #15's body): rule
-tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; attacking forward guns and
-artillery in the anti-armour role (15.84, 14.14); a released unit's later
-combat segments (18.2x). Closed: 10.36's must-attack Pass (#27), the empty
-sealed `waiting` panic (`log.rs` refuses such a save), and 15.83's short
-percentage, which cna's text adds after the rounded table loss, as built.
+PR #12's review follow-ups are all closed: 15.84/14.14 gun losses (#54),
+18.2x's released units (#53 and earlier), 10.36's must-attack Pass (#27),
+the rule tests (15.36, 6.26, 13.1, 12.44 and 12.1x already had them; #71
+adds 15.1x and 13.28).
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -84,7 +81,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
   non-goal); ticks are offered in a sealed step though nothing moves;
-  selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
+  selecting an uncapped motorised stack takes ~0.6 s to shade (measured
+  2026-10-26: `reachable` for 11 Hussars in Graziani's takes 310 ms
+  native release, 84 ms with every other piece removed, so about 75% is
+  linear piece scans per hex in `holder`, `friendly_combat_in` and
+  `could_exert`. The fix is a hex → pieces index built once per
+  search); at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
 - Mission 5 continues unattended: #70 (R-138) merges on green CI.
   Then: Axis convoy lanes
