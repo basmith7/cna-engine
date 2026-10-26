@@ -871,7 +871,7 @@ mod tests {
             .filter(|p| {
                 p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli)
             })
-            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat)
+            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat && p.attached_to.is_none())
             .map(|p| p.id.clone())
             .take(2)
             .collect();

@@ -123,6 +123,7 @@ impl GameState {
                 "no Commonwealth land unit ever enters an off-map box",
             ));
         }
+        let pieces = &self.carried(pieces)?;
         let Some(first) = pieces.first() else {
             return Err(Illegal::new("8.8x", "no pieces to move"));
         };
@@ -319,6 +320,7 @@ mod tests {
         let mut state = moving(&data, 3, Side::Axis);
         let tanks = pid("unit:it:lxiil-tank-bn");
         state.put(&tanks, Location::Box(OffMapBox::Tripolitania));
+        state.stand_alone(&pid("unit:it:xvii-libyan-bn"));
         let before = snapshot(&state);
         // Not the Commonwealth's; not from the map except at Nofilia; not
         // to where it is.
@@ -518,8 +520,7 @@ mod tests {
             "unit:it:xix-libyan-bn",
         ];
         for id in ids {
-            state.pieces.get_mut(&pid(id)).unwrap().location =
-                Location::Box(OffMapBox::Tripolitania);
+            state.put(&pid(id), Location::Box(OffMapBox::Tripolitania));
         }
         for _ in 0..2 {
             state
@@ -535,5 +536,36 @@ mod tests {
         }
         assert_eq!(state.pieces[&pid(ids[5])].hex(), Some(&hex("A2704")));
         assert!(state.moved.contains(&pid(ids[5])));
+    }
+
+    #[test]
+    fn an_off_map_move_carries_what_is_attached() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let (tanks, hq) = (pid("unit:it:iim-tank-bn"), pid("unit:it:maletti-div-hq"));
+        let unit = hq.unit();
+        let ids: Vec<PieceId> = state.pieces.keys().cloned().collect();
+        for id in ids {
+            let p = state.pieces.get_mut(&id).unwrap();
+            if p.attached_to == unit && id != tanks {
+                p.attached_to = None;
+            }
+        }
+        for id in [&tanks, &hq] {
+            state.pieces.get_mut(id).unwrap().location = Location::Box(OffMapBox::Tripolitania);
+        }
+        assert_eq!(state.pieces[&tanks].attached_to, unit);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                off_map(&["unit:it:maletti-div-hq"], OffMapPlace::Nofilia),
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&tanks].location, state.pieces[&hq].location);
+        assert_ne!(
+            state.pieces[&hq].location,
+            Location::Box(OffMapBox::Tripolitania)
+        );
     }
 }

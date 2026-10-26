@@ -83,6 +83,7 @@ impl GameState {
         if piece.toe == 0 {
             piece.location = Location::Eliminated;
             events.push(Event::Eliminated { piece: id.clone() });
+            self.release_attached(id);
         }
     }
 

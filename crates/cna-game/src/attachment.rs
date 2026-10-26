@@ -15,11 +15,19 @@ use std::collections::BTreeSet;
 
 impl GameState {
     /// Attaches every unit standing with its parent, on a hex or in a
-    /// box (4.25), among `pieces` or, for none, every piece; and marks
-    /// attachment as tracked in this state.
+    /// box (4.25), among `pieces` and the units assigned to them or, for
+    /// none, every piece; and marks attachment as tracked in this state.
     pub(crate) fn attach_where_stacked(&mut self, pieces: Option<&[PieceId]>) {
         let ids: Vec<PieceId> = match pieces {
-            Some(ids) => ids.to_vec(),
+            Some(ids) => {
+                let units: Vec<_> = ids.iter().filter_map(|id| id.unit()).collect();
+                let under = self
+                    .pieces
+                    .values()
+                    .filter(|q| q.parent.as_ref().is_some_and(|u| units.contains(u)))
+                    .map(|q| q.id.clone());
+                ids.iter().cloned().chain(under).collect()
+            }
             None => self.pieces.keys().cloned().collect(),
         };
         for id in ids {
@@ -82,6 +90,21 @@ impl GameState {
             }
         }
         Ok(listed.iter().cloned().chain(added).collect())
+    }
+
+    /// A piece gone from the map takes no attachments with it: what was
+    /// attached to it stands alone where it is, and it is attached to
+    /// nothing.
+    pub(crate) fn release_attached(&mut self, id: &PieceId) {
+        let unit = id.unit();
+        for q in self.pieces.values_mut() {
+            if unit.is_some() && q.attached_to == unit {
+                q.attached_to = None;
+            }
+        }
+        if let Some(p) = self.pieces.get_mut(id) {
+            p.attached_to = None;
+        }
     }
 
     /// Attachment changes in the player's phase C or its own movement
@@ -188,15 +211,11 @@ impl GameState {
     /// Puts a piece somewhere by hand, as a test fixture does: it stands
     /// alone there, detached from its parent and with nothing attached.
     pub(crate) fn put(&mut self, id: &PieceId, at: Location) {
-        let unit = id.unit();
-        for q in self.pieces.values_mut() {
-            if unit.is_some() && q.attached_to == unit {
-                q.attached_to = None;
-            }
-        }
-        let p = self.pieces.get_mut(id).expect("a piece of the test");
-        p.attached_to = None;
-        p.location = at;
+        self.release_attached(id);
+        self.pieces
+            .get_mut(id)
+            .expect("a piece of the test")
+            .location = at;
     }
 
     /// Splits a piece from its formation where it stands (a fixture).
@@ -476,5 +495,21 @@ mod tests {
             .apply(&data, Side::Axis, mv(&[MALETTI, TANKS], &[&near]))
             .unwrap();
         assert_eq!(state.pieces[&tanks].hex(), Some(&hex(&near)));
+    }
+
+    #[test]
+    fn what_was_attached_to_an_eliminated_unit_stands_alone() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let (tanks, hq) = (pid(TANKS), pid(MALETTI));
+        let mut events = Vec::new();
+        state.pieces.get_mut(&hq).unwrap().toe = 0;
+        state.note_losses(&hq, 1, &mut events);
+        assert_eq!(state.pieces[&hq].location, Location::Eliminated);
+        assert_eq!(state.pieces[&tanks].attached_to, None);
+        let near = data.map.neighbours(&hex("C3617"))[0].to_string();
+        state
+            .apply(&data, Side::Axis, mv(&[TANKS], &[&near]))
+            .unwrap();
     }
 }
