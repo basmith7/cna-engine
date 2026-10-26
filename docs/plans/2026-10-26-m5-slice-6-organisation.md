@@ -59,6 +59,11 @@ what the repaired-points pool already holds.
 
 ## Tasks
 
+Resliced 2026-10-26: Tasks 1–2 and the Attach/Detach controls they need
+(a lone attached battalion can no longer move, so the UI must split it
+off) merge as PR #44; Tasks 3–5 follow in their own PRs. Task 3 waits
+on cna's HQ organisation types.
+
 ### Task 1: attachment as state
 
 - [x] `Piece.attached_to`, set at set-up (4.25) and filled on load for
