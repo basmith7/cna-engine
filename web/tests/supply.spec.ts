@@ -234,6 +234,10 @@ test("a supply unit takes its points in phase C and moves with a combat unit in 
   await page.locator('[data-unit="supply:axis:4"] input.tick').check();
   await controls.locator('[data-order="attach-motorisation"]').click();
   await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "takes 30 motorisation points." })).toHaveCount(1);
+  // The tanks are attached to their regiment from the set-up (4.25): they
+  // detach here, in phase C, to move on their own in G (19.4x).
+  await page.locator('[data-unit="unit:it:lxl-tank-bn"] [data-order="detach"]').click();
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "detaches from" })).toHaveCount(1);
   await controls.locator('[data-order="pass"]').click();
   await throughCurtain(page, "cw");
   await controls.locator('[data-order="pass"]').click();
