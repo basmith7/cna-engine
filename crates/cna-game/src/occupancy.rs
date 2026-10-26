@@ -94,7 +94,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use crate::data::Data;
-    use crate::movement::test_support::{hex, moving};
+    use crate::movement::test_support::moving;
     use cna_data::scenario::Side;
 
     #[test]
@@ -116,9 +116,10 @@ mod tests {
             }
         }
         assert!(state.hex_index.0.lock().unwrap().is_none());
-        assert_eq!(
-            state.pieces_at(&hex("C4020")).len(),
-            scan[hexes.iter().position(|h| h == &hex("C4020")).unwrap()].len()
-        );
+        let after: Vec<Vec<_>> = hexes
+            .iter()
+            .map(|h| state.pieces_at(h).iter().map(|p| p.id.clone()).collect())
+            .collect();
+        assert_eq!(after, scan);
     }
 }
