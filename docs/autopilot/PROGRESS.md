@@ -82,8 +82,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
 - Mission 5 continues unattended (#68 merged; its audit ledger is a
-  comment there). First: the ledger's U1, an `Unplace` order during
-  one's own set-up, since an `apart` set-up can strand itself. Then: Axis convoy lanes
+  comment there). First: #69 (the ledger's U1: `Order::Unplace` and
+  a Take back button during set-up, so an `apart` set-up cannot strand
+  itself) — merge it once CI is green (local Rust gates, vitest and
+  its new Playwright test pass; the full local Playwright run was in
+  flight at handoff). Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
   on Rommel needs. The end dialog's points table is not yet seen in a
