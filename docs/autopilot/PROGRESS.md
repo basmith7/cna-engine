@@ -269,3 +269,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-26 04:53 | 82 | 35→35 | 7→12 | $9.19 | 157 | I merged five PRs this run (#59, #61, #62, #63, #64) and nothing is open at handoff. On the merged `main`, clippy and 511 tests passed locally; #62's later chan |
 | 2026-10-26 06:53 | 68 | 35→? | 12→? | $9.88 | 4 | The Last Chance now sets up and plays in the engine and the browser, which makes six of the nine scenarios playable. Rommel is in the game with his initiative,  |
 | 2026-10-26 09:53 | 74 | 36→37 | 4→11 | $10.94 | 3 | This run merged three Mission 5 PRs (#67, #68, #69). All nine scenarios now set up and play a Game-Turn, and the browser offers every one of them. - **#67:** cn |
+| 2026-10-26 11:53 | 61 | 38→39 | 16→5 | $11.62 | 206 | I merged three PRs this run: the new Rommel ruling, two missing rule tests, and a 3× faster move search. Mission 4 is still waiting on your review of the spec,  |
