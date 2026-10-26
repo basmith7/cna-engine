@@ -129,15 +129,17 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await expect(log(page).filter({ hasText: "Commonwealth forces assigned: 1st KRRC: 6 assault; 3rd Coldstream Guards: 6 assault." })).toHaveCount(1);
   await throughCurtain(page, "axis");
 
-  // 73: the assault itself: Halfaya is outlined, a click resolves it, the
-  // result and its losses are in the log. Pass is refused while it waits.
+  // 73: the assault itself: Halfaya is outlined, a click resolves it, and
+  // the log shows its losses. Pass is refused while it waits. Its
+  // defenders have no ammunition in range, so the hex surrenders (R-120).
   await expect(page.getByTestId("assault-panel")).toContainText("Close assault · 1 to resolve");
   await expect(page.locator('polygon.mark[data-hex="C3922"]')).toBeAttached();
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("toast")).toContainText("Illegal (15.2x)");
   await page.getByTestId("toast").getByLabel("Dismiss").click();
   await clickHex(page, "C3922");
-  await expect(log(page).filter({ hasText: /^Assault on C3922 by .*: \d+ v \d+ raw/ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^1st KRRC has no ammunition in range and does not defend\./ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^1st KRRC, 3rd Coldstream Guards, 7th Medium Artillery Regt surrender\./ })).toHaveCount(1);
   await expect(log(page).filter({ hasText: /loses \d+ points, TOE now \d+\./ }).first()).toBeAttached();
   await expect(page.getByTestId("assault-panel")).toHaveCount(0);
   await expect(page.locator("polygon.mark")).toHaveCount(0);

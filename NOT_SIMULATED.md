@@ -65,7 +65,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-114 | Air Game: not in the engine yet |
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
-| R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a defender out of ammunition still defends and no hex surrenders yet (a later Mission 5 slice) |
+| R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a committed defender out of ammunition does not defend, and when every committed defender that owes ammunition is out the hex surrenders, HQs included (`cna-game::combat::assault`) |
 
 # Rulings implemented as decided
 
