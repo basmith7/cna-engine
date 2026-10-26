@@ -87,6 +87,40 @@ pub fn company_ammo_share(role: Role, phasing: bool, k: u32) -> u32 {
     ((k + 1) * rate).div_ceil(2) - (k * rate).div_ceil(2)
 }
 
+/// What a simplified Axis convoy carries, or loses (32.61).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Cargo {
+    pub supply_units: u32,
+    pub motorisation: u32,
+    pub replacements: u32,
+}
+
+/// A bombed convoy's losses at `percent` (32.65): below 20 % only
+/// motorisation (fractions down) and replacement points (fractions up)
+/// are hit; at 20 % or more everything, fractions down, but at least one
+/// of each item carried. The chart's 5 % is read with its 10 %: the rule
+/// names only 10 % and "20 % or more".
+pub fn convoy_losses(percent: u32, cargo: Cargo) -> Cargo {
+    let down = |n: u32| n * percent / 100;
+    let up = |n: u32| (n * percent).div_ceil(100);
+    if percent == 0 {
+        return Cargo::default();
+    }
+    if percent < 20 {
+        return Cargo {
+            supply_units: 0,
+            motorisation: down(cargo.motorisation),
+            replacements: up(cargo.replacements),
+        };
+    }
+    let at_least_one = |n: u32| if n > 0 { down(n).max(1) } else { 0 };
+    Cargo {
+        supply_units: at_least_one(cargo.supply_units),
+        motorisation: at_least_one(cargo.motorisation),
+        replacements: at_least_one(cargo.replacements),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,5 +210,55 @@ mod tests {
                 assert_eq!(total, (n * rate).div_ceil(2), "{role:?} {phasing} {n}");
             }
         }
+    }
+
+    #[test]
+    fn a_convoy_hit_for_10_percent_loses_points_only_32_65() {
+        let cargo = Cargo {
+            supply_units: 3,
+            motorisation: 19,
+            replacements: 4,
+        };
+        // Motorisation down, replacements up, no supply unit.
+        assert_eq!(
+            convoy_losses(10, cargo),
+            Cargo {
+                supply_units: 0,
+                motorisation: 1,
+                replacements: 1
+            }
+        );
+        assert_eq!(convoy_losses(5, cargo).supply_units, 0);
+        assert_eq!(convoy_losses(0, cargo), Cargo::default());
+    }
+
+    #[test]
+    fn twenty_percent_or_more_hits_everything_at_least_one_each_32_65() {
+        let cargo = Cargo {
+            supply_units: 3,
+            motorisation: 20,
+            replacements: 0,
+        };
+        // 20 % of 3 supply units is 0.6: down to 0, but at least one.
+        assert_eq!(
+            convoy_losses(20, cargo),
+            Cargo {
+                supply_units: 1,
+                motorisation: 4,
+                replacements: 0
+            }
+        );
+        assert_eq!(convoy_losses(50, cargo).supply_units, 1);
+        assert_eq!(
+            convoy_losses(
+                40,
+                Cargo {
+                    supply_units: 5,
+                    ..cargo
+                }
+            )
+            .supply_units,
+            2
+        );
     }
 }
