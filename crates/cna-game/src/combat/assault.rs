@@ -577,16 +577,38 @@ impl GameState {
             });
         }
 
-        let defenders = self.defending_commits(data, other, target, true);
+        let mut defenders = self.defending_commits(data, other, target, true);
         // Committed defenders pay one each if they can (32.21). One that
-        // cannot still defends at full strength: R-120 says it cannot
-        // defend and an all-out hex surrenders, which is not built yet
-        // (NOT_SIMULATED.md).
+        // cannot is out of ammunition and does not defend; when every
+        // committed defender that owes any is out, the hex surrenders,
+        // HQs and all (R-120: an HQ owes none, so is never out itself).
         let payers: Vec<PieceId> = defenders.iter().map(|c| c.piece.clone()).collect();
         let plan = self.plan_ammo(data, &payers, Role::Assault, false);
+        let paid_any = !plan.payments.is_empty();
         self.spend_ammo(plan.payments, &mut events);
+        let out: BTreeSet<PieceId> = plan.short.iter().map(|(p, _)| p.clone()).collect();
         for (piece, _) in plan.short {
             events.push(Event::AmmunitionShort { piece });
+        }
+        if !out.is_empty() && !paid_any {
+            let all: Vec<PieceId> = self
+                .pieces
+                .values()
+                .filter(|p| {
+                    p.side == other
+                        && p.hex() == Some(target)
+                        && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                })
+                .map(|p| p.id.clone())
+                .collect();
+            for id in &all {
+                let toe = self.pieces[id].toe;
+                self.take_loss(id, toe, &mut events);
+            }
+            events.push(Event::Surrendered { pieces: all });
+            defenders.clear();
+        } else {
+            defenders.retain(|c| !out.contains(&c.piece));
         }
         let in_hex: Vec<PieceId> = self
             .pieces
