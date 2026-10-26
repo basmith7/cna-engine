@@ -261,6 +261,23 @@ pub enum Event {
         points: u32,
     },
     /// A supply unit's motorisation points back in its hex's pool.
+    /// A planning roll (32.4x): `units` real supply units for `side`
+    /// arriving in Game-Turn `arrives`.
+    SupplyPlanned {
+        side: Side,
+        die: u8,
+        units: u32,
+        arrives: u8,
+    },
+    /// The month's abstract motorisation losses (32.5x): `percent` of
+    /// the side's `of` points, `points` removed from the pools of its
+    /// rear map (E, or A and the boxes).
+    MotorisationLost {
+        side: Side,
+        percent: u32,
+        of: u32,
+        points: u32,
+    },
     MotorisationDetached {
         piece: PieceId,
         points: u32,

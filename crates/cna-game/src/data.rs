@@ -53,6 +53,9 @@ pub struct Data {
     pub prisoners: Prisoners,
     pub breakdown: cna_data::breakdown::Breakdown,
     pub vehicle_repair: cna_data::repair::VehicleRepair,
+    pub calendar: cna_data::calendar::Calendar,
+    pub motorisation_losses: cna_data::calendar::MotorisationLosses,
+    pub simplified_supply: cna_data::calendar::SimplifiedSupply,
 }
 
 impl Data {
@@ -86,6 +89,9 @@ impl Data {
             prisoners: Prisoners::load_from(src)?,
             breakdown: cna_data::breakdown::Breakdown::load_from(src)?,
             vehicle_repair: cna_data::repair::VehicleRepair::load_from(src)?,
+            calendar: cna_data::calendar::Calendar::load_from(src)?,
+            motorisation_losses: cna_data::calendar::MotorisationLosses::load_from(src)?,
+            simplified_supply: cna_data::calendar::SimplifiedSupply::load_from(src)?,
         })
     }
 

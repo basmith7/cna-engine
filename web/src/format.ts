@@ -117,6 +117,14 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("supply-unit-spent" in e) return `${name(e["supply-unit-spent"].piece)} is empty and removed.`;
   if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
   if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
+  if ("supply-planned" in e) {
+    const d = e["supply-planned"];
+    return `${d.side === "axis" ? "Axis" : "Commonwealth"} plans ${d.units} supply unit${d.units === 1 ? "" : "s"} for Game-Turn ${d.arrives} (die ${d.die}).`;
+  }
+  if ("motorisation-lost" in e) {
+    const d = e["motorisation-lost"];
+    return `${d.side === "axis" ? "Axis" : "Commonwealth"} loses ${d.points} motorisation points to wear (${d.percent} % of ${d.of}).`;
+  }
   if ("motorisation-detached" in e) return `${name(e["motorisation-detached"].piece)} gives up its ${e["motorisation-detached"].points} motorisation points.`;
   if ("wrecks-captured" in e) {
     const d = e["wrecks-captured"];

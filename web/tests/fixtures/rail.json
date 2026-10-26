@@ -52,6 +52,18 @@
   },
   "initiative": "axis",
   "player_a": "axis",
+  "planned": [
+    {
+      "side": "axis",
+      "arrives": 3,
+      "units": 2
+    },
+    {
+      "side": "cw",
+      "arrives": 5,
+      "units": 3
+    }
+  ],
   "weather": "hot",
   "pieces": {
     "supply:axis:1": {
