@@ -452,8 +452,9 @@ mod tests {
         let count = |n| oa.units().filter(|u| u.id.nation() == n).count();
         assert_eq!(count(Nation::It), 436);
         assert_eq!(count(Nation::Cw), 436);
-        assert_eq!(count(Nation::De), 148);
-        assert_eq!(oa.units().count(), 1020);
+        // 149 with Rommel's own counter (R-135).
+        assert_eq!(count(Nation::De), 149);
+        assert_eq!(oa.units().count(), 1021);
     }
 
     #[test]
