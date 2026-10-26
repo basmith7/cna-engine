@@ -464,6 +464,9 @@ impl GameState {
             (Some(Pending::SetUp { .. }), Order::Place { piece, hex }) => {
                 self.place(data, player, piece, hex)
             }
+            (Some(Pending::SetUp { .. }), Order::Unplace { piece }) => {
+                self.unplace(data, player, piece)
+            }
             (Some(Pending::SetUp { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
                 self.declare_zoc(data, player, exerting)
@@ -478,7 +481,7 @@ impl GameState {
             (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
             (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
-            (None, Order::Place { .. }) => {
+            (None, Order::Place { .. } | Order::Unplace { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
             (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {

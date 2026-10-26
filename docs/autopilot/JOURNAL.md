@@ -424,3 +424,9 @@ Done: #67 merged (ac7de18). #68 ready: R-137 escort, Rommel's reactions and lone
 In flight: #68 CI.
 Next: merge #68 on green CI. Then the audit's U1: an `Unplace` order during one's own set-up (store each piece's placement so it can go back to pending), since `apart` set-ups can strand themselves.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 10:50 MST — autopilot/m5-set-up-undo
+Done: #68 merged; PROGRESS on main (7e7ce86). This branch: `Order::Unplace` (59.2), the audit's U1: the side setting up takes back a placed piece, rebuilt from the scenario's own set-up (location, motorisation points, attachments cleared); `unplaced` event and its log line in the browser. All local gates green.
+In flight: the draft PR's CI; no browser button yet.
+Next: a "Take back" button in the stack panel for one's own pieces during set-up, with a Playwright test (Rommel's Arrival); then mark ready and merge.
+Blocked: Mission 4 on Brian's review of #25.

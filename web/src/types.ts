@@ -166,6 +166,7 @@ export interface Assignment {
 
 export type Order =
   | { place: { piece: PieceId; hex: HexId } }
+  | { unplace: { piece: PieceId } }
   | { "declare-initiative": { player_a: Side } }
   | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
@@ -267,6 +268,7 @@ export type Event =
   | { "initiative-declared": { player_a: Side } }
   | { "weather-set": { weather: Weather } }
   | { placed: { piece: PieceId; hex: HexId } }
+  | { unplaced: { piece: PieceId } }
   | "set-up-complete"
   | "rommel-recalled"
   | { arrived: { pieces: PieceId[]; at: Location } }

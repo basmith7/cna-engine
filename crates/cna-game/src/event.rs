@@ -49,6 +49,10 @@ pub enum Event {
         piece: PieceId,
         hex: HexId,
     },
+    /// A placed piece taken back to wait again (59.2).
+    Unplaced {
+        piece: PieceId,
+    },
     /// Every piece is on the map; play begins.
     SetUpComplete,
     /// Reinforcements landed in phase D (20.1x).

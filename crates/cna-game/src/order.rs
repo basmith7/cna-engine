@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 pub enum Order {
     /// Set-up: put a pending piece on a hex (59.2).
     Place { piece: PieceId, hex: HexId },
+    /// Set-up: take back a piece this side placed, to wait again (59.2).
+    Unplace { piece: PieceId },
     /// Phase A: the initiative holder names who acts first this OpStage
     /// (7.1x).
     DeclareInitiative { player_a: Side },
