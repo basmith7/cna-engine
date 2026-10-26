@@ -150,6 +150,7 @@
       return false;
     }
     illegal = null;
+    flying = null;
     const before = view;
     const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
     view = engine.view();
@@ -213,7 +214,9 @@
       }
       return;
     }
-    // An armed air lift: the click is its destination, legal or not.
+    // An armed air lift: the click is its destination, legal or not,
+    // while its supply unit is still ticked in phase C.
+    if (flying && (view.clock.phase !== "organisation" || !ticked.includes(flying))) flying = null;
     if (flying) {
       const piece = flying;
       flying = null;
@@ -298,6 +301,7 @@
     hex = null;
     picked = null;
     ticked = [];
+    flying = null;
     custom = [];
     log = [];
     curtain = curtained ? curtainAfter(null, view.to_act) : null;

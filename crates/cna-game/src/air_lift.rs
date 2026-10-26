@@ -168,7 +168,10 @@ impl GameState {
     ) -> Result<PieceId, Illegal> {
         let side = self.pieces[id].side;
         let pays = |q: &Piece| {
-            q.side == side && q.location == *from && q.load.is_some_and(|l| l.fuel >= LIFT_FUEL)
+            q.side == side
+                && q.kind == PieceKind::SupplyUnit
+                && q.location == *from
+                && q.load.is_some_and(|l| l.fuel >= LIFT_FUEL)
         };
         match named {
             Some(n) => self
