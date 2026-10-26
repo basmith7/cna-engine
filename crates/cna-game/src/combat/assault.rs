@@ -431,8 +431,9 @@ impl GameState {
         }
     }
 
-    /// The side's largest unit equivalent, as the size table names it.
-    fn largest(&self, ids: impl Iterator<Item = PieceId>) -> Option<&'static str> {
+    /// The side's largest unit equivalent, as the size table names it;
+    /// a shell counts one size smaller (9.28).
+    fn largest(&self, data: &Data, ids: impl Iterator<Item = PieceId>) -> Option<&'static str> {
         let mut best: Option<u8> = None;
         for id in ids {
             let rank = match self.pieces[&id].equivalent {
@@ -440,6 +441,11 @@ impl GameState {
                 Some(Equivalent::Battalion) => 2,
                 Some(Equivalent::Company) => 1,
                 _ => continue,
+            };
+            let rank = if rank > 1 && self.is_shell(data, &id) {
+                rank - 1
+            } else {
+                rank
             };
             best = Some(best.map_or(rank, |b: u8| b.max(rank)));
         }
@@ -740,8 +746,8 @@ impl GameState {
         } else if attacker_raw > 0 && base_defender_raw >= 2 * attacker_raw {
             shifts -= 2;
         }
-        let a_size = self.largest(attacker_ids.iter().cloned());
-        let d_size = self.largest(in_hex.iter().cloned());
+        let a_size = self.largest(data, attacker_ids.iter().cloned());
+        let d_size = self.largest(data, in_hex.iter().cloned());
         if let (Some(a), Some(d)) = (a_size, d_size)
             && a != d
         {
@@ -1241,6 +1247,20 @@ mod tests {
             .unwrap()
             .location = Location::Hex(hex("C4021"));
         state
+    }
+
+    #[test]
+    fn a_shell_battalion_counts_as_a_company_for_size_9_28() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        assert_eq!(
+            state.largest(&data, [krrc.clone()].into_iter()),
+            Some("battalion")
+        );
+        // 1 KRRC prints 6 TOE points: at 2 it is under half, a shell.
+        state.pieces.get_mut(&krrc).unwrap().toe = 2;
+        assert_eq!(state.largest(&data, [krrc].into_iter()), Some("company"));
     }
 
     #[test]

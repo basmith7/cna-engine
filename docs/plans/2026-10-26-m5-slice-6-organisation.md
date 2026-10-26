@@ -81,9 +81,12 @@ on cna's HQ organisation types.
 - [x] `max-attachments.json` caps for non-assigned units, nesting;
   `is_shell` (9.26), stacking one level smaller (`cna-game::limits`).
   Shells judge the HQ's assigned units in the game, not the 19.3 chart.
-- [ ] Open: close assault's differentiation for shells (assault sizes
-  do not yet read HQ formations at all), the 19.3 chart as the shell
-  denominator, substitution.
+- [x] A shell battalion or brigade-equivalent counts one size smaller in
+  close assault's size table (9.28, 15.5x); a battalion's printed
+  strength reads its ID code's row where the sheet lists no TOE.
+- [ ] Open: division-sized formations in the size table (assault sizes
+  read single pieces, not an HQ with its attached brigades), the 19.3
+  chart as the shell denominator, substitution.
 
 ### Task 4: dumps and prisoners
 
