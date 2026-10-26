@@ -418,3 +418,9 @@ Done: #67 (autopilot/m5-cna-bump-4): vendor/cna fc78330 (R-136, R-137 answered b
 In flight: #67 local Playwright (/tmp/pw-67.log) and CI; #68 CI.
 Next: merge #67 then #68 (retarget to main) on green CI. Then Rommel's reactions/retreats through ZOC or the LRDG raid (27.9x).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 10:32 MST — autopilot/m5-rommel-escort
+Done: #67 merged (ac7de18). #68 ready: R-137 escort, Rommel's reactions and lone free retreat (31.0), Crusader e2e fixture with the +5 badge seen in a screenshot; local Playwright 44/44 + 3/3; audit ledger posted as a #68 comment. PROGRESS on main (f8ab872): requests answered, new ruling request on a lone Rommel in enemy ZOC.
+In flight: #68 CI.
+Next: merge #68 on green CI. Then the audit's U1: an `Unplace` order during one's own set-up (store each piece's placement so it can go back to pending), since `apart` set-ups can strand themselves.
+Blocked: Mission 4 on Brian's review of #25.
