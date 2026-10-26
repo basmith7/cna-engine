@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "7e1efd40eea2cde33a567a74ad31300fea3387cf76fdd8d057d7bcf6ce610369";
+        "1828993b3037857e962c23ad0b933dbc8f92a5b84ec33c4b4f5359c8e819c0b1";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")

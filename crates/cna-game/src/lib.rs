@@ -8,6 +8,7 @@ mod attachment;
 pub mod breakdown;
 pub mod clock;
 pub mod combat;
+pub mod construction;
 mod convoy;
 mod cycle;
 pub mod data;

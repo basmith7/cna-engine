@@ -352,3 +352,9 @@ Done: slice 8 built: guards, march ratio, escape, liberation (37f14d0), UI + e2e
 In flight: #47's CI.
 Next: merge #47 when CI is green; then the PR #12 combat follow-ups (18.2x released units' later combat, 15.84/14.14 forward guns in anti-armour) as slice 9.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
+
+## 2026-10-26 01:42 MST — autopilot/m5-slice-9b-construction
+Done: #47 (slice 8, guards) merged. Plan for slice 9 (fortifications and construction) and 9a, fortification levels in combat (#48, ready). 9b on #49 (draft): `construction` module, Order::Build for fortifications, stages counted at each OpStage's end, Fortify control + `construction.spec.ts`; workspace tests and clippy green.
+In flight: full Playwright run for 9b; #48's web CI.
+Next: merge #48 on green CI, merge main into 9b, mark #49 ready once Playwright is 40/40; then 9c (minefields) per the plan, Task 3.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.

@@ -95,6 +95,9 @@ pub struct Modules {
     /// Vehicles collect breakdown points as they move (§21).
     #[serde(default)]
     pub breakdown: bool,
+    /// Engineers build in phase C (§24).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub construction: bool,
 }
 
 impl Modules {
@@ -102,6 +105,7 @@ impl Modules {
     pub const ALL: Modules = Modules {
         abstract_supply: true,
         breakdown: true,
+        construction: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -202,6 +206,9 @@ pub struct GameState {
     /// built, reduced or rebuilt. A major city absent here is at its own.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fortifications: BTreeMap<HexId, u8>,
+    /// Projects under way by hex (24.1x): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub projects: BTreeMap<HexId, crate::construction::Project>,
     /// Guard points by owner and hex (28.21): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub guards: BTreeMap<Side, BTreeMap<HexId, u32>>,
@@ -325,6 +332,7 @@ impl GameState {
             prisoners: BTreeMap::new(),
             prisoners_out: BTreeMap::new(),
             fortifications: BTreeMap::new(),
+            projects: BTreeMap::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
@@ -541,6 +549,14 @@ impl GameState {
             (None, Order::MarchPrisoners { from, path, points }) => {
                 self.march_prisoners(data, player, from, path, *points)
             }
+            (
+                None,
+                Order::Build {
+                    item,
+                    hex,
+                    builders,
+                },
+            ) => self.build(data, player, *item, hex, builders),
             (None, Order::DetailGuards { piece, points }) => {
                 self.detail_guards(data, player, piece, *points)
             }

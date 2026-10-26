@@ -352,6 +352,25 @@ pub enum Event {
         hex: HexId,
         points: u32,
     },
+    /// `side`'s `builders` began `item` in `hex` (24.1x).
+    ConstructionBegun {
+        side: Side,
+        item: crate::construction::Item,
+        hex: HexId,
+        builders: Vec<PieceId>,
+    },
+    /// `side`'s project in `hex` was lost: a builder left (24.1x).
+    ConstructionLost {
+        side: Side,
+        item: crate::construction::Item,
+        hex: HexId,
+    },
+    /// `side` finished a fortification in `hex`, now at `level` (24.4x).
+    FortificationBuilt {
+        side: Side,
+        hex: HexId,
+        level: u8,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {

@@ -42,22 +42,25 @@ needs the Air Bombardment Table); the Logistics Game's stores and water
 
 ### Task 1 (9a): fortification levels in combat
 
-- [ ] Write the failing tests: a unit in Tobruk is barraged and
+- [x] Write the failing tests: a unit in Tobruk is barraged and
   assaulted on the fortification-2 row; a built level 1 in rough takes
   rough's better shift where it is better; an armour target outside a
   city gets no fortification benefit in anti-armour fire; a level-3
   city ignores pinned.
-- [ ] `fortification_level`, the shift in `combat/terrain.rs`, the pin
-  check.
+- [x] `fortification_level`, the shift in `combat/terrain.rs`, the pin
+  check (PR #48).
 
 ### Task 2 (9b): building fortifications
 
-- [ ] Write the failing tests: Build refused without an engineer and a
+- [x] Write the failing tests: Build refused without an engineer and a
   3-TOE infantry battalion, in a forbidden terrain or enemy ZOC, or a
   second project; the level goes down at the fourth phase C; a builder
   spending CP loses the stage.
-- [ ] `construction.rs`, phase C's construction segment, the order, the
-  stack panel's Build control, `NOT_SIMULATED.md`.
+- [x] `construction.rs`, a `construction` module that opens phase C,
+  the order, the stack panel's Fortify control (`construction.spec.ts`),
+  `NOT_SIMULATED.md`. As built: the level goes down when the third idle
+  stage is counted at the OpStage's end, not at the next phase C (no
+  combat falls between); pinned builders are not yet checked.
 
 ### Task 3 (9c): minefields
 

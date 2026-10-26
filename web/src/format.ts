@@ -106,6 +106,9 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${sideName(d.side)} marches ${d.points} prisoner points ${d.path[0]} → ${d.path[d.path.length - 1]} (${d.cp} CP).`;
   }
   if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} repaired ${e.absorbed.weapon} points for ${e.absorbed.cp} CP.`;
+  if ("construction-begun" in e) return `${sideName(e["construction-begun"].side)} begins a ${e["construction-begun"].item} in ${e["construction-begun"].hex}.`;
+  if ("construction-lost" in e) return `${sideName(e["construction-lost"].side)} loses its ${e["construction-lost"].item} project in ${e["construction-lost"].hex}: a builder left.`;
+  if ("fortification-built" in e) return `${sideName(e["fortification-built"].side)} fortifies ${e["fortification-built"].hex} to level ${e["fortification-built"].level}.`;
   if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${e["guards-detailed"].points} guard points in ${e["guards-detailed"].hex}.`;
   if ("guards-released" in e) return `${e["guards-released"].points} guard points rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
   if ("prisoners-escaped" in e) {

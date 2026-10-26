@@ -103,6 +103,7 @@ impl GameState {
             }
             match clock.phase {
                 Phase::InitiativeDeclaration => {
+                    self.count_construction(data, events);
                     self.start_stage();
                     if clock.stage == 1 {
                         self.naval_convoy_stage(data, events);
@@ -129,7 +130,9 @@ impl GameState {
                 // Phase C opens for supply under the module, and for
                 // repaired points waiting to be absorbed (20.41).
                 Phase::Organisation
-                    if self.modules.abstract_supply || !self.repaired.is_empty() =>
+                    if self.modules.abstract_supply
+                        || self.modules.construction
+                        || !self.repaired.is_empty() =>
                 {
                     events.push(Event::PhaseStarted { clock });
                     return;

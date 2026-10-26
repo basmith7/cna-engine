@@ -131,6 +131,12 @@ pub enum Order {
         path: Vec<HexId>,
         points: u32,
     },
+    /// Phase C: `builders` in `hex` begin building `item` (24.1x).
+    Build {
+        item: crate::construction::Item,
+        hex: HexId,
+        builders: Vec<PieceId>,
+    },
     /// Phase C or the player's phase H: `points` of `piece`'s infantry
     /// TOE points become guard points in its hex (28.21).
     DetailGuards { piece: PieceId, points: u32 },

@@ -11,7 +11,8 @@
   },
   "modules": {
     "abstract_supply": true,
-    "breakdown": true
+    "breakdown": true,
+    "construction": true
   },
   "seed": 7,
   "orders": [
