@@ -413,8 +413,8 @@ mod tests {
         let (mut state, hex) = at_repair(
             &data,
             Modules {
-                abstract_supply: false,
                 breakdown: true,
+                ..Modules::default()
             },
         );
         let away = HexId::parse("A0101").unwrap();
@@ -444,8 +444,8 @@ mod tests {
         let (mut state, hex) = at_repair(
             &data,
             Modules {
-                abstract_supply: false,
                 breakdown: true,
+                ..Modules::default()
             },
         );
         state.broken_down.get_mut(&hex).unwrap()[0].points = 40;

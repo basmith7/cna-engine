@@ -11,7 +11,8 @@
   },
   "modules": {
     "abstract_supply": true,
-    "breakdown": true
+    "breakdown": true,
+    "construction": true
   },
   "clock": {
     "game_turn": 7,

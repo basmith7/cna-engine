@@ -35,6 +35,9 @@ enum Cmd {
         /// break down.
         #[arg(long)]
         no_breakdown: bool,
+        /// Play without construction (§24): engineers build nothing.
+        #[arg(long)]
+        no_construction: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -155,12 +158,14 @@ fn main() -> Result<()> {
             seed,
             no_abstract_supply,
             no_breakdown,
+            no_construction,
             output,
         } => {
             let data = Data::load(&scenario)?;
             let modules = Modules {
                 abstract_supply: !no_abstract_supply,
                 breakdown: !no_breakdown,
+                construction: !no_construction,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

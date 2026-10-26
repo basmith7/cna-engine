@@ -75,7 +75,7 @@ impl GameState {
 
 /// A major city's own fortification level: 3 for Alexandria and Cairo,
 /// 2 for the others, 0 elsewhere.
-fn city_level(data: &Data, hex: &HexId) -> u8 {
+pub(crate) fn city_level(data: &Data, hex: &HexId) -> u8 {
     let city = data
         .map
         .hex(hex)
