@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "41846835e0b207798d101e551b473d8c91a193b0",
+  "rules_commit": "bb0a8d1b1acfad4ffdf2226211998bb70962b5fd",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -272,6 +272,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -300,6 +301,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -328,6 +330,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -356,6 +359,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -412,6 +416,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -440,6 +445,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -692,6 +698,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -716,6 +723,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -740,6 +748,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -764,6 +773,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -788,6 +798,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -812,6 +823,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -1172,6 +1184,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1200,6 +1213,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1228,6 +1242,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1256,6 +1271,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },
@@ -1280,6 +1296,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },
@@ -1304,6 +1321,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },

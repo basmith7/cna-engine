@@ -77,6 +77,16 @@ pub fn ammo_owed(equivalent: Equivalent, role: Role, phasing: bool) -> u32 {
     if phasing { base * 2 } else { base }
 }
 
+/// R-121: a company-equivalent pays half a battalion-equivalent's
+/// ammunition, a side's companies in one combat paying together with a
+/// half point left over rounded up. Returns what the `k`-th company
+/// (0-based) of the side pays, so that `n` companies pay
+/// `ceil(n * rate / 2)` in all.
+pub fn company_ammo_share(role: Role, phasing: bool, k: u32) -> u32 {
+    let rate = ammo_owed(Equivalent::Battalion, role, phasing);
+    ((k + 1) * rate).div_ceil(2) - (k * rate).div_ceil(2)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,6 +148,33 @@ mod tests {
                 owed,
                 "{eq:?} {role:?} {phasing}"
             );
+        }
+    }
+
+    // R-121: n companies of a side in one combat pay ceil(n * rate / 2)
+    // together, the first company taking the rounded-up half.
+    #[test]
+    fn companies_pay_half_a_battalion_together_r121() {
+        let shares = |role, phasing, n: u32| -> Vec<u32> {
+            (0..n)
+                .map(|k| company_ammo_share(role, phasing, k))
+                .collect()
+        };
+        assert_eq!(shares(Role::Assault, false, 3), vec![1, 0, 1]);
+        assert_eq!(shares(Role::Assault, true, 3), vec![1, 1, 1]);
+        assert_eq!(shares(Role::Barrage, false, 2), vec![1, 1]);
+        assert_eq!(shares(Role::Barrage, true, 1), vec![2]);
+        for (role, phasing) in [
+            (Role::Assault, false),
+            (Role::Assault, true),
+            (Role::Barrage, false),
+            (Role::Barrage, true),
+        ] {
+            let rate = ammo_owed(Battalion, role, phasing);
+            for n in 0..7 {
+                let total: u32 = shares(role, phasing, n).iter().sum();
+                assert_eq!(total, (n * rate).div_ceil(2), "{role:?} {phasing} {n}");
+            }
         }
     }
 }

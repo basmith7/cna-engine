@@ -6,7 +6,7 @@ use crate::event::{Event, Illegal};
 use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
-use cna_rules::supply::{Role, ammo_owed, components};
+use cna_rules::supply::{Role, ammo_owed, company_ammo_share, components};
 use std::collections::BTreeMap;
 
 /// One payment: `ammo` points from the supply unit `from` for `piece`.
@@ -39,16 +39,24 @@ impl AmmoPlan {
 
 impl GameState {
     /// Ammunition one counter owes in `role`: per battalion-equivalent,
-    /// a brigade counter counting as three; companies pay none.
-    fn ammo_due(&self, id: &PieceId, role: Role, phasing: bool) -> u32 {
+    /// a brigade counter counting as three. A company-equivalent pays
+    /// half a battalion's, the side's companies in the combat together
+    /// (R-121): `companies` is how many have been charged before this one
+    /// and is advanced for a company.
+    fn ammo_due(&self, id: &PieceId, role: Role, phasing: bool, companies: &mut u32) -> u32 {
         let Some(eq) = self.pieces[id].equivalent else {
             return 0;
         };
         let (each, n) = components(eq);
-        if each != Equivalent::Battalion {
-            return 0;
+        match each {
+            Equivalent::Battalion => ammo_owed(each, role, phasing) * n,
+            Equivalent::Company => {
+                let share = company_ammo_share(role, phasing, *companies);
+                *companies += 1;
+                share
+            }
+            _ => 0,
         }
-        ammo_owed(each, role, phasing) * n
     }
 
     /// Plans each payer's ammunition: the nearest supply unit in range
@@ -66,12 +74,13 @@ impl GameState {
             return plan;
         }
         let mut left: BTreeMap<PieceId, u32> = BTreeMap::new();
+        let mut companies = 0;
         for id in payers {
             let p = &self.pieces[id];
             if p.kind != PieceKind::Combat {
                 continue;
             }
-            let owed = self.ammo_due(id, role, phasing);
+            let owed = self.ammo_due(id, role, phasing, &mut companies);
             if owed == 0 {
                 continue;
             }
@@ -260,6 +269,25 @@ mod tests {
             .collect();
         assert_eq!(paid, vec![(&pid("unit:cw:4-rha"), &supply, 4)]);
         assert_eq!(state.pieces[&supply].load.unwrap().ammo, 6);
+    }
+
+    // R-121: a company-equivalent barraging as the phasing side pays half
+    // a battalion's 4.
+    #[test]
+    fn a_company_pays_half_a_battalion_s_ammunition_r121() {
+        let data = graziani();
+        let (mut state, supply) = sollum(&data, "C4021", 10);
+        state
+            .pieces
+            .get_mut(&pid("unit:cw:4-rha"))
+            .unwrap()
+            .equivalent = Some(cna_data::characteristics::Equivalent::Company);
+        assert_eq!(quoted(&state, &data, Side::Cw, "unit:cw:4-rha"), (2, false));
+        state.apply(&data, Side::Cw, barrage()).unwrap();
+        state
+            .apply(&data, Side::Axis, Order::Barrage { fires: vec![] })
+            .unwrap();
+        assert_eq!(state.pieces[&supply].load.unwrap().ammo, 8);
     }
 
     #[test]

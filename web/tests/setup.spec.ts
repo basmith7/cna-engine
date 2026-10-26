@@ -34,8 +34,8 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
   await pick(page, "axis", placements[0].order.place.piece);
   const count = Number(await page.getByTestId("placements").getAttribute("data-count"));
   expect(count).toBeGreaterThan(100);
-  await expect(page.getByTestId("setup")).toContainText("any hex of sheet C, not within 4 hexes of an enemy unit");
-  await expect(page.getByTestId("setup")).toContainText("also: Libyan part of sheet C; all units of the group in one hex");
+  await expect(page.getByTestId("setup")).toContainText("any hex in Libya on sheet C, not within 4 hexes of an enemy unit, all in one hex");
+  await expect(page.getByTestId("setup")).not.toContainText("also:");
   await expect(page.getByTestId("placement-count")).toHaveText(`${count} hexes allowed. Click one to place it.`);
   // The shaded hexes are the engine's, every one on sheet C.
   const shaded = await page.locator("polygon.placement").evaluateAll((ps) => ps.map((p) => p.getAttribute("data-hex")!));

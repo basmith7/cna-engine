@@ -94,9 +94,14 @@ impl GameState {
                     }
                 }
                 Location::Pending(p) => {
-                    if let Locator::Hexes(hs) = &p.locator {
-                        hs.iter()
-                            .try_for_each(|h| ids.hex("a pending placement", h))?;
+                    for l in &p.locators {
+                        match l {
+                            Locator::Hexes(hs) => hs
+                                .iter()
+                                .try_for_each(|h| ids.hex("a pending placement", h))?,
+                            Locator::WestOf(h) => ids.hex("a pending placement", h)?,
+                            _ => {}
+                        }
                     }
                 }
                 Location::Box(_) | Location::Eliminated => {}

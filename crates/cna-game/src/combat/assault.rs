@@ -137,6 +137,48 @@ impl GameState {
         out
     }
 
+    /// The defender's loss base (15.83, R-011, R-122) as shares: each
+    /// committed unit at its whole TOE, since the points it holds back
+    /// count; pinned and retreated-in units; infantry, which may not be
+    /// withheld; and in an overrun every wholly withheld unit. Also
+    /// returns the held-back points, which are not committed (15.86).
+    fn defender_loss_shares(
+        &self,
+        data: &Data,
+        defenders: &[Commit],
+        in_hex: &[PieceId],
+        overrun: bool,
+    ) -> (Vec<Share>, u32) {
+        let held_back: u32 = defenders
+            .iter()
+            .map(|c| self.pieces[&c.piece].toe.saturating_sub(c.points))
+            .sum();
+        let mut shares: Vec<Share> = defenders
+            .iter()
+            .map(|c| Share {
+                piece: c.piece.clone(),
+                points: c.points.max(self.pieces[&c.piece].toe),
+            })
+            .collect();
+        for id in in_hex {
+            let p = &self.pieces[id];
+            if shares.iter().any(|s| s.piece == *id) || !self.can_fight(p) {
+                continue;
+            }
+            let counted = self.combat.pinned.contains(id)
+                || self.combat.retreated.contains(id)
+                || overrun
+                || self.class_of(data, p) == Class::Infantry;
+            if counted {
+                shares.push(Share {
+                    piece: id.clone(),
+                    points: p.toe,
+                });
+            }
+        }
+        (shares, held_back)
+    }
+
     /// The non-phasing player's commits of `kind` in `hex`: what it
     /// assigned, plus — for close assault — every unlisted infantry
     /// unit in full, since only armour and guns may be withheld (14.14,
@@ -498,7 +540,8 @@ impl GameState {
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
         // Ammunition (32.21): each attacker pays double as phasing; an
-        // assault the attacker cannot pay for is refused unchanged.
+        // assault the attacker cannot pay for is refused unchanged
+        // (R-120: a unit out of ammunition cannot assault).
         let payers: Vec<PieceId> = attacker_ids
             .iter()
             .cloned()
@@ -535,8 +578,10 @@ impl GameState {
         }
 
         let defenders = self.defending_commits(data, other, target, true);
-        // Committed defenders pay one each if they can; one that cannot
-        // still defends at full strength (32.21).
+        // Committed defenders pay one each if they can (32.21). One that
+        // cannot still defends at full strength: R-120 says it cannot
+        // defend and an all-out hex surrenders, which is not built yet
+        // (NOT_SIMULATED.md).
         let payers: Vec<PieceId> = defenders.iter().map(|c| c.piece.clone()).collect();
         let plan = self.plan_ammo(data, &payers, Role::Assault, false);
         self.spend_ammo(plan.payments, &mut events);
@@ -688,31 +733,9 @@ impl GameState {
         let a_roll = resolve_side(&data.close_assault, CrtSide::Attacker, &column, a_reading);
         let d_roll = resolve_side(&data.close_assault, CrtSide::Defender, &column, d_reading);
 
-        // Loss bases (15.83, R-011): the defender's includes pinned and
-        // retreated-in units, and in an overrun every withheld one.
-        let mut defender_shares: Vec<Share> = defenders
-            .iter()
-            .map(|c| Share {
-                piece: c.piece.clone(),
-                points: c.points,
-            })
-            .collect();
-        for id in &in_hex {
-            let p = &self.pieces[id];
-            if defender_shares.iter().any(|s| s.piece == *id) || !self.can_fight(p) {
-                continue;
-            }
-            let counted = self.combat.pinned.contains(id)
-                || self.combat.retreated.contains(id)
-                || overrun
-                || self.class_of(data, p) == Class::Infantry;
-            if counted {
-                defender_shares.push(Share {
-                    piece: id.clone(),
-                    points: p.toe,
-                });
-            }
-        }
+        // Loss bases (15.83, R-011, R-122).
+        let (mut defender_shares, held_back) =
+            self.defender_loss_shares(data, &defenders, &in_hex, overrun);
         let defender_base: u32 = defender_shares
             .iter()
             .map(|s| self.raw_points(data, &self.pieces[&s.piece], Kind::Defence, s.points))
@@ -746,7 +769,7 @@ impl GameState {
             })
             .collect();
         let a_committed: u32 = attacker_shares.iter().map(|s| s.points).sum();
-        let d_committed: u32 = defender_shares.iter().map(|s| s.points).sum();
+        let d_committed: u32 = defender_shares.iter().map(|s| s.points).sum::<u32>() - held_back;
         let paren_a = !attackers
             .iter()
             .any(|c| self.plain_in_hex(data, &c.hex, Kind::Offence));
@@ -1255,6 +1278,31 @@ mod tests {
             .filter(|p| p.hex() == Some(&hex("C4020")))
             .map(|p| p.id.clone())
             .collect()
+    }
+
+    // R-122: a committed defender's held-back points count in the loss
+    // base; a wholly withheld gun counts only in an overrun.
+    #[test]
+    fn held_back_points_of_a_committed_defender_count_in_the_loss_base_r122() {
+        let data = graziani();
+        let state = at_sollum(&data);
+        let coy = pid("unit:it:1st-libyan-anti-tank-coy");
+        let toe = state.pieces[&coy].toe;
+        assert!(toe > 1, "{toe}");
+        let in_hex = vec![coy.clone()];
+        let commit = Commit {
+            piece: coy.clone(),
+            hex: state.pieces[&coy].hex().unwrap().clone(),
+            points: 1,
+        };
+        let (shares, held) =
+            state.defender_loss_shares(&data, std::slice::from_ref(&commit), &in_hex, false);
+        assert_eq!(shares.len(), 1);
+        assert_eq!((shares[0].points, held), (toe, toe - 1));
+        let (shares, _) = state.defender_loss_shares(&data, &[], &in_hex, false);
+        assert!(shares.is_empty(), "withheld whole: not in the base");
+        let (shares, _) = state.defender_loss_shares(&data, &[], &in_hex, true);
+        assert_eq!(shares[0].points, toe, "an overrun counts it");
     }
 
     fn find_assault(events: &[Event]) -> Option<Event> {
