@@ -406,3 +406,9 @@ Done: #65: vendor/cna 803d5d5 (all three requests answered), stacked_with and Ro
 In flight: #65 Playwright/CI, then #66's gates.
 Next: merge #65 then #66 on green CI; Rommel's +5 CPA escort (needs an order naming the unit), his reactions, the LRDG raid (27.9x).
 Blocked: Mission 4 on Brian's review of #25; Rommel's Arrival family on one cna request (Italian divisions' hexes).
+
+## 2026-10-26 07:35 MST — autopilot/m5-rommel
+Done: #66 (stacked on #65): `cna-game::rommel`: Axis initiative 6 with Rommel on the map, 3 recalled; the recall roll each Game-Turn (RommelRecalled, logged in the browser); +1 assault morale in his hex (17.28); a scheduled Rommel arrives (2/20). Rust gates green; requested a cna ruling on the +5 CPA escort.
+In flight: #65's CI, then #66's (local Playwright /tmp/pw-66.log).
+Next: merge #65, then main into #66 and merge it on green CI. Then convoy lanes beyond Tripoli or the 19.3 chart as the shell denominator.
+Blocked: Mission 4 on Brian's review of #25; Rommel's Arrival family and the escort bonus on cna.
