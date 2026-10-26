@@ -1200,8 +1200,33 @@ mod tests {
         assert!(game_over.is_over());
         assert_eq!(game_over.to_act(), None);
 
+        // Operation Crusader set up hex by hex, each piece on the first
+        // hex it is offered: Rommel with a German unit (R-135), lending
+        // the units in his hex +5 CPA (R-137).
+        let crusader = data("operation-crusader").unwrap();
+        let mut crusader_set_up = GameState::with_modules(crusader, 7, Modules::ALL).unwrap();
+        while let Some(Pending::SetUp { side }) = crusader_set_up.pending.clone() {
+            let (piece, hex) = crusader_set_up
+                .pieces
+                .values()
+                .filter(|p| p.side == side && p.is_pending())
+                .find_map(|p| {
+                    let hex = crusader_set_up
+                        .placements(crusader, &p.id)
+                        .into_iter()
+                        .next()?;
+                    Some((p.id.clone(), hex))
+                })
+                .expect("a pending piece with a hex to go to");
+            crusader_set_up
+                .apply(crusader, side, Order::Place { piece, hex })
+                .unwrap();
+        }
+        assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
+
         vec![
             ("set-up-done", set_up_done),
+            ("crusader-set-up", crusader_set_up),
             ("reserve", reserve),
             ("reserve-release", reserve_release),
             ("off-map", off_map),

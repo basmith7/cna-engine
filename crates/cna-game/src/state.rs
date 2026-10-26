@@ -419,7 +419,8 @@ impl GameState {
             }
             Some(_) => {}
         }
-        let events = self.apply_checked(data, player, &order)?;
+        let mut events = self.apply_checked(data, player, &order)?;
+        self.part_from_rommel(&mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)
     }

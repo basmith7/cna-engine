@@ -185,6 +185,11 @@ pub struct Piece {
     /// supply module on (32.1x); none for everything else.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub load: Option<Load>,
+    /// The CPA Rommel lends it this OpStage: his `escort_cpa_bonus` if it
+    /// stood in his hex as the stage began and has not left him since,
+    /// else 0 (31.0, R-137).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rommel_cpa: u32,
     /// CP spent this OpStage, both halves (6.14).
     #[serde(default)]
     pub cp_spent: Cp,

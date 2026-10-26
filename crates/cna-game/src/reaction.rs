@@ -1,7 +1,8 @@
 //! Reaction (SPI 8.5x, R-006, R-007, R-008): when a phasing combat unit
-//! moves next to motorised non-phasing combat units that are not in an
-//! enemy ZOC, in contact, engaged or pinned, the non-phasing player may
-//! move them, never into an enemy ZOC and never paying to break off.
+//! moves next to motorised non-phasing combat units (or Rommel, 31.0)
+//! that are not in an enemy ZOC, in contact, engaged or pinned, the
+//! non-phasing player may move them, never into an enemy ZOC and never
+//! paying to break off.
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
@@ -70,7 +71,9 @@ impl GameState {
                 .values()
                 .filter(|p| p.side != phasing && p.hex() == Some(&n))
             {
-                if p.kind != PieceKind::Combat
+                // Rommel reacts like a motorised combat unit (31.0).
+                let commanding = p.kind == PieceKind::Commander && !self.rommel_recalled;
+                if (p.kind != PieceKind::Combat && !commanding)
                     || !self.mobility(data, p).motorised()
                     || p.cohesion.collapsed(&self.ruleset)
                     || p.contact
@@ -118,7 +121,7 @@ impl GameState {
             }
         }
         let from = self.moving_stack(player, pieces, false)?;
-        let plan = self.plan(data, pieces, &from, path)?;
+        let plan = self.plan_with(data, pieces, &from, path, crate::reach::Purpose::React)?;
         if let Some((before, _)) = &plan.interrupt {
             return Err(Illegal::new(
                 "8.5x",

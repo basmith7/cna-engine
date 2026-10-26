@@ -169,7 +169,7 @@ impl GameState {
             }
         };
         let pieces = &owned[..];
-        let mover = self.mover(data, pieces);
+        let mover = self.mover(data, pieces, purpose);
         let (start_in_zoc, start_flagged) = match self.start(
             data,
             &mover,

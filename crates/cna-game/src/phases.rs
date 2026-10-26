@@ -110,6 +110,7 @@ impl GameState {
                         self.roll_rommel_recall(data, events);
                         self.naval_convoy_stage(data, events);
                     }
+                    self.mark_rommel_escort(data);
                     self.determine_initiative(data, events);
                     events.push(Event::PhaseStarted { clock });
                     return;
