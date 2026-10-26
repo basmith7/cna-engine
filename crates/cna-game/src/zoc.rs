@@ -251,6 +251,11 @@ impl GameState {
                 let Some(h) = p.hex() else { continue };
                 (h.clone(), p.side)
             };
+            // A recalled Rommel is in Germany: his hex is only where he
+            // comes back to (31.0).
+            if self.rommel_recalled && self.pieces[&id].kind == PieceKind::Commander {
+                continue;
+            }
             let contact = self.zoc_at(data, &hex, side) == Zoc::Exerts;
             let p = self.pieces.get_mut(&id).expect("listed");
             p.contact = contact;

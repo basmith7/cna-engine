@@ -265,7 +265,15 @@ impl GameState {
     /// Whether a piece may move voluntarily at all.
     pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
-            PieceKind::Combat | PieceKind::Hq | PieceKind::Commander => {}
+            PieceKind::Combat | PieceKind::Hq => {}
+            PieceKind::Commander => {
+                if self.rommel_recalled {
+                    return Err(Illegal::new(
+                        "31.0",
+                        format!("{}: Rommel is in Germany this Game-Turn", p.id),
+                    ));
+                }
+            }
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
                 if !self.modules.abstract_supply {
                     return Err(Illegal::new(

@@ -1,6 +1,7 @@
 //! Rommel (31.0, R-135): his counter on the map lifts the Axis initiative
 //! rating (7.1x), and at the start of each Game-Turn he is present a
-//! two-dice 12 recalls him to Germany for the turn.
+//! two-dice 12 recalls him to Germany for the turn: out of play, he
+//! neither moves nor can be caught, and comes back to the hex he left.
 
 use crate::data::Data;
 use crate::event::Event;
@@ -181,5 +182,15 @@ mod tests {
         assert_eq!(state.rommel_morale_bonus(&data, &away), 0);
         state.rommel_recalled = true;
         assert_eq!(state.rommel_morale_bonus(&data, &with), 0);
+    }
+
+    #[test]
+    fn a_recalled_rommel_does_not_move() {
+        let (_, mut state) = crusader();
+        state.rommel_recalled = true;
+        let p = state.pieces[&rommel()].clone();
+        assert_eq!(state.able_to_move(&p).unwrap_err().case, "31.0");
+        state.rommel_recalled = false;
+        assert!(state.able_to_move(&p).is_ok());
     }
 }
