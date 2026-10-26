@@ -29,7 +29,7 @@ they unlock:
 Rommel as a commander piece placed with a German unit (R-135), and
 replacement counters made at set-up (21st Panzer for 5th Light, R-096),
 so The Last Chance sets up and plays (six of nine scenarios now). #66
-builds 31.0 on top: Axis initiative 6 with Rommel on the map, the recall
+(merged) builds 31.0 on top: Axis initiative 6 with Rommel on the map, the recall
 roll, +1 assault morale in his hex. Rommel's Arrival and its two
 campaigns wait on one new request below.
 Mission 4 resumes first the moment **Feedback** approves #25.
@@ -82,12 +82,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #66 if a run finds it green
-  (its audit ledger is a comment there; the one unsound choice, a
-  recalled Rommel still movable, is fixed in c98e045). Then Rommel's +5 CPA escort (an order naming the unit), his
-  reactions and retreats through ZOC, the LRDG raid (27.9x); convoy lanes
-  beyond Tripoli; the 19.3 chart as the shell denominator. The end
-  dialog's points table is not yet seen in a browser.
+- Mission 5 continues unattended (#65 and #66 merged; #66's audit
+  ledger is a comment there): Rommel's +5 CPA escort waits on the ruling
+  requested below; his reactions and retreats through ZOC and the LRDG
+  raid (27.9x) next, or convoy lanes beyond Tripoli and the 19.3 chart as
+  the shell denominator. The end dialog's points table is not yet seen in
+  a browser, nor Rommel's counter in Crusader's set-up.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
