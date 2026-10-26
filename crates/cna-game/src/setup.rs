@@ -87,12 +87,23 @@ pub fn expand(
     let mut placed = BTreeSet::new();
     for side in [Side::Axis, Side::Cw] {
         let set = scenario.side(side);
+        // A unit an entry names as `attached` or `assigned` is that
+        // entry's, with its subtree, even where another entry sets its
+        // sheet formation up whole (61.38's reassignments).
+        let mut named = BTreeSet::new();
+        for e in set.deployments.iter().flat_map(|d| &d.units) {
+            for a in e.attached.iter().chain(&e.assigned) {
+                let mut sub = Vec::new();
+                subtree(a, oa, NEVER, &mut sub)?;
+                named.extend(sub.into_iter().map(|m| m.id));
+            }
+        }
         for (di, d) in set.deployments.iter().enumerate() {
             let location = resolve(&d.placement, map)
                 .with_context(|| format!("{side} deployment {}", di + 1))?;
             let mut ids = Vec::new();
             for e in &d.units {
-                let members = members(e, oa, scenario.start)
+                let members = members(e, oa, scenario.start, &named)
                     .with_context(|| format!("{side} deployment {}", di + 1))?;
                 for m in members {
                     let unit = oa.unit(&m.id).expect("resolved by members");
@@ -248,8 +259,14 @@ fn subtree(head: &UnitId, oa: &Oa, start: GameTime, out: &mut Vec<Member>) -> Re
     Ok(())
 }
 
-/// Every unit one set-up entry stands for.
-fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
+/// Every unit one set-up entry stands for. Units in `named` (some
+/// entry's `attached` or `assigned`) come only through those lists.
+fn members(
+    e: &UnitEntry,
+    oa: &Oa,
+    start: GameTime,
+    named: &BTreeSet<UnitId>,
+) -> Result<Vec<Member>> {
     let mut out = Vec::new();
     let head = match &e.subject {
         Subject::Formation(f) => {
@@ -321,6 +338,7 @@ fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
         subtree(r, oa, NEVER, &mut gone)?;
         out.retain(|m| !gone.iter().any(|g| g.id == m.id));
     }
+    out.retain(|m| Some(&m.id) == head.as_ref() || !named.contains(&m.id));
     for a in e.attached.iter().chain(&e.assigned) {
         let mut added = Vec::new();
         subtree(a, oa, start, &mut added)?;
@@ -691,6 +709,30 @@ mod tests {
     // Hampshires, assigned to the Matruh garrison (4.44b), 2. The 7th Motor
     // HQ and 1st Fld are `less`; the arrival filter already dropped them.
     // Sum: 12+4+7+11+4+8+10+4+6+2 = 68.
+    fn load(slug: &str) -> Result<Setup> {
+        let scenario = Scenario::load(slug).unwrap();
+        let oa = Oa::load_all().unwrap();
+        let chars = Characteristics::load().unwrap();
+        let map = Map::load().unwrap();
+        expand(&scenario, &oa, &chars, &map, Modules::default())
+    }
+
+    #[test]
+    fn a_unit_assigned_elsewhere_leaves_its_sheet_formation() {
+        // Rommel's Arrival sets the 7th Armoured Division up whole, while
+        // an entry at A2022 assigns its 6 RTR to the 3rd Armoured Brigade
+        // (61.38). The named assignment wins: one piece, under the 3rd.
+        let setup = load("rommels-arrival").unwrap();
+        let rtr: Vec<&Piece> = setup
+            .pieces
+            .iter()
+            .filter(|p| p.id == PieceId::from(uid("unit:cw:6-rtr")))
+            .collect();
+        assert_eq!(rtr.len(), 1);
+        assert_eq!(rtr[0].parent, Some(uid("unit:cw:3-armd-bde-hq")));
+        assert_eq!(rtr[0].location, Location::Hex(hex("A2022")));
+    }
+
     #[test]
     fn piece_counts_are_pinned() {
         let f = graziani();

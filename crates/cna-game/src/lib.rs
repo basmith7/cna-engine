@@ -34,6 +34,7 @@ mod repair;
 mod replacements;
 mod reserve;
 pub mod rng;
+mod scenarios;
 pub mod setup;
 pub mod state;
 mod supply;
