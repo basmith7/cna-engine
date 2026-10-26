@@ -480,7 +480,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:27-nz",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -489,7 +489,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:4-nz-fld",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },

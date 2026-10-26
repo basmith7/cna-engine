@@ -9,6 +9,7 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::characteristics::Equivalent;
 use cna_data::map::HexId;
 use cna_data::oa::UnitId;
 use cna_data::scenario::Side;
@@ -68,7 +69,8 @@ impl GameState {
     /// Stacking points in a hex (9.1x): a unit attached to an HQ in the
     /// hex counts as part of that HQ's formation, a division 5 SP and a
     /// brigade equivalent 2 (9.13, 9.21, 9.4); an HQ alone is 0 (9.25);
-    /// anything else its equivalent's value, or nothing by 9.16.
+    /// anything else its equivalent's value, or nothing by 9.16. A shell
+    /// formation counts one level smaller (9.28).
     pub(crate) fn stacked(&self, data: &Data, hex: &HexId) -> u32 {
         let in_hex: Vec<&Piece> = self
             .pieces
@@ -98,10 +100,14 @@ impl GameState {
                 .id
                 .unit()
                 .expect("an HQ comes from a sheet");
-            sp += if self.has_sub_formation(&unit) {
-                DIVISION_SP
-            } else {
-                BRIGADE_SP
+            // A shell stacks one level smaller (9.28).
+            let shell = self.is_shell(data, &hq);
+            sp += match (self.has_sub_formation(&unit), shell) {
+                (true, false) => DIVISION_SP,
+                (true, true) | (false, false) => BRIGADE_SP,
+                (false, true) => {
+                    cna_rules::stacking::points(&data.stacking, Some(Equivalent::Battalion))
+                }
             };
         }
         sp

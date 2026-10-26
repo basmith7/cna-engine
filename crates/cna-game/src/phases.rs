@@ -183,6 +183,7 @@ impl GameState {
             p.cp_enemy_half = Cp::ZERO;
             p.reserve = None;
             p.released = None;
+            p.released_assaulted = false;
             p.landed = false;
             p.flown = false;
             p.fuelled = false;

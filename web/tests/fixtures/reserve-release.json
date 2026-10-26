@@ -2331,13 +2331,14 @@
       "nation": "cw",
       "id_code": "u",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 2,
       "cpa": "8",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E3714"
+        "hex": "E3613"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2538,6 +2539,7 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 6,
       "weapons": [
         {
@@ -2550,7 +2552,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E3714"
+        "hex": "E3613"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -9380,7 +9382,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:27-nz",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -9389,7 +9391,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:4-nz-fld",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },

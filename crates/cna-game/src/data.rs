@@ -50,12 +50,16 @@ pub struct Data {
     pub close_assault: CloseAssault,
     pub morale: MoraleModifier,
     pub size_shifts: AssaultSizeShifts,
+    pub max_attachments: cna_data::max_attachments::MaxAttachments,
     pub prisoners: Prisoners,
     pub breakdown: cna_data::breakdown::Breakdown,
     pub vehicle_repair: cna_data::repair::VehicleRepair,
     pub calendar: cna_data::calendar::Calendar,
     pub motorisation_losses: cna_data::calendar::MotorisationLosses,
     pub simplified_supply: cna_data::calendar::SimplifiedSupply,
+    pub convoy_lanes: cna_data::convoy::ConvoyLanes,
+    pub convoy_bombing: cna_data::convoy::ConvoyBombing,
+    pub convoy_bombardment: cna_data::convoy::ConvoyBombardment,
 }
 
 impl Data {
@@ -86,12 +90,16 @@ impl Data {
             close_assault: CloseAssault::load_from(src)?,
             morale: MoraleModifier::load_from(src)?,
             size_shifts: AssaultSizeShifts::load_from(src)?,
+            max_attachments: cna_data::max_attachments::MaxAttachments::load_from(src)?,
             prisoners: Prisoners::load_from(src)?,
             breakdown: cna_data::breakdown::Breakdown::load_from(src)?,
             vehicle_repair: cna_data::repair::VehicleRepair::load_from(src)?,
             calendar: cna_data::calendar::Calendar::load_from(src)?,
             motorisation_losses: cna_data::calendar::MotorisationLosses::load_from(src)?,
             simplified_supply: cna_data::calendar::SimplifiedSupply::load_from(src)?,
+            convoy_lanes: cna_data::convoy::ConvoyLanes::load_from(src)?,
+            convoy_bombing: cna_data::convoy::ConvoyBombing::load_from(src)?,
+            convoy_bombardment: cna_data::convoy::ConvoyBombardment::load_from(src)?,
         })
     }
 
@@ -133,6 +141,7 @@ mod tests {
             ("close_assault", format!("{:?}", d.close_assault)),
             ("morale", format!("{:?}", d.morale)),
             ("size_shifts", format!("{:?}", d.size_shifts)),
+            ("max_attachments", format!("{:?}", d.max_attachments)),
             ("prisoners", format!("{:?}", d.prisoners)),
         ]
     }

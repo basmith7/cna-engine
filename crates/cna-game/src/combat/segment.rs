@@ -281,6 +281,15 @@ impl GameState {
                         .filter(|a| !a.anti_armour.is_empty() || !a.close_assault.is_empty())
                         .map(|a| a.piece.clone())
                         .collect();
+                    for a in assignments
+                        .iter()
+                        .filter(|a| a.close_assault.iter().any(|al| al.target.is_some()))
+                    {
+                        let p = self.pieces.get_mut(&a.piece).expect("assigned");
+                        if p.released.is_some() {
+                            p.released_assaulted = true;
+                        }
+                    }
                     events.push(Event::ForcesAssigned { side, assignments });
                     self.reserve_ii_dp(&active, events);
                 }
@@ -701,6 +710,35 @@ mod tests {
     }
 
     #[test]
+    fn a_released_unit_that_has_assaulted_does_not_assault_again_this_stage_18_23() {
+        let data = graziani();
+        let mut state = at_sollum(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        let p = state.pieces.get_mut(&krrc).unwrap();
+        p.released = Some(Reserve::I);
+        p.released_assaulted = true;
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign("unit:cw:1-krrc", &[], &[(Some("C4020"), 3)])],
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "18.2x");
+    }
+
+    #[test]
     fn a_released_unit_assaults_once_and_reserve_ii_pays_a_dp() {
         let data = graziani();
         let mut state = at_sollum(&data);
@@ -756,6 +794,7 @@ mod tests {
                 },
             )
             .unwrap();
+        assert!(state.pieces[&pid("unit:cw:1-krrc")].released_assaulted);
         assert!(events.contains(&Event::Disorganised {
             piece: pid("unit:cw:1-krrc"),
             dp: 1,

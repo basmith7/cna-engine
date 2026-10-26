@@ -149,6 +149,55 @@ impl ConvoyBombardment {
     }
 }
 
+/// Where a convoy lane ends: a port, in an off-map box or on a map hex.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Destination {
+    pub port: String,
+    #[serde(rename = "box")]
+    pub off_map_box: Option<String>,
+    pub hex: Option<String>,
+}
+
+/// One Axis convoy lane (56.1): a fixed origin and destination, its number
+/// the Convoy Route column of the bombing chart (32.66).
+#[derive(Debug, Clone, Deserialize)]
+pub struct Lane {
+    pub lane: u8,
+    pub name: String,
+    pub origin: String,
+    pub destination: Destination,
+    /// The first Game-Turn it may be used; none for from the start.
+    pub first_game_turn: Option<u8>,
+    /// Whether opening it also needs the Axis's activation roll (55.17).
+    pub activation_roll: bool,
+}
+
+/// The Axis convoy lanes (`convoy-lanes.json`, 56.1).
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConvoyLanes {
+    pub lanes: Vec<Lane>,
+}
+
+impl ConvoyLanes {
+    pub fn load() -> Result<Self> {
+        Self::load_from(&crate::source::Fs)
+    }
+
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        Ok(serde_json::from_value(crate::errata::load_table(
+            src,
+            "convoy-lanes",
+        )?)?)
+    }
+
+    /// The lane that ends in off-map box `id` (e.g. "tripoli").
+    pub fn to_box(&self, id: &str) -> Option<&Lane> {
+        self.lanes
+            .iter()
+            .find(|l| l.destination.off_map_box.as_deref() == Some(id))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,5 +242,17 @@ mod tests {
                 }
             }
         }
+    }
+    #[test]
+    fn six_lanes_and_lane_2_runs_to_tripoli_from_the_start_56_1() {
+        let lanes = ConvoyLanes::load().unwrap();
+        assert_eq!(lanes.lanes.len(), 6);
+        let tripoli = lanes.to_box("tripoli").unwrap();
+        assert_eq!(tripoli.lane, 2);
+        assert_eq!(tripoli.first_game_turn, None);
+        assert!(!tripoli.activation_roll);
+        let bizerta = lanes.to_box("tunisia").unwrap();
+        assert_eq!((bizerta.lane, bizerta.first_game_turn), (1, Some(35)));
+        assert!(bizerta.activation_roll);
     }
 }
