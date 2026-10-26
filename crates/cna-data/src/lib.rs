@@ -13,6 +13,7 @@ pub mod cp;
 pub mod errata;
 pub mod initiative;
 pub mod map;
+pub mod max_attachments;
 pub mod morale;
 pub mod oa;
 pub mod off_map;

@@ -50,6 +50,7 @@ pub struct Data {
     pub close_assault: CloseAssault,
     pub morale: MoraleModifier,
     pub size_shifts: AssaultSizeShifts,
+    pub max_attachments: cna_data::max_attachments::MaxAttachments,
     pub prisoners: Prisoners,
     pub breakdown: cna_data::breakdown::Breakdown,
     pub vehicle_repair: cna_data::repair::VehicleRepair,
@@ -86,6 +87,7 @@ impl Data {
             close_assault: CloseAssault::load_from(src)?,
             morale: MoraleModifier::load_from(src)?,
             size_shifts: AssaultSizeShifts::load_from(src)?,
+            max_attachments: cna_data::max_attachments::MaxAttachments::load_from(src)?,
             prisoners: Prisoners::load_from(src)?,
             breakdown: cna_data::breakdown::Breakdown::load_from(src)?,
             vehicle_repair: cna_data::repair::VehicleRepair::load_from(src)?,
@@ -133,6 +135,7 @@ mod tests {
             ("close_assault", format!("{:?}", d.close_assault)),
             ("morale", format!("{:?}", d.morale)),
             ("size_shifts", format!("{:?}", d.size_shifts)),
+            ("max_attachments", format!("{:?}", d.max_attachments)),
             ("prisoners", format!("{:?}", d.prisoners)),
         ]
     }

@@ -6,6 +6,7 @@
 //! it; an attached unit never moves without its parent (19.4x).
 
 use crate::clock::{Phase, Segment};
+use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
@@ -151,6 +152,7 @@ impl GameState {
     /// (19.4x).
     pub(crate) fn attach(
         &mut self,
+        data: &Data,
         player: Side,
         piece: &PieceId,
         to: &PieceId,
@@ -171,13 +173,22 @@ impl GameState {
             ));
         }
         let unit = to.unit().expect("a unit has a sheet id");
-        if p.parent.as_ref() != Some(&unit) {
-            return Err(Illegal::new(
-                "19.5",
-                format!(
-                    "{piece} is not assigned to {to}: attaching it waits on the attachment limits"
-                ),
-            ));
+        let assigned = p.parent.as_ref() == Some(&unit);
+        if !assigned {
+            // A non-assigned unit attaches in phase C only, for 2 CP
+            // each, within the parent's chart row (19.4x, 19.5).
+            if self.clock.phase != Phase::Organisation {
+                return Err(Illegal::new(
+                    "19.4x",
+                    format!(
+                        "{piece} is not assigned to {to}: non-assigned units attach in phase C"
+                    ),
+                ));
+            }
+            if let Some(why) = self.attachment_cap_refusal(data, piece, to) {
+                return Err(Illegal::new("19.5", why));
+            }
+            self.charge_attachment(piece, to);
         }
         self.charge_attachment(piece, to);
         self.pieces.get_mut(piece).expect("checked").attached_to = Some(unit);
@@ -433,7 +444,7 @@ mod tests {
                 .case,
             "19.4x"
         );
-        // A parent it is not assigned to waits on 19.5's limits.
+        // A parent it is not assigned to: phase C only (19.4x).
         let other = state
             .pieces
             .values()
@@ -453,7 +464,8 @@ mod tests {
                 },
             )
             .unwrap_err();
-        assert_eq!(err.case, "19.5");
+        assert_eq!(err.case, "19.4x");
+        assert!(err.reason.contains("phase C"), "{}", err.reason);
         // The other side's movement segment: not the Axis's to change.
         let mut cw = moving(&data, 3, Side::Cw);
         let err = cw
@@ -543,5 +555,126 @@ mod tests {
             )
             .unwrap();
         assert!(state.pieces[&tanks].attached_to.is_some());
+    }
+
+    /// Phase C of the set-up state, with `ids` standing alone in `hq`'s
+    /// hex.
+    fn organising_with(data: &Data, hq: &str, ids: &[&str]) -> GameState {
+        let mut state = moving(data, 3, Side::Axis);
+        state.clock.phase = crate::clock::Phase::Organisation;
+        state.clock.half = None;
+        state.clock.segment = None;
+        let at = state.pieces[&pid(hq)].location.clone();
+        for id in ids {
+            state.put(&pid(id), at.clone());
+        }
+        state
+    }
+
+    fn attach_to(to: &str, piece: &str) -> Order {
+        Order::Attach {
+            piece: pid(piece),
+            to: pid(to),
+        }
+    }
+
+    #[test]
+    fn a_division_takes_one_non_assigned_infantry_battalion_for_two_cp_each() {
+        // The Italian infantry division row: two units, one infantry or
+        // one tank between them (19.5).
+        let data = graziani();
+        let (bn1, bn2) = ("unit:it:viii-libyan-bn", "unit:it:ix-libyan-bn");
+        let mut state = organising_with(&data, MALETTI, &[bn1, bn2]);
+        let before = state.pieces[&pid(bn1)].cp_spent;
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, bn1))
+            .unwrap();
+        assert_eq!(state.pieces[&pid(bn1)].cp_spent, before + Cp::whole(2));
+        let err = state
+            .apply(&data, Side::Axis, attach_to(MALETTI, bn2))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+        assert!(err.reason.contains("infantry"), "{}", err.reason);
+    }
+
+    #[test]
+    fn an_italian_battalion_takes_nothing_attached() {
+        let data = graziani();
+        let (bn1, bn2) = ("unit:it:viii-libyan-bn", "unit:it:ix-libyan-bn");
+        let mut state = organising_with(&data, MALETTI, &[bn1, bn2]);
+        let err = state
+            .apply(&data, Side::Axis, attach_to(bn1, bn2))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+    }
+
+    #[test]
+    fn nesting_counts_against_the_larger_parent_too() {
+        // A battalion attached to a regiment attached to the division
+        // counts against the division's row as well (19.4x).
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let (bn1, bn2) = ("unit:it:viii-libyan-bn", "unit:it:ix-libyan-bn");
+        let mut state = organising_with(&data, MALETTI, &[regt, bn1, bn2]);
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, regt))
+            .unwrap();
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, bn1))
+            .unwrap();
+        let err = state
+            .apply(&data, Side::Axis, attach_to(regt, bn2))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+        assert!(err.reason.contains("maletti"), "{}", err.reason);
+    }
+
+    #[test]
+    fn a_brigade_with_too_few_battalions_attached_is_a_shell_and_stacks_as_one() {
+        let data = graziani();
+        let state = moving(&data, 3, Side::Axis);
+        let brigade = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.kind == crate::piece::PieceKind::Hq
+                    && p.hex().is_some()
+                    && data.oa.unit(&p.id.unit().unwrap()).and_then(|u| u.echelon)
+                        == Some(cna_data::oa::Echelon::Brigade)
+                    && !state.is_shell(&data, &p.id)
+                    && state.pieces.values().any(|q| q.attached_to == p.id.unit())
+            })
+            .expect("a whole brigade on the map")
+            .id
+            .clone();
+        let hex = state.pieces[&brigade].hex().unwrap().clone();
+        let mut alone = state.clone();
+        let unit = brigade.unit();
+        let ids: Vec<_> = alone
+            .pieces
+            .values()
+            .filter(|q| q.hex() == Some(&hex) && q.id != brigade)
+            .map(|q| q.id.clone())
+            .collect();
+        for id in ids {
+            let to = cna_data::scenario::OffMapBox::Tripoli;
+            alone.pieces.get_mut(&id).unwrap().location = Location::Box(to);
+            if alone.pieces[&id].attached_to == unit {
+                alone.pieces.get_mut(&id).unwrap().attached_to = None;
+            }
+        }
+        // Put one battalion back, attached: one of several is too few.
+        let one = state
+            .pieces
+            .values()
+            .find(|q| q.attached_to == unit && q.kind == crate::piece::PieceKind::Combat)
+            .unwrap()
+            .id
+            .clone();
+        let p = alone.pieces.get_mut(&one).unwrap();
+        p.location = Location::Hex(hex.clone());
+        p.attached_to = unit.clone();
+        assert!(alone.is_shell(&data, &brigade));
+        assert_eq!(alone.stacked(&data, &hex), 1);
     }
 }
