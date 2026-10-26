@@ -29,9 +29,35 @@ impl GameState {
         (p.hex() == Some(hex)).then_some(p)
     }
 
+    /// The topmost HQ on `hex` that `piece` is attached under, if any.
+    fn top_parent<'a>(&'a self, piece: &'a Piece, hex: &HexId) -> Option<&'a Piece> {
+        let mut top = None;
+        let mut cur = piece;
+        while let Some(parent) = self.parent_on(cur, hex) {
+            top = Some(parent);
+            cur = parent;
+        }
+        top
+    }
+
+    /// The formation `piece` counts as part of on `hex` (9.2x, 15.55):
+    /// the topmost HQ there it is attached under, or itself if it is an
+    /// HQ with something attached there.
+    pub(crate) fn top_formation<'a>(&'a self, piece: &'a Piece, hex: &HexId) -> Option<&'a Piece> {
+        self.top_parent(piece, hex).or_else(|| {
+            let unit = piece.id.unit()?;
+            (piece.kind == PieceKind::Hq
+                && self
+                    .pieces
+                    .values()
+                    .any(|q| q.attached_to.as_ref() == Some(&unit) && q.hex() == Some(hex)))
+            .then_some(piece)
+        })
+    }
+
     /// Whether any HQ is under this unit (a division has brigades or
     /// regiments under it; a brigade has only battalions, 9.21–9.24).
-    fn has_sub_formation(&self, unit: &UnitId) -> bool {
+    pub(crate) fn has_sub_formation(&self, unit: &UnitId) -> bool {
         let mut heads = vec![unit.clone()];
         while let Some(head) = heads.pop() {
             for q in self.pieces.values() {
@@ -80,14 +106,7 @@ impl GameState {
         let mut formations: BTreeSet<PieceId> = BTreeSet::new();
         let mut sp = 0;
         for p in &in_hex {
-            // Climb to the topmost HQ on this hex the piece is under.
-            let mut top: Option<&Piece> = None;
-            let mut cur = *p;
-            while let Some(parent) = self.parent_on(cur, hex) {
-                top = Some(parent);
-                cur = parent;
-            }
-            match top {
+            match self.top_parent(p, hex) {
                 Some(hq) => {
                     formations.insert(hq.id.clone());
                 }
