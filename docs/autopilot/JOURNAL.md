@@ -441,3 +441,9 @@ Done: nothing yet; measured `reachable` (11 Hussars, Graziani's) at 310 ms nativ
 In flight: `GameState::pieces_at(hex)` as the one owner of "pieces in a hex", backed by an index `reachable` installs for its search.
 Next: finish, check the reach oracle tests and timing, open a draft PR; abandon if it isn't clean.
 Blocked: none.
+
+## 2026-10-26 12:38 MST — autopilot/m3-reach-index
+Done: #70 merged (5d1d3a0), #71 merged (assignment tests 15.1x, 13.28). #72: `occupancy::pieces_at` plus an index `reachable` installs for its search; 310 → 91 ms native, 424 → 141 ms wasm (410ea18). Local Playwright 46/46, wasm-pack test green, ledger comment on #72. Three cna requests on main (8.53's ZOC, 19.3 shell components, Rommel after his stack is destroyed).
+In flight: #72's CI (ready).
+Next: merge #72 on green CI; time the browser's shading; then whichever cna request lands first.
+Blocked: Mission 4 on Brian's review of #25.
