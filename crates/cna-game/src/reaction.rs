@@ -66,11 +66,7 @@ impl GameState {
         for n in data.map.neighbours(at) {
             let pinned_by_zoc = || self.zoc_at(data, &n, phasing.other()) == Zoc::Exerts;
             let mut any = false;
-            for p in self
-                .pieces
-                .values()
-                .filter(|p| p.side != phasing && p.hex() == Some(&n))
-            {
+            for p in self.pieces_at(&n).into_iter().filter(|p| p.side != phasing) {
                 // Rommel reacts like a motorised combat unit (31.0).
                 let commanding = p.kind == PieceKind::Commander && !self.rommel_recalled;
                 if (p.kind != PieceKind::Combat && !commanding)

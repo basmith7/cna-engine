@@ -39,9 +39,9 @@ impl GameState {
     /// weapon systems (4.47–4.49); a parenthesised rating counts only
     /// when no unit in the hex has a plain one.
     pub(crate) fn raw_defence(&self, data: &Data, hex: &HexId) -> u32 {
-        self.pieces
-            .values()
-            .filter(|p| p.hex() == Some(hex) && p.kind == PieceKind::Combat)
+        self.pieces_at(hex)
+            .into_iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| self.raw_of(data, p, crate::combat::strength::Kind::Defence))
             .sum()
@@ -52,9 +52,9 @@ impl GameState {
     /// defence points.
     pub(crate) fn could_exert(&self, data: &Data, hex: &HexId) -> bool {
         let sp: u32 = self
-            .pieces
-            .values()
-            .filter(|p| p.hex() == Some(hex) && p.kind == PieceKind::Combat)
+            .pieces_at(hex)
+            .into_iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
@@ -79,18 +79,15 @@ impl GameState {
             climbs: hexside.is_some_and(|hs| hs.climbs(src, hex)),
             weather: self.weather_at(hex),
         };
-        self.pieces
-            .values()
-            .filter(|p| p.hex() == Some(src) && p.kind == PieceKind::Combat)
+        self.pieces_at(src)
+            .into_iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .any(|p| step_cost(&data.terrain, self.mobility(data, p), &step).is_ok())
     }
 
     /// The side holding a hex, if any.
     pub(crate) fn holder(&self, hex: &HexId) -> Option<Side> {
-        self.pieces
-            .values()
-            .find(|p| p.hex() == Some(hex))
-            .map(|p| p.side)
+        self.pieces_at(hex).first().map(|p| p.side)
     }
 
     /// The enemy ZOC over `hex` for a unit of `side` (10.2x): the phasing
@@ -147,12 +144,9 @@ impl GameState {
         side: Side,
         except: &[crate::piece::PieceId],
     ) -> bool {
-        self.pieces.values().any(|p| {
-            p.side == side
-                && p.kind == PieceKind::Combat
-                && p.hex() == Some(hex)
-                && !except.contains(&p.id)
-        })
+        self.pieces_at(hex)
+            .into_iter()
+            .any(|p| p.side == side && p.kind == PieceKind::Combat && !except.contains(&p.id))
     }
 
     /// Opens a movement segment: the declarations the non-phasing player
