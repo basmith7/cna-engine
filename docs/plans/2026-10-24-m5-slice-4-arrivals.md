@@ -51,7 +51,7 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 ### Task 3: Axis convoys and bombing
 
 - [x] One lane (the Tripoli box), its cap of three; the overflow sails a turn later.
-- [ ] The bombing chart and the bombardment table (needs the westernmost full Commonwealth division: R-124's echelons).
+- Moved out: the bombing chart and the bombardment table. 32.6x lets the Axis split a convoy among lanes, and the bombing column depends on the lane; cna has no lane table yet (56.1's origins and destinations: request on `main`), and "full division" needs §19's attachment, which slice 6 builds. Bombing lands with slice 6 or after it.
 
 ### Task 4: motorisation losses
 
@@ -59,7 +59,7 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 ### Task 5: UI, golden, docs
 
-- [ ] The log names planning, arrivals and losses; the stack panel shows
+- [x] The log names planning, arrivals and losses; the stack panel shows
   arrived units; the golden re-pinned; `NOT_SIMULATED.md`.
 
 **As built (Task 1).** Planning runs every Game-Turn, the first included

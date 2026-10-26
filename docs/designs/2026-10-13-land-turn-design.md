@@ -140,8 +140,9 @@ One PR each, in order; each has a plan in `docs/plans/`.
    G (stacked with a combat unit) or H, phase J rail, the air lift,
    destroying one's own supply, dummies.
 4. **Arrivals** (`…-slice-4-arrivals.md`): the naval convoy stage,
-   simplified supply planning, Axis convoys and their bombing, monthly
-   motorisation losses.
+   simplified supply planning, Axis convoys, monthly motorisation
+   losses. Convoy bombing moved after slice 6: it needs the convoy lanes
+   (56.1) from cna and §19's full divisions.
 5. **Breakdown and repair** (`…-slice-5-breakdown.md`): the breakdown
    segment, markers, towing, phase K repair.
 6. **Organisation, dumps and prisoners** (`…-slice-6-organisation.md`):
