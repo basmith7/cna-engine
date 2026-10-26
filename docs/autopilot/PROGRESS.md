@@ -20,19 +20,17 @@ on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
 bar a short list (`docs/designs/2026-10-13-land-turn-design.md`, Status).
 Merged through 2026-10-26: supply, spending, supply movement, arrivals,
 the air lift, breakdown and repair, attachment, prisoners, guards,
-replacements, construction, convoy bombing on the Tripoli lane, gun
-losses, shells, the stack panel's organisation (#31–#60). **On
-2026-10-26, second run:** formations in close assault's size table
-(#59, 15.55: a piece counts as its attached formation on its hex; the
-short golden re-played and re-pinned); the mission's second half began:
-every scenario cna ships is smoke-tested (#61, `cna-game::scenarios`:
-the campaign game, the Italian campaign, Graziani's Offensive,
-Operation Crusader and The Long Retreat set up and pass a Game-Turn;
-61.38's reassigned 6 RTR no longer fails set-up) and points victories
-are scored (#63: six of nine scenarios use them; the end dialog shows
-totals) and the browser starts any scenario that sets up (#62). #64
-refreshed the design's Status. Nothing open at handoff. Four scenarios
-wait on cna (requests below).
+replacements, construction, convoy bombing, gun losses, shells, the
+stack panel's organisation, formations in the size table, every
+scenario smoke-tested, points victories, the browser's scenario picker
+(#31–#64). **On 2026-10-26, third run:** cna answered all three
+requests; #65 bumps `vendor/cna` to 803d5d5 and builds what they unlock:
+Rommel as a commander piece placed with a German unit (R-135), and
+replacement counters made at set-up (21st Panzer for 5th Light, R-096),
+so The Last Chance sets up and plays (six of nine scenarios now). #66
+builds 31.0 on top: Axis initiative 6 with Rommel on the map, the recall
+roll, +1 assault morale in his hex. Rommel's Arrival and its two
+campaigns wait on one new request below.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -83,18 +81,17 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended (the end dialog's points table is not
-  yet seen in a browser; the map opens framed for Graziani's whatever
-  the scenario): take the next scenario land rule
-  that cna's data supports; Rommel (§31), The Last Chance and Rommel's
-  Arrival wait on the requests below. Convoy lanes beyond Tripoli and
-  the 19.3 chart as the shell denominator remain.
+- Mission 5 continues unattended: merge #65 and #66 if a run finds them
+  green; then Rommel's +5 CPA escort (an order naming the unit), his
+  reactions and retreats through ZOC, the LRDG raid (27.9x); convoy lanes
+  beyond Tripoli; the 19.3 chart as the shell denominator. The end
+  dialog's points table is not yet seen in a browser.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna 4184683.
+  cna 803d5d5 once #65 merges.
 
 ## Requests for cna
 
