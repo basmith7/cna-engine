@@ -57,7 +57,12 @@ impl GameState {
     fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
         // A brigade counter pays by its battalion components.
         let (eq, parts) = components(piece.equivalent.unwrap_or(Equivalent::Hq));
-        let each = parts * fuel_owed(self.fuel_class(data, piece), eq, Carrying::Nothing);
+        let mut each = parts * fuel_owed(self.fuel_class(data, piece), eq, Carrying::Nothing);
+        // The motorisation points carrying a motorised foot unit pay
+        // their own (32.22, R-123).
+        if let Some(carrying) = crate::organisation::riding(piece) {
+            each += fuel_owed(FuelClass::Points, eq, carrying);
+        }
         if each == 0 {
             return (0, false, false);
         }
@@ -93,7 +98,9 @@ impl GameState {
             let Some(p) = self.pieces.get(id) else {
                 continue;
             };
-            if self.fuel_class(data, p) == FuelClass::Other {
+            if self.fuel_class(data, p) == FuelClass::Other
+                && crate::organisation::riding(p).is_none()
+            {
                 continue;
             }
             let here = self.supply_in_range(data, id);
