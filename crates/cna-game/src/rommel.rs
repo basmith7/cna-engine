@@ -356,4 +356,31 @@ mod tests {
         let (cap, case, _) = state.voluntary_cap(&foot).unwrap();
         assert_eq!((cap, case), (Cp::whole(15), "8.1x"));
     }
+
+    // 31.0: Rommel may react when an enemy unit comes next to him, like
+    // a motorised combat unit; not while he is in Germany.
+    #[test]
+    fn rommel_is_offered_a_reaction() {
+        let (data, mut state) = crusader();
+        let at = state.pieces[&rommel()].hex().unwrap().clone();
+        let (enemy, next) = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind == PieceKind::Combat && p.hex().is_some())
+            .find_map(|p| {
+                let free = data
+                    .map
+                    .neighbours(&at)
+                    .into_iter()
+                    .find(|n| state.pieces.values().all(|q| q.hex() != Some(n)))?;
+                Some((p.id.clone(), free))
+            })
+            .unwrap();
+        state.pieces.get_mut(&enemy).unwrap().location = Location::Hex(next.clone());
+        let offered = state.reactors_next_to(&data, &next, std::slice::from_ref(&enemy), false);
+        assert!(offered.contains(&rommel()), "{offered:?}");
+        state.rommel_recalled = true;
+        let offered = state.reactors_next_to(&data, &next, &[enemy], false);
+        assert!(!offered.contains(&rommel()), "{offered:?}");
+    }
 }
