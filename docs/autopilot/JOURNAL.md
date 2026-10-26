@@ -394,3 +394,9 @@ Done: #59 finished: tests fixed, short golden re-played (Halfaya's defenders now
 In flight: #59 local Playwright (/tmp/pw-59.log) and CI; subagent on `autopilot/m5-scenario-picker` (browser starts any scenario, stacked on #61).
 Next: merge #59 and #61 on green CI; then the picker PR.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 05:40 MST — autopilot/m5-scenario-picker
+Done: merged #59 (15.55 formations in the size table), #61 (every scenario smoke-tested; 61.38 reassignment), #63 (points victory, end dialog totals). #62 (browser scenario picker, subagent; Playwright 44/44 locally) merged with main and ready. Requests for cna: 21st Panzer replaces 5th Light, a road locator, Rommel as data.
+In flight: #62's CI.
+Next: merge #62 on green CI; refresh the land-turn design Status; then the next scenario land rule cna's data supports.
+Blocked: Mission 4 on Brian's review of #25.
