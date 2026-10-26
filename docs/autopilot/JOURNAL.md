@@ -262,3 +262,9 @@ Done: 21.41 (fd815bb): a move begun next to an enemy brigade-equivalent, or two 
 In flight: nothing. Playwright 32/32 on fd815bb (in the #35 comments).
 Next: capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`); wrecks in the stack panel; then mark #35 ready.
 Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-25 17:08 MST — autopilot/m5-slice-5-breakdown
+Done: phase K field repair (70aaaa5: `Order::Repair`, `cna-data::repair`, a fuel a point, one roll per type per hex, repaired points pooled for §20); web repair buttons, wrecks on the map and in the stack panel, `repaired` redacted, `repair` e2e fixture (0c493ac); BP in the stack panel, plan/spec/NOT_SIMULATED (4821d40). Towing and facility repair moved to the construction slice (they need facilities); spec row updated.
+In flight: full Playwright run on 4821d40's parent; a fresh review of the repair diff. A parallel agent is bumping `vendor/cna` on `autopilot/cna-bump` (cna answered every request: calendar, echelons, R-120–R-125, set-up constraints).
+Next: act on the review, mark #35 ready, merge when CI is green; then the cna-bump PR; then slice 4 (arrivals, now unblocked by `calendar.json`).
+Blocked: Mission 4 on Brian's review of #25.
