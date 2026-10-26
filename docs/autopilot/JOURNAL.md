@@ -364,3 +364,9 @@ Done: #48 (9a) merged; #49 (9b, construction module, fortifications, 3.61 item s
 In flight: #49's CI; 9c's Playwright run (`/tmp/pw-s9c.log`).
 Next: merge #49 on green CI; merge main into 9c; build clearing as `Order::ClearMinefield` (plan Task 3, last box), then mark #50 ready.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
+
+## 2026-10-26 02:05 MST — autopilot/m5-slice-9c-minefields
+Done: #49 (9b) merged. 9c finished on #50 (ready): laying, entry costs and reveal, dummy removal, the mine roll, the combat shift, clearing (one owner for the field-engineer predicate). Gates green; Playwright 41/41 before the clearing commit.
+In flight: #50's CI.
+Next: merge #50 on green CI. Then slice 9 is done: refresh the land-turn design's Status and the README's systems line; then the PR #12 combat follow-ups (18.2x released units, 15.84/14.14 forward guns).
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
