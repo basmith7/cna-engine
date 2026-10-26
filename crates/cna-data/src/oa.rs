@@ -199,6 +199,15 @@ pub struct Unit {
     pub morale: Option<i32>,
     /// Only where the characteristics row says `by-unit`.
     pub equivalent: Option<Equivalent>,
+    /// An HQ's Maximum Attachment Chart rows (19.5, R-130), keys of
+    /// `max-attachments.json`; the row whose turns hold the current turn
+    /// applies. Empty for a non-HQ unit (its nation's battalion row).
+    #[serde(default)]
+    pub attachment_parent: Vec<String>,
+    /// An HQ's Formation Organisation Chart row (19.3); none where the
+    /// O/A notes govern or for a non-HQ unit.
+    #[serde(default)]
+    pub organisation: Option<String>,
     #[serde(default)]
     pub notes: Vec<String>,
 }

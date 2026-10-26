@@ -78,9 +78,12 @@ on cna's HQ organisation types.
 
 ### Task 3: limits and shells
 
-- [ ] `max-attachments.json` caps for non-assigned units, nesting;
-  `is_shell` (9.26), stacking one level smaller, close assault's
-  differentiation.
+- [x] `max-attachments.json` caps for non-assigned units, nesting;
+  `is_shell` (9.26), stacking one level smaller (`cna-game::limits`).
+  Shells judge the HQ's assigned units in the game, not the 19.3 chart.
+- [ ] Open: close assault's differentiation for shells (assault sizes
+  do not yet read HQ formations at all), the 19.3 chart as the shell
+  denominator, substitution.
 
 ### Task 4: dumps and prisoners
 

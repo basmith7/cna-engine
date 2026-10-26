@@ -520,7 +520,7 @@ impl GameState {
             }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
-            (None, Order::Attach { piece, to }) => self.attach(player, piece, to),
+            (None, Order::Attach { piece, to }) => self.attach(data, player, piece, to),
             (None, Order::Detach { piece }) => self.detach(player, piece),
             (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
             (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
