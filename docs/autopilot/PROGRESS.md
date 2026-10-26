@@ -128,6 +128,13 @@ the bullet once it lands and `vendor/cna` is bumped.
   per component, counted or not (a flag on each component would do),
   and `turns` on CW armoured brigade type II, which has `turns_list`
   where the other rows have `turns`.
+- **Rommel whose stack is destroyed in an assault (R-138's "he may
+  retreat with it")** (Mission 5). When an assault destroys every
+  combat unit in his hex, the stack has no retreat to join, and R-138
+  gives no distance or moment. Today (#70) he stays put, and is captured
+  only at the next Commonwealth segment's start if still in an enemy
+  ZOC. Needed: does he retreat (how far, and before or after the losses
+  are taken), or is he captured then and there?
 
 ## Runs and quota
 
