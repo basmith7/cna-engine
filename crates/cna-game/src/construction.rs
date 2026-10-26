@@ -24,6 +24,10 @@ use serde::{Deserialize, Serialize};
 pub enum Item {
     /// One fortification level (24.4x).
     Fortification,
+    /// A real minefield (24.3x).
+    RealMinefield,
+    /// A dummy minefield, which looks like a real one (24.31).
+    DummyMinefield,
 }
 
 impl Item {
@@ -31,6 +35,7 @@ impl Item {
     pub fn stages(self) -> u8 {
         match self {
             Item::Fortification => 3,
+            Item::RealMinefield | Item::DummyMinefield => 1,
         }
     }
 }
@@ -46,6 +51,19 @@ pub struct Project {
     #[serde(default)]
     pub stages: u8,
 }
+
+/// A minefield (26.1x): its owner, whether it is real (the owner's
+/// secret until an enemy enters it), and whether an enemy has.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Minefield {
+    pub side: Side,
+    pub real: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub revealed: bool,
+}
+
+/// What a real minefield costs in ammunition under §32 (24.33).
+pub const MINEFIELD_AMMO: u32 = 15;
 
 /// A fortification never goes past 2 except in Alexandria and Cairo,
 /// and a city only back to its own level (24.43, 25.12).
@@ -124,8 +142,48 @@ impl GameState {
                 format!("a project is already under way in {hex}"),
             ));
         }
-        // The only item yet: a new one must say what it needs here.
-        let Item::Fortification = item;
+        let payment = match item {
+            Item::Fortification => {
+                self.fortification_site(data, player, hex, builders)?;
+                None
+            }
+            Item::RealMinefield | Item::DummyMinefield => {
+                self.minefield_site(data, player, item, hex, builders)?
+            }
+        };
+        let mut events = Vec::new();
+        if let Some(pay) = payment {
+            self.spend_ammo(vec![pay], &mut events);
+        }
+        self.projects.insert(
+            hex.clone(),
+            Project {
+                side: player,
+                item,
+                builders: builders.to_vec(),
+                stages: 0,
+            },
+        );
+        events.insert(
+            0,
+            Event::ConstructionBegun {
+                side: player,
+                item,
+                hex: hex.clone(),
+                builders: builders.to_vec(),
+            },
+        );
+        Ok(events)
+    }
+
+    /// Where and with whom a fortification level may be begun (24.4x).
+    fn fortification_site(
+        &self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+        builders: &[PieceId],
+    ) -> Result<(), Illegal> {
         let pieces: Vec<&Piece> = builders.iter().map(|id| &self.pieces[id]).collect();
         let engineer = pieces.iter().position(|p| self.engineer_capable(data, p));
         let infantry = pieces
@@ -171,21 +229,80 @@ impl GameState {
                 format!("{hex} is in an enemy ZOC: no fortification is begun there"),
             ));
         }
-        self.projects.insert(
-            hex.clone(),
-            Project {
-                side: player,
-                item,
-                builders: builders.to_vec(),
-                stages: 0,
-            },
-        );
-        Ok(vec![Event::ConstructionBegun {
-            side: player,
-            item,
-            hex: hex.clone(),
-            builders: builders.to_vec(),
-        }])
+        Ok(())
+    }
+
+    /// Where and by whom a minefield may be laid (24.3x): one engineer
+    /// unit or a Commonwealth E-HQ, on the chart's terrain, never in a
+    /// major city or an enemy ZOC, one field to a hex. A real one under
+    /// §32 takes its ammunition from a supply unit in the hex.
+    fn minefield_site(
+        &self,
+        data: &Data,
+        player: Side,
+        item: Item,
+        hex: &HexId,
+        builders: &[PieceId],
+    ) -> Result<Option<crate::ammo::AmmoPayment>, Illegal> {
+        let layer = match builders {
+            [one] => Some(&self.pieces[one]),
+            _ => None,
+        };
+        let able = layer.is_some_and(|p| {
+            (p.kind == PieceKind::Combat && self.engineer_capable(data, p))
+                || (p.kind == PieceKind::Hq && p.side == Side::Cw && self.engineer_capable(data, p))
+        });
+        if !able {
+            return Err(Illegal::new(
+                "24.31",
+                "a minefield is laid by one engineer unit or a Commonwealth E-HQ",
+            ));
+        }
+        if self.minefields.contains_key(hex) {
+            return Err(Illegal::new(
+                "24.35",
+                format!("{hex} already has a minefield"),
+            ));
+        }
+        let terrain = data.map.hex(hex).map(|h| h.terrain);
+        if !matches!(
+            terrain,
+            Some(Terrain::Clear | Terrain::Gravel | Terrain::SaltMarsh)
+        ) {
+            return Err(Illegal::new(
+                "24.35",
+                format!("no minefield is laid in {hex}'s terrain"),
+            ));
+        }
+        if self.zoc_at(data, hex, player) != Zoc::Clear {
+            return Err(Illegal::new(
+                "24.35",
+                format!("{hex} is in an enemy ZOC: no minefield is laid there"),
+            ));
+        }
+        if item == Item::DummyMinefield || !self.modules.abstract_supply {
+            return Ok(None);
+        }
+        let from = self
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == player
+                    && p.hex() == Some(hex)
+                    && p.load.as_ref().is_some_and(|l| l.ammo >= MINEFIELD_AMMO)
+            })
+            .map(|p| p.id.clone())
+            .ok_or_else(|| {
+                Illegal::new(
+                    "24.33",
+                    format!("a real minefield needs {MINEFIELD_AMMO} ammunition from a supply unit in {hex}"),
+                )
+            })?;
+        Ok(Some(crate::ammo::AmmoPayment {
+            piece: builders[0].clone(),
+            from,
+            ammo: MINEFIELD_AMMO,
+        }))
     }
 
     /// The end of an OpStage (24.11, 24.2x): a project whose builders all
@@ -222,13 +339,31 @@ impl GameState {
                 continue;
             }
             let project = self.projects.remove(&hex).expect("listed");
-            let level = self.fortification_level(data, &hex) + 1;
-            self.fortifications.insert(hex.clone(), level);
-            events.push(Event::FortificationBuilt {
-                side: project.side,
-                hex,
-                level,
-            });
+            match project.item {
+                Item::Fortification => {
+                    let level = self.fortification_level(data, &hex) + 1;
+                    self.fortifications.insert(hex.clone(), level);
+                    events.push(Event::FortificationBuilt {
+                        side: project.side,
+                        hex,
+                        level,
+                    });
+                }
+                Item::RealMinefield | Item::DummyMinefield => {
+                    self.minefields.insert(
+                        hex.clone(),
+                        Minefield {
+                            side: project.side,
+                            real: project.item == Item::RealMinefield,
+                            revealed: false,
+                        },
+                    );
+                    events.push(Event::MinefieldLaid {
+                        side: project.side,
+                        hex,
+                    });
+                }
+            }
         }
     }
 }
@@ -261,13 +396,8 @@ mod tests {
             )
             .unwrap();
         assert_eq!(state.clock.phase, Phase::Organisation);
-        let engineer = state
-            .pieces
-            .values()
-            .find(|p| p.side == Side::Axis && p.hex().is_some() && state.engineer_capable(data, p))
-            .expect("an Axis engineer on the map")
-            .id
-            .clone();
+        let engineer = pid("unit:it:201st-engineer-bn");
+        assert!(state.engineer_capable(data, &state.pieces[&engineer]));
         let infantry = pid("unit:it:ix-libyan-bn");
         let site = hex("B1010");
         assert_eq!(data.map.hex(&site).unwrap().terrain, Terrain::Clear);
@@ -377,6 +507,128 @@ mod tests {
             .apply(&data, Side::Axis, build(&desert, &builders))
             .unwrap_err();
         assert_eq!(err.case, "24.44");
+    }
+
+    fn lay(item: Item, site: &HexId, layer: &PieceId) -> Order {
+        Order::Build {
+            item,
+            hex: site.clone(),
+            builders: vec![layer.clone()],
+        }
+    }
+
+    #[test]
+    fn an_engineer_lays_a_dummy_minefield_in_one_stage_24_31() {
+        let data = graziani();
+        let (mut state, site, builders) = organising(&data);
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::DummyMinefield, &site, &builders[1]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "24.31");
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::DummyMinefield, &site, &builders[0]),
+            )
+            .unwrap();
+        let events = pass_stage(&data, &mut state);
+        assert!(events.contains(&Event::MinefieldLaid {
+            side: Side::Axis,
+            hex: site.clone(),
+        }));
+        assert_eq!(
+            state.minefields[&site],
+            Minefield {
+                side: Side::Axis,
+                real: false,
+                revealed: false,
+            }
+        );
+    }
+
+    #[test]
+    fn a_real_minefield_takes_fifteen_ammunition_from_a_supply_unit_in_the_hex_24_33() {
+        let data = graziani();
+        let (mut state, site, builders) = organising(&data);
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::RealMinefield, &site, &builders[0]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "24.33");
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.load.as_ref().is_some_and(|l| l.ammo >= 20))
+            .unwrap()
+            .id
+            .clone();
+        let before = state.pieces[&supply].load.as_ref().unwrap().ammo;
+        state.pieces.get_mut(&supply).unwrap().location = crate::piece::Location::Hex(site.clone());
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::RealMinefield, &site, &builders[0]),
+            )
+            .unwrap();
+        assert!(events.contains(&Event::AmmunitionSpent {
+            piece: builders[0].clone(),
+            from: supply.clone(),
+            ammo: MINEFIELD_AMMO,
+        }));
+        assert_eq!(
+            state.pieces[&supply].load.as_ref().unwrap().ammo,
+            before - MINEFIELD_AMMO
+        );
+        pass_stage(&data, &mut state);
+        assert!(state.minefields[&site].real);
+    }
+
+    #[test]
+    fn one_minefield_to_a_hex_and_none_in_rough_24_35() {
+        let data = graziani();
+        let (mut state, site, builders) = organising(&data);
+        state.minefields.insert(
+            site.clone(),
+            Minefield {
+                side: Side::Axis,
+                real: false,
+                revealed: false,
+            },
+        );
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::DummyMinefield, &site, &builders[0]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "24.35");
+        let rough = data
+            .map
+            .hexes()
+            .find(|h| h.terrain == Terrain::Rough)
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&builders[0]).unwrap().location =
+            crate::piece::Location::Hex(rough.clone());
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::DummyMinefield, &rough, &builders[0]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "24.35");
     }
 
     #[test]
