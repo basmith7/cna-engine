@@ -122,6 +122,18 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${d.side === "axis" ? "Axis" : "Commonwealth"} loses ${d.points} motorisation points to wear (${d.percent} % of ${d.of}).`;
   }
   if ("motorisation-detached" in e) return `${name(e["motorisation-detached"].piece)} gives up its ${e["motorisation-detached"].points} motorisation points.`;
+  if ("wrecks-captured" in e) {
+    const d = e["wrecks-captured"];
+    return `${name(d.by)} captures ${d.points} broken-down vehicle point${d.points === 1 ? "" : "s"} at ${d.hex}.`;
+  }
+  if ("broke-down" in e) {
+    const d = e["broke-down"];
+    return `${name(d.piece)} breakdown check, ${d.weapon}: ${d.reading} → ${d.percent} %, ${d.points} broken down.`;
+  }
+  if ("field-repaired" in e) {
+    const d = e["field-repaired"];
+    return `Field repair at ${d.hex}, ${d.weapon}: ${d.die} → ${d.repaired} of ${d.attempted} repaired.`;
+  }
   if ("railed" in e) {
     const d = e.railed;
     return `${d.pieces.map(name).join(", ")} by rail ${d.from} → ${d.to}.`;

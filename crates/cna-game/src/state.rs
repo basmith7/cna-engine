@@ -92,12 +92,16 @@ pub struct Modules {
     /// Supply units carry loads and motorisation points exist (§32, 60.92).
     #[serde(default)]
     pub abstract_supply: bool,
+    /// Vehicles collect breakdown points as they move (§21).
+    #[serde(default)]
+    pub breakdown: bool,
 }
 
 impl Modules {
     /// Every module on: what a new game of the app plays.
     pub const ALL: Modules = Modules {
         abstract_supply: true,
+        breakdown: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -133,6 +137,17 @@ pub struct GameState {
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub scuttled: BTreeSet<PieceId>,
+    /// Broken-down vehicles by hex (21.4x): what each marker stands for.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
+    /// Broken-down vehicle types tried in the field this OpStage, by
+    /// side, hex and weapon system (22.23: one roll each per phase K).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub field_rolled: BTreeSet<(Side, HexId, String)>,
+    /// Repaired TOE points by side and weapon system, waiting to rejoin
+    /// as replacement points (22.5) once organisation lands.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub repaired: BTreeMap<Side, BTreeMap<String, u32>>,
     /// Supply units that rode the railway this OpStage (32.3x: two).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub railed: BTreeSet<PieceId>,
@@ -231,6 +246,9 @@ impl GameState {
             organised: false,
             planned: Vec::new(),
             scuttled: BTreeSet::new(),
+            broken_down: BTreeMap::new(),
+            field_rolled: BTreeSet::new(),
+            repaired: BTreeMap::new(),
             railed: BTreeSet::new(),
             rail_east: None,
             weather: Weather::Normal,
@@ -421,6 +439,14 @@ impl GameState {
             ) => self.transfer_load(player, from, to, *ammo, *fuel),
             (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
             (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
+            (
+                None,
+                Order::Repair {
+                    hex,
+                    weapon,
+                    fuel_from,
+                },
+            ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

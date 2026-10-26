@@ -107,15 +107,17 @@ impl Game {
                 }
             }
         }
-        // 3.61: loads and motorisation points (pooled or attached) are
-        // the owner's secret.
+        // 3.61: loads, motorisation points (pooled or attached) and
+        // repaired points waiting as replacements are the owner's secret.
         if let Some(acting) = self.state.to_act() {
             let other = serde_json::to_value(acting.other())?
                 .as_str()
                 .unwrap_or_default()
                 .to_owned();
-            if let Some(m) = v.get_mut("motorisation").and_then(Value::as_object_mut) {
-                m.remove(&other);
+            for key in ["motorisation", "repaired"] {
+                if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
+                    m.remove(&other);
+                }
             }
             if let Some(m) = v
                 .get_mut("pending_motorisation")
@@ -321,6 +323,23 @@ mod tests {
 
     // 3.61: the other side's loads and motorisation points are not in the
     // view; the acting side's own are, and the save keeps both.
+    // The replacement points waiting from repair (22.5) are a side's own
+    // business too, like its motorisation.
+    #[test]
+    fn the_view_hides_the_other_side_s_repaired_points() {
+        use std::collections::BTreeMap;
+        let mut game = Game::with_modules(7, Modules::ALL).unwrap();
+        for side in [Side::Axis, Side::Cw] {
+            game.state
+                .repaired
+                .insert(side, BTreeMap::from([("tank".to_string(), 1)]));
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["repaired"]["axis"]["tank"], 1);
+        assert!(view["repaired"].get("cw").is_none());
+    }
+
     #[test]
     fn the_view_hides_the_other_side_s_loads_and_motorisation() {
         let game = Game::with_modules(7, Modules::ALL).unwrap();
@@ -980,6 +999,24 @@ mod tests {
         assert_eq!(rail.clock.phase, cna_game::clock::Phase::Rail);
         assert_eq!(rail.to_act(), Some(Side::Cw));
 
+        // Phase K straight after: four broken-down Commonwealth light tank
+        // points put at Alexandria, where its supply stands (22.2x).
+        let mut repair = rail.clone();
+        let alexandria = cna_data::map::HexId::parse("E3613").unwrap();
+        repair.broken_down.insert(
+            alexandria.clone(),
+            vec![cna_game::breakdown::Wreck {
+                side: Side::Cw,
+                nation: None,
+                weapon: "Mark VI Light".into(),
+                points: 4,
+            }],
+        );
+        repair.apply(data(), Side::Cw, Order::Pass).unwrap();
+        assert_eq!(repair.clock.phase, cna_game::clock::Phase::Repair);
+        assert_eq!(repair.to_act(), Some(Side::Cw));
+        assert_eq!(repair.field_repairs(data()).len(), 1);
+
         let game_over = replay(data(), &golden_log()).unwrap();
         assert!(game_over.is_over());
         assert_eq!(game_over.to_act(), None);
@@ -994,6 +1031,7 @@ mod tests {
             ("retreat-before-assault", retreat_before_assault),
             ("forced-retreat", forced_retreat),
             ("rail", rail),
+            ("repair", repair),
             ("game-over", game_over),
         ]
     }

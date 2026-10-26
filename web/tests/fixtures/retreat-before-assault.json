@@ -10,7 +10,8 @@
     "R-018": 2
   },
   "modules": {
-    "abstract_supply": true
+    "abstract_supply": true,
+    "breakdown": true
   },
   "clock": {
     "game_turn": 1,
@@ -2581,7 +2582,9 @@
         "dp_tally": 0
       },
       "contact": false,
-      "engaged": false
+      "engaged": false,
+      "breakdown_halves": 8,
+      "breakdown_checked": 1
     },
     "unit:cw:4th-armored-bde-hq": {
       "id": "unit:cw:4th-armored-bde-hq",
@@ -3898,7 +3901,8 @@
         "dp_tally": 0
       },
       "contact": false,
-      "engaged": false
+      "engaged": false,
+      "breakdown_halves": 1
     },
     "unit:it:1st-libyan-artillery-regt": {
       "id": "unit:it:1st-libyan-artillery-regt",
@@ -3929,7 +3933,8 @@
       },
       "contact": false,
       "engaged": false,
-      "fuelled": true
+      "fuelled": true,
+      "breakdown_halves": 1
     },
     "unit:it:1st-libyan-infantry-hq": {
       "id": "unit:it:1st-libyan-infantry-hq",
@@ -4908,7 +4913,8 @@
       },
       "contact": false,
       "engaged": false,
-      "fuelled": true
+      "fuelled": true,
+      "breakdown_halves": 4
     },
     "unit:it:2nd-libyan-infantry-hq": {
       "id": "unit:it:2nd-libyan-infantry-hq",
@@ -7409,7 +7415,8 @@
       },
       "contact": false,
       "engaged": false,
-      "fuelled": true
+      "fuelled": true,
+      "breakdown_halves": 4
     },
     "unit:it:libyan-parachute-regt-hq": {
       "id": "unit:it:libyan-parachute-regt-hq",

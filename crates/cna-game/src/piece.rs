@@ -212,6 +212,14 @@ pub struct Piece {
     /// it may not move again in H (32.31).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub escorted: bool,
+    /// Breakdown points collected this OpStage, in halves: every
+    /// chart figure is a whole or half point (21.2x).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub breakdown_halves: u32,
+    /// The (unshifted) column of this OpStage's last breakdown check: the
+    /// next is due only in a higher one (21.2x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub breakdown_checked: Option<u8>,
 }
 
 fn is_zero(n: &u32) -> bool {

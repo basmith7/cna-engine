@@ -146,7 +146,11 @@ impl GameState {
         }
         let mut events = Vec::new();
         let mut at = from.clone();
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in &plan.steps {
+            self.collect_breakdown(data, pieces, &at, to);
+            self.capture_wrecks(data, pieces, to, &mut events);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at.clone(),
@@ -158,6 +162,8 @@ impl GameState {
             }
             at = to.clone();
         }
+        // It stops: a breakdown check (21.2x).
+        self.check_breakdown(data, pieces, storm, &from, &mut events);
         // Its new hex is a possible ZOC source the phasing player has not
         // been told about.
         self.zoc.remove(&at);
