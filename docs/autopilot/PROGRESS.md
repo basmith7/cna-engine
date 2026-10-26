@@ -72,12 +72,11 @@ report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
 
 Nonblocking combat follow-ups from PR #12's review stay open for a later
 slice (listed in the journal entry of 2026-10-12 and PR #15's body): rule
-tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; the retreat-short 10 % taken
-after rounding rather than folded in (15.83); a must-attack `Pass`
-surrendering a stack that has a path (10.36); attacking forward guns and
+tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; attacking forward guns and
 artillery in the anti-armour role (15.84, 14.14); a released unit's later
-combat segments (18.2x). (The empty sealed `waiting` panic is fixed:
-`log.rs` refuses such a save.)
+combat segments (18.2x). Closed: 10.36's must-attack Pass (#27), the empty
+sealed `waiting` panic (`log.rs` refuses such a save), and 15.83's short
+percentage, which cna's text adds after the rounded table loss, as built.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
