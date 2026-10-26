@@ -1334,7 +1334,7 @@ mod tests {
         let (mut state, krrc, rha) = rha_beside_krrc(&data);
         assert!(
             !state
-                .exposed_guns(&data, Side::Cw, &[krrc.clone()])
+                .exposed_guns(&data, Side::Cw, std::slice::from_ref(&krrc))
                 .contains(&rha)
         );
         state.combat.forward.insert(rha.clone());
