@@ -118,6 +118,7 @@ mission, and the engine neither models nor approximates them.
 | Captured equipment (28.3) | captured guns and tanks are lost, not used by the captor |
 | Supply dumps (24.9) | under abstract supply none are built (R-131); the Logistics Game, which keeps them, is not built |
 | Advance after combat | none: cna's 50-stacking-and-zoc.md says movement in the next segment is not an advance |
+| Points victories (Crusader, The Long Retreat, the campaigns) | a place scores for the side whose combat units alone occupy any of its hexes; the occupation's supply conditions are prose and unchecked; a level cna maps no victory level to (Crusader's draw, The Long Retreat's Commonwealth win at 0) gives none (`cna-game::victory`) |
 | The owner's choice of which TOE points die (12.45, 14.4x, 15.83) | the engine removes the points that absorb most per point first (`cna-game::combat::losses`) |
 | The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |
 | Patrol identification of barrage targets (12.2x) | the firer names any target in the hex |

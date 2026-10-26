@@ -230,6 +230,16 @@ export interface VictoryReport {
   cw: VictoryLevel | null;
   checked: Condition[];
   unchecked: string[];
+  /** A points victory's places (absent for a levels victory). */
+  scored?: Scored[];
+  points?: { axis: number; cw: number };
+}
+
+export interface Scored {
+  objective: string;
+  hexes: HexId[];
+  holder: Side | null;
+  points: number;
 }
 
 export type BarrageResult = "no-effect" | "pinned" | { lose: number } | "unresolved";
