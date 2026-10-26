@@ -214,6 +214,8 @@ impl GameState {
                 .repaired
                 .entry(player)
                 .or_default()
+                .entry(hex.clone())
+                .or_default()
                 .entry(weapon.to_string())
                 .or_default() += repaired;
         }
@@ -295,6 +297,16 @@ mod tests {
     }
 
     #[test]
+    fn a_save_with_pooled_repaired_points_loads_without_them() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (state, _) = at_repair(&data, Modules::ALL);
+        let mut v = serde_json::to_value(&state).unwrap();
+        v["repaired"] = serde_json::json!({ "axis": { "M13/40": 2 } });
+        let loaded: GameState = serde_json::from_value(v).unwrap();
+        assert!(loaded.repaired.is_empty());
+    }
+
+    #[test]
     fn a_field_roll_returns_its_share_and_pays_a_fuel_a_point_22_2x() {
         let data = Data::load("grazianis-offensive").unwrap();
         let (mut state, hex) = at_repair(&data, Modules::ALL);
@@ -331,12 +343,14 @@ mod tests {
             .map(|w| w.points)
             .sum();
         assert_eq!(left + repaired, 4);
-        let pooled = state
+        // The repaired points stand where they were repaired (20.41).
+        let waiting = state
             .repaired
             .get(&Side::Axis)
+            .and_then(|m| m.get(&hex))
             .and_then(|m| m.get("M13/40"))
             .copied();
-        assert_eq!(pooled.unwrap_or(0), repaired);
+        assert_eq!(waiting.unwrap_or(0), repaired);
     }
 
     #[test]

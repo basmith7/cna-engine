@@ -109,6 +109,25 @@ impl Modules {
     }
 }
 
+/// Replacement points from repair by side, hex and weapon system.
+pub type Repaired = BTreeMap<Side, BTreeMap<HexId, BTreeMap<String, u32>>>;
+
+/// `GameState.repaired`, or nothing for a save from when the points were
+/// pooled by side with no hex.
+fn repaired_by_hex<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Repaired, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Shape {
+        ByHex(Repaired),
+        /// Anything else: the old pooled shape.
+        Pooled(#[allow(dead_code)] serde::de::IgnoredAny),
+    }
+    Ok(match Shape::deserialize(d)? {
+        Shape::ByHex(r) => r,
+        Shape::Pooled(_) => Repaired::new(),
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameState {
     pub scenario: String,
@@ -148,10 +167,15 @@ pub struct GameState {
     /// side, hex and weapon system (22.23: one roll each per phase K).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub field_rolled: BTreeSet<(Side, HexId, String)>,
-    /// Repaired TOE points by side and weapon system, waiting to rejoin
-    /// as replacement points (22.5) once organisation lands.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub repaired: BTreeMap<Side, BTreeMap<String, u32>>,
+    /// Repaired TOE points by side, hex and weapon system: replacement
+    /// points waiting where they were repaired for a unit to absorb them
+    /// (22.5, 20.41). A save from before they stood in a hex loses them.
+    #[serde(
+        default,
+        skip_serializing_if = "BTreeMap::is_empty",
+        deserialize_with = "repaired_by_hex"
+    )]
+    pub repaired: Repaired,
     /// Supply units that rode the railway this OpStage (32.3x: two).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub railed: BTreeSet<PieceId>,

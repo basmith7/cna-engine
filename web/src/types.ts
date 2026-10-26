@@ -416,7 +416,7 @@ export interface View {
   /** Hexes prisoners marched into this phase H: they go no further (28.13). */
   marched?: HexId[];
   /** Repaired points by weapon system waiting as replacements (22.5), the side to act's own only. */
-  repaired?: Partial<Record<Side, Record<string, number>>>;
+  repaired?: Partial<Record<Side, Record<HexId, Record<string, number>>>>;
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];
