@@ -912,7 +912,7 @@
           "fires": [
             {
               "piece": "unit:it:1st-libyan-artillery-regt",
-              "points": 6,
+              "points": 5,
               "target": "unit:cw:3-cldgds"
             }
           ]
