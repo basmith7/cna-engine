@@ -24,14 +24,16 @@ phase C attaches motorisation and trades loads; supply units move with
 an escort in G or alone in H; the Commonwealth rails two a stage in
 phase J; a side may destroy its own supply; captured supply goes over
 to the captor. The air lift moved out (cna has no HQ echelons).
-**Slice 4** (arrivals) is planned but blocked on a Game-Turn calendar
-from cna, so **slice 5** (breakdown) went first: draft PR #35. With the new
-`breakdown` module, motorised units collect breakdown points in moves,
-reactions and retreats; a unit that stops checks its tanks and SP guns
-(BAR per model, hot and sandstorm shifts); broken-down vehicles stay in
-the hex (half in the start hex when the move began near a big enemy
-unit, 21.41) and a battalion moving next to the enemy's takes them. Towing,
-field repair (phase K) and the UI are next.
+**Slice 5** (breakdown and field repair, PR #35, ready 2026-10-25):
+motorised units collect breakdown points and check where they stop;
+broken-down vehicles stay in the hex (half in the start hex near a big
+enemy unit, 21.41), show on the map, can be captured, and phase K tries
+them in the field (a fuel a point; repaired points wait for §20). Towing
+and facility repair moved to the construction slice (they need
+facilities). **cna answered every request** (calendar, HQ echelons,
+R-120 to R-125, typed set-up constraints): a `vendor/cna` bump is in
+flight on `autopilot/cna-bump`, then **slice 4** (arrivals), no longer
+blocked.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -83,7 +85,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended on slice 5 (#35); slice 4 waits on cna's calendar.
+- Mission 5 continues unattended: merge #35, the cna bump, then slice 4 (arrivals) on the new calendar.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -295,3 +297,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-13 08:53 | 29 | 1→4 | 10→68 | $4.03 | 3 | Brian, the Mission 4 spec is up as **PR #25**, labelled `needs-brian`, and nothing for Mission 4 will be built until you approve it under **Feedback**. **What's |
 | 2026-10-13 12:53 | 11 | 6→7 | 93→100 | $2.51 | 1 | You've hit your session limit · resets 1:30pm (America/Phoenix) |
 | 2026-10-24 08:53 | 67 | 20→21 | 0→4 | $15.17 | 246 | Mission 5 slice 2 is merged (PR #32). Slice 3 (supply movement) is about half built on draft PR #34. Everything is pushed and the gates pass locally: clippy, `c |
+| 2026-10-24 10:53 | 75 | 21→22 | 4→11 | $18.97 | 3 | Rule 21.41 is done and pushed on PR #35 (fd815bb). If a unit's move began next to an enemy brigade-sized unit, or two hexes from one across an open hex, half of |

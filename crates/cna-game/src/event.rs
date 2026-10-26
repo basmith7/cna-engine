@@ -223,6 +223,32 @@ pub enum Event {
     SupplyDestroyed {
         piece: PieceId,
     },
+    /// A breakdown check (21.3x): `points` of `weapon` broke down on a
+    /// reading of `reading` at `percent` %.
+    BrokeDown {
+        piece: PieceId,
+        weapon: String,
+        reading: u8,
+        percent: u32,
+        points: u32,
+    },
+    /// A battalion took the enemy's broken-down vehicles at `hex` (21.5x).
+    WrecksCaptured {
+        by: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// A field-repair roll (22.2x): `repaired` of `attempted` points of
+    /// `weapon` at `hex` come back as replacement points.
+    FieldRepaired {
+        hex: HexId,
+        weapon: String,
+        attempted: u32,
+        die: u8,
+        repaired: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// Supply units ran along the railway (8.7x, 32.3x).
     Railed {
         pieces: Vec<PieceId>,

@@ -238,3 +238,33 @@ Done: merged main; phase J rail for Commonwealth supply (dcd235d: `rail.rs`, `Or
 In flight: full Playwright run on ff78d22.
 Next: the air lift in phase C (32.3x), then capture for the captor's use and Task 4's golden extension; then mark #34 ready.
 Blocked: Mission 4 on Brian's review of PR #25.
+
+## 2026-10-24 11:26 MST — autopilot/m5-slice-5-breakdown
+Done: #34 (slice 3) ready, gates green locally (Playwright 31/31 + 15/15 after review fixes 0ea83e2, 53f8439); CI running at handoff. Air lift moved out (needs HQ echelons; request on main). Slice 4 plan on `autopilot/m5-slice-4-arrivals` (no PR), blocked on a Game-Turn calendar (request on main). Slice 5 draft PR #35: breakdown tables and rules core (b5edb02, 28a197d).
+In flight: slice 5 Task 2 (per-piece accumulation and checks) not started.
+Next: merge #34 if CI is green (`gh pr merge 34 --merge`), merge main into #35, then Task 2: `Piece.breakdown` from `cna_rules::breakdown::step_points` at every step (move, react, retreat), a check at each stop, tank BARs from `weapon-systems.json`'s `bar`.
+Blocked: Mission 4 on Brian's review of PR #25; slice 4 on cna's calendar.
+
+## 2026-10-24 11:44 MST — autopilot/m5-slice-5-breakdown
+Done: #34 merged (04a4cf2). Slice 5 on #35: `breakdown` module (8d9141e), checks at each stop for tanks/SP guns with BAR and hot weather (4e0fde6), sandstorm shift (4bf76f3), wrecks kept per hex (8773cde), capture by a battalion (ebcba89). Golden re-pinned (dice moved; report unchanged).
+In flight: full Playwright on #35 (wasm at 0fd4419+breakdown checks); a fresh review of the slice 5 engine diff.
+Next: act on the review; then 21.41 (half left behind near the enemy), phase K towing and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; armoured cars/recce need a typed vehicle class from cna (name-only today).
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-24 11:52 MST — autopilot/m5-slice-5-breakdown
+Done: review of slice 5 acted on (cb4897b: retreats collect and check, one check per BAR, no reaction to a self-destroyed stack, reactions capture; 67e92a6 retreat test). Playwright 32/32 at ebcba89's wasm; requests for cna on main: Game-Turn calendar, HQ echelons, vehicle classes.
+In flight: a last full Playwright run on 67e92a6 (result in the PR #35 comments if it landed, else rerun).
+Next: 21.41 (half left in the start hex near the enemy), phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`), wrecks in the stack panel; then mark #35 ready. Slice 6 if cna's calendar is still missing.
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-24 11:56 MST — autopilot/m5-slice-5-breakdown
+Done: 21.41 (fd815bb): a move begun next to an enemy brigade-equivalent, or two hexes from one through an open hex, leaves half of what breaks down in its start hex. PROGRESS on main (c905fd1).
+In flight: nothing. Playwright 32/32 on fd815bb (in the #35 comments).
+Next: capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22, `vehicle-repair.json`); wrecks in the stack panel; then mark #35 ready.
+Blocked: Mission 4 on Brian's review of #25; slice 4 on cna's Game-Turn calendar; the air lift on HQ echelons.
+
+## 2026-10-25 17:08 MST — autopilot/m5-slice-5-breakdown
+Done: phase K field repair (70aaaa5: `Order::Repair`, `cna-data::repair`, a fuel a point, one roll per type per hex, repaired points pooled for §20); web repair buttons, wrecks on the map and in the stack panel, `repaired` redacted, `repair` e2e fixture (0c493ac); BP in the stack panel, plan/spec/NOT_SIMULATED (4821d40). Towing and facility repair moved to the construction slice (they need facilities); spec row updated.
+In flight: full Playwright run on 4821d40's parent; a fresh review of the repair diff. A parallel agent is bumping `vendor/cna` on `autopilot/cna-bump` (cna answered every request: calendar, echelons, R-120–R-125, set-up constraints).
+Next: act on the review, mark #35 ready, merge when CI is green; then the cna-bump PR; then slice 4 (arrivals, now unblocked by `calendar.json`).
+Blocked: Mission 4 on Brian's review of #25.

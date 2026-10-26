@@ -91,6 +91,7 @@
   });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
   const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
+  const wrecked: HexId[] = $derived(Object.keys(view?.broken_down ?? {}));
   let map: Map | undefined = $state();
   // A forced retreat is the ordered stack's, nobody else's: it stands
   // ticked and the map comes to it.
@@ -398,6 +399,7 @@
             <Placements hexes={placements} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
+            <Marks hexes={wrecked} kind="wreck" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
             <Reachable {reaches} {from} hovered={hover} {custom} {occupied} part="labels" />

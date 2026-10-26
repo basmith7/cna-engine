@@ -100,6 +100,15 @@ pub enum Order {
         pieces: Vec<PieceId>,
         path: Vec<HexId>,
     },
+    /// Phase K: one field-repair roll for the player's broken-down
+    /// `weapon` in `hex` (22.2x); with abstract supply `fuel_from` pays a
+    /// fuel a point attempted (none takes the first in range).
+    Repair {
+        hex: HexId,
+        weapon: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

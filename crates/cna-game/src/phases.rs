@@ -48,7 +48,8 @@ impl GameState {
             Phase::ReserveDesignation
             | Phase::MovementCombat
             | Phase::TruckConvoy
-            | Phase::Rail => {}
+            | Phase::Rail
+            | Phase::Repair => {}
             Phase::Organisation => {
                 // Player A hands phase C to Player B; B's pass ends it.
                 if !self.organised {
@@ -131,6 +132,10 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                Phase::Repair if self.repairs_to_try(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -147,6 +152,7 @@ impl GameState {
     /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
         self.railed.clear();
+        self.field_rolled.clear();
         self.rail_east = None;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
@@ -159,6 +165,8 @@ impl GameState {
             p.landed = false;
             p.fuelled = false;
             p.escorted = false;
+            p.breakdown_halves = 0;
+            p.breakdown_checked = None;
             p.fuelled_over = false;
             p.engaged = false;
         }
