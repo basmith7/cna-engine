@@ -5,8 +5,9 @@
 
 use crate::data::Data;
 use crate::event::Event;
-use crate::piece::{Piece, PieceId, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::initiative::AxisSituation;
 use cna_data::map::HexId;
@@ -146,6 +147,34 @@ impl GameState {
             }
         }
     }
+
+    /// R-138: a commanding Rommel alone in an enemy ZOC in the enemy's
+    /// phase, with no reaction left to him (`offered` lists those still
+    /// offered one), is captured (10.29): removed for good, and with no
+    /// strength he yields no prisoner points.
+    pub(crate) fn capture_lone_rommel(
+        &mut self,
+        data: &Data,
+        offered: &[PieceId],
+        events: &mut Vec<Event>,
+    ) {
+        let Some(p) = self.rommel_on_map().filter(|_| !self.rommel_recalled) else {
+            return;
+        };
+        let (id, side) = (p.id.clone(), p.side);
+        let hex = p.hex().expect("on the map").clone();
+        if offered.contains(&id)
+            || Some(side) == self.phasing()
+            || self.friendly_combat_in(&hex, side, &[])
+            || self.zoc_at(data, &hex, side) != Zoc::Exerts
+        {
+            return;
+        }
+        let p = self.pieces.get_mut(&id).expect("listed");
+        p.contact = false;
+        p.location = Location::Eliminated;
+        events.push(Event::Captured { piece: id, hex });
+    }
 }
 
 fn commander<'a>(data: &'a Data, p: &Piece) -> Option<&'a Commander> {
@@ -155,8 +184,9 @@ fn commander<'a>(data: &'a Data, p: &Piece) -> Option<&'a Commander> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::piece::Location;
+    use crate::order::Order;
     use crate::rng::GameRng;
+    use crate::state::Pending;
     use crate::state::test_support::auto_place;
     use cna_data::oa::UnitId;
 
@@ -474,5 +504,215 @@ mod tests {
                 .plan_with(&data, &me, &a, &path, Purpose::RetreatBeforeAssault)
                 .is_err()
         );
+    }
+
+    /// R-138's scene: the Commonwealth moving in Operation Crusader,
+    /// Rommel alone at R in open desert, and a Commonwealth stack that
+    /// exerts a ZOC two hexes off at S, N between them; Q is next to R
+    /// and out of N's reach. The stack moving S → N puts him in its ZOC.
+    struct Scene {
+        data: Data,
+        state: GameState,
+        stack: Vec<PieceId>,
+        n: HexId,
+        q: HexId,
+    }
+
+    fn lone_rommel_scene() -> Scene {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut state = GameState::new(&data, 3).unwrap();
+        auto_place(&data, &mut state);
+        // Pass to the Commonwealth's phase G movement segment.
+        while !(state.clock.phase == crate::clock::Phase::MovementCombat
+            && state.clock.segment == Some(crate::clock::Segment::Movement)
+            && state.phasing() == Some(Side::Cw)
+            && state.pending.is_none())
+        {
+            let player = state.to_act().unwrap();
+            let order = match &state.pending {
+                Some(Pending::DeclareZoc { .. }) => Order::DeclareZoc { exerting: vec![] },
+                _ if state.clock.phase == crate::clock::Phase::InitiativeDeclaration => {
+                    Order::DeclareInitiative { player_a: Side::Cw }
+                }
+                _ => Order::Pass,
+            };
+            state.apply(&data, player, order).unwrap();
+        }
+        let clear = |h: &HexId| {
+            data.map
+                .hex(h)
+                .is_some_and(|x| x.terrain.name() == "clear" || x.terrain.name() == "gravel")
+        };
+        let empty = |s: &GameState, h: &HexId| {
+            data.map
+                .within(h, 4)
+                .iter()
+                .all(|n| s.pieces.values().all(|p| p.hex() != Some(n)))
+        };
+        let (r, n, s, q) = data
+            .map
+            .hexes()
+            .map(|h| h.id.clone())
+            // Map C, east of Marble Arch where the Commonwealth may go (8.1x).
+            .filter(|r| r.to_string().starts_with('C') && clear(r) && empty(&state, r))
+            .find_map(|r| {
+                let ring = data.map.neighbours(&r);
+                if ring.len() < 6 || !ring.iter().all(&clear) {
+                    return None;
+                }
+                let n = ring[0].clone();
+                let s = data
+                    .map
+                    .neighbours(&n)
+                    .into_iter()
+                    .find(|s| clear(s) && s != &r && !ring.contains(s))?;
+                let q = ring
+                    .iter()
+                    .find(|q| *q != &n && !data.map.adjacent(q, &n))?
+                    .clone();
+                Some((r, n, s, q))
+            })
+            .expect("open desert");
+        let src = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind == PieceKind::Combat)
+            .filter(|p| state.mobility(&data, p).motorised())
+            .filter_map(|p| p.hex().cloned())
+            .find(|h| state.could_exert(&data, h))
+            .expect("a motorised Commonwealth stack exerting a ZOC");
+        let mut stack = Vec::new();
+        for p in state.pieces.values_mut() {
+            if p.hex() == Some(&src) {
+                p.location = Location::Hex(s.clone());
+                stack.push(p.id.clone());
+            }
+        }
+        state.pieces.get_mut(&rommel()).unwrap().location = Location::Hex(r);
+        Scene {
+            data,
+            state,
+            stack,
+            n,
+            q,
+        }
+    }
+
+    fn approach(scene: &mut Scene) -> Vec<Event> {
+        let order = Order::Move {
+            pieces: scene.stack.clone(),
+            path: vec![scene.n.clone()],
+            assault: false,
+            fuel_from: None,
+        };
+        scene.state.apply(&scene.data, Side::Cw, order).unwrap()
+    }
+
+    fn captured(events: &[Event]) -> bool {
+        events
+            .iter()
+            .any(|e| matches!(e, Event::Captured { piece, .. } if piece == &rommel()))
+    }
+
+    // R-138: an enemy combat unit coming next to a lone Rommel offers him
+    // his reaction first; passing it leaves him alone in its ZOC, and
+    // 10.29 takes him, for good.
+    #[test]
+    fn a_lone_rommel_who_passes_his_reaction_is_captured() {
+        let mut scene = lone_rommel_scene();
+        let events = approach(&mut scene);
+        assert!(!captured(&events), "{events:?}");
+        assert!(
+            matches!(&scene.state.pending, Some(Pending::Reaction { eligible, .. }) if eligible.contains(&rommel())),
+            "{:?}",
+            scene.state.pending
+        );
+        let events = scene
+            .state
+            .apply(&scene.data, Side::Axis, Order::Pass)
+            .unwrap();
+        assert!(captured(&events), "{events:?}");
+        assert_eq!(scene.state.pieces[&rommel()].location, Location::Eliminated);
+    }
+
+    // R-138: reacting out of the ZOC saves him.
+    #[test]
+    fn a_lone_rommel_who_reacts_away_escapes() {
+        let mut scene = lone_rommel_scene();
+        approach(&mut scene);
+        let order = Order::React {
+            pieces: vec![rommel()],
+            path: vec![scene.q.clone()],
+        };
+        let events = scene.state.apply(&scene.data, Side::Axis, order).unwrap();
+        assert!(!captured(&events), "{events:?}");
+        assert!(
+            events.contains(&Event::ContactBroken {
+                piece: rommel(),
+                cost: Cp::whole(2),
+            }),
+            "{events:?}"
+        );
+        assert_eq!(
+            scene.state.pieces[&rommel()].location,
+            Location::Hex(scene.q.clone())
+        );
+    }
+
+    // R-138: a lone Rommel who may not react (here in contact already,
+    // 8.5x) is captured the moment the enemy's move puts him in its ZOC.
+    #[test]
+    fn a_lone_rommel_who_may_not_react_is_captured_on_contact() {
+        let mut scene = lone_rommel_scene();
+        scene.state.pieces.get_mut(&rommel()).unwrap().contact = true;
+        let events = approach(&mut scene);
+        assert!(captured(&events), "{events:?}");
+        assert_eq!(scene.state.pieces[&rommel()].location, Location::Eliminated);
+    }
+
+    // R-138: with a friendly combat unit beside him he is never captured
+    // this way; he may react along with it.
+    #[test]
+    fn rommel_stacked_with_a_combat_unit_is_not_captured() {
+        let mut scene = lone_rommel_scene();
+        let r = scene.state.pieces[&rommel()].hex().unwrap().clone();
+        let friend = scene
+            .state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .map(|p| p.id.clone())
+            .unwrap();
+        scene.state.pieces.get_mut(&friend).unwrap().location = Location::Hex(r.clone());
+        scene.state.pieces.get_mut(&rommel()).unwrap().contact = true;
+        let mut events = approach(&mut scene);
+        if scene.state.pending.is_some() {
+            events.extend(
+                scene
+                    .state
+                    .apply(&scene.data, Side::Axis, Order::Pass)
+                    .unwrap(),
+            );
+        }
+        assert!(!captured(&events), "{events:?}");
+        assert_eq!(scene.state.pieces[&rommel()].location, Location::Hex(r));
+    }
+
+    // R-138: still alone in an enemy ZOC when the retreat-before-assault
+    // step closes, he is taken.
+    #[test]
+    fn a_lone_rommel_who_does_not_retreat_before_assault_is_captured() {
+        let mut scene = lone_rommel_scene();
+        for id in &scene.stack {
+            scene.state.pieces.get_mut(id).unwrap().location = Location::Hex(scene.n.clone());
+        }
+        scene.state.clock.segment = Some(crate::clock::Segment::RetreatBeforeAssault);
+        scene.state.pending = Some(Pending::RetreatBeforeAssault { side: Side::Axis });
+        let events = scene
+            .state
+            .apply(&scene.data, Side::Axis, Order::Pass)
+            .unwrap();
+        assert!(captured(&events), "{events:?}");
+        assert_eq!(scene.state.pieces[&rommel()].location, Location::Eliminated);
     }
 }

@@ -2,7 +2,8 @@
 //! moves next to motorised non-phasing combat units (or Rommel, 31.0)
 //! that are not in an enemy ZOC, in contact, engaged or pinned, the
 //! non-phasing player may move them, never into an enemy ZOC and never
-//! paying to break off.
+//! paying to break off. Rommel alone may react out of the mover's own
+//! ZOC, and pays to break off from it (R-138).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
@@ -65,6 +66,16 @@ impl GameState {
         let mut out = Vec::new();
         for n in data.map.neighbours(at) {
             let pinned_by_zoc = || self.zoc_at(data, &n, phasing.other()) == Zoc::Exerts;
+            // R-138: the ZOC his approach puts him in does not bar Rommel's
+            // reaction; any other enemy ZOC does.
+            let rommel_pinned = || {
+                data.map.neighbours(&n).iter().any(|src| {
+                    src != at
+                        && self.holder(src) == Some(phasing)
+                        && self.could_exert(data, src)
+                        && self.reaches(data, src, &n)
+                })
+            };
             let mut any = false;
             for p in self
                 .pieces
@@ -82,6 +93,12 @@ impl GameState {
                     || p.reserve == Some(Reserve::II)
                     || (assault && self.pins(data, pinner_sp, pinner_cpa, p))
                 {
+                    continue;
+                }
+                if commanding {
+                    if !rommel_pinned() {
+                        out.push(p.id.clone());
+                    }
                     continue;
                 }
                 if !any && pinned_by_zoc() {
@@ -149,6 +166,11 @@ impl GameState {
             return Err(e);
         }
         let mut events = Vec::new();
+        // Only Rommel reacts from an enemy ZOC, paying to break off
+        // (R-138).
+        if plan.break_off {
+            self.pay_break_off(pieces, true, &mut events);
+        }
         let mut at = from.clone();
         let storm =
             crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
@@ -181,6 +203,7 @@ impl GameState {
             .into_iter()
             .filter(|id| !pieces.contains(id))
             .collect();
+        self.capture_lone_rommel(data, &left, &mut events);
         self.pending = (!left.is_empty()).then_some(Pending::Reaction {
             side,
             eligible: left,
@@ -189,9 +212,11 @@ impl GameState {
     }
 
     /// `Pass` while a reaction is offered: no (more) reaction.
-    pub(crate) fn decline_reaction(&mut self) -> Vec<Event> {
+    pub(crate) fn decline_reaction(&mut self, data: &Data) -> Vec<Event> {
         self.pending = None;
-        Vec::new()
+        let mut events = Vec::new();
+        self.capture_lone_rommel(data, &[], &mut events);
+        events
     }
 }
 

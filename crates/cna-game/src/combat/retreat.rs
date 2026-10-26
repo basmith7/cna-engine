@@ -283,18 +283,8 @@ impl GameState {
             }
         }
         if let Some(plan) = plan {
-            let break_off = Self::break_off_cost;
             if plan.break_off {
-                for id in &pieces {
-                    let cost = break_off(&self.pieces[id]);
-                    if cost > Cp::ZERO {
-                        events.push(Event::ContactBroken {
-                            piece: id.clone(),
-                            cost,
-                        });
-                        self.charge(id, cost, !phasing, &mut events);
-                    }
-                }
+                self.pay_break_off(&pieces, !phasing, &mut events);
             }
             for id in &pieces {
                 let p = self.pieces.get_mut(id).expect("checked");

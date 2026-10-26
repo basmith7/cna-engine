@@ -430,3 +430,9 @@ Done: #68 merged; PROGRESS on main (7e7ce86). This branch: `Order::Unplace` (59.
 In flight: the draft PR's CI; no browser button yet.
 Next: a "Take back" button in the stack panel for one's own pieces during set-up, with a Playwright test (Rommel's Arrival); then mark ready and merge.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 12:11 MST — autopilot/m5-lone-rommel
+Done: #70: vendor/cna fcf8ea7 (R-138), fixtures re-pinned (06ee10e, 0b19dc5); a lone Rommel reacts out of the mover's ZOC (2 CP break-off) and is captured once his escape is spent (8ef6001); review: one `pay_break_off` (ce0f3bd). Ledger comment on #70. PROGRESS on main (978e90f): request on 8.53's ZOC.
+In flight: #70 CI and local Playwright (/tmp/pw-lone.log).
+Next: merge #70 on green CI; then the 19.3 chart as the shell denominator.
+Blocked: Mission 4 on Brian's review of #25.

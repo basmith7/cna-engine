@@ -478,7 +478,7 @@ impl GameState {
             (Some(Pending::Reaction { .. }), Order::React { pieces, path }) => {
                 self.react(data, player, pieces, path)
             }
-            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
+            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction(data)),
             (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
             (None, Order::Place { .. } | Order::Unplace { .. }) => {
