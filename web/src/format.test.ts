@@ -43,6 +43,7 @@ const cases: [Event, string][] = [
   [{ prisoners: { side: "axis", points: 3 } }, "3 points of the Axis losses are prisoners."],
   [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
   [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
+  [{ "convoy-bombed": { lane: 2, bomb_points: 201, reading: 45, percent: 20, units: 3, sunk: 1 } }, "The Axis convoy on lane 2 is bombed at 201 points: 45, 20 %; 1 of 3 supply units sunk."],
   [{ "prisoners-left-map": { side: "axis", points: 4, stages: 3 } }, "4 Axis prisoner points leave the map; they reach the Tripolitania box in 3 truck convoy phases."],
   [{ "prisoners-gone": { side: "cw", hex: "E3613", points: 5 } }, "5 Commonwealth prisoner points leave play at E3613."],
   [{ "construction-begun": { side: "axis", item: "dummy-minefield", hex: "B1010", builders: ["u:a"] } }, "Axis begins a dummy minefield in B1010."],
@@ -90,9 +91,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 66 variants", () => {
+  it("covers all 67 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(66);
+    expect(tags.size).toBe(67);
   });
 
   it.each(cases)("%j", (event, line) => {

@@ -121,6 +121,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${sideName(d.side)} prisoners escape in ${d.hex}: ${parts.join(", ")}.`;
   }
   if ("prisoners-freed" in e) return `${sideName(e["prisoners-freed"].side)} frees ${e["prisoners-freed"].points} of its men held prisoner in ${e["prisoners-freed"].hex}.`;
+  if ("convoy-bombed" in e) {
+    const c = e["convoy-bombed"];
+    return `The Axis convoy on lane ${c.lane} is bombed at ${c.bomb_points} points: ${c.reading}, ${c.percent} %; ${c.sunk} of ${c.units} supply units sunk.`;
+  }
   if ("prisoners-left-map" in e) return `${e["prisoners-left-map"].points} ${sideName(e["prisoners-left-map"].side)} prisoner points leave the map; they reach the Tripolitania box in ${e["prisoners-left-map"].stages} truck convoy phases.`;
   if ("prisoners-gone" in e) return `${e["prisoners-gone"].points} ${sideName(e["prisoners-gone"].side)} prisoner points leave play at ${e["prisoners-gone"].hex}.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
