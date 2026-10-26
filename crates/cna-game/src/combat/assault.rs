@@ -842,9 +842,19 @@ impl GameState {
             &mut events,
         );
         // Gun losses (15.84): forward guns pay vulnerability for half the
-        // raw points lost; in an overrun the defender's back guns too.
-        let a_gun = self.gun_losses(data, &attacker_ids, a_lost, true, false, &mut events);
-        let d_gun = self.gun_losses(data, &in_hex, d_lost, false, overrun, &mut events);
+        // raw points lost, the attacker's in the assaulting hexes whether
+        // or not they joined; in an overrun the defender's back guns too.
+        let joined: BTreeSet<PieceId> = attacker_ids.iter().cloned().collect();
+        let a_exposed = self.exposed_guns(data, phasing, &attacker_ids);
+        let a_gun = self.gun_losses(data, &a_exposed, a_lost, &joined, false, &mut events);
+        let d_gun = self.gun_losses(
+            data,
+            &in_hex,
+            d_lost,
+            &BTreeSet::new(),
+            overrun,
+            &mut events,
+        );
         let a_toe = a_toe + a_gun;
         let d_toe = d_toe + d_gun;
 
@@ -1000,15 +1010,72 @@ impl GameState {
             .min(4)
     }
 
+    /// The attacker's guns an assault exposes (15.84): those that joined
+    /// it and every forward gun unit of `side` in a hex it came from.
+    pub(crate) fn exposed_guns(
+        &self,
+        data: &Data,
+        side: Side,
+        attacker_ids: &[PieceId],
+    ) -> Vec<PieceId> {
+        let hexes: BTreeSet<&HexId> = attacker_ids
+            .iter()
+            .filter_map(|id| self.pieces[id].hex())
+            .collect();
+        let mut ids: BTreeSet<PieceId> = attacker_ids.iter().cloned().collect();
+        ids.extend(
+            self.combat
+                .forward
+                .iter()
+                .filter(|id| {
+                    let p = &self.pieces[*id];
+                    p.side == side
+                        && p.hex().is_some_and(|h| hexes.contains(h))
+                        && self.is_gun_unit(data, p)
+                })
+                .cloned(),
+        );
+        ids.into_iter().collect()
+    }
+
+    /// A gun point's vulnerability in close-assault losses (11.x, 14.14,
+    /// 15.84): artillery that fired in the anti-armour role this segment
+    /// has 2; artillery that `joined` an offensive assault has half,
+    /// rounded up; flak and non-gun points none.
+    pub(crate) fn gun_vulnerability(
+        &self,
+        id: &PieceId,
+        part: &Part,
+        joined: &BTreeSet<PieceId>,
+    ) -> u32 {
+        if part.flak || !part.gun() {
+            return 0;
+        }
+        let artillery = part.barrage.is_some();
+        let fired_aa = self
+            .combat
+            .assignments
+            .values()
+            .flatten()
+            .any(|a| a.piece == *id && !a.anti_armour.is_empty());
+        let mut v = part.vulnerability;
+        if artillery && joined.contains(id) {
+            v = v.div_ceil(2);
+        }
+        if artillery && fired_aa {
+            v = v.min(2);
+        }
+        v
+    }
+
     /// Vulnerability losses on forward guns (15.84): enough gun points
     /// to absorb half the raw points lost, at least one when any was.
-    /// An attacker's artillery is at half vulnerability, rounded up.
     fn gun_losses(
         &mut self,
         data: &Data,
         ids: &[PieceId],
         raw_lost: u32,
-        attacking: bool,
+        joined: &BTreeSet<PieceId>,
         overrun: bool,
         events: &mut Vec<Event>,
     ) -> u32 {
@@ -1032,18 +1099,26 @@ impl GameState {
         if shares.is_empty() {
             return 0;
         }
-        let (_, removed) = self.absorb(
+        let rates: BTreeMap<PieceId, BTreeMap<Option<String>, u32>> = shares
+            .iter()
+            .map(|sh| {
+                let by_weapon = self
+                    .parts(data, &self.pieces[&sh.piece])
+                    .iter()
+                    .map(|part| {
+                        (
+                            part.weapon.clone(),
+                            self.gun_vulnerability(&sh.piece, part, joined),
+                        )
+                    })
+                    .collect();
+                (sh.piece.clone(), by_weapon)
+            })
+            .collect();
+        let (_, removed) = self.absorb_by(
             data,
             &mut shares,
-            |p| {
-                if p.flak || !p.gun() {
-                    0
-                } else if attacking {
-                    p.vulnerability.div_ceil(2)
-                } else {
-                    p.vulnerability
-                }
-            },
+            |id, p| rates[id].get(&p.weapon).copied().unwrap_or(0),
             needed,
             events,
         );
@@ -1247,6 +1322,50 @@ mod tests {
             .unwrap()
             .location = Location::Hex(hex("C4021"));
         state
+    }
+
+    /// 4 RHA (18/25-pounders, vulnerability 5) in 1 KRRC's hex.
+    fn rha_beside_krrc(data: &Data) -> (GameState, PieceId, PieceId) {
+        let mut state = assigning(data);
+        let krrc = pid("unit:cw:1-krrc");
+        let rha = pid("unit:cw:4-rha");
+        let at = state.pieces[&krrc].hex().unwrap().clone();
+        state.pieces.get_mut(&rha).unwrap().location = Location::Hex(at);
+        (state, krrc, rha)
+    }
+
+    #[test]
+    fn the_attackers_forward_guns_are_exposed_though_they_did_not_fight_15_84() {
+        let data = graziani();
+        let (mut state, krrc, rha) = rha_beside_krrc(&data);
+        assert!(
+            !state
+                .exposed_guns(&data, Side::Cw, std::slice::from_ref(&krrc))
+                .contains(&rha)
+        );
+        state.combat.forward.insert(rha.clone());
+        assert!(state.exposed_guns(&data, Side::Cw, &[krrc]).contains(&rha));
+    }
+
+    #[test]
+    fn artillery_vulnerability_halves_in_an_assault_and_is_two_after_anti_armour_fire_14_14() {
+        let data = graziani();
+        let (mut state, _, rha) = rha_beside_krrc(&data);
+        let part = state.parts(&data, &state.pieces[&rha])[0].clone();
+        let none = BTreeSet::new();
+        assert_eq!(state.gun_vulnerability(&rha, &part, &none), 5);
+        let joined = BTreeSet::from([rha.clone()]);
+        assert_eq!(state.gun_vulnerability(&rha, &part, &joined), 3);
+        state.combat.assignments.insert(
+            Side::Cw,
+            vec![assign(
+                "unit:cw:4-rha",
+                vec![alloc(Some("C4020"), 2)],
+                vec![],
+            )],
+        );
+        assert_eq!(state.gun_vulnerability(&rha, &part, &none), 2);
+        assert_eq!(state.gun_vulnerability(&rha, &part, &joined), 2);
     }
 
     #[test]
