@@ -6,7 +6,7 @@
   // included, so the controls stand down.
   import { sideName } from "./clock";
   import { label } from "./counters";
-  import type { HexId, PieceId, Side, View } from "./types";
+  import type { HexId, Location, PieceId, Side, View } from "./types";
 
   let {
     view,
@@ -34,6 +34,7 @@
         | { "detach-motorisation": { piece: PieceId } }
         | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
         | { "destroy-supply": { hex: HexId } }
+        | { "air-lift": { piece: PieceId; to: Location } }
         | { repair: { hex: HexId; weapon: string } },
     ) => void;
   } = $props();
@@ -100,6 +101,11 @@
         <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
         {#if flying === supply}
           <span class="hint" data-testid="fly-hint">Click the hex to fly {label(view.pieces[supply]).short} to (32.37).</span>
+          {#if view.to_act === "axis"}
+            {#each ["tripoli", "tunisia"] as const as box (box)}
+              <button type="button" data-order="air-lift-box" data-box={box} onclick={() => { onfly?.(null); onorder({ "air-lift": { piece: supply, to: { box } } }); }}>Fly to the {box} box</button>
+            {/each}
+          {/if}
           <button type="button" data-order="air-lift-cancel" onclick={() => onfly?.(null)}>Cancel flight</button>
         {:else}
           <button type="button" data-order="air-lift" onclick={() => onfly?.(supply)}>Fly…</button>
