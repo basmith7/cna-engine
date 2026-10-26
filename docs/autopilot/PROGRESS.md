@@ -117,6 +117,17 @@ the bullet once it lands and `vendor/cna` is bumped.
   ZOC bar a reaction, or only an enemy ZOC the unit stood in before the
   mover arrived? If the latter, the engine changes for every unit and
   the goldens get re-recorded.
+- **Which 19.3 chart components count toward a shell (9.26–9.27)**
+  (Mission 5). The engine judges a shell against the units the OA
+  assigns to an HQ, not the Formation Organisation Chart, because the
+  chart's rows don't say which components 9.26's "assignable brigade
+  equivalents" and 9.27's "assignable battalions" count. For example:
+  does a CW infantry brigade (3 SP) count its artillery unit, its
+  anti-tank unit (no SP printed) and its `unit` slot? Does a division
+  count only its 2+ SP components? Do 0 SP companies count? Needed:
+  per component, counted or not (a flag on each component would do),
+  and `turns` on CW armoured brigade type II, which has `turns_list`
+  where the other rows have `turns`.
 
 ## Runs and quota
 
