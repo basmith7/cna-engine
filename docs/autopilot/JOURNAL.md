@@ -298,3 +298,9 @@ Done this run: #37 slice 4 and #38 air lift merged; #41 slice 6 plan merged. Rea
 In flight: nothing uncommitted.
 Next: merge #39, #42, #43 when green (`gh pr merge N --merge`). Then #40: re-script the module-on golden fight at Halfaya (R-120 makes the CW surrender there), regenerate `tests/games/graziani-m5.json`, the cna-web e2e fixtures and golden.spec pins. Then slice 6 Task 1–2 (attachment state and orders; no golden move splits an attached unit, checked).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 21:15 MST — autopilot/m5-slice-6-organisation
+Done: #40 (R-120 defence) re-scripted: module-on golden surrenders at Halfaya, 439 orders (6cd86b1, e2e 2nd commit); Playwright 36/36; marked ready. Slice 6 Task 1 on draft #44: `Piece.attached_to`, set-up/arrival attachment, old-save fill, stacking and HQ CPA read it.
+In flight: Task 2 (Attach/Detach orders, moves carry attached units).
+Next: merge #40 when web CI is green; merge main into #44 and regenerate e2e fixtures (`cargo test -p cna-web -- --ignored regenerate_e2e_fixtures`) and golden hashes; then Task 2.
+Blocked: Mission 4 on Brian's review of #25.
