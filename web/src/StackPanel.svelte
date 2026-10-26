@@ -15,9 +15,10 @@
     view,
     hex,
     ticked = [],
+    takeBack = [],
     ontoggle,
     onorder,
-  }: { view: View; hex: string | null; ticked?: PieceId[]; ontoggle?: (id: PieceId) => void; onorder?: (o: Order) => void } = $props();
+  }: { view: View; hex: string | null; ticked?: PieceId[]; takeBack?: PieceId[]; ontoggle?: (id: PieceId) => void; onorder?: (o: Order) => void } = $props();
 
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
@@ -144,6 +145,9 @@
                 · <span data-testid="attached">attached to {label(view.pieces[p.attached_to]).short}</span>
               {/if}
             </span>
+            {#if onorder && takeBack.includes(p.id) && view.pending && "set-up" in view.pending}
+              <button type="button" data-order="unplace" title="Take it back to place again (59.2)" onclick={() => onorder({ unplace: { piece: p.id } })}>Take back</button>
+            {/if}
             {#if onorder}
               {@const order = attachmentOrder(view, p)}
               {#if order}

@@ -118,3 +118,17 @@ test("stays usable at a phone width while placing", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, 0));
   await shoot(page, "placements-390.png");
 });
+
+test("a piece placed this set-up can be taken back and placed again (59.2)", async ({ page }) => {
+  await newGame(page);
+  const { piece, hex } = placements[0].order.place;
+  await pick(page, "axis", piece);
+  await clickHex(page, hex);
+  await expect(page.getByTestId("setup")).toContainText("Axis 35 to place");
+  // The stack panel shows the hex just placed in.
+  const back = page.getByTestId("stack-panel").locator(`li[data-unit="${piece}"] [data-order="unplace"]`);
+  await back.click();
+  await expect(page.getByTestId("setup")).toContainText("Axis 36 to place");
+  await expect(page.getByTestId("log-entries")).toContainText("taken back, to be placed again");
+  await expect(page.getByTestId("setup").locator(`[data-unit="${piece}"]`)).toBeAttached();
+});

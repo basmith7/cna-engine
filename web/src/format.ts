@@ -60,6 +60,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("initiative-declared" in e) return `${sideName(e["initiative-declared"].player_a)} declares itself Player A.`;
   if ("weather-set" in e) return `Weather: ${weather(e["weather-set"].weather)}.`;
   if ("placed" in e) return `${name(e.placed.piece)} placed at ${e.placed.hex}.`;
+  if ("unplaced" in e) return `${name(e.unplaced.piece)} taken back, to be placed again.`;
   if ("arrived" in e) return `${list(e.arrived.pieces, name)} arrive at ${where(e.arrived.at)}.`;
   if ("moved-off-map" in e) return `${name(e["moved-off-map"].piece)} moves off-map to ${where(e["moved-off-map"].location)}.`;
   if ("moved" in e) return `${list(e.moved.pieces, name)}: ${e.moved.from} → ${e.moved.to} for ${e.moved.cost} CP.`;

@@ -66,6 +66,52 @@ impl GameState {
         Ok(events)
     }
 
+    /// `Order::Unplace`: the side setting up takes back a piece it placed
+    /// (59.2), which waits again with its placement, its motorisation
+    /// points and nothing attached to it.
+    pub(crate) fn unplace(
+        &mut self,
+        data: &Data,
+        player: Side,
+        piece: &PieceId,
+    ) -> Result<Vec<Event>, Illegal> {
+        // The set-up as the scenario gives it: what the piece waited with.
+        let fresh = GameState::with_modules(data, 0, self.modules)
+            .map_err(|e| Illegal::new("59.2", format!("the set-up does not build: {e:#}")))?;
+        let refuse = |why: &str| Err(Illegal::new("59.2", format!("{piece}: {why}")));
+        let (Some(p), Some(f)) = (self.pieces.get(piece), fresh.pieces.get(piece)) else {
+            return refuse("no such piece");
+        };
+        if p.side != player {
+            return refuse("not this side's");
+        }
+        let (Some(hex), Location::Pending(_)) = (p.hex().cloned(), &f.location) else {
+            return refuse("not placed at set-up");
+        };
+        let unit = piece.unit();
+        for q in self.pieces.values_mut() {
+            if unit.is_some() && q.attached_to == unit {
+                q.attached_to = None;
+            }
+        }
+        let p = self.pieces.get_mut(piece).expect("checked");
+        p.location = f.location.clone();
+        p.attached_to = None;
+        if let Some(&points) = fresh.pending_motorisation.get(piece) {
+            if let Some(m) = self
+                .motorisation
+                .get_mut(&player)
+                .and_then(|m| m.get_mut(hex.as_str()))
+            {
+                *m = m.saturating_sub(points);
+            }
+            self.pending_motorisation.insert(piece.clone(), points);
+        }
+        Ok(vec![Event::Unplaced {
+            piece: piece.clone(),
+        }])
+    }
+
     /// Everything `place` checks, and nothing it changes: the one owner
     /// of 59.2 for `apply` and `placements` alike.
     fn check_place(
@@ -665,5 +711,71 @@ mod tests {
             .expect("a Pavia unit");
         assert!(state.placements(&data, &own).contains(&at));
         place(&mut state, &bologna, &two).unwrap();
+    }
+
+    /// 59.2: a side setting up may take back a piece it placed, which
+    /// waits again with its placement, so a crowded `apart` band (R-136)
+    /// never strands the set-up.
+    #[test]
+    fn a_placed_piece_can_be_taken_back_during_set_up() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut state = GameState::new(&data, 7).unwrap();
+        let unit = |s: &str| PieceId::from(cna_data::oa::UnitId::parse(s).unwrap());
+        let (pavia, bologna) = (
+            unit("unit:it:17th-pavia-div-hq"),
+            unit("unit:it:25th-bologna-div-hq"),
+        );
+        let fresh = state.clone();
+        let at = HexId::parse("A2307").unwrap();
+        let next = data.map.neighbours(&at);
+        let area = state.placements(&data, &bologna);
+        let touching = next.iter().find(|h| area.contains(h)).unwrap().clone();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: pavia.clone(),
+                    hex: at.clone(),
+                },
+            )
+            .unwrap();
+        assert!(!state.placements(&data, &bologna).contains(&touching));
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Unplace {
+                    piece: pavia.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&pavia], fresh.pieces[&pavia]);
+        assert_eq!(state.placements(&data, &bologna), area);
+        // Only a piece placed at set-up, and only one's own.
+        let refused = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Unplace {
+                    piece: pavia.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(refused.case, "59.2");
+        let cw = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        assert_eq!(
+            state
+                .apply(&data, Side::Axis, Order::Unplace { piece: cw })
+                .unwrap_err()
+                .case,
+            "59.2"
+        );
     }
 }
