@@ -137,31 +137,26 @@ impl GameState {
     }
 }
 
+/// The most supply units one Axis convoy lane carries a convoy stage
+/// (32.6x).
+const LANE_SUPPLY: u32 = 3;
+
 impl GameState {
-    /// Phase D of the arrival turn's first OpStage: the Commonwealth's
-    /// planned supply units appear loaded (40 ammunition, 60 fuel), one
-    /// in Alexandria (its west hex, E3613, where the Commonwealth's
-    /// supply starts) for every three received and the rest in Cairo,
-    /// with a dummy in Cairo for every three (32.4x, 32.1x). Arrivals do
-    /// not check stacking, as reinforcements do not. The Axis's come by
-    /// convoy, which Task 3 adds. True when anything arrived.
+    /// Phase D of the arrival turn's first OpStage: the planned supply
+    /// units appear loaded (40 ammunition, 60 fuel), with a dummy for
+    /// every three real ones (32.4x, 32.1x). The Commonwealth's land in
+    /// Cairo, one in three in Alexandria (its west hex, E3613, where the
+    /// Commonwealth's supply starts). The Axis's come by convoy to the
+    /// Tripoli box on one lane, at most three a stage; the rest sail with
+    /// the next turn's convoy (32.6x). Arrivals do not check stacking, as
+    /// reinforcements do not. True when anything arrived.
     pub(crate) fn supply_arrivals(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
         use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+        use cna_data::scenario::OffMapBox;
         if !self.modules.abstract_supply || self.clock.stage != 1 {
             return false;
         }
         let turn = self.clock.game_turn;
-        let units: u32 = self
-            .planned
-            .iter()
-            .filter(|p| p.side == Side::Cw && p.arrives == turn)
-            .map(|p| p.units)
-            .sum();
-        self.planned
-            .retain(|p| !(p.side == Side::Cw && p.arrives == turn));
-        if units == 0 {
-            return false;
-        }
         let hex = |name: &str| {
             Location::Hex(
                 data.map
@@ -171,52 +166,84 @@ impl GameState {
                     .clone(),
             )
         };
-        let (cairo, alexandria) = (hex("cairo"), hex("alexandria-west"));
-        let next = |state: &GameState, dummy: bool| {
-            (1..)
-                .map(|n| {
-                    if dummy {
-                        PieceId::dummy_supply(Side::Cw, n)
-                    } else {
-                        PieceId::supply(Side::Cw, n)
-                    }
-                })
-                .find(|id| !state.pieces.contains_key(id))
-                .expect("a free number")
-        };
-        let to_alexandria = units / 3;
-        let mut at_cairo = Vec::new();
-        let mut at_alexandria = Vec::new();
-        for i in 0..units + units / 3 {
-            let dummy = i >= units;
-            let id = next(self, dummy);
-            let (at, list) = if !dummy && i < to_alexandria {
-                (alexandria.clone(), &mut at_alexandria)
-            } else {
-                (cairo.clone(), &mut at_cairo)
+        let mut any = false;
+        for side in [Side::Axis, Side::Cw] {
+            let due: u32 = self
+                .planned
+                .iter()
+                .filter(|p| p.side == side && p.arrives == turn)
+                .map(|p| p.units)
+                .sum();
+            self.planned
+                .retain(|p| !(p.side == side && p.arrives == turn));
+            let units = match side {
+                Side::Axis => due.min(LANE_SUPPLY),
+                Side::Cw => due,
             };
-            let (kind, load) = if dummy {
-                (PieceKind::DummySupplyUnit, None)
-            } else {
-                (
-                    PieceKind::SupplyUnit,
-                    Some(Load {
-                        ammo: MAX_AMMO,
-                        fuel: MAX_FUEL,
-                    }),
-                )
-            };
-            let mut p = crate::setup::supply_piece(Side::Cw, kind, id.clone(), at, load);
-            p.landed = true;
-            self.pieces.insert(id.clone(), p);
-            list.push(id);
-        }
-        for (pieces, at) in [(at_alexandria, alexandria), (at_cairo, cairo)] {
-            if !pieces.is_empty() {
-                events.push(Event::Arrived { pieces, at });
+            if due > units {
+                self.planned.push(Planned {
+                    side,
+                    arrives: turn + 1,
+                    units: due - units,
+                });
             }
+            if units == 0 {
+                continue;
+            }
+            let (main, second, to_second) = match side {
+                Side::Cw => (hex("cairo"), hex("alexandria-west"), units / 3),
+                Side::Axis => (
+                    Location::Box(OffMapBox::Tripoli),
+                    Location::Box(OffMapBox::Tripoli),
+                    0,
+                ),
+            };
+            let next = |state: &GameState, dummy: bool| {
+                (1..)
+                    .map(|n| {
+                        if dummy {
+                            PieceId::dummy_supply(side, n)
+                        } else {
+                            PieceId::supply(side, n)
+                        }
+                    })
+                    .find(|id| !state.pieces.contains_key(id))
+                    .expect("a free number")
+            };
+            let mut at_main = Vec::new();
+            let mut at_second = Vec::new();
+            for i in 0..units + units / 3 {
+                let dummy = i >= units;
+                let id = next(self, dummy);
+                let (at, list) = if !dummy && i < to_second {
+                    (second.clone(), &mut at_second)
+                } else {
+                    (main.clone(), &mut at_main)
+                };
+                let (kind, load) = if dummy {
+                    (PieceKind::DummySupplyUnit, None)
+                } else {
+                    (
+                        PieceKind::SupplyUnit,
+                        Some(Load {
+                            ammo: MAX_AMMO,
+                            fuel: MAX_FUEL,
+                        }),
+                    )
+                };
+                let mut p = crate::setup::supply_piece(side, kind, id.clone(), at, load);
+                p.landed = true;
+                self.pieces.insert(id.clone(), p);
+                list.push(id);
+            }
+            for (pieces, at) in [(at_second, second), (at_main, main)] {
+                if !pieces.is_empty() {
+                    events.push(Event::Arrived { pieces, at });
+                }
+            }
+            any = true;
         }
-        true
+        any
     }
 }
 
@@ -348,6 +375,39 @@ mod tests {
         // Nothing more in a later OpStage.
         state.clock.stage = 2;
         assert!(!state.supply_arrivals(&data, &mut Vec::new()));
+    }
+
+    #[test]
+    fn an_axis_convoy_lands_three_in_tripoli_and_the_rest_sail_next_turn_32_6x() {
+        use crate::clock::Phase;
+        use crate::piece::{Location, PieceKind};
+        use cna_data::scenario::OffMapBox;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        state.clock.phase = Phase::Arrival;
+        state.planned.clear();
+        state.planned.push(Planned {
+            side: Side::Axis,
+            arrives: 5,
+            units: 5,
+        });
+        let in_tripoli = |s: &GameState, k: PieceKind| {
+            s.pieces
+                .values()
+                .filter(|p| p.kind == k && p.location == Location::Box(OffMapBox::Tripoli))
+                .count()
+        };
+        let before = in_tripoli(&state, PieceKind::SupplyUnit);
+        assert!(state.supply_arrivals(&data, &mut Vec::new()));
+        assert_eq!(in_tripoli(&state, PieceKind::SupplyUnit), before + 3);
+        assert_eq!(
+            state.planned,
+            vec![Planned {
+                side: Side::Axis,
+                arrives: 6,
+                units: 2
+            }]
+        );
     }
 
     #[test]

@@ -54,23 +54,8 @@
   "player_a": "axis",
   "planned": [
     {
-      "side": "axis",
-      "arrives": 3,
-      "units": 2
-    },
-    {
-      "side": "axis",
-      "arrives": 5,
-      "units": 1
-    },
-    {
       "side": "cw",
       "arrives": 7,
-      "units": 2
-    },
-    {
-      "side": "axis",
-      "arrives": 6,
       "units": 2
     },
     {
@@ -507,6 +492,146 @@
       "load": {
         "ammo": 20,
         "fuel": 6
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:23": {
+      "id": "supply:axis:23",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:24": {
+      "id": "supply:axis:24",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:25": {
+      "id": "supply:axis:25",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:26": {
+      "id": "supply:axis:26",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:27": {
+      "id": "supply:axis:27",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,

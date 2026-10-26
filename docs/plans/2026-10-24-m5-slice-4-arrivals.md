@@ -50,7 +50,8 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 ### Task 3: Axis convoys and bombing
 
-- [ ] One lane, its cap, the bombing chart and the bombardment table.
+- [x] One lane (the Tripoli box), its cap of three; the overflow sails a turn later.
+- [ ] The bombing chart and the bombardment table (needs the westernmost full Commonwealth division: R-124's echelons).
 
 ### Task 4: motorisation losses
 
