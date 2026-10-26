@@ -318,7 +318,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Axis);
         let tanks = pid("unit:it:lxiil-tank-bn");
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Box(OffMapBox::Tripolitania);
+        state.put(&tanks, Location::Box(OffMapBox::Tripolitania));
         let before = snapshot(&state);
         // Not the Commonwealth's; not from the map except at Nofilia; not
         // to where it is.
@@ -399,7 +399,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Axis);
         let tanks = pid("unit:it:lxiil-tank-bn");
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Box(OffMapBox::Tripoli);
+        state.put(&tanks, Location::Box(OffMapBox::Tripoli));
         let before = snapshot(&state);
         // The chart has a Gabes row, but the scenario's boxes do not, so
         // the engine cannot hold a unit there; sending it is refused and
@@ -438,7 +438,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Axis);
         let bn = pid("unit:it:xvii-libyan-bn");
-        state.pieces.get_mut(&bn).unwrap().location = Location::Box(OffMapBox::Tripoli);
+        state.put(&bn, Location::Box(OffMapBox::Tripoli));
         // CPA 10: three stages Tripoli to Tripolitania.
         state
             .apply(

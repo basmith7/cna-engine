@@ -278,7 +278,7 @@ mod tests {
     }
 
     fn put(state: &mut GameState, id: &str, h: &str) {
-        state.pieces.get_mut(&pid(id)).unwrap().location = Location::Hex(hex(h));
+        state.put(&pid(id), Location::Hex(hex(h)));
     }
 
     fn condition<'a>(
@@ -442,7 +442,7 @@ mod tests {
         put(&mut state, "unit:it:xix-libyan-bn", "C4021");
         assert_eq!(evaluate(&data, &state).axis, Some(VictoryLevel::Tactical));
         let place = |state: &mut GameState, id: &PieceId, h: &str| {
-            state.pieces.get_mut(id).unwrap().location = Location::Hex(hex(h));
+            state.put(id, Location::Hex(hex(h)));
         };
         let cw_supply = PieceId::supply(Side::Cw, 1);
         let cw_dummy = PieceId::dummy_supply(Side::Cw, 1);

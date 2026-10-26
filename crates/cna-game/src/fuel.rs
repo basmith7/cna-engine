@@ -279,8 +279,11 @@ mod tests {
     }
 
     /// An Axis tank battalion and a legal one-hex move for it.
-    fn tank_and_move(data: &Data, state: &GameState) -> (PieceId, Order) {
-        for p in state.pieces.values() {
+    /// It stands alone, out of its formation, so it moves by itself.
+    fn tank_and_move(data: &Data, state: &mut GameState) -> (PieceId, Order) {
+        let tanks: Vec<PieceId> = state.pieces.keys().cloned().collect();
+        for id in tanks {
+            let p = &state.pieces[&id];
             if p.side != Side::Axis || p.kind != PieceKind::Combat || p.hex().is_none() {
                 continue;
             }
@@ -297,8 +300,10 @@ mod tests {
                 // Probe on a copy with the module off: only the move.
                 let mut probe = state.clone();
                 probe.modules = Modules::default();
+                probe.stand_alone(&id);
                 if probe.apply(data, Side::Axis, order.clone()).is_ok() {
-                    return (p.id.clone(), order);
+                    state.stand_alone(&id);
+                    return (id, order);
                 }
             }
         }
@@ -309,7 +314,7 @@ mod tests {
     fn a_tank_with_no_supply_in_range_is_refused_32_22() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         let far = data.map.within(state.pieces[&tank].hex().unwrap(), 40);
         let far = far.iter().next_back().unwrap().clone();
         supply_at(&mut state, &far, 60);
@@ -323,7 +328,7 @@ mod tests {
     fn the_first_move_pays_two_fuel_and_a_second_pays_nothing() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 60);
         let events = state.apply(&data, Side::Axis, order.clone()).unwrap();
@@ -349,7 +354,7 @@ mod tests {
     fn each_reach_says_the_fuel_its_move_owes() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, _) = tank_and_move(&data, &state);
+        let (tank, _) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         supply_at(&mut state, &here, 60);
         let reaches = state
@@ -384,7 +389,7 @@ mod tests {
     fn fuel_sources_are_the_supply_units_in_range_with_fuel() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, _) = tank_and_move(&data, &state);
+        let (tank, _) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 60);
         assert_eq!(
@@ -403,7 +408,7 @@ mod tests {
     fn a_brigade_equivalent_tank_counter_pays_two_per_battalion_32_22() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         state.pieces.get_mut(&tank).unwrap().equivalent = Some(Equivalent::Brigade);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 60);
@@ -419,7 +424,8 @@ mod tests {
     fn a_foot_unit_and_a_module_off_game_pay_nothing() {
         let data = graziani();
         let mut off = moving(&data, 5, Side::Axis);
-        let (tank, order) = tank_and_move(&data, &game(&data));
+        let (tank, order) = tank_and_move(&data, &mut game(&data));
+        off.stand_alone(&tank);
         let events = off.apply(&data, Side::Axis, order).unwrap();
         assert!(!events.iter().any(|e| matches!(e, Event::FuelSpent { .. })));
         assert!(off.pieces[&tank].load.is_none());
@@ -429,7 +435,7 @@ mod tests {
     fn an_empty_supply_unit_is_removed() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 2);
         state.pieces.get_mut(&ids[0]).unwrap().load = Some(Load { ammo: 0, fuel: 2 });
@@ -444,7 +450,7 @@ mod tests {
     fn spending_past_the_cpa_pays_again_once_32_22() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 60);
         let cpa = state.cpa(&state.pieces[&tank]).unwrap();
@@ -468,7 +474,7 @@ mod tests {
     fn a_named_source_that_cannot_pay_is_refused_and_one_that_can_is_used() {
         let data = graziani();
         let mut state = game(&data);
-        let (tank, order) = tank_and_move(&data, &state);
+        let (tank, order) = tank_and_move(&data, &mut state);
         let here = state.pieces[&tank].hex().unwrap().clone();
         let ids = supply_at(&mut state, &here, 60);
         let named = |from: &PieceId| match order.clone() {

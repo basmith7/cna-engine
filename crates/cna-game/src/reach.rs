@@ -103,6 +103,9 @@ impl GameState {
             }
             Some(_) => {}
         }
+        // What a move takes along (19.4x), once the purpose's own
+        // refusals have had their say, as `apply` orders them.
+        let mut owned: Vec<PieceId> = pieces.to_vec();
         let mut forced: Option<(u32, Vec<HexId>, RetreatReason)> = None;
         let (from, shift) = match purpose {
             // The railway is its own graph (8.7x); nothing below applies.
@@ -111,13 +114,15 @@ impl GameState {
                 if let Some(e) = self.pending_refusal() {
                     return Err(e);
                 }
-                self.stack_to_move(side, pieces)?
+                owned = self.carried(pieces)?;
+                self.stack_to_move(side, &owned)?
             }
             Purpose::RetreatBeforeAssault => {
                 if !matches!(self.pending, Some(Pending::RetreatBeforeAssault { .. })) {
                     return Err(Illegal::new("13.1", "no retreat before assault is pending"));
                 }
-                (self.retreating_stack(side, pieces)?, false)
+                owned = self.carried(pieces)?;
+                (self.retreating_stack(side, &owned)?, false)
             }
             Purpose::ForcedRetreat => {
                 let Some(Pending::ForcedRetreat {
@@ -151,7 +156,8 @@ impl GameState {
                 let Some(Pending::Reaction { eligible, .. }) = &self.pending else {
                     return Err(Illegal::new("8.5x", "no reaction is pending"));
                 };
-                for id in pieces {
+                owned = self.carried(pieces)?;
+                for id in &owned {
                     if !eligible.contains(id) {
                         return Err(Illegal::new(
                             "8.5x",
@@ -159,9 +165,10 @@ impl GameState {
                         ));
                     }
                 }
-                (self.moving_stack(side, pieces, false)?, false)
+                (self.moving_stack(side, &owned, false)?, false)
             }
         };
+        let pieces = &owned[..];
         let mover = self.mover(data, pieces);
         let (start_in_zoc, start_flagged) = match self.start(
             data,
@@ -617,7 +624,7 @@ mod tests {
         let mut state = moving(&data, 3, Side::Cw);
         // 7 Med (artillery, CPA 20, a vehicle) put at Sidi Barrani C4131.
         let med = pid("unit:cw:7-med");
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("C4131"));
+        state.put(&med, Location::Hex(hex("C4131")));
         let r = by_hex(
             &state
                 .reachable(&data, Side::Cw, &[med], Purpose::Move)
@@ -643,7 +650,8 @@ mod tests {
     #[test]
     fn a_vehicle_spending_past_its_cpa_is_told_the_dp() {
         let data = graziani();
-        let state = moving(&data, 3, Side::Axis);
+        let mut state = moving(&data, 3, Side::Axis);
+        state.stand_alone(&crate::movement::test_support::pid("unit:it:lxiil-tank-bn"));
         // LXII(L) tanks (CPA 30) at C3918: the move test pins 4½ CP to
         // C4120; the DP starts past 30 CP.
         let r = by_hex(
@@ -670,7 +678,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let hus = pid("unit:cw:11-hus");
-        state.pieces.get_mut(&hus).unwrap().location = Location::Hex(hex("A2110"));
+        state.put(&hus, Location::Hex(hex("A2110")));
         let r = by_hex(
             &state
                 .reachable(&data, Side::Cw, &[hus], Purpose::Move)
@@ -692,7 +700,7 @@ mod tests {
         // LXII(L) tanks put at C3924, two hexes from the four
         // Commonwealth units at C3922 (as the reaction tests do).
         let tanks = pid("unit:it:lxiil-tank-bn");
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C3924"));
+        state.put(&tanks, Location::Hex(hex("C3924")));
         let r = by_hex(
             &state
                 .reachable(
@@ -925,7 +933,8 @@ mod tests {
     fn every_returned_retreat_before_assault_is_accepted_and_every_accepted_one_is_returned() {
         let data = graziani();
         let mut rng = ChaCha8Rng::seed_from_u64(13);
-        let state = retreating(&data);
+        let mut state = retreating(&data);
+        state.stand_alone(&pid("unit:it:viii-libyan-bn"));
         let err = state
             .reachable(
                 &data,

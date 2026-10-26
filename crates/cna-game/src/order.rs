@@ -78,6 +78,12 @@ pub enum Order {
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,
+    /// Phase C or the player's movement segment: `piece` attaches to `to`
+    /// in its hex, a CP each (19.4x).
+    Attach { piece: PieceId, to: PieceId },
+    /// Phase C or the player's movement segment: `piece` detaches from
+    /// the unit it is attached to, a CP each (19.4x).
+    Detach { piece: PieceId },
     /// Phase C, abstract supply: the supply unit takes its motorisation
     /// points (30 real, 6 dummy) from its hex's pool (32.31).
     AttachMotorisation { piece: PieceId },

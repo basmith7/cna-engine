@@ -2,9 +2,16 @@
 //! `parent`) and may be attached, merged into a parent's counter, which
 //! is `attached_to`. A unit set up or arriving with its parent starts
 //! attached. Stacking (9.1x) and an HQ's CPA (6.15) read attachment.
+//! A move, reaction or retreat of a parent carries what is attached to
+//! it; an attached unit never moves without its parent (19.4x).
 
-use crate::piece::{Location, PieceId};
+use crate::clock::{Phase, Segment};
+use crate::event::{Event, Illegal};
+use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::cp::Cp;
+use cna_data::scenario::Side;
+use std::collections::BTreeSet;
 
 impl GameState {
     /// Attaches every unit standing with its parent, on a hex or in a
@@ -31,14 +38,166 @@ impl GameState {
         }
         self.attachment_tracked = true;
     }
+
+    /// The pieces a move of `listed` takes: those listed, then everything
+    /// attached to them, nested attachments included, in id order. A
+    /// listed unit attached to a parent left behind is refused (19.4x).
+    pub(crate) fn carried(&self, listed: &[PieceId]) -> Result<Vec<PieceId>, Illegal> {
+        let mut taken: BTreeSet<PieceId> = listed.iter().cloned().collect();
+        let mut heads: Vec<PieceId> = listed.to_vec();
+        let mut added = BTreeSet::new();
+        while let Some(head) = heads.pop() {
+            let Some(unit) = head.unit() else {
+                continue;
+            };
+            for q in self.pieces.values() {
+                if q.attached_to.as_ref() == Some(&unit) && taken.insert(q.id.clone()) {
+                    added.insert(q.id.clone());
+                    heads.push(q.id.clone());
+                }
+            }
+        }
+        for id in listed {
+            let Some(parent) = self.pieces.get(id).and_then(|p| p.attached_to.as_ref()) else {
+                continue;
+            };
+            if !taken.contains(&PieceId::from(parent)) {
+                return Err(Illegal::new(
+                    "19.4x",
+                    format!("{id} is attached to {parent}: detach it first"),
+                ));
+            }
+        }
+        Ok(listed.iter().cloned().chain(added).collect())
+    }
+
+    /// Attachment changes in the player's phase C or its own movement
+    /// segment (19.4x).
+    fn reorganising(&self, player: Side) -> Result<(), Illegal> {
+        let own_segment = self.clock.phase == Phase::MovementCombat
+            && self.clock.segment == Some(Segment::Movement)
+            && self.phasing() == Some(player);
+        if self.clock.phase == Phase::Organisation || own_segment {
+            Ok(())
+        } else {
+            Err(Illegal::new(
+                "19.4x",
+                format!(
+                    "units attach and detach in phase C or their own movement segment, not at {}",
+                    self.clock
+                ),
+            ))
+        }
+    }
+
+    /// One of the player's combat units or HQs, on the map.
+    fn own_unit(&self, player: Side, id: &PieceId) -> Result<&crate::piece::Piece, Illegal> {
+        self.pieces
+            .get(id)
+            .filter(|p| p.side == player && matches!(p.kind, PieceKind::Combat | PieceKind::Hq))
+            .filter(|p| p.hex().is_some())
+            .ok_or_else(|| {
+                Illegal::new(
+                    "19.4x",
+                    format!("{id} is not one of {player}'s units on the map"),
+                )
+            })
+    }
+
+    /// A CP each from the unit and its parent (19.4x).
+    fn charge_attachment(&mut self, a: &PieceId, b: &PieceId) {
+        for id in [a, b] {
+            self.pieces.get_mut(id).expect("checked").cp_spent += Cp::whole(1);
+        }
+    }
+
+    /// `Order::Attach`: `piece` merges into `to`'s counter in their hex
+    /// (19.4x).
+    pub(crate) fn attach(
+        &mut self,
+        player: Side,
+        piece: &PieceId,
+        to: &PieceId,
+    ) -> Result<Vec<Event>, Illegal> {
+        self.reorganising(player)?;
+        let p = self.own_unit(player, piece)?;
+        let parent = self.own_unit(player, to)?;
+        if let Some(on) = &p.attached_to {
+            return Err(Illegal::new(
+                "19.4x",
+                format!("{piece} is attached to {on}: detach it first"),
+            ));
+        }
+        if p.hex() != parent.hex() {
+            return Err(Illegal::new(
+                "19.4x",
+                format!("{piece} and {to} are not in one hex"),
+            ));
+        }
+        let unit = to.unit().expect("a unit has a sheet id");
+        if p.parent.as_ref() != Some(&unit) {
+            return Err(Illegal::new(
+                "19.5",
+                format!(
+                    "{piece} is not assigned to {to}: attaching it waits on the attachment limits"
+                ),
+            ));
+        }
+        self.charge_attachment(piece, to);
+        self.pieces.get_mut(piece).expect("checked").attached_to = Some(unit);
+        Ok(vec![Event::Attached {
+            piece: piece.clone(),
+            to: to.clone(),
+        }])
+    }
+
+    /// `Order::Detach`: `piece` stands on its own again (19.4x).
+    pub(crate) fn detach(&mut self, player: Side, piece: &PieceId) -> Result<Vec<Event>, Illegal> {
+        self.reorganising(player)?;
+        let Some(on) = self.own_unit(player, piece)?.attached_to.clone() else {
+            return Err(Illegal::new("19.4x", format!("{piece} is not attached")));
+        };
+        let from = PieceId::from(&on);
+        self.charge_attachment(piece, &from);
+        self.pieces.get_mut(piece).expect("checked").attached_to = None;
+        Ok(vec![Event::Detached {
+            piece: piece.clone(),
+            from,
+        }])
+    }
+}
+
+#[cfg(test)]
+impl GameState {
+    /// Puts a piece somewhere by hand, as a test fixture does: it stands
+    /// alone there, detached from its parent and with nothing attached.
+    pub(crate) fn put(&mut self, id: &PieceId, at: Location) {
+        let unit = id.unit();
+        for q in self.pieces.values_mut() {
+            if unit.is_some() && q.attached_to == unit {
+                q.attached_to = None;
+            }
+        }
+        let p = self.pieces.get_mut(id).expect("a piece of the test");
+        p.attached_to = None;
+        p.location = at;
+    }
+
+    /// Splits a piece from its formation where it stands (a fixture).
+    pub(crate) fn stand_alone(&mut self, id: &PieceId) {
+        let at = self.pieces[id].location.clone();
+        self.put(id, at);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::data::Data;
-    use crate::movement::test_support::{hex, moving, pid};
+    use crate::movement::test_support::{hex, moving, mv, pid};
+    use crate::order::Order;
     use crate::piece::{Location, Piece};
     use crate::state::GameState;
+    use cna_data::cp::Cp;
     use cna_data::scenario::Side;
 
     fn graziani() -> Data {
@@ -126,5 +285,153 @@ mod tests {
         }
         let old = GameState::from_json(&json.to_string(), &data).unwrap();
         assert_eq!(old.to_json().unwrap(), state.to_json().unwrap());
+    }
+
+    /// Gruppo Maletti at C3617, its HQ and the II M tank battalion
+    /// attached to it in the set-up.
+    const MALETTI: &str = "unit:it:maletti-div-hq";
+    const TANKS: &str = "unit:it:iim-tank-bn";
+
+    #[test]
+    fn a_move_of_a_parent_carries_what_is_attached_to_it() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let attached: Vec<_> = state
+            .pieces
+            .values()
+            .filter(|p| p.attached_to.is_some() && p.hex() == Some(&hex("C3617")))
+            .map(|p| p.id.clone())
+            .collect();
+        assert!(attached.contains(&pid(TANKS)));
+        let near = data.map.neighbours(&hex("C3617"))[0].clone();
+        state
+            .apply(&data, Side::Axis, mv(&[MALETTI], &[&near.to_string()]))
+            .unwrap();
+        for id in &attached {
+            assert_eq!(state.pieces[id].hex(), Some(&near), "{id}");
+        }
+    }
+
+    #[test]
+    fn an_attached_unit_does_not_move_without_its_parent() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let near = data.map.neighbours(&hex("C3617"))[0].to_string();
+        let err = state
+            .apply(&data, Side::Axis, mv(&[TANKS], &[&near]))
+            .unwrap_err();
+        assert_eq!(err.case, "19.4x");
+        assert!(err.reason.contains("detach"), "{}", err.reason);
+    }
+
+    #[test]
+    fn detaching_and_attaching_an_assigned_unit_cost_a_cp_each() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let (tanks, hq) = (pid(TANKS), pid(MALETTI));
+        let before = (state.pieces[&tanks].cp_spent, state.pieces[&hq].cp_spent);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&tanks].attached_to, None);
+        assert_eq!(state.pieces[&tanks].cp_spent, before.0 + Cp::whole(1));
+        assert_eq!(state.pieces[&hq].cp_spent, before.1 + Cp::whole(1));
+        // Detached, it stacks on its own and may move alone.
+        assert_eq!(state.stacked(&data, &hex("C3617")), 6);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Attach {
+                    piece: tanks.clone(),
+                    to: hq.clone(),
+                },
+            )
+            .unwrap();
+        assert!(state.pieces[&tanks].attached_to.is_some());
+        assert_eq!(state.pieces[&tanks].cp_spent, before.0 + Cp::whole(2));
+        assert_eq!(state.pieces[&hq].cp_spent, before.1 + Cp::whole(2));
+    }
+
+    #[test]
+    fn attaching_needs_the_same_hex_an_own_parent_and_the_side_s_segment() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let (tanks, hq) = (pid(TANKS), pid(MALETTI));
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap();
+        let attach = |to: &str| Order::Attach {
+            piece: tanks.clone(),
+            to: pid(to),
+        };
+        // Already detached: nothing to detach.
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "19.4x");
+        // Another hex.
+        let near = data.map.neighbours(&hex("C3617"))[0].to_string();
+        state
+            .apply(&data, Side::Axis, mv(&[TANKS], &[&near]))
+            .unwrap();
+        assert_eq!(
+            state
+                .apply(&data, Side::Axis, attach(MALETTI))
+                .unwrap_err()
+                .case,
+            "19.4x"
+        );
+        // A parent it is not assigned to waits on 19.5's limits.
+        let other = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == crate::piece::PieceKind::Hq && p.id != hq)
+            .unwrap()
+            .id
+            .clone();
+        let at = state.pieces[&other].location.clone();
+        state.pieces.get_mut(&tanks).unwrap().location = at;
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Attach {
+                    piece: tanks.clone(),
+                    to: other,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+        // The other side's movement segment: not the Axis's to change.
+        let mut cw = moving(&data, 3, Side::Cw);
+        let err = cw
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "5.2");
     }
 }

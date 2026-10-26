@@ -407,7 +407,7 @@ mod tests {
             .map(|p| p.id.clone())
             .collect();
         for id in here {
-            state.pieces.get_mut(&id).unwrap().location = crate::piece::Location::Hex(away.clone());
+            state.put(&id, crate::piece::Location::Hex(away.clone()));
         }
         let dummy = state
             .pieces
@@ -415,7 +415,7 @@ mod tests {
             .find(|p| p.side == Side::Axis && p.kind == PieceKind::DummySupplyUnit)
             .map(|p| p.id.clone())
             .expect("an Axis dummy");
-        state.pieces.get_mut(&dummy).unwrap().location = crate::piece::Location::Hex(hex.clone());
+        state.put(&dummy, crate::piece::Location::Hex(hex.clone()));
         assert!(state.field_repairs(&data).is_empty());
     }
 

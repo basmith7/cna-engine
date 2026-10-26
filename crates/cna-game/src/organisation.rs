@@ -592,7 +592,7 @@ mod tests {
             .map(|p| p.id.clone())
             .collect();
         let here = state.pieces[&ids[0]].location.clone();
-        state.pieces.get_mut(&ids[1]).unwrap().location = here;
+        state.put(&ids[1], here);
         state.pieces.get_mut(&ids[0]).unwrap().load = Some(Load { ammo: 20, fuel: 30 });
         state.pieces.get_mut(&ids[1]).unwrap().load = Some(Load { ammo: 30, fuel: 50 });
         let order = |ammo, fuel| Order::TransferLoad {
@@ -763,6 +763,7 @@ mod tests {
             .unwrap()
             .id
             .clone();
+        state.stand_alone(&combat);
         let err = state
             .apply(
                 &data,
@@ -896,7 +897,7 @@ mod tests {
             .map(|p| p.id.clone())
             .collect();
         let here = state.pieces[&ids[0]].location.clone();
-        state.pieces.get_mut(&ids[1]).unwrap().location = here;
+        state.put(&ids[1], here);
         state.pieces.get_mut(&ids[0]).unwrap().load = Some(Load { ammo: 5, fuel: 5 });
         state.pieces.get_mut(&ids[0]).unwrap().motorised = 30;
         state.pieces.get_mut(&ids[1]).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
@@ -937,7 +938,7 @@ mod tests {
             .map(|p| p.id.clone())
             .collect();
         for id in &others {
-            state.pieces.get_mut(id).unwrap().location = crate::piece::Location::Hex(dest.clone());
+            state.put(id, crate::piece::Location::Hex(dest.clone()));
         }
         let major = data
             .map

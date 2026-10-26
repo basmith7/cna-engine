@@ -365,6 +365,7 @@ mod tests {
         let data = Data::load("grazianis-offensive").unwrap();
         let mut state = movement(&data, Modules::ALL);
         let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        state.stand_alone(&tanks);
         state.pieces.get_mut(&tanks).unwrap().breakdown_halves = 200;
         let start = state.pieces[&tanks].hex().unwrap().clone();
         // Graziani's Commonwealth has no brigade-equivalent: make one.
@@ -385,9 +386,9 @@ mod tests {
             .into_iter()
             .filter(|h| state.holder(h).is_none());
         let (next, stop) = (hexes.next().unwrap(), hexes.next().unwrap());
-        state.pieces.get_mut(&brigade).unwrap().location = Location::Hex(next);
+        state.put(&brigade, Location::Hex(next));
         assert!(state.began_near_the_enemy(&data, &start, Side::Axis));
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(stop.clone());
+        state.put(&tanks, Location::Hex(stop.clone()));
         let mut events = Vec::new();
         state.check_breakdown(
             &data,
@@ -480,8 +481,9 @@ mod tests {
         use crate::event::Event;
         use crate::piece::PieceId;
         let data = Data::load("grazianis-offensive").unwrap();
-        let state = movement(&data, Modules::ALL);
+        let mut state = movement(&data, Modules::ALL);
         let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        state.stand_alone(&tanks);
         let at = state.pieces[&tanks].hex().unwrap().clone();
         for n in data.map.neighbours(&at) {
             let mut s = state.clone();
@@ -549,6 +551,7 @@ mod tests {
         // L3s (BAR 2R) at Bardia, already at 100 points this stage: 71+
         // reads past every escape.
         let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        state.stand_alone(&tanks);
         state.pieces.get_mut(&tanks).unwrap().breakdown_halves = 200;
         let at = state.pieces[&tanks].hex().unwrap().clone();
         let toe = state.pieces[&tanks].toe;

@@ -340,7 +340,7 @@ mod tests {
         // Cairo (E1730) starts over its ceiling. 1 KRRC passes through it
         // from E1629 to E1731: never a violation (9.31).
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state.put(&krrc, Location::Hex(hex("E1629")));
         state
             .apply(
                 &data,
@@ -357,7 +357,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state.put(&krrc, Location::Hex(hex("E1629")));
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1730"]))
             .unwrap();

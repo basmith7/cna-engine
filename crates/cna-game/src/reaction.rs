@@ -108,6 +108,7 @@ impl GameState {
         if side != player {
             return Err(Illegal::new("8.5x", format!("{side} reacts, not {player}")));
         }
+        let pieces = &self.carried(pieces)?;
         for id in pieces {
             if !eligible.contains(id) {
                 return Err(Illegal::new(
@@ -220,9 +221,9 @@ mod tests {
     fn tanks_near_halfaya_after(data: &Data, prepare: impl FnOnce(&mut GameState)) -> GameState {
         let mut state = moving(data, 3, Side::Axis);
         let tanks = pid("unit:it:lxiil-tank-bn");
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C3924"));
+        state.put(&tanks, Location::Hex(hex("C3924")));
         for id in ["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"] {
-            state.pieces.get_mut(&pid(id)).unwrap().location = Location::Hex(hex("C3820"));
+            state.put(&pid(id), Location::Hex(hex("C3820")));
         }
         prepare(&mut state);
         assert!(state.could_exert(data, &hex("C3820")));
@@ -366,7 +367,7 @@ mod tests {
                 .collect();
             assert_eq!(foot.len(), 6);
             for id in foot {
-                state.pieces.get_mut(&id).unwrap().location = Location::Hex(hex("C3822"));
+                state.put(&id, Location::Hex(hex("C3822")));
             }
         });
         assert_eq!(state.stacked(&data, &hex("C3822")), 6);
@@ -453,7 +454,7 @@ mod tests {
         // Hussars at C3020 exert a ZOC over it: no reaction. (The
         // battalions come from C3617 by the tracks, well within CPA 10.)
         for id in ["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"] {
-            state.pieces.get_mut(&pid(id)).unwrap().location = Location::Hex(hex("C3121"));
+            state.put(&pid(id), Location::Hex(hex("C3121")));
         }
         assert!(data.map.adjacent(&hex("C3121"), &hex("C3020")));
         let events = state

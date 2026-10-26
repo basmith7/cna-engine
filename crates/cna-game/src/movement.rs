@@ -652,6 +652,7 @@ impl GameState {
         assault: bool,
         fuel_from: Option<&PieceId>,
     ) -> Result<Vec<Event>, Illegal> {
+        let pieces = &self.carried(pieces)?;
         let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
         // Supply stacking binds where the move ends (32.1x).
@@ -1167,6 +1168,7 @@ mod tests {
         assert_eq!(state.cpa(&state.pieces[&hq]), Some(10));
         assert_eq!(state.mobility(&data, &state.pieces[&hq]), Mobility::Foot);
         let tanks = pid("unit:it:lxiil-tank-bn");
+        state.stand_alone(&tanks);
         assert_eq!(state.pieces[&tanks].hex(), Some(&hex("C3918")));
         assert_eq!(
             state.mobility(&data, &state.pieces[&tanks]),
@@ -1193,7 +1195,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let hus = pid("unit:cw:11-hus");
-        state.pieces.get_mut(&hus).unwrap().location = Location::Hex(hex("A2110"));
+        state.put(&hus, Location::Hex(hex("A2110")));
         let before = snapshot(&state);
         let err = state
             .apply(
@@ -1286,7 +1288,7 @@ mod tests {
         // 1 KRRC (foot) at C0633 (rough) crosses the seam slope to D0701
         // (clear), the higher hex: 2 + 2 up; back is 3 + 1 down.
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C0633"));
+        state.put(&krrc, Location::Hex(hex("C0633")));
         let events = state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["D0701"]))
             .unwrap();
@@ -1307,14 +1309,14 @@ mod tests {
         // into E2301, the higher hex (8.4x); by the coast road across
         // C4033|D4001 it pays the road rate, ½.
         let med = pid("unit:cw:7-med");
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("D2233"));
+        state.put(&med, Location::Hex(hex("D2233")));
         let before = snapshot(&state);
         let err = state
             .apply(&data, Side::Cw, mv(&["unit:cw:7-med"], &["E2301"]))
             .unwrap_err();
         assert_eq!(err.case, "8.4x");
         assert_eq!(snapshot(&state), before);
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("C4033"));
+        state.put(&med, Location::Hex(hex("C4033")));
         let events = state
             .apply(&data, Side::Cw, mv(&["unit:cw:7-med"], &["D4001"]))
             .unwrap();
@@ -1363,7 +1365,7 @@ mod tests {
         // that is not even adjacent is refused outright, not parked on
         // the declaration.
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C4021"));
+        state.put(&krrc, Location::Hex(hex("C4021")));
         assert!(matches!(
             state.zoc_at(&data, &hex("C4021"), Side::Cw),
             Zoc::Undeclared(_)
