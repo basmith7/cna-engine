@@ -64,9 +64,6 @@ pub struct Minefield {
     pub revealed: bool,
 }
 
-/// What a real minefield costs in ammunition under §32 (24.33).
-pub const MINEFIELD_AMMO: u32 = 15;
-
 /// A fortification never goes past 2 except in Alexandria and Cairo,
 /// and a city only back to its own level (24.43, 25.12).
 const BUILT_MAX: u8 = 2;
@@ -144,23 +141,14 @@ impl GameState {
                 format!("a project is already under way in {hex}"),
             ));
         }
-        let payment = match item {
-            Item::Fortification => {
-                self.fortification_site(data, player, hex, builders)?;
-                None
-            }
+        match item {
+            Item::Fortification => self.fortification_site(data, player, hex, builders)?,
             Item::RealMinefield | Item::DummyMinefield => {
-                self.minefield_site(data, player, item, hex, builders)?
+                self.minefield_site(data, player, hex, builders)?
             }
-            Item::ClearMinefield => {
-                self.clearance_site(data, player, hex, builders)?;
-                None
-            }
-        };
-        let mut events = Vec::new();
-        if let Some(pay) = payment {
-            self.spend_ammo(vec![pay], &mut events);
+            Item::ClearMinefield => self.clearance_site(data, player, hex, builders)?,
         }
+        let mut events = Vec::new();
         self.projects.insert(
             hex.clone(),
             Project {
@@ -282,16 +270,15 @@ impl GameState {
 
     /// Where and by whom a minefield may be laid (24.3x): one engineer
     /// unit or a Commonwealth E-HQ, on the chart's terrain, never in a
-    /// major city or an enemy ZOC, one field to a hex. A real one under
-    /// §32 takes its ammunition from a supply unit in the hex.
+    /// major city or an enemy ZOC, one field to a hex. Under §32 it costs
+    /// no supplies (R-133).
     fn minefield_site(
         &self,
         data: &Data,
         player: Side,
-        item: Item,
         hex: &HexId,
         builders: &[PieceId],
-    ) -> Result<Option<crate::ammo::AmmoPayment>, Illegal> {
+    ) -> Result<(), Illegal> {
         if !self.lone_engineer(data, player, builders) {
             return Err(Illegal::new(
                 "24.31",
@@ -307,7 +294,7 @@ impl GameState {
         let terrain = data.map.hex(hex).map(|h| h.terrain);
         if !matches!(
             terrain,
-            Some(Terrain::Clear | Terrain::Gravel | Terrain::SaltMarsh)
+            Some(Terrain::Clear | Terrain::Gravel | Terrain::Rough)
         ) {
             return Err(Illegal::new(
                 "24.35",
@@ -320,29 +307,7 @@ impl GameState {
                 format!("{hex} is in an enemy ZOC: no minefield is laid there"),
             ));
         }
-        if item == Item::DummyMinefield || !self.modules.abstract_supply {
-            return Ok(None);
-        }
-        let from = self
-            .pieces
-            .values()
-            .find(|p| {
-                p.side == player
-                    && p.hex() == Some(hex)
-                    && p.load.as_ref().is_some_and(|l| l.ammo >= MINEFIELD_AMMO)
-            })
-            .map(|p| p.id.clone())
-            .ok_or_else(|| {
-                Illegal::new(
-                    "24.33",
-                    format!("a real minefield needs {MINEFIELD_AMMO} ammunition from a supply unit in {hex}"),
-                )
-            })?;
-        Ok(Some(crate::ammo::AmmoPayment {
-            piece: builders[0].clone(),
-            from,
-            ammo: MINEFIELD_AMMO,
-        }))
+        Ok(())
     }
 
     /// What `piece`, moving with `stack`, pays on top of the terrain to
@@ -698,26 +663,16 @@ mod tests {
     }
 
     #[test]
-    fn a_real_minefield_takes_fifteen_ammunition_from_a_supply_unit_in_the_hex_24_33() {
+    fn a_real_minefield_spends_no_supplies_under_abstract_supply_r133() {
         let data = graziani();
         let (mut state, site, builders) = organising(&data);
-        let err = state
-            .apply(
-                &data,
-                Side::Axis,
-                lay(Item::RealMinefield, &site, &builders[0]),
-            )
-            .unwrap_err();
-        assert_eq!(err.case, "24.33");
-        let supply = state
-            .pieces
-            .values()
-            .find(|p| p.side == Side::Axis && p.load.as_ref().is_some_and(|l| l.ammo >= 20))
-            .unwrap()
-            .id
-            .clone();
-        let before = state.pieces[&supply].load.as_ref().unwrap().ammo;
-        state.pieces.get_mut(&supply).unwrap().location = crate::piece::Location::Hex(site.clone());
+        assert!(state.modules.abstract_supply);
+        assert!(
+            !state
+                .pieces
+                .values()
+                .any(|p| p.hex() == Some(&site) && p.load.is_some())
+        );
         let events = state
             .apply(
                 &data,
@@ -725,21 +680,17 @@ mod tests {
                 lay(Item::RealMinefield, &site, &builders[0]),
             )
             .unwrap();
-        assert!(events.contains(&Event::AmmunitionSpent {
-            piece: builders[0].clone(),
-            from: supply.clone(),
-            ammo: MINEFIELD_AMMO,
-        }));
-        assert_eq!(
-            state.pieces[&supply].load.as_ref().unwrap().ammo,
-            before - MINEFIELD_AMMO
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::AmmunitionSpent { .. }))
         );
         pass_stage(&data, &mut state);
         assert!(state.minefields[&site].real);
     }
 
     #[test]
-    fn one_minefield_to_a_hex_and_none_in_rough_24_35() {
+    fn one_minefield_to_a_hex_rough_but_not_salt_marsh_r134() {
         let data = graziani();
         let (mut state, site, builders) = organising(&data);
         state.minefields.insert(
@@ -758,23 +709,40 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "24.35");
-        let rough = data
+        let marsh = data
             .map
             .hexes()
-            .find(|h| h.terrain == Terrain::Rough)
+            .find(|h| h.terrain == Terrain::SaltMarsh)
             .unwrap()
             .id
             .clone();
         state.pieces.get_mut(&builders[0]).unwrap().location =
-            crate::piece::Location::Hex(rough.clone());
+            crate::piece::Location::Hex(marsh.clone());
         let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                lay(Item::DummyMinefield, &marsh, &builders[0]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "24.35");
+        // Rough is a site (R-134).
+        let rough = data
+            .map
+            .hexes()
+            .filter(|h| h.terrain == Terrain::Rough)
+            .map(|h| h.id.clone())
+            .find(|h| state.zoc_at(&data, h, Side::Axis) == Zoc::Clear && state.holder(h).is_none())
+            .unwrap();
+        state.pieces.get_mut(&builders[0]).unwrap().location =
+            crate::piece::Location::Hex(rough.clone());
+        state
             .apply(
                 &data,
                 Side::Axis,
                 lay(Item::DummyMinefield, &rough, &builders[0]),
             )
-            .unwrap_err();
-        assert_eq!(err.case, "24.35");
+            .unwrap();
     }
 
     /// The Axis movement segment of GT1 OpStage 1 with a foot battalion

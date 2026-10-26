@@ -370,3 +370,9 @@ Done: #49 (9b) merged. 9c finished on #50 (ready): laying, entry costs and revea
 In flight: #50's CI.
 Next: merge #50 on green CI. Then slice 9 is done: refresh the land-turn design's Status and the README's systems line; then the PR #12 combat follow-ups (18.2x released units, 15.84/14.14 forward guns).
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
+
+## 2026-10-26 03:02 MST — autopilot/m5-cna-bump-2
+Done: #51: vendor/cna bb0a8d1 -> 818fbf6 (c9be633; every request answered), R-133/R-134 minefields (no supplies under §32; rough not salt marsh), R-126..R-134 listed in NOT_SIMULATED, e2e hashes re-pinned. Rust gates green.
+In flight: #51's CI; two stacked branches from it: `autopilot/m5-convoy-bombing` (32.6x with lanes, R-126..R-128) and `autopilot/m5-slice-6-limits` (slice 6 Task 3, caps and shells, R-130), worktrees in ../wt-*.
+Next: merge #51 on green CI, then the two stacked PRs once their gates pass. R-132's off-map prisoner stages (3 at CPA 8) are a small follow-up.
+Blocked: Mission 4 on Brian's review of #25.

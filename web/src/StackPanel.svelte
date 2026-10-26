@@ -73,7 +73,7 @@
     {/if}
     {#if onorder && view.clock?.phase === "organisation" && !project && !minefield && builders.length === 1}
       <p class="guarding">
-        <button type="button" data-order="lay-real" title="One stage; 15 ammunition from a supply unit here (24.33)" onclick={() => hex && onorder({ build: { item: "real-minefield", hex, builders } })}>Lay a minefield</button>
+        <button type="button" data-order="lay-real" title="One stage; no supplies under abstract supply (R-133)" onclick={() => hex && onorder({ build: { item: "real-minefield", hex, builders } })}>Lay a minefield</button>
         <button type="button" data-order="lay-dummy" title="One stage, nothing spent (24.31)" onclick={() => hex && onorder({ build: { item: "dummy-minefield", hex, builders } })}>Lay a dummy</button>
       </p>
     {/if}
