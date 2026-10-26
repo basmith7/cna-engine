@@ -30,8 +30,9 @@ the campaign game, the Italian campaign, Graziani's Offensive,
 Operation Crusader and The Long Retreat set up and pass a Game-Turn;
 61.38's reassigned 6 RTR no longer fails set-up) and points victories
 are scored (#63: six of nine scenarios use them; the end dialog shows
-totals). Open at handoff: #62 (the browser starts any scenario that
-sets up; CI running). Four scenarios wait on cna (requests below).
+totals) and the browser starts any scenario that sets up (#62). #64
+refreshed the design's Status. Nothing open at handoff. Four scenarios
+wait on cna (requests below).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -82,10 +83,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #62 on green CI (the browser's
-  scenario picker; the end dialog's points table is not yet seen in a
-  browser). Then refresh the land-turn design's Status (its R-132 and
-  stack-panel items are merged), and take the next scenario land rule
+- Mission 5 continues unattended (the end dialog's points table is not
+  yet seen in a browser; the map opens framed for Graziani's whatever
+  the scenario): take the next scenario land rule
   that cna's data supports; Rommel (§31), The Last Chance and Rommel's
   Arrival wait on the requests below. Convoy lanes beyond Tripoli and
   the 19.3 chart as the shell denominator remain.
