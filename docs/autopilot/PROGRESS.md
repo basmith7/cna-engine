@@ -42,8 +42,8 @@ the Axis may fly supply back to the Tripoli or Tunisia box. **PR #43 (merged)**:
 **PR #40 (merged 2026-10-26)**: R-120's defence side: defenders out of
 ammunition sit out and an all-out hex surrenders, so the module-on
 golden game's Halfaya Pass now falls by surrender (439 orders, played by
-clicks in Playwright). **Slice 6a** (plan #41, resliced) is **PR #44,
-ready**, CI running at handoff: attachment is state (`Piece.attached_to`;
+clicks in Playwright). **Slice 6a** (plan #41, resliced) merged as
+**PR #44** on 2026-10-26: attachment is state (`Piece.attached_to`;
 set-up, placements and arrivals attach, old saves fill), stacking and an
 HQ's CPA read it, `Attach`/`Detach` at a CP each in phase C or the own
 movement segment (hexes and boxes), and moves, reactions, retreats and
@@ -101,7 +101,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #44 when its CI is green; then slice 6 Task 4 (24.9 dumps, §28 prisoners) on its own PR; Task 3 waits on cna's HQ organisation types. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: slice 6 Task 4 (24.9 dumps, §28 prisoners) on its own PR; Task 3 waits on cna's HQ organisation types. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
