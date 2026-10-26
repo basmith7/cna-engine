@@ -57,6 +57,12 @@ play; the module-on golden marches Halfaya's 12 west. 24.9 dumps wait on
 cna (request below). **Slice 7** (PR #46, merged 2026-10-26):
 repaired points stand in their hex and a unit there absorbs them in
 phase C at a CP per two, up to printed strength (19.61, 20.41).
+**Slice 8** (PR #47, ready 2026-10-26): prisoner guards and escape
+(28.2x): guard points detailed from infantry, a guard per five on the
+march, unguarded prisoners escape at the end of the captor's phase H,
+an enemy entering frees or recaptures them. **Slice 9a** (PR #48,
+draft, stacked on #47): major cities defend at their fortification
+level, the best single in-hex benefit; level-3 cities ignore pins.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -107,7 +113,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: slice 8, prisoner guards and escape (28.2x), is planned on draft PR #47; then the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #47 (slice 8) and #48 (9a) on green CI; then slice 9b (the construction segment, building fortifications) and 9c (minefields) from `docs/plans/2026-10-26-m5-slice-9-construction.md`; then the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -129,6 +135,8 @@ the bullet once it lands and `vendor/cna` is bumped.
 - **R-120's surrender with HQs in the hex.** R-120 makes an assaulted hex surrender when every defender is out of ammunition, but HQs (and anything else that owes no ammunition under 32.21) are never "out". Does a hex whose only defenders still in ammunition are HQs surrender? cna-engine #40 says yes (an all-out hex surrenders when every committed defender that *owes* ammunition is out, HQs included); please confirm or correct. Blocks nothing; #40 is built on that reading.
 
 - **Each HQ's organisation type, keyed to `max-attachments.json` and `formation-organisation.json`.** Slice 6 (§19 attachment, plan `docs/plans/2026-10-26-m5-slice-6-organisation.md`) must cap non-assigned attachments by 19.5's parent types (`armour-division`, `infantry-division`, `other-brigade`, `brigade-or-regiment`, `battalion`…) and judge 9.26 shells against 19.3's organisation (with its `type` and turn ranges), but no OA unit says which row it is: the 7th Armoured Division HQ is `echelon: division` with no `armour-division`. Please add, per HQ (and for battalions where 19.5 has a row), the `max-attachments.json` parent key and the `formation-organisation.json` row (parent and type). Blocks Mission 5 slice 6, Task 3.
+
+- **Construction costs under abstract supply (§24 with 32.11), and the minefield terrain.** 32.11 ignores stores and water, but the Construction Chart's real minefield also costs 15 ammunition, which a §32 supply unit carries. Please rule: under §32, does a real minefield draw 15 ammunition from a supply unit in the hex (and a fortification, all stores, nothing)? And the chart lists minefield sites as clear, sand-gravel and salt marsh, where 24.3x's text says clear, sand/gravel or rough: which governs? Blocks nothing; cna-engine slice 9c will draw the ammunition and follow the chart until then.
 
 Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#36).
 
