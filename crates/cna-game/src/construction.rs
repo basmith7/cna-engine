@@ -262,15 +262,19 @@ impl GameState {
         Ok(())
     }
 
-    /// `builders` is one engineer unit, or a Commonwealth E-HQ (24.31,
-    /// 26.11).
+    /// An engineer for minefield work (24.31, 26.11, 26.23): an engineer
+    /// combat unit, or a Commonwealth E-HQ.
+    fn field_engineer(&self, data: &Data, p: &Piece) -> bool {
+        self.engineer_capable(data, p)
+            && (p.kind == PieceKind::Combat || (p.kind == PieceKind::Hq && p.side == Side::Cw))
+    }
+
+    /// `builders` is one field engineer of `player`'s.
     fn lone_engineer(&self, data: &Data, player: Side, builders: &[PieceId]) -> bool {
         match builders {
             [one] => {
                 let p = &self.pieces[one];
-                self.engineer_capable(data, p)
-                    && (p.kind == PieceKind::Combat
-                        || (p.kind == PieceKind::Hq && player == Side::Cw))
+                p.side == player && self.field_engineer(data, p)
             }
             _ => false,
         }
@@ -372,10 +376,9 @@ impl GameState {
     /// Whether `stack` has an engineer that escorts others through
     /// minefields (26.23): an engineer combat unit or a Commonwealth E-HQ.
     fn escorted(&self, data: &Data, stack: &[PieceId]) -> bool {
-        stack.iter().any(|id| {
-            let p = &self.pieces[id];
-            self.engineer_capable(data, p) && (p.kind == PieceKind::Combat || p.side == Side::Cw)
-        })
+        stack
+            .iter()
+            .any(|id| self.field_engineer(data, &self.pieces[id]))
     }
 
     /// Vehicles entering an enemy real minefield with no engineer escort
