@@ -6,6 +6,7 @@ use super::strength::Kind;
 use crate::data::Data;
 use crate::state::GameState;
 use cna_data::map::{HexId, Hexside, HexsideFeature};
+use cna_data::scenario::Side;
 use cna_data::terrain::{Shift, Shifts};
 
 fn pick(s: &Shifts, kind: Kind) -> Option<i32> {
@@ -65,6 +66,28 @@ impl GameState {
         }
         let fort = fortification_shift(data, self.fortification_level(data, hex), kind);
         Some(fort.map_or(terrain, |f| f.min(terrain)))
+    }
+
+    /// The minefield shift for `defender` against fire of `kind` into
+    /// `target` from `from` (26.26, TEC footnote 13): one column for the
+    /// defender when it stands in its own field or an attacker stands in
+    /// one of the defender's, never two; barrage is unaffected.
+    pub fn minefield_shift(
+        &self,
+        target: &HexId,
+        defender: Side,
+        from: &[HexId],
+        kind: Kind,
+    ) -> i32 {
+        if kind == Kind::Barrage {
+            return 0;
+        }
+        let theirs = |h: &HexId| self.minefields.get(h).is_some_and(|f| f.side == defender);
+        if theirs(target) || from.iter().any(theirs) {
+            -1
+        } else {
+            0
+        }
     }
 
     /// Units in a level-3 city ignore pinned results (25.24).
@@ -266,6 +289,81 @@ mod tests {
         assert_eq!(
             state.in_hex_shift(&data, &clear, Kind::Barrage, false),
             Some(-1)
+        );
+    }
+
+    #[test]
+    fn minefields_shift_anti_armour_and_close_assault_one_for_the_defender_26_26() {
+        use crate::construction::Minefield;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = crate::state::test_support::set_up(&data, 3);
+        let (target, from) = (hex("C3923"), hex("C4022"));
+        let defender = Side::Cw;
+        let field = |side| Minefield {
+            side,
+            real: false,
+            revealed: false,
+        };
+        assert_eq!(
+            state.minefield_shift(
+                &target,
+                defender,
+                std::slice::from_ref(&from),
+                Kind::Defence
+            ),
+            0
+        );
+        // Attackers standing in the defender's field.
+        state.minefields.insert(from.clone(), field(defender));
+        assert_eq!(
+            state.minefield_shift(
+                &target,
+                defender,
+                std::slice::from_ref(&from),
+                Kind::Defence
+            ),
+            -1
+        );
+        assert_eq!(
+            state.minefield_shift(
+                &target,
+                defender,
+                std::slice::from_ref(&from),
+                Kind::AntiArmour
+            ),
+            -1
+        );
+        assert_eq!(
+            state.minefield_shift(
+                &target,
+                defender,
+                std::slice::from_ref(&from),
+                Kind::Barrage
+            ),
+            0
+        );
+        // The defender in its own field as well: still one, not two.
+        state.minefields.insert(target.clone(), field(defender));
+        assert_eq!(
+            state.minefield_shift(
+                &target,
+                defender,
+                std::slice::from_ref(&from),
+                Kind::Defence
+            ),
+            -1
+        );
+        // A field of the attacker's own gives the defender nothing.
+        state.minefields.clear();
+        state
+            .minefields
+            .insert(target.clone(), field(defender.other()));
+        state
+            .minefields
+            .insert(from.clone(), field(defender.other()));
+        assert_eq!(
+            state.minefield_shift(&target, defender, &[from], Kind::Defence),
+            0
         );
     }
 
