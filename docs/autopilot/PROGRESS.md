@@ -111,6 +111,8 @@ the bullet once it lands and `vendor/cna` is bumped.
 
 - **R-120's surrender with HQs in the hex.** R-120 makes an assaulted hex surrender when every defender is out of ammunition, but HQs (and anything else that owes no ammunition under 32.21) are never "out". Does a hex whose only defenders still in ammunition are HQs surrender? cna-engine #40 says yes (an all-out hex surrenders when every committed defender that *owes* ammunition is out, HQs included); please confirm or correct. Blocks nothing; #40 is built on that reading.
 
+- **Each HQ's organisation type, keyed to `max-attachments.json` and `formation-organisation.json`.** Slice 6 (§19 attachment, plan `docs/plans/2026-10-26-m5-slice-6-organisation.md`) must cap non-assigned attachments by 19.5's parent types (`armour-division`, `infantry-division`, `other-brigade`, `brigade-or-regiment`, `battalion`…) and judge 9.26 shells against 19.3's organisation (with its `type` and turn ranges), but no OA unit says which row it is: the 7th Armoured Division HQ is `echelon: division` with no `armour-division`. Please add, per HQ (and for battalions where 19.5 has a row), the `max-attachments.json` parent key and the `formation-organisation.json` row (parent and type). Blocks Mission 5 slice 6, Task 3.
+
 Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#36).
 
 ## Runs and quota
