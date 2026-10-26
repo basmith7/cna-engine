@@ -17,6 +17,14 @@ describe("a placement in words", () => {
     expect(placementWords({ hexes: ["C4131", "C4130"] })).toBe("any of C4131 or C4130");
   });
 
+  it("reads several locators as one area", () => {
+    expect(placementWords({ region: "libya", sheets: ["C"], together: true })).toBe(
+      "any hex in Libya on sheet C, all in one hex",
+    );
+    expect(placementWords({ sheets: ["D"], west_of: "D3714" })).toBe("any hex of sheet D west of D3714");
+    expect(placementWords({ place: ["cairo", "helwan"] })).toBe("cairo or helwan");
+  });
+
   it("does not repeat the constraint prose: that is the tray's 'also'", () => {
     expect(placementWords({ sheets: ["C"], constraint: "Libyan part of sheet C only" })).toBe("any hex of sheet C");
   });

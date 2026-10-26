@@ -408,39 +408,47 @@ fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
 /// A single hex or a place is a location; a box is a box; anything the
 /// owner must choose among is pending.
 fn resolve(p: &Placement, map: &Map) -> Result<Location> {
-    match &p.locator {
-        Locator::Hexes(h) => {
-            for hex in h {
-                if map.hex(hex).is_none() {
-                    bail!("{hex}: not on the map");
+    for l in &p.locators {
+        match l {
+            Locator::Hexes(h) => {
+                for hex in h {
+                    if map.hex(hex).is_none() {
+                        bail!("{hex}: not on the map");
+                    }
                 }
             }
-            if h.len() == 1 {
-                return Ok(Location::Hex(h[0].clone()));
-            }
-        }
-        Locator::Place(id) => {
-            let place = map
-                .place(id)
-                .with_context(|| format!("{id}: not in places.json"))?;
-            return Ok(Location::Hex(place.hex.clone()));
-        }
-        Locator::Box(b) => return Ok(Location::Box(*b)),
-        Locator::Within { of, .. } => {
-            if map.hex(of).is_none() {
-                bail!("{of}: not on the map");
-            }
-        }
-        Locator::Sheets(s) => {
-            for sheet in s {
-                if map.sheet(*sheet).is_none() {
-                    bail!("sheet {sheet}: not on the map");
+            Locator::Place(ids) => {
+                for id in ids {
+                    map.place(id)
+                        .with_context(|| format!("{id}: not in places.json"))?;
                 }
             }
+            Locator::Within { of, .. } | Locator::WestOf(of) => {
+                if map.hex(of).is_none() {
+                    bail!("{of}: not on the map");
+                }
+            }
+            Locator::Sheets(s) => {
+                for sheet in s {
+                    if map.sheet(*sheet).is_none() {
+                        bail!("sheet {sheet}: not on the map");
+                    }
+                }
+            }
+            Locator::Box(_) | Locator::Region(_) | Locator::AirFacility => {}
         }
-        Locator::Region(_) | Locator::AirFacility => {}
     }
-    Ok(Location::Pending(p.clone()))
+    match p.sole() {
+        Some(Locator::Hexes(h)) if h.len() == 1 => Ok(Location::Hex(h[0].clone())),
+        // A choice of places (Cairo or Helwan) still starts at the first:
+        // offering the others would add set-up orders and move every
+        // golden game's indices. `log_constraint` logs the alternatives.
+        Some(Locator::Place(ids)) => Ok(Location::Hex(
+            map.place(&ids[0]).expect("checked").hex.clone(),
+        )),
+        Some(Locator::Box(b)) => Ok(Location::Box(*b)),
+        _ => Ok(Location::Pending(p.clone())),
+    }
 }
 
 /// 32.8x, the Land Game without the Air Game: AA is thinned at set-up.
@@ -504,6 +512,15 @@ pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<P
 }
 
 fn log_constraint(setup: &mut Setup, side: Side, p: &Placement, pieces: Vec<PieceId>) {
+    if let Some(Locator::Place(ids)) = p.sole()
+        && ids.len() > 1
+    {
+        setup.unchecked.push(Unchecked {
+            side,
+            constraint: format!("or {}", ids[1..].join(" or ")),
+            pieces: pieces.clone(),
+        });
+    }
     if let Some(c) = &p.constraint {
         setup.unchecked.push(Unchecked {
             side,
@@ -717,9 +734,11 @@ mod tests {
         let f = graziani();
         for side in [Side::Axis, Side::Cw] {
             for d in &f.scenario.side(side).deployments {
-                let expect = match &d.placement.locator {
-                    Locator::Hexes(h) if h.len() == 1 => Location::Hex(h[0].clone()),
-                    Locator::Place(p) => Location::Hex(f.map.place(p).unwrap().hex.clone()),
+                let expect = match d.placement.sole() {
+                    Some(Locator::Hexes(h)) if h.len() == 1 => Location::Hex(h[0].clone()),
+                    Some(Locator::Place(p)) if p.len() == 1 => {
+                        Location::Hex(f.map.place(&p[0]).unwrap().hex.clone())
+                    }
                     _ => continue,
                 };
                 for e in &d.units {
@@ -755,7 +774,7 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            p.locator,
+            p.locators[0],
             Locator::Within {
                 of: hex("C0716"),
                 hexes: 3
@@ -938,14 +957,10 @@ mod tests {
             .iter()
             .map(|u| u.constraint.as_str())
             .collect();
-        assert!(texts.contains(&"or Helwan (E1430)"));
-        assert!(texts.contains(&"any one hex of map D that lies west of Mersa Matruh (D3714); all three units in that one hex (60.92)"));
-        let helwan = f
-            .setup
-            .unchecked
-            .iter()
-            .find(|u| u.constraint == "or Helwan (E1430)")
-            .unwrap();
+        // Graziani's sentences are all typed now (cna bd108b6); only the
+        // Cairo-or-Helwan choice the engine does not yet offer is left.
+        assert_eq!(texts, vec!["or helwan"]);
+        let helwan = &f.setup.unchecked[0];
         assert_eq!(helwan.side, Side::Cw);
         assert!(
             helwan
@@ -969,7 +984,7 @@ mod tests {
         let chars = Characteristics::load().unwrap();
         let map = Map::load().unwrap();
         let d = &mut scenario.sides.get_mut(&Side::Axis).unwrap().deployments[0];
-        d.placement.locator = Locator::Hexes(vec![hex("C9999")]);
+        d.placement = cna_data::scenario::Placement::of(Locator::Hexes(vec![hex("C9999")]));
         let err = format!(
             "{:#}",
             expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap_err()

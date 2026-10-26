@@ -130,23 +130,22 @@ impl<'a> Tracer<'a> {
     }
 
     fn hexes_of(&self, objective: &Objective) -> (String, Vec<HexId>) {
-        match &objective.hold.locator {
-            Locator::Place(id) => (
-                id.clone(),
-                self.data
-                    .map
-                    .place(id)
-                    .map(|p| p.hexes.clone())
-                    .unwrap_or_default(),
+        match objective.hold.sole() {
+            Some(Locator::Place(ids)) => (
+                ids.join(" or "),
+                ids.iter()
+                    .filter_map(|id| self.data.map.place(id))
+                    .flat_map(|p| p.hexes.iter().cloned())
+                    .collect(),
             ),
-            Locator::Hexes(h) => (
+            Some(Locator::Hexes(h)) => (
                 h.iter()
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()
                     .join(" "),
                 h.clone(),
             ),
-            other => (format!("{other:?}"), Vec::new()),
+            _ => (format!("{:?}", objective.hold.locators), Vec::new()),
         }
     }
 

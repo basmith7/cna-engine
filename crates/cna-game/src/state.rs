@@ -446,7 +446,7 @@ pub(crate) mod test_support {
         if piece.side == Side::Axis {
             v.retain(|h| map.country(h) == Some(cna_data::map::Country::Libya));
         }
-        if piece.side == Side::Cw && matches!(&p.locator, Locator::Sheets(s) if s == &['D']) {
+        if piece.side == Side::Cw && p.locators.contains(&Locator::Sheets(vec!['D'])) {
             let matruh = HexId::parse("D3714").unwrap();
             v.retain(|h| map.adjacent(h, &matruh));
         }
@@ -859,9 +859,22 @@ mod tests {
             hex: hex(h),
         };
         let before = serde_json::to_string(&state).unwrap();
-        let err = state.apply(&data, Side::Axis, near("C3922")).unwrap_err();
+        // The nearest Libyan hex to the Commonwealth: in the area, but
+        // within 4 hexes of an enemy unit.
+        let libyan_near = data
+            .map
+            .within(&hex("C3922"), 4)
+            .into_iter()
+            .find(|h| data.map.country(h) == Some(cna_data::map::Country::Libya))
+            .expect("Libya within 4 of C3922");
+        let err = state
+            .apply(&data, Side::Axis, near(libyan_near.as_str()))
+            .unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(err.reason.contains("enemy"), "{}", err.reason);
+        // Egypt is outside the area (the Libyan part of sheet C).
+        let err = state.apply(&data, Side::Axis, near("C3922")).unwrap_err();
+        assert!(err.reason.contains("outside"), "{}", err.reason);
         let err = state.apply(&data, Side::Axis, near("C3722")).unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(data.map.within(&hex("C3922"), 4).contains(&hex("C3722")));
@@ -874,10 +887,26 @@ mod tests {
     fn a_place_on_a_hex_with_no_ceiling_is_illegal() {
         let data = graziani();
         let mut state = GameState::new(&data, 1).unwrap();
-        // Axis supply may go anywhere on sheet C; C5001 is sea (8.37: no
-        // stacking column), and far from the Commonwealth.
-        let supply = PieceId::supply(Side::Axis, 16);
-        assert_eq!(data.map.hex(&hex("C5001")).unwrap().terrain.name(), "sea");
+        // Axis units on sheets A or B; A5001's sea has no stacking column
+        // (8.37), and is far from the Commonwealth.
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && matches!(&p.location, Location::Pending(pl)
+                        if pl.locators == [cna_data::scenario::Locator::Sheets(vec!['A', 'B'])])
+            })
+            .expect("an Axis piece for sheets A or B")
+            .id
+            .clone();
+        let sea = data
+            .map
+            .hexes()
+            .find(|h| h.id.sheet() == 'A' && h.terrain.name() == "sea")
+            .expect("sea on sheet A")
+            .id
+            .clone();
         let before = serde_json::to_string(&state).unwrap();
         let err = state
             .apply(
@@ -885,7 +914,7 @@ mod tests {
                 Side::Axis,
                 Order::Place {
                     piece: supply,
-                    hex: hex("C5001"),
+                    hex: sea,
                 },
             )
             .unwrap_err();

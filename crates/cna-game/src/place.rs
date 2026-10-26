@@ -187,31 +187,64 @@ impl GameState {
     }
 }
 
-/// Whether `hex` is in the placement's area (59.2).
+/// Whether `hex` is in the placement's area (59.2): inside every one of
+/// its locators.
 fn allowed(data: &Data, placement: &Placement, hex: &HexId) -> bool {
-    match &placement.locator {
+    placement.locators.iter().all(|l| in_locator(data, l, hex))
+}
+
+fn in_locator(data: &Data, locator: &Locator, hex: &HexId) -> bool {
+    match locator {
         Locator::Hexes(list) => list.contains(hex),
         Locator::Within { of, hexes } => data.map.within(of, *hexes).contains(hex),
         Locator::Region(c) => data.map.country(hex) == Some(*c),
         Locator::Sheets(s) => s.contains(&hex.sheet()),
+        Locator::Place(ids) => ids
+            .iter()
+            .any(|id| data.map.place(id).is_some_and(|p| p.hexes.contains(hex))),
+        // Sheets run A to E west to east; within a sheet the first two
+        // digits (cna's column CC, `HexId::row` here) grow eastward.
+        Locator::WestOf(bound) => {
+            hex.sheet() < bound.sheet() || (hex.sheet() == bound.sheet() && hex.row() < bound.row())
+        }
         // Resolved at expansion; never pending.
-        Locator::Place(_) | Locator::Box(_) | Locator::AirFacility => false,
+        Locator::Box(_) | Locator::AirFacility => false,
     }
 }
 
 /// The placement's whole area (59.2): every hex `allowed` says yes to,
-/// in map order, before stacking and `not_within`.
+/// in map order, before stacking, `not_within` and `together`.
 pub(crate) fn area(data: &Data, placement: &Placement) -> Vec<HexId> {
     let map = &data.map;
-    match &placement.locator {
-        Locator::Hexes(h) => h.clone(),
-        Locator::Within { of, hexes } => map.within(of, *hexes).into_iter().collect(),
-        Locator::Region(_) | Locator::Sheets(_) => map
+    // A short list to filter where a locator gives one; else the map.
+    let seed: Option<Vec<HexId>> = placement.locators.iter().find_map(|l| match l {
+        Locator::Hexes(h) => Some(h.clone()),
+        Locator::Within { of, hexes } => Some(map.within(of, *hexes).into_iter().collect()),
+        Locator::Place(ids) => Some(
+            ids.iter()
+                .filter_map(|id| map.place(id))
+                .flat_map(|p| p.hexes.iter().cloned())
+                .collect(),
+        ),
+        _ => None,
+    });
+    if placement
+        .locators
+        .iter()
+        .any(|l| matches!(l, Locator::Box(_) | Locator::AirFacility))
+    {
+        return Vec::new();
+    }
+    match seed {
+        Some(hexes) => hexes
+            .into_iter()
+            .filter(|h| allowed(data, placement, h))
+            .collect(),
+        None => map
             .hexes()
             .filter(|h| allowed(data, placement, &h.id))
             .map(|h| h.id.clone())
             .collect(),
-        Locator::Place(_) | Locator::Box(_) | Locator::AirFacility => Vec::new(),
     }
 }
 

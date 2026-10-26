@@ -53,16 +53,19 @@ export type OffMapPlace = "tunis" | "gabes" | "tripoli" | "tripolitania" | "nofi
 
 export type Country = "libya" | "egypt";
 
-/** A free placement (cna-data `Placement`): exactly one locator key, then the narrowing fields. */
+/** A free placement (cna-data `Placement`): one or more locator keys (a hex meets every one), then the narrowing fields. */
 export interface Placement {
   hexes?: HexId[];
-  place?: string;
+  place?: string | string[];
   box?: OffMapBox;
   within?: { of: HexId; hexes: number };
   region?: Country;
   sheets?: string[];
+  west_of?: HexId;
   air_facility?: boolean;
   not_within?: { of: string; hexes: number } | null;
+  /** The whole block goes into one hex. */
+  together?: boolean;
   /** Prose the engine cannot check; the owner honours it (59.2). */
   constraint?: string | null;
 }

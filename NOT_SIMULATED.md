@@ -65,6 +65,12 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-114 | Air Game: not in the engine yet |
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
+| R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a defender out of ammunition still defends and no hex surrenders yet (a later Mission 5 slice) |
+| R-121 | abstract supply: company-equivalents still pay no ammunition (`cna-game::ammo`); half a battalion-equivalent's rate is next |
+| R-122 | loss base of a committed defender: not yet checked against `cna-game::combat::assault` |
+| R-123 | motorising foot units with motorisation points: a later Mission 5 slice |
+| R-124 | HQ echelons for air lift: the Air Game is not in the engine yet |
+| R-125 | breakdown class of recce units: the breakdown slice (Mission 5 slice 5) |
 
 # Rulings implemented as decided
 
