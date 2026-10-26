@@ -23,15 +23,14 @@ the air lift, breakdown and repair, attachment, prisoners, guards,
 replacements, construction, convoy bombing, gun losses, shells, the
 stack panel's organisation, formations in the size table, every
 scenario smoke-tested, points victories, the browser's scenario picker
-(#31–#64). **On 2026-10-26, third run:** cna answered all three
-requests; #65 (merged) bumps `vendor/cna` to 803d5d5 and builds what
-they unlock:
-Rommel as a commander piece placed with a German unit (R-135), and
-replacement counters made at set-up (21st Panzer for 5th Light, R-096),
-so The Last Chance sets up and plays (six of nine scenarios now). #66
-(merged) builds 31.0 on top: Axis initiative 6 with Rommel on the map, the recall
-roll, +1 assault morale in his hex. Rommel's Arrival and its two
-campaigns wait on one new request below.
+(#31–#64), Rommel as a commander piece and replacement counters at
+set-up (#65), 31.0's initiative, recall and morale (#66). **On
+2026-10-26, fourth run:** cna answered both requests (R-136, R-137).
+#67 bumps `vendor/cna` to fc78330 and places `apart` blocks, so
+Rommel's Arrival and both campaigns set up: all nine scenarios now set
+up and play a Game-Turn, and the browser offers every one. #68 builds
+the rest of 31.0 bar the LRDG raid: the +5 CPA escort (R-137), his
+reactions, and his free retreat through enemy ZOC.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -82,18 +81,18 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended (#65 and #66 merged; #66's audit
-  ledger is a comment there): Rommel's +5 CPA escort waits on the ruling
-  requested below; his reactions and retreats through ZOC and the LRDG
-  raid (27.9x) next, or convoy lanes beyond Tripoli and the 19.3 chart as
-  the shell denominator. The end dialog's points table is not yet seen in
-  a browser, nor Rommel's counter in Crusader's set-up.
+- Mission 5 continues unattended: merge #68 (ready) on green CI if it
+  is still open. Next candidates: Axis convoy lanes
+  beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
+  as the shell denominator, or the desert raiders (§27) that the raid
+  on Rommel needs. The end dialog's points table is not yet seen in a
+  browser.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna 803d5d5.
+  cna fc78330.
 
 ## Requests for cna
 
@@ -101,30 +100,16 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Rommel's Arrival's other two corner-hex placements, as hex lists**
-  (Mission 5, second half; blocks Rommel's Arrival, the Desert Fox
-  campaign and the short campaign, the last three scenarios that do not
-  set up). With #259–#261 in (vendor/cna 803d5d5, #65 here), set-up
-  now stops at the Axis block `hexes: ["A2010", "A2703"]` for the Pavia,
-  Bologna, Brescia and Savona divisions ("anywhere between Ras el Ali and
-  Nofilia; no division within two hexes of another"): two hexes cannot
-  hold four divisions two hexes apart. Needed: the hexes "between" means
-  listed (or a locator the map resolves), the spacing as a field if it
-  can be. That block is the only blocker: with it widened by hand the
-  scenario sets up and plays a turn. The Commonwealth's block
-  `hexes: ["B5501", "A4830", "A4827"]` ("any hex inside the triangle"
-  Tocra, Er Regima, Benghazi) is the same shape and fits as given, but
-  offers only its corners; its inside hexes listed would be truer.
-
-- **Rommel's +5 CPA escort (31.0), as a ruling** (Mission 5, second
-  half: the last of 31.0 the engine can build without the LRDG raid).
-  The restatement gives "+5 CPA" to "a unit he stays with for a whole
-  stage, from its start". An engine needs: one unit or every unit in his
-  hex; whether the Axis names it at the stage's start (and when: phase A,
-  or before its first move) or it follows from where he ends; what
-  happens if they part mid-stage (the bonus lost, CP already spent past
-  the CPA charged how); and whether an attached unit or a whole formation
-  counts as "a unit". `commander.escort_cpa_bonus` is already data.
+- **A lone Rommel in an enemy ZOC (31.0 against 10.29), as a ruling**
+  (Mission 5, second half). 31.0 lets Rommel react, retreat before
+  assault and retreat through enemy ZOC freely, but says nothing of a
+  Rommel standing alone where an enemy ZOC reaches him. The engine reads
+  10.29 today: a non-combat piece alone in an enemy ZOC in the enemy's
+  phase is captured, so a lone Rommel next to any enemy unit is lost
+  (#68). Needed: captured, untouched (he simply may leave freely), or
+  something else (a roll, a forced move to the nearest friendly unit);
+  and whether a lone Rommel may *enter* an unoccupied enemy-controlled
+  hex on a move, which 10.29 forbids a non-combat unit.
 
 ## Runs and quota
 
