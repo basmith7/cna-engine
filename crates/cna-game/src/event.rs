@@ -262,6 +262,16 @@ pub enum Event {
         from: HexId,
         to: HexId,
     },
+    /// A unit merged into another's counter, or standing on its own
+    /// again (19.4x).
+    Attached {
+        piece: PieceId,
+        to: PieceId,
+    },
+    Detached {
+        piece: PieceId,
+        from: PieceId,
+    },
     /// Motorisation points attached to a supply unit (32.31).
     MotorisationAttached {
         piece: PieceId,

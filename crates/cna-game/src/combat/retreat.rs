@@ -33,6 +33,7 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
     ) -> Result<Vec<Event>, Illegal> {
+        let pieces = &self.carried(pieces)?;
         let from = self.retreating_stack(player, pieces)?;
         let plan = self.plan(data, pieces, &from, path)?;
         if let Some((before, _)) = &plan.interrupt {
@@ -442,6 +443,7 @@ mod tests {
         state.modules.breakdown = true;
         // The L3s stand with the Libyans at C4020, already at 100 points.
         let tanks = pid("unit:it:lxl-tank-bn");
+        state.stand_alone(&tanks);
         let p = state.pieces.get_mut(&tanks).unwrap();
         p.location = crate::piece::Location::Hex(hex("C4020"));
         p.breakdown_halves = 200;
@@ -485,6 +487,7 @@ mod tests {
             })
             .unwrap();
         state.combat.pinned.insert(bn.clone());
+        state.stand_alone(&bn);
         let err = state
             .apply(
                 &data,
@@ -537,6 +540,7 @@ mod tests {
         let data = Data::load("grazianis-offensive").unwrap();
         let mut state = retreating(&data);
         let bn = pid("unit:it:xvii-libyan-bn");
+        state.stand_alone(&bn);
         assert_eq!(state.pieces[&bn].hex(), Some(&hex("C3617")));
         // Walk away from the enemy: three hexes west along row 36, 2 CP each.
         let path3 = ["C3616", "C3615", "C3614"];

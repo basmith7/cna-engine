@@ -137,6 +137,10 @@ pub struct GameState {
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub scuttled: BTreeSet<PieceId>,
+    /// Units detached this movement segment, with the parent they left:
+    /// both stop unless they go on together (19.4x).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub split: BTreeMap<PieceId, PieceId>,
     /// Broken-down vehicles by hex (21.4x): what each marker stands for.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
@@ -161,6 +165,10 @@ pub struct GameState {
     /// is organising.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub organised: bool,
+    /// Whether pieces' `attached_to` is kept (slice 6); a save from
+    /// before it reads its units stacked with their parent as attached.
+    #[serde(default)]
+    pub attachment_tracked: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
@@ -247,8 +255,10 @@ impl GameState {
             initiative: None,
             player_a: None,
             organised: false,
+            attachment_tracked: false,
             planned: Vec::new(),
             scuttled: BTreeSet::new(),
+            split: BTreeMap::new(),
             broken_down: BTreeMap::new(),
             field_rolled: BTreeSet::new(),
             repaired: BTreeMap::new(),
@@ -270,6 +280,7 @@ impl GameState {
             log: Vec::new(),
         };
         state.check_weapons(data)?;
+        state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {
             state.start_play(data);
@@ -430,6 +441,8 @@ impl GameState {
             }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
+            (None, Order::Attach { piece, to }) => self.attach(player, piece, to),
+            (None, Order::Detach { piece }) => self.detach(player, piece),
             (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
             (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
             (

@@ -88,6 +88,8 @@ export interface Piece {
   nation: Nation | null;
   id_code: string | null;
   parent: string | null;
+  /** The unit this one is merged into (19.1x); absent when it stands alone. */
+  attached_to?: string;
   toe: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
@@ -173,6 +175,8 @@ export type Order =
   | { "release-reserve": { pieces: PieceId[] } }
   | "end-segment"
   | { "destroy-supply": { hex: HexId } }
+  | { attach: { piece: PieceId; to: PieceId } }
+  | { detach: { piece: PieceId } }
   | { "attach-motorisation": { piece: PieceId } }
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
@@ -283,6 +287,8 @@ export type Event =
   | { "ammunition-short": { piece: PieceId } }
   | { "supply-unit-spent": { piece: PieceId } }
   | { "supply-destroyed": { piece: PieceId } }
+  | { attached: { piece: PieceId; to: PieceId } }
+  | { detached: { piece: PieceId; from: PieceId } }
   | { "motorisation-attached": { piece: PieceId; points: number } }
   | { "motorisation-detached": { piece: PieceId; points: number } }
   | { "supply-planned": { side: Side; die: number; units: number; arrives: number } }

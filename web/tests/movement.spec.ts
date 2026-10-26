@@ -151,8 +151,9 @@ test("a stack in the Tripoli box moves off-map by its buttons; Gabes is refused"
   await openFixture(page, "off-map");
   const box = page.locator('[data-where="box-tripoli"]');
   await expect(box.locator("[data-unit]")).toHaveCount(30);
-  await box.locator('[data-unit="unit:it:131st-infantry-bn"]').click();
-  await box.locator('[data-unit="unit:it:132nd-infantry-bn"]').click();
+  // Two battalions on their own: the legions' are attached to their HQs.
+  await box.locator('[data-unit="unit:it:203rd-engineer-bn"]').click();
+  await box.locator('[data-unit="unit:it:203rd-machinegun-bn"]').click();
   await expect(box.locator('[aria-pressed="true"]')).toHaveCount(2);
   const moves = page.getByTestId("off-map-moves");
   await expect(moves.locator("button")).toHaveCount(5);

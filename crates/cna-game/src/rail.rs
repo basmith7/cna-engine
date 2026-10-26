@@ -332,7 +332,7 @@ mod tests {
             .collect();
         assert_eq!(ids.len(), 2);
         for id in &ids {
-            state.pieces.get_mut(id).unwrap().location = Location::Hex(hex.clone());
+            state.put(id, Location::Hex(hex.clone()));
         }
         while !(state.clock.phase == Phase::Rail && state.clock.half == Some(Half::B)) {
             let player = state.to_act().unwrap();
@@ -453,7 +453,7 @@ mod tests {
         let mut placed = false;
         for id in axis {
             let mut s = state.clone();
-            s.pieces.get_mut(&id).unwrap().location = Location::Hex(line[5].clone());
+            s.put(&id, Location::Hex(line[5].clone()));
             if s.enemy_zoc(&data, &line[6]) {
                 state = s;
                 placed = true;
@@ -501,7 +501,7 @@ mod tests {
             .unwrap()
             .id
             .clone();
-        state.pieces.get_mut(&axis).unwrap().location = Location::Hex(line[8].clone());
+        state.put(&axis, Location::Hex(line[8].clone()));
         let reaches = state
             .reachable(&data, Side::Cw, &ids, Purpose::Rail)
             .unwrap();

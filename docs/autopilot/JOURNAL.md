@@ -298,3 +298,27 @@ Done this run: #37 slice 4 and #38 air lift merged; #41 slice 6 plan merged. Rea
 In flight: nothing uncommitted.
 Next: merge #39, #42, #43 when green (`gh pr merge N --merge`). Then #40: re-script the module-on golden fight at Halfaya (R-120 makes the CW surrender there), regenerate `tests/games/graziani-m5.json`, the cna-web e2e fixtures and golden.spec pins. Then slice 6 Task 1–2 (attachment state and orders; no golden move splits an attached unit, checked).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 21:15 MST — autopilot/m5-slice-6-organisation
+Done: #40 (R-120 defence) re-scripted: module-on golden surrenders at Halfaya, 439 orders (6cd86b1, e2e 2nd commit); Playwright 36/36; marked ready. Slice 6 Task 1 on draft #44: `Piece.attached_to`, set-up/arrival attachment, old-save fill, stacking and HQ CPA read it.
+In flight: Task 2 (Attach/Detach orders, moves carry attached units).
+Next: merge #40 when web CI is green; merge main into #44 and regenerate e2e fixtures (`cargo test -p cna-web -- --ignored regenerate_e2e_fixtures`) and golden hashes; then Task 2.
+Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 21:32 MST — autopilot/m5-slice-6-organisation
+Done: #40 merged (eb6fb15). On draft #44: Task 2 (d970fd3: Attach/Detach, moves carry attached units, a lone attached unit refused; test fixtures stand split units alone via `GameState::put`/`stand_alone`), main merged and fixtures re-pinned (e7a6d29), detach-while-moving stop (88208c9), stack panel Attach/Detach + e2e `attachment.spec.ts` (430fcfc), docs (a7e531b).
+In flight: full Playwright on e7a6d29 (/tmp/pw-44.txt); `attachment.spec.ts` not yet run; a fresh review of the engine diff.
+Next: run `npx playwright test tests/attachment.spec.ts` and the full suite on HEAD; act on the review; then mark #44 ready only with Task 3–4 done or reslice (Tasks 1–2 + UI could merge alone: decide by what the review finds).
+Blocked: Mission 4 on Brian's review of #25; Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 21:40 MST — autopilot/m5-slice-6-organisation
+Done: review fixes (d208e3b: off-map moves carry, eliminations release attachments, arrivals join waiting units); e2e updates for detach-before-moving-alone (f8a3a89); off-map panel Attach/Detach (9ad6731); reslice: #44 = Tasks 1–2 + controls (plan, PR body).
+In flight: full Playwright on f8a3a89 (/tmp/pw-44b.txt); 9ad6731's box test (`attachment.spec.ts`, 2nd test) not yet run.
+Next: run `npx playwright test tests/attachment.spec.ts`; if the full run is green, mark #44 ready and merge on CI. Then Task 4 (24.9 dumps, §28 prisoners) — Task 3 waits on cna.
+Blocked: Mission 4 on Brian's review of #25; Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 21:52 MST — autopilot/m5-slice-6-organisation
+Done: box attach/detach (26a1754); full Playwright 37/37 on f8a3a89, targeted specs 19/19 on HEAD; #44 marked ready. PROGRESS on main (ef59195).
+In flight: #44's CI at handoff.
+Next: merge #44 when CI is green (`gh pr merge 44 --merge`); then slice 6 Task 4 (24.9 dumps under R-018 via `cna_rules::construction::dump_cost`; §28 prisoners) on a new branch.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 on cna's HQ organisation types.

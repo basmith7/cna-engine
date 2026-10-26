@@ -42,6 +42,9 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.check_place(data, player, piece, hex)?;
         self.pieces.get_mut(piece).expect("checked").location = Location::Hex(hex.clone());
+        // Placed with its parent, or its own units with it, it starts
+        // attached (4.25).
+        self.attach_where_stacked(Some(std::slice::from_ref(piece)));
         if let Some(points) = self.pending_motorisation.remove(piece) {
             *self
                 .motorisation

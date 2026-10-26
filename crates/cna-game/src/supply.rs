@@ -264,7 +264,7 @@ mod tests {
             .expect("some enemy ZOC hex stands empty");
         // A friendly supply unit or HQ standing in it lifts nothing ...
         let supply = PieceId::supply(Side::Axis, 1);
-        state.pieces.get_mut(&supply).unwrap().location = Location::Hex(zoc_hex.clone());
+        state.put(&supply, Location::Hex(zoc_hex.clone()));
         assert!(state.trace_blocked(&data, Side::Axis).contains(&zoc_hex));
         // ... a friendly combat unit does.
         let unit = state
@@ -273,7 +273,7 @@ mod tests {
             .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
             .map(|p| p.id.clone())
             .unwrap();
-        state.pieces.get_mut(&unit).unwrap().location = Location::Hex(zoc_hex.clone());
+        state.put(&unit, Location::Hex(zoc_hex.clone()));
         assert!(!state.trace_blocked(&data, Side::Axis).contains(&zoc_hex));
     }
 }

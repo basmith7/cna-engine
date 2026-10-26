@@ -4,16 +4,17 @@
   // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import { tickable } from "./moves";
+  import { attachmentOrder, tickable } from "./moves";
   import { loadLabel, motorisationAt } from "./supply";
-  import type { PieceId, View } from "./types";
+  import type { Order, PieceId, View } from "./types";
 
   let {
     view,
     hex,
     ticked = [],
     ontoggle,
-  }: { view: View; hex: string | null; ticked?: PieceId[]; ontoggle?: (id: PieceId) => void } = $props();
+    onorder,
+  }: { view: View; hex: string | null; ticked?: PieceId[]; ontoggle?: (id: PieceId) => void; onorder?: (o: Order) => void } = $props();
 
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
@@ -62,7 +63,16 @@
               {#each markers(p, view) as m (m)}
                 <span class="marker {m}">{m.replace("-", " ")}</span>
               {/each}
+              {#if p.attached_to && view.pieces[p.attached_to]}
+                · <span data-testid="attached">attached to {label(view.pieces[p.attached_to]).short}</span>
+              {/if}
             </span>
+            {#if onorder}
+              {@const order = attachmentOrder(view, p)}
+              {#if order}
+                <button type="button" class="attach" data-order={"detach" in order ? "detach" : "attach"} title="A CP from the unit and its parent (19.4x)" onclick={() => onorder(order)}>{"detach" in order ? "Detach" : "Attach"}</button>
+              {/if}
+            {/if}
           </li>
         {/each}
       </ol>
@@ -119,6 +129,12 @@
     display: grid;
     grid-template-columns: auto auto 1fr;
     gap: 0 0.5rem;
+  }
+  .attach {
+    grid-column: 2 / -1;
+    justify-self: start;
+    margin-top: 0.2rem;
+    font-size: 12px;
   }
   .piece.ticked {
     background: #e6f4f1;

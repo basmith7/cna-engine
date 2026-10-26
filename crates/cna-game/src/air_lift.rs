@@ -268,7 +268,7 @@ mod tests {
             }
         }
         let division = divisions[0].clone();
-        state.pieces.get_mut(&division).unwrap().location = at("C4321");
+        state.put(&division, at("C4321"));
         Lift {
             data,
             state,
