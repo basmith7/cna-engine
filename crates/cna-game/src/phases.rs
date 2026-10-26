@@ -137,7 +137,7 @@ impl GameState {
                 Phase::TruckConvoy
                     if {
                         self.marched.clear();
-                        self.trucks_to_move() || self.prisoners_to_move()
+                        self.trucks_to_move() || self.prisoners_to_handle()
                     } =>
                 {
                     events.push(Event::PhaseStarted { clock });

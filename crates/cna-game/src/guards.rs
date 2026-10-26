@@ -12,7 +12,7 @@ use crate::combat::strength::Class;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{PieceId, PieceKind};
-use crate::prisoners::PRISONER_CPA;
+use crate::prisoners::{PRISONER_CPA, add, held, take};
 use crate::state::GameState;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
@@ -27,48 +27,6 @@ pub const PER_GUARD: u32 = 5;
 /// The guards `points` marching prisoners need (28.17, E-029).
 pub fn guards_needed(points: u32) -> u32 {
     points.div_ceil(PER_GUARD)
-}
-
-/// Adds `points` to `map[side][hex]`.
-pub(crate) fn add(
-    map: &mut BTreeMap<Side, BTreeMap<HexId, u32>>,
-    side: Side,
-    hex: &HexId,
-    points: u32,
-) {
-    if points > 0 {
-        *map.entry(side).or_default().entry(hex.clone()).or_default() += points;
-    }
-}
-
-/// Takes `points` from `map[side][hex]`, dropping empty entries; the
-/// caller has checked there are that many.
-pub(crate) fn take(
-    map: &mut BTreeMap<Side, BTreeMap<HexId, u32>>,
-    side: Side,
-    hex: &HexId,
-    points: u32,
-) {
-    if points == 0 {
-        return;
-    }
-    let mine = map.get_mut(&side).expect("checked");
-    let left = mine.get_mut(hex).expect("checked");
-    *left -= points;
-    if *left == 0 {
-        mine.remove(hex);
-    }
-    if mine.is_empty() {
-        map.remove(&side);
-    }
-}
-
-/// `map[side][hex]`, or zero.
-pub(crate) fn held(map: &BTreeMap<Side, BTreeMap<HexId, u32>>, side: Side, hex: &HexId) -> u32 {
-    map.get(&side)
-        .and_then(|m| m.get(hex))
-        .copied()
-        .unwrap_or(0)
 }
 
 impl GameState {

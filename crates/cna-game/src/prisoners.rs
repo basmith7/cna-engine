@@ -15,6 +15,7 @@ use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::movement::Mobility;
+use std::collections::BTreeMap;
 
 /// What prisoner points walk per phase H (28.13).
 pub const PRISONER_CPA: u32 = 8;
@@ -38,6 +39,48 @@ pub fn departure_hexes(data: &Data, captor: Side) -> Vec<HexId> {
             .collect(),
         Side::Axis => vec![HexId::parse("A2802").expect("a hex id")],
     }
+}
+
+/// Adds `points` to `map[side][hex]`.
+pub(crate) fn add(
+    map: &mut BTreeMap<Side, BTreeMap<HexId, u32>>,
+    side: Side,
+    hex: &HexId,
+    points: u32,
+) {
+    if points > 0 {
+        *map.entry(side).or_default().entry(hex.clone()).or_default() += points;
+    }
+}
+
+/// Takes `points` from `map[side][hex]`, dropping empty entries; the
+/// caller has checked there are that many.
+pub(crate) fn take(
+    map: &mut BTreeMap<Side, BTreeMap<HexId, u32>>,
+    side: Side,
+    hex: &HexId,
+    points: u32,
+) {
+    if points == 0 {
+        return;
+    }
+    let mine = map.get_mut(&side).expect("checked");
+    let left = mine.get_mut(hex).expect("checked");
+    *left -= points;
+    if *left == 0 {
+        mine.remove(hex);
+    }
+    if mine.is_empty() {
+        map.remove(&side);
+    }
+}
+
+/// `map[side][hex]`, or zero.
+pub(crate) fn held(map: &BTreeMap<Side, BTreeMap<HexId, u32>>, side: Side, hex: &HexId) -> u32 {
+    map.get(&side)
+        .and_then(|m| m.get(hex))
+        .copied()
+        .unwrap_or(0)
 }
 
 impl GameState {
@@ -100,18 +143,13 @@ impl GameState {
                 points,
             });
         } else {
-            *self
-                .prisoners
-                .entry(captor)
-                .or_default()
-                .entry(hex.clone())
-                .or_default() += points;
+            add(&mut self.prisoners, captor, hex, points);
         }
     }
 
     /// Whether the phasing side holds prisoners that may march (28.13),
     /// or guards it may release (28.22).
-    pub(crate) fn prisoners_to_move(&self) -> bool {
+    pub(crate) fn prisoners_to_handle(&self) -> bool {
         self.phasing().is_some_and(|side| {
             self.guards.contains_key(&side)
                 || self
@@ -143,16 +181,11 @@ impl GameState {
                 ),
             ));
         }
-        let held = self
-            .prisoners
-            .get(&player)
-            .and_then(|m| m.get(from))
-            .copied()
-            .unwrap_or(0);
-        if points == 0 || points > held {
+        let holding = held(&self.prisoners, player, from);
+        if points == 0 || points > holding {
             return Err(Illegal::new(
                 "28.13",
-                format!("{player} holds {held} prisoner points in {from}, not {points}"),
+                format!("{player} holds {holding} prisoner points in {from}, not {points}"),
             ));
         }
         if self.marched.contains(from) {
@@ -165,7 +198,7 @@ impl GameState {
             return Err(Illegal::new("28.13", "a march needs a path"));
         };
         let guards = crate::guards::guards_needed(points);
-        let guarding = crate::guards::held(&self.guards, player, from);
+        let guarding = held(&self.guards, player, from);
         if guarding < guards {
             return Err(Illegal::new(
                 "28.17",
@@ -230,12 +263,7 @@ impl GameState {
             }
             at = step;
         }
-        let there = self
-            .prisoners
-            .get(&player)
-            .and_then(|m| m.get(to))
-            .copied()
-            .unwrap_or(0);
+        let there = held(&self.prisoners, player, to);
         if !departures.contains(to) && there + points > MAX_PER_HEX {
             return Err(Illegal::new(
                 "28.14",
@@ -245,17 +273,9 @@ impl GameState {
                 ),
             ));
         }
-        let mine = self.prisoners.get_mut(&player).expect("checked");
-        let left = mine.get_mut(from).expect("checked");
-        *left -= points;
-        if *left == 0 {
-            mine.remove(from);
-        }
-        if mine.is_empty() {
-            self.prisoners.remove(&player);
-        }
-        crate::guards::take(&mut self.guards, player, from, guards);
-        crate::guards::add(&mut self.guards, player, to, guards);
+        take(&mut self.prisoners, player, from, points);
+        take(&mut self.guards, player, from, guards);
+        add(&mut self.guards, player, to, guards);
         let mut events = vec![Event::PrisonersMarched {
             side: player,
             path: std::iter::once(from.clone())
