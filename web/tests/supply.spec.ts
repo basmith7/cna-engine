@@ -283,7 +283,7 @@ test("phase K: field repair of broken-down tanks at Alexandria, one roll a type 
   const after = await page.evaluate(() => {
     const v = window.__cna.view();
     const left = (v.broken_down?.["E3613"] ?? []).reduce((n: number, w: { points: number }) => n + w.points, 0);
-    return left + (v.repaired?.cw?.["Mark VI Light"] ?? 0);
+    return left + (v.repaired?.cw?.["E3613"]?.["Mark VI Light"] ?? 0);
   });
   expect(after).toBe(4);
   // One roll per type per hex this phase: a second is the engine's refusal.
