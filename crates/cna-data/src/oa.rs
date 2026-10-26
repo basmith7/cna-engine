@@ -208,8 +208,40 @@ pub struct Unit {
     /// O/A notes govern or for a non-HQ unit.
     #[serde(default)]
     pub organisation: Option<String>,
+    /// The counter this one replaces in a historical reorganisation:
+    /// at this one's arrival it takes the other's hex, TOE and units
+    /// (R-096's scenarios start with the replacement made).
+    #[serde(default)]
+    pub replaces: Option<UnitId>,
+    /// With `replaces`: units from other sheets assigned to this counter
+    /// when the replacement is made.
+    #[serde(default)]
+    pub assigns: Vec<UnitId>,
+    /// Rommel's counter only (31.0, R-135): a piece of its own, neither
+    /// HQ nor combat unit, whose values stand in for a characteristics
+    /// row.
+    #[serde(default)]
+    pub commander: Option<Commander>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// 31.0's values for Rommel (R-135).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Commander {
+    pub cpa: u32,
+    /// A truck row (`truck-characteristics.json`) for movement and
+    /// breakdown.
+    pub moves_as: String,
+    pub combat_ratings: bool,
+    /// Added to the morale of every unit in his hex in combat.
+    pub stack_morale_bonus: i32,
+    /// Added to the CPA of a unit he starts and spends a whole OpStage
+    /// with.
+    pub escort_cpa_bonus: u32,
+    /// The two-dice total at a Game-Turn's start that recalls him.
+    pub recall_roll: u32,
+    pub initiative_while_recalled: i32,
 }
 
 /// An HQ's organisational level (R-124, 9.22): a regiment HQ is a
@@ -420,8 +452,9 @@ mod tests {
         let count = |n| oa.units().filter(|u| u.id.nation() == n).count();
         assert_eq!(count(Nation::It), 436);
         assert_eq!(count(Nation::Cw), 436);
-        assert_eq!(count(Nation::De), 148);
-        assert_eq!(oa.units().count(), 1020);
+        // 149 with Rommel's own counter (R-135).
+        assert_eq!(count(Nation::De), 149);
+        assert_eq!(oa.units().count(), 1021);
     }
 
     #[test]

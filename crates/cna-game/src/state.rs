@@ -299,7 +299,7 @@ impl GameState {
         let mut motorisation: BTreeMap<Side, BTreeMap<String, u32>> = BTreeMap::new();
         let mut pending_motorisation = BTreeMap::new();
         for m in setup.motorisation {
-            match (m.location.key(), m.anchor) {
+            match (m.location.key(), m.pieces.into_iter().next()) {
                 (Some(key), _) => {
                     *motorisation
                         .entry(m.side)
@@ -605,9 +605,13 @@ pub(crate) mod test_support {
         let map = &data.map;
         let mut v = crate::place::area(data, p);
         // The `constraint` sentences the grammar cannot check, honoured by
-        // hand: Axis supply on sheet C stays in Libya; the Commonwealth's
-        // on sheet D goes next to Mersa Matruh (D3714).
-        if piece.side == Side::Axis {
+        // hand: Axis supply on sheet C stays in Libya where it can (later
+        // scenarios set the Axis up in Egypt); the Commonwealth's on sheet
+        // D goes next to Mersa Matruh (D3714).
+        if piece.side == Side::Axis
+            && v.iter()
+                .any(|h| map.country(h) == Some(cna_data::map::Country::Libya))
+        {
             v.retain(|h| map.country(h) == Some(cna_data::map::Country::Libya));
         }
         if piece.side == Side::Cw && p.locators.contains(&Locator::Sheets(vec!['D'])) {

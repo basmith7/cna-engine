@@ -15,7 +15,7 @@
 use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
 use crate::state::Modules;
 use anyhow::{Context, Result, bail};
-use cna_data::characteristics::{Characteristics, Equivalent, Row};
+use cna_data::characteristics::{Characteristics, Equivalent, Rating, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
@@ -42,13 +42,13 @@ pub struct Setup {
 }
 
 /// A deployment's motorisation points. Where the deployment is still
-/// pending, they follow `anchor`, its first piece, to the hex it lands in.
+/// pending, they follow the first of its `pieces` to the hex it lands in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Motorisation {
     pub side: Side,
     pub location: Location,
     pub points: u32,
-    pub anchor: Option<PieceId>,
+    pub pieces: Vec<PieceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,12 +98,23 @@ pub fn expand(
                 named.extend(sub.into_iter().map(|m| m.id));
             }
         }
+        // Units an entry of their own places: a replacement does not
+        // bring them (the Last Chance's 3rd Aufkl and 104th).
+        let own: BTreeSet<UnitId> = set
+            .deployments
+            .iter()
+            .flat_map(|d| &d.units)
+            .filter_map(|e| match &e.subject {
+                Subject::Unit(u) => Some(u.clone()),
+                Subject::Formation(_) => None,
+            })
+            .collect();
         for (di, d) in set.deployments.iter().enumerate() {
             let location = resolve(&d.placement, map)
                 .with_context(|| format!("{side} deployment {}", di + 1))?;
             let mut ids = Vec::new();
             for e in &d.units {
-                let members = members(e, oa, scenario.start, &named)
+                let members = members(e, oa, scenario.start, &named, &own)
                     .with_context(|| format!("{side} deployment {}", di + 1))?;
                 for m in members {
                     let unit = oa.unit(&m.id).expect("resolved by members");
@@ -131,7 +142,7 @@ pub fn expand(
                     side,
                     location: location.clone(),
                     points,
-                    anchor: ids.first().cloned(),
+                    pieces: ids.clone(),
                 });
             }
             log_constraint(&mut setup, side, &d.placement, ids);
@@ -178,7 +189,39 @@ pub fn expand(
             log_constraint(&mut setup, side, &b.placement, ids);
         }
     }
+    reparent_replaced(&mut setup, oa);
     Ok(setup)
+}
+
+/// A placed replacement counter is the parent of what its `assigns`
+/// names and of what was under the counter it `replaces`, where entries
+/// of their own placed them (R-096).
+fn reparent_replaced(setup: &mut Setup, oa: &Oa) {
+    let ids: BTreeSet<PieceId> = setup.pieces.iter().map(|p| p.id.clone()).collect();
+    let mut new_parent: Vec<(UnitId, UnitId)> = Vec::new();
+    for p in &setup.pieces {
+        let Some(id) = p.id.unit() else { continue };
+        let Some(unit) = oa.unit(&id) else { continue };
+        let Some(old) = &unit.replaces else { continue };
+        if ids.contains(&PieceId::from(old)) {
+            continue;
+        }
+        for q in &setup.pieces {
+            let Some(qid) = q.id.unit() else { continue };
+            if q.parent.as_ref() == Some(old) || unit.assigns.contains(&qid) {
+                new_parent.push((qid, id.clone()));
+            }
+        }
+    }
+    for (child, parent) in new_parent {
+        if let Some(q) = setup
+            .pieces
+            .iter_mut()
+            .find(|q| q.id == PieceId::from(&child))
+        {
+            q.parent = Some(parent);
+        }
+    }
 }
 
 /// A supply unit or dummy, fresh: no CP spent, nothing attached.
@@ -259,6 +302,67 @@ fn subtree(head: &UnitId, oa: &Oa, start: GameTime, out: &mut Vec<Member>) -> Re
     Ok(())
 }
 
+/// A set-up that places a replacement counter starts with the
+/// replacement made (R-096): `head` takes the units under the counter it
+/// `replaces` and its `assigns`, each with the units under it, less later
+/// arrivals; a unit so brought in that replaces another with no arrival
+/// of its own replaces it now. Units in `own`, placed by entries of
+/// their own, stay there. Set-up only: a replacement arriving in play is
+/// not made (NOT_SIMULATED).
+fn replacement(
+    head: &UnitId,
+    oa: &Oa,
+    start: GameTime,
+    own: &BTreeSet<UnitId>,
+    out: &mut Vec<Member>,
+) -> Result<()> {
+    let unit = oa.unit(head).expect("subtree checked it");
+    let old = unit.replaces.as_ref();
+    let heads = old
+        .map(|o| oa.children(o))
+        .unwrap_or_default()
+        .iter()
+        .chain(&unit.assigns);
+    let mut adopted = Vec::new();
+    for id in heads {
+        let u = oa
+            .unit(id)
+            .with_context(|| format!("{id}: not on any OA sheet"))?;
+        if let Some(Arrival::At(t)) = u.arrives
+            && t > start
+        {
+            continue;
+        }
+        let mut sub = Vec::new();
+        subtree(id, oa, start, &mut sub)?;
+        sub[0].parent = Some(head.clone());
+        adopted.extend(sub);
+    }
+    let mut gone_heads: Vec<UnitId> = adopted
+        .iter()
+        .filter_map(|m| oa.unit(&m.id))
+        .filter(|u| u.arrives.is_none())
+        .filter_map(|u| u.replaces.clone())
+        .collect();
+    gone_heads.extend(
+        adopted
+            .iter()
+            .filter(|m| own.contains(&m.id))
+            .map(|m| m.id.clone()),
+    );
+    for r in &gone_heads {
+        let mut gone = Vec::new();
+        subtree(r, oa, NEVER, &mut gone)?;
+        adopted.retain(|m| !gone.iter().any(|g| g.id == m.id));
+    }
+    for m in adopted {
+        if !out.iter().any(|x| x.id == m.id) {
+            out.push(m);
+        }
+    }
+    Ok(())
+}
+
 /// Every unit one set-up entry stands for. Units in `named` (some
 /// entry's `attached` or `assigned`) come only through those lists.
 fn members(
@@ -266,6 +370,7 @@ fn members(
     oa: &Oa,
     start: GameTime,
     named: &BTreeSet<UnitId>,
+    own: &BTreeSet<UnitId>,
 ) -> Result<Vec<Member>> {
     let mut out = Vec::new();
     let head = match &e.subject {
@@ -308,6 +413,7 @@ fn members(
                 }
             } else {
                 subtree(u, oa, start, &mut out)?;
+                replacement(u, oa, start, own, &mut out)?;
             }
             Some(u.clone())
         }
@@ -316,7 +422,10 @@ fn members(
     // name something in it, or the data is wrong.
     let mut full = Vec::new();
     match &e.subject {
-        Subject::Unit(u) => subtree(u, oa, NEVER, &mut full)?,
+        Subject::Unit(u) => {
+            subtree(u, oa, NEVER, &mut full)?;
+            replacement(u, oa, NEVER, &BTreeSet::new(), &mut full)?;
+        }
         Subject::Formation(f) => {
             for u in &oa.formation(f).expect("checked above").units {
                 full.push(Member {
@@ -327,7 +436,13 @@ fn members(
         }
     }
     for r in e.less.iter().chain(&e.detached) {
-        if !full.iter().any(|m| &m.id == r) {
+        // A unit printed on the head's sheet but under no counter (the
+        // Littorio's V Articelere, under a heading with none) is the
+        // entry's to leave out too.
+        let same_sheet = head.as_ref().is_some_and(|h| {
+            oa.unit(r).is_some() && oa.formation_of(r).id == oa.formation_of(h).id
+        });
+        if !same_sheet && !full.iter().any(|m| &m.id == r) {
             bail!(
                 "{}: `{r}` is not in the entry",
                 head.as_ref()
@@ -377,7 +492,9 @@ fn piece(
     Piece {
         id: PieceId::from(&unit.id),
         side,
-        kind: if equivalent == Some(Equivalent::Hq) {
+        kind: if unit.commander.is_some() {
+            PieceKind::Commander
+        } else if equivalent == Some(Equivalent::Hq) {
             PieceKind::Hq
         } else {
             PieceKind::Combat
@@ -388,7 +505,14 @@ fn piece(
         attached_to: None,
         toe,
         weapons,
-        cpa: row.and_then(|r| r.cpa.clone()),
+        cpa: match &unit.commander {
+            Some(c) => Some(Rating {
+                value: i32::try_from(c.cpa).ok(),
+                mark: None,
+                raw: c.cpa.to_string(),
+            }),
+            None => row.and_then(|r| r.cpa.clone()),
+        },
         morale: oa.morale(&unit.id),
         status: entry.status,
         equivalent,
@@ -507,7 +631,10 @@ fn resolve(p: &Placement, map: &Map) -> Result<Location> {
                     }
                 }
             }
-            Locator::Box(_) | Locator::Region(_) | Locator::AirFacility => {}
+            Locator::Box(_)
+            | Locator::Region(_)
+            | Locator::AirFacility
+            | Locator::StackedWith(_) => {}
         }
     }
     match p.sole() {
@@ -573,13 +700,17 @@ pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<P
     for u in &mut setup.unchecked {
         u.pieces.retain(|id| !removed.contains(id));
     }
-    for m in &setup.motorisation {
-        if let Some(anchor) = &m.anchor
-            && removed.contains(anchor)
-        {
-            bail!("{anchor}: removed by 32.8x but anchors motorisation points");
+    // Points a removed piece carried pass to the next of its deployment;
+    // a pending deployment removed whole (the Last Chance's AA park at
+    // E3002) takes its trucks with it.
+    for m in &mut setup.motorisation {
+        let had = !m.pieces.is_empty();
+        m.pieces.retain(|id| !removed.contains(id));
+        if had && m.pieces.is_empty() && m.location.key().is_none() {
+            m.points = 0;
         }
     }
+    setup.motorisation.retain(|m| m.points > 0);
     Ok(removed)
 }
 
@@ -731,6 +862,30 @@ mod tests {
         assert_eq!(rtr.len(), 1);
         assert_eq!(rtr[0].parent, Some(uid("unit:cw:3-armd-bde-hq")));
         assert_eq!(rtr[0].location, Location::Hex(hex("A2022")));
+    }
+
+    #[test]
+    fn a_replacement_counter_takes_the_replaced_ones_units() {
+        // The Last Chance places 21st Panzer, which replaces 5th Light
+        // and gains the 104th and 155th regiments (R-096); the 155th's
+        // II/155 replaces 5th Light's I/75 with it.
+        let setup = load("the-last-chance").unwrap();
+        let get = |id: &str| setup.pieces.iter().find(|p| p.id == PieceId::from(uid(id)));
+        let pz = Some(uid("unit:de:21-pz-div-hq"));
+        assert!(get("unit:de:5le-div-hq").is_none());
+        assert_eq!(get("unit:de:8-mg-bn").unwrap().parent, pz);
+        assert_eq!(get("unit:de:104-schutzen-regt-hq").unwrap().parent, pz);
+        assert_eq!(get("unit:de:155-arty-regt-hq").unwrap().parent, pz);
+        assert!(get("unit:de:ii-155-arty-bn").is_some());
+        assert!(get("unit:de:i-75-arty-bn").is_none());
+        // 21st Panzer's `less` names a replaced counter's unit, which
+        // 15th Panzer is assigned.
+        assert_eq!(
+            get("unit:de:2-mg-bn").unwrap().parent,
+            Some(uid("unit:de:15-pz-div-hq"))
+        );
+        // An entry of its own keeps its unit, now under 21st Panzer.
+        assert_eq!(get("unit:de:3-aufkl-bn").unwrap().parent, pz);
     }
 
     #[test]

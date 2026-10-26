@@ -47,8 +47,8 @@
     <path class="glyph" d="M {fx + fw * 0.2} {fy + fh * 0.7} V {fy + fh * 0.3} H {fx + fw * 0.8} V {fy + fh * 0.7} M {cx} {fy + fh * 0.3} V {fy + fh * 0.7}" />
   {:else if glyph === "supply"}
     <path class="glyph" d="M {fx + fw * 0.2} {fy + fh * 0.3} H {fx + fw * 0.8} M {fx + fw * 0.2} {fy + fh * 0.5} H {fx + fw * 0.8} M {fx + fw * 0.2} {fy + fh * 0.7} H {fx + fw * 0.8}" />
-  {:else if glyph === "hq" || glyph === "anti-tank" || glyph === "anti-air"}
-    <text class="glyph-text" x={cx} y={cy + fh * 0.17}>{glyph === "hq" ? "HQ" : glyph === "anti-tank" ? "AT" : "AA"}</text>
+  {:else if glyph === "hq" || glyph === "anti-tank" || glyph === "anti-air" || glyph === "commander"}
+    <text class="glyph-text" x={cx} y={cy + fh * 0.17}>{glyph === "hq" ? "HQ" : glyph === "anti-tank" ? "AT" : glyph === "anti-air" ? "AA" : "C"}</text>
   {:else}
     <text class="glyph-text" x={cx} y={cy + fh * 0.17}>?</text>
   {/if}

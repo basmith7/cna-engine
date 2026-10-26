@@ -63,6 +63,8 @@ export interface Placement {
   sheets?: string[];
   west_of?: HexId;
   air_facility?: boolean;
+  /** A hex holding a unit of this kind once the rest is placed (R-135, Rommel). */
+  stacked_with?: "german-unit";
   not_within?: { of: string; hexes: number } | null;
   /** The whole block goes into one hex. */
   together?: boolean;
@@ -77,7 +79,7 @@ export type Location =
   | { pending: Placement }
   | "eliminated";
 
-export type PieceKind = "combat" | "hq" | "supply-unit" | "dummy-supply-unit";
+export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit";
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 

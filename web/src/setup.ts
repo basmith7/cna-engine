@@ -25,6 +25,7 @@ export function placementWords(p: Placement): string {
   if (p.place) parts.push(typeof p.place === "string" ? p.place : list(p.place));
   if (p.box) parts.push(`the ${p.box} box`);
   if (p.air_facility) parts.push("any air facility");
+  if (p.stacked_with) parts.push(parts.length ? "with a German unit" : "any hex with a German unit");
   let where = parts.length ? parts.join(" ") : "nowhere";
   if (p.not_within) {
     const of = p.not_within.of === "enemy-unit" ? "an enemy unit" : p.not_within.of;
