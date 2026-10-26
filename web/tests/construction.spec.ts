@@ -34,3 +34,24 @@ test("phase C: the 201st Engineers and the IX Libyans begin fortifying C4218 (24
   const view = await page.evaluate(() => window.__cna.view());
   expect(view.projects?.C4218?.builders).toEqual(builders);
 });
+
+test("phase C: the 201st Engineers lay a dummy minefield at C4218, shown as such to its owner (24.31)", async ({ page }) => {
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  const engineer = "unit:it:201st-engineer-bn";
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  await page.getByTestId("phase-controls").locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await expect(page.getByTestId("clock")).toContainText("C · organisation");
+  await clickHex(page, "C4218");
+  const panel = page.getByTestId("stack-panel");
+  for (const li of await panel.locator("li[data-unit]").all()) {
+    const tick = li.locator("input.tick");
+    if ((await tick.count()) === 0) continue;
+    if ((await li.getAttribute("data-unit")) === engineer) await tick.check();
+    else await tick.uncheck();
+  }
+  await panel.locator('[data-order="lay-dummy"]').click();
+  await expect(log(page).filter({ hasText: "Axis begins a dummy minefield in C4218." })).toHaveCount(1);
+  await expect(page.getByTestId("project")).toHaveText("Axis dummy minefield under way: 0 of 1 stage");
+});

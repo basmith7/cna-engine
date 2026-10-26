@@ -371,6 +371,23 @@ pub enum Event {
         hex: HexId,
         level: u8,
     },
+    /// `side` laid a minefield in `hex`, real or dummy as its secret
+    /// (24.3x).
+    MinefieldLaid {
+        side: Side,
+        hex: HexId,
+    },
+    /// An enemy entered the minefield in `hex`, turning it face up
+    /// (26.11).
+    MinefieldRevealed {
+        hex: HexId,
+        real: bool,
+    },
+    /// The minefield in `hex` was taken off: a dummy an enemy paid to
+    /// enter, or a field an engineer cleared (26.11).
+    MinefieldRemoved {
+        hex: HexId,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {

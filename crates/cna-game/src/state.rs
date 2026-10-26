@@ -206,6 +206,10 @@ pub struct GameState {
     /// built, reduced or rebuilt. A major city absent here is at its own.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fortifications: BTreeMap<HexId, u8>,
+    /// Minefields by hex (26.1x); whether one is real is its owner's
+    /// secret until revealed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub minefields: BTreeMap<HexId, crate::construction::Minefield>,
     /// Projects under way by hex (24.1x): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub projects: BTreeMap<HexId, crate::construction::Project>,
@@ -333,6 +337,7 @@ impl GameState {
             prisoners_out: BTreeMap::new(),
             fortifications: BTreeMap::new(),
             projects: BTreeMap::new(),
+            minefields: BTreeMap::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),

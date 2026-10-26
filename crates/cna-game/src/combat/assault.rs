@@ -284,7 +284,13 @@ impl GameState {
                 &self.ruleset,
                 true,
                 self.in_hex_shift(data, &target, Kind::AntiArmour, true)
-                    .unwrap_or(0),
+                    .unwrap_or(0)
+                    + self.minefield_shift(
+                        &target,
+                        other,
+                        &firers.iter().map(|c| c.hex.clone()).collect::<Vec<_>>(),
+                        Kind::AntiArmour,
+                    ),
                 hexside,
             );
             // Committed defenders, and units that retreated in (14.13).
@@ -707,6 +713,8 @@ impl GameState {
         shifts += self
             .in_hex_shift(data, target, Kind::Defence, false)
             .unwrap_or(0);
+        let from: Vec<HexId> = attackers.iter().map(|c| c.hex.clone()).collect();
+        shifts += self.minefield_shift(target, phasing.other(), &from, Kind::Defence);
         let hexsides: Vec<i32> = attackers
             .iter()
             .map(|c| c.hex.clone())

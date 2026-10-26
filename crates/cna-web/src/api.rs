@@ -120,6 +120,16 @@ impl Game {
                     m.remove(&other);
                 }
             }
+            // Whether the other side's unrevealed minefields are real (26.1x).
+            if let Some(m) = v.get_mut("minefields").and_then(Value::as_object_mut) {
+                for field in m.values_mut().filter_map(Value::as_object_mut) {
+                    let theirs = field.get("side").and_then(Value::as_str) == Some(other.as_str());
+                    let revealed = field.get("revealed").and_then(Value::as_bool) == Some(true);
+                    if theirs && !revealed {
+                        field.remove("real");
+                    }
+                }
+            }
             // What the other side builds (3.61); its projects still show.
             if let Some(m) = v.get_mut("projects").and_then(Value::as_object_mut) {
                 for project in m.values_mut().filter_map(Value::as_object_mut) {
@@ -336,6 +346,34 @@ mod tests {
     // business too, like its motorisation.
     // 3.61: what a project builds is its owner's secret; that one is
     // under way, and by whom, is not.
+    // 26.1x: a minefield is seen, but whether the other side's is real
+    // only once an enemy has entered it.
+    #[test]
+    fn the_view_hides_whether_the_other_side_s_minefield_is_real() {
+        use cna_game::construction::Minefield;
+        let mut game = Game::with_modules(7, Modules::ALL).unwrap();
+        for (side, hex, revealed) in [
+            (Side::Axis, "C4021", false),
+            (Side::Cw, "C3923", false),
+            (Side::Cw, "C3924", true),
+        ] {
+            game.state.minefields.insert(
+                cna_data::map::HexId::parse(hex).unwrap(),
+                Minefield {
+                    side,
+                    real: true,
+                    revealed,
+                },
+            );
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["minefields"]["C4021"]["real"], true);
+        assert!(view["minefields"]["C3923"].get("real").is_none());
+        assert_eq!(view["minefields"]["C3923"]["side"], "cw");
+        assert_eq!(view["minefields"]["C3924"]["real"], true);
+    }
+
     #[test]
     fn the_view_hides_what_the_other_side_is_building() {
         let mut game = Game::with_modules(7, Modules::ALL).unwrap();

@@ -5,6 +5,7 @@
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
+  import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
   import { loadLabel, motorisationAt } from "./supply";
@@ -26,6 +27,7 @@
   const repaired = $derived(hex ? repairedAt(view, hex) : []);
   const guards = $derived(hex ? guardsAt(view, hex) : []);
   const project = $derived(hex ? view.projects?.[hex] : undefined);
+  const minefield = $derived(hex ? view.minefields?.[hex] : undefined);
   /** The side to act's ticked pieces here, the builders a Fortify order names (24.41). */
   const builders = $derived(ticked.filter((id) => pieces.some((p) => p.id === id && p.side === view.to_act)));
   const escapees = $derived(hex ? escapeesAt(view, hex) : []);
@@ -54,11 +56,25 @@
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
     {/each}
     {#if project}
-      <p class="prisoners side-{project.side}" data-testid="project">{sideName(project.side)} {project.item ?? "construction"} under way{#if project.item}: {project.stages ?? 0} of 3 stages{/if}</p>
+      <p class="prisoners side-{project.side}" data-testid="project">{sideName(project.side)} {project.item ? itemName(project.item) : "construction"} under way{#if project.item}: {project.stages ?? 0} of {itemStages(project.item)} stage{itemStages(project.item) === 1 ? "" : "s"}{/if}</p>
+    {/if}
+    {#if minefield}
+      <p class="prisoners side-{minefield.side}" data-testid="minefield">{sideName(minefield.side)} minefield{#if minefield.real === false} (dummy){/if}</p>
     {/if}
     {#if onorder && view.clock?.phase === "organisation" && !project && builders.length >= 2}
       <p class="guarding">
         <button type="button" data-order="build" title="An engineer and a 3+ TOE infantry battalion, three stages spending no CP (24.41)" onclick={() => hex && onorder({ build: { item: "fortification", hex, builders } })}>Fortify with the ticked</button>
+      </p>
+    {/if}
+    {#if onorder && view.clock?.phase === "organisation" && !project && minefield && builders.length === 1}
+      <p class="guarding">
+        <button type="button" data-order="clear-minefield" title="One stage spending no CP (26.11)" onclick={() => hex && onorder({ build: { item: "clear-minefield", hex, builders } })}>Clear the minefield</button>
+      </p>
+    {/if}
+    {#if onorder && view.clock?.phase === "organisation" && !project && !minefield && builders.length === 1}
+      <p class="guarding">
+        <button type="button" data-order="lay-real" title="One stage; 15 ammunition from a supply unit here (24.33)" onclick={() => hex && onorder({ build: { item: "real-minefield", hex, builders } })}>Lay a minefield</button>
+        <button type="button" data-order="lay-dummy" title="One stage, nothing spent (24.31)" onclick={() => hex && onorder({ build: { item: "dummy-minefield", hex, builders } })}>Lay a dummy</button>
       </p>
     {/if}
     {#each guards as g (g.side)}

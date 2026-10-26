@@ -44,9 +44,12 @@ const cases: [Event, string][] = [
   [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
   [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
   [{ "prisoners-gone": { side: "cw", hex: "E3613", points: 5 } }, "5 Commonwealth prisoner points leave play at E3613."],
-  [{ "construction-begun": { side: "axis", item: "fortification", hex: "B1010", builders: ["u:a", "u:b"] } }, "Axis begins a fortification in B1010."],
+  [{ "construction-begun": { side: "axis", item: "dummy-minefield", hex: "B1010", builders: ["u:a"] } }, "Axis begins a dummy minefield in B1010."],
   [{ "construction-lost": { side: "axis", item: "fortification", hex: "B1010" } }, "Axis loses its fortification project in B1010: a builder left."],
   [{ "fortification-built": { side: "axis", hex: "B1010", level: 1 } }, "Axis fortifies B1010 to level 1."],
+  [{ "minefield-laid": { side: "cw", hex: "C3923" } }, "Commonwealth lays a minefield in C3923."],
+  [{ "minefield-revealed": { hex: "C3923", real: false } }, "The minefield in C3923 is a dummy."],
+  [{ "minefield-removed": { hex: "C3923" } }, "The minefield in C3923 is taken off."],
   [{ "guards-detailed": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 3 } }, "unit:it:iim-tank-bn details 3 guard points in C4021."],
   [{ "guards-released": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 1 } }, "1 guard points rejoin unit:it:iim-tank-bn in C4021."],
   [{ "prisoners-escaped": { side: "axis", hex: "E2020", rejoined: 0, escapees: 6 } }, "Axis prisoners escape in E2020: 6 wait there as escapees."],
@@ -86,9 +89,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 62 variants", () => {
+  it("covers all 65 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(62);
+    expect(tags.size).toBe(65);
   });
 
   it.each(cases)("%j", (event, line) => {
