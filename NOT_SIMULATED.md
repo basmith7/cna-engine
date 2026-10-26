@@ -105,7 +105,9 @@ mission, and the engine neither models nor approximates them.
 | Trucks, halftracks and mounted infantry (12.46, 14.48) | no truck roll after a barrage; no halftrack cap |
 | Destroyed-tank markers and their capture (14.4x, 14.5) | destroyed armour leaves the map |
 | Dummy tank formations (16.4) | none exist |
-| Prisoners and captured equipment (15.89, 28.0) | the captured share is logged (`Event::Prisoners`) and nothing changes hands |
+| Prisoners (28.0) beyond points and the march | surrenders and 15.89 rolls make prisoner points that the captor marches in phase H to Alexandria or Cairo, or the Axis to A2802 (no Sirte box in cna yet), where they leave play (`cna-game::prisoners`). Not built: guards and escape (28.2x), so prisoners never escape; the three-hex shift at surrender; detention camps; feeding stores (Logistics Game); trucks carrying them. 15.89's points all count as prisoners, guns and tanks included |
+| Captured equipment (28.3) | captured guns and tanks are lost, not used by the captor |
+| Supply dumps (24.9) | under abstract supply none are built: the supply unit is the dump, and what 24.9 adds there waits on cna |
 | Advance after combat | none: cna's 50-stacking-and-zoc.md says movement in the next segment is not an advance |
 | The owner's choice of which TOE points die (12.45, 14.4x, 15.83) | the engine removes the points that absorb most per point first (`cna-game::combat::losses`) |
 | The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |

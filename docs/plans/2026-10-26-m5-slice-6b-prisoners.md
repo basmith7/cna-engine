@@ -48,22 +48,22 @@ opens for them), the e2e fixtures regenerated.
 
 ### Task 1: state and capture
 
-- [ ] Write the failing tests: a 6.26 surrender leaves the unit's
+- [x] Write the failing tests: a 6.26 surrender leaves the unit's
   infantry points as the captor's prisoners in the captor's hex; a
   15.89 roll's points join the captor; an HQ yields one; a capture in a
   departure hex goes straight out.
-- [ ] `prisoners.rs`: `capture`, the five call sites, serde defaults.
+- [x] `prisoners.rs`: `capture`, the five call sites, serde defaults.
 
 ### Task 2: the march
 
-- [ ] Write the failing tests: march 8 CP and no further; refused into
+- [x] Write the failing tests: march 8 CP and no further; refused into
   an enemy hex, into enemy ZOC, past 40, outside the captor's phase H,
   out of a hex marched into this phase; leaving play at the departure
   hex; phase H opens for prisoners alone.
-- [ ] `Order::MarchPrisoners`; phase H's stop.
+- [x] `Order::MarchPrisoners`; phase H's stop.
 
 ### Task 3: golden, UI, docs
 
-- [ ] Re-record `tests/games/graziani-m5.json`, re-pin, regenerate the
+- [x] Re-record `tests/games/graziani-m5.json`, re-pin, regenerate the
   e2e fixtures.
-- [ ] The stack panel's prisoners line; README, `NOT_SIMULATED.md`.
+- [x] The stack panel's prisoners line, a march panel in phase H (`combat.spec.ts` marches Halfaya's prisoners by clicks); `NOT_SIMULATED.md`.
