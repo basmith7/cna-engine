@@ -109,6 +109,14 @@ the bullet once it lands and `vendor/cna` is bumped.
   entry. Needed: a structured field (e.g. `replaces: "unit:de:5le-div-hq"`
   from a given Game-Turn) or the scenario's entry restated so its units
   resolve; any other HQ that replaces another the same way.
+- **Rommel as data (31.0)** (Mission 5, second half: the special rules
+  for Crusader and the Rommel scenarios). `oa/de.json` has
+  `unit:de:dak-hq` with abbreviation "Rommel"; is that the Rommel counter
+  31.0 describes (CPA 60, medium truck, no combat ratings), or a separate
+  piece? Needed: the piece's id and its characteristics row (or a
+  `rommel` block), and Rommel placed in each scenario's set-up where he
+  is present: Operation Crusader's Axis set-up names neither him nor the
+  DAK HQ.
 - **"Any road hex from A to B" as a locator** (Mission 5, second half;
   blocks Rommel's Arrival, the Desert Fox campaign and the short
   campaign). Their Axis supply placement is `hexes: ["A1816", "A2703"]`
