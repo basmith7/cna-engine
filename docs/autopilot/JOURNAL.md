@@ -322,3 +322,9 @@ Done: box attach/detach (26a1754); full Playwright 37/37 on f8a3a89, targeted sp
 In flight: #44's CI at handoff.
 Next: merge #44 when CI is green (`gh pr merge 44 --merge`); then slice 6 Task 4 (24.9 dumps under R-018 via `cna_rules::construction::dump_cost`; §28 prisoners) on a new branch.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 22:58 MST — autopilot/m5-slice-6b-dumps-prisoners
+Done: #44 merged last run. Slice 6 Task 4 split: plan `docs/plans/2026-10-26-m5-slice-6b-prisoners.md` (§28 prisoner points, capture, phase-H march, departure). 24.9 dumps wait on cna (abstract supply's supply unit is the dump; request on `main`).
+In flight: Task 1 (state and capture).
+Next: Task 1–3 of the 6b plan.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 on cna's HQ organisation types.
