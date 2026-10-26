@@ -194,12 +194,20 @@ impl GameState {
         };
         self.field_rolled.insert(key);
         let die = self.rng.d6();
-        let percent = data
+        let row = data
             .vehicle_repair
             .row(die)
-            .and_then(|r| r.field_tank_percent)
-            .expect("vehicle-repair.json has a field tank percent for every d6 roll");
-        let repaired = cna_rules::breakdown::losses(attempted, percent);
+            .expect("vehicle-repair.json has a row for every d6 roll");
+        // Recce units' wrecks go by their class (R-125): armoured cars and
+        // armoured recce, and trucks, as points; anything else is a tank
+        // or gun model, as a percentage (22.8).
+        let field =
+            |n: Option<u32>| n.expect("vehicle-repair.json has a field column for every d6 roll");
+        let repaired = match weapon {
+            "armoured-car" | "armoured-recce" => field(row.field_armoured_car).min(attempted),
+            "truck" => field(row.field_truck).min(attempted),
+            _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
+        };
         self.take_wrecks(hex, player, weapon, repaired);
         if repaired > 0 {
             *self
@@ -329,6 +337,39 @@ mod tests {
             .and_then(|m| m.get("M13/40"))
             .copied();
         assert_eq!(pooled.unwrap_or(0), repaired);
+    }
+
+    #[test]
+    fn armoured_cars_and_recce_trucks_repair_by_points_not_percent_22_8_r_125() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        type Column = fn(&cna_data::repair::RepairRow) -> Option<u32>;
+        let cars: Column = |r| r.field_armoured_car;
+        let trucks: Column = |r| r.field_truck;
+        for (class, column) in [
+            ("armoured-car", cars),
+            ("armoured-recce", cars),
+            ("truck", trucks),
+        ] {
+            let (mut state, hex) = at_repair(&data, Modules::ALL);
+            state.broken_down.get_mut(&hex).unwrap()[0].weapon = class.into();
+            let order = Order::Repair {
+                hex: hex.clone(),
+                weapon: class.into(),
+                fuel_from: None,
+            };
+            let events = state.apply(&data, Side::Axis, order).unwrap();
+            let Event::FieldRepaired {
+                die,
+                repaired,
+                attempted,
+                ..
+            } = events[0]
+            else {
+                panic!("{events:?}");
+            };
+            let row = data.vehicle_repair.row(die).unwrap();
+            assert_eq!(repaired, column(row).unwrap().min(attempted), "{class}");
+        }
     }
 
     #[test]

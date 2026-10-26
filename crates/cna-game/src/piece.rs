@@ -220,6 +220,10 @@ pub struct Piece {
     /// next is due only in a higher one (21.2x).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub breakdown_checked: Option<u8>,
+    /// Flown in phase C this OpStage (32.37): it stays put until the
+    /// next, though it may be drawn upon.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub flown: bool,
 }
 
 fn is_zero(n: &u32) -> bool {

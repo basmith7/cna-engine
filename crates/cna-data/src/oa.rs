@@ -184,6 +184,13 @@ pub struct Unit {
     pub abbreviation: Option<String>,
     pub id_code: Option<String>,
     pub parent: Option<UnitId>,
+    /// An HQ's level (R-124): none for a unit that is not an HQ.
+    #[serde(default)]
+    pub echelon: Option<Echelon>,
+    /// A recce unit's vehicles for breakdown (R-125): none off the
+    /// Recce and Reconnaissance rows.
+    #[serde(default)]
+    pub vehicle: Option<ReconVehicle>,
     #[serde(default)]
     pub toe: Vec<ToeEntry>,
     pub arrives: Option<Arrival>,
@@ -194,6 +201,42 @@ pub struct Unit {
     pub equivalent: Option<Equivalent>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// An HQ's organisational level (R-124, 9.22): a regiment HQ is a
+/// brigade equivalent; battle groups (19.73) are their own class.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Echelon {
+    Corps,
+    Division,
+    Brigade,
+    BattleGroup,
+}
+
+/// What a reconnaissance unit's TOE points break down as (R-125, 21.1x):
+/// keyed into `breakdown-adjustments.json`; camels and motorcycles are
+/// exempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReconVehicle {
+    ArmouredCar,
+    ArmouredRecce,
+    Truck,
+    #[serde(rename = "none")]
+    Exempt,
+}
+
+impl ReconVehicle {
+    /// The adjustment row's and the wreck's name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ReconVehicle::ArmouredCar => "armoured-car",
+            ReconVehicle::ArmouredRecce => "armoured-recce",
+            ReconVehicle::Truck => "truck",
+            ReconVehicle::Exempt => "none",
+        }
+    }
 }
 
 /// A unit printed on one sheet but attached to an HQ of another.
@@ -343,6 +386,23 @@ mod tests {
         assert!(UnitId::parse("it:maletti-div-hq").is_err());
         assert!(UnitId::parse("unit:fr:x").is_err());
         assert!(UnitId::parse("unit:it:Bad").is_err());
+    }
+
+    #[test]
+    fn hqs_carry_their_echelon_r_124() {
+        let oa = Oa::load_all().unwrap();
+        let echelon = |id: &str| oa.unit(&UnitId::parse(id).unwrap()).unwrap().echelon;
+        assert_eq!(
+            echelon("unit:cw:7th-armored-div-hq"),
+            Some(Echelon::Division)
+        );
+        assert_eq!(
+            echelon("unit:cw:4th-armored-bde-hq"),
+            Some(Echelon::Brigade)
+        );
+        assert_eq!(echelon("unit:cw:6-rtr"), None);
+        assert!(oa.units().any(|u| u.echelon == Some(Echelon::BattleGroup)));
+        assert!(oa.units().any(|u| u.echelon == Some(Echelon::Corps)));
     }
 
     #[test]

@@ -151,6 +151,7 @@ impl GameState {
         for (to, cost) in &plan.steps {
             self.collect_breakdown(data, pieces, &at, to);
             self.capture_wrecks(data, pieces, to, &mut events);
+            self.surrender_collapsed(data, pieces, to, &mut events);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at.clone(),

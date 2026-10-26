@@ -91,6 +91,15 @@ pub enum Order {
         ammo: u32,
         fuel: u32,
     },
+    /// Phase C, abstract supply: the player's once-a-Game-Turn air lift
+    /// of one supply unit to `to`, 12 fuel from `fuel_from` (none takes
+    /// the first at the origin with enough) (32.37).
+    AirLift {
+        piece: PieceId,
+        to: crate::piece::Location,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// A movement segment, before anything moves: the player's supply
     /// units in `hex` are put to the torch, one die each (32.1x).
     DestroySupply { hex: HexId },

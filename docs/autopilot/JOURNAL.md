@@ -280,3 +280,21 @@ Done: #36 (cna bump) merged (11c1a5e); PROGRESS on main (fc16e3e): every cna req
 In flight: nothing uncommitted.
 Next: on #37, convoy bombing (32.6x) with R-124's echelons for "westernmost full Commonwealth division" and the Air Bombardment Table; then mark #37 ready (per-side event redaction, e.g. `supply-planned`, is the Mission 4 server's job: hot-seat shares one log). After: Helwan, R-120 defence, R-123, R-125, the air lift; slice 6.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 19:07 MST — autopilot/m5-air-lift
+Done: #37 marked ready (6665386: convoy bombing moved out); request for cna on main (b6e9e2a): 56.1's lanes and a 32.66 ruling. Air lift on draft #38, stacked on #37: `Echelon` in cna-data and `Order::AirLift` (5d56fde), web Fly… button and e2e (3103e02, supply.spec.ts 10/10).
+In flight: full Playwright run on #38; a fresh review of the air-lift diff.
+Next: merge #37 when its web CI is green, merge main into #38, act on the review, mark #38 ready. Then R-120 defence / R-123 / R-125 / Helwan follow-ups, then slice 6's plan (§19 attachment as explicit state).
+Blocked: Mission 4 on Brian's review of #25; convoy bombing on cna's lane table.
+
+## 2026-10-25 19:30 MST — autopilot/m5-recce-breakdown
+Done: #37 (slice 4) merged. #38 (air lift) ready, Playwright 34/34 locally. #39: R-125 recce breakdown/repair (af3ad0c), R-123 motorised foot units (892c103, 4a9f958), review fixes (a994d30: phase H waits on supply only; top-up). Reviewer's "motorisation points never break down" finding is the rule (32.5x), not a bug. Draft #40 (R-120 defence, own branch off main): defenders out of ammunition sit out, an all-out hex surrenders; tests pass.
+In flight: full Playwright on #39 (/tmp/pw-39.txt, lost with the run if unfinished: rerun). #40's module-on golden game no longer replays: GT1's Axis assault on C3922 now takes the hex by surrender (CW has no ammunition in range).
+Next: merge #38 when web CI is green, merge main into #39, mark ready, merge. Then #40: re-script the module-on golden (`golden.rs` script, `tests/games/graziani-m5.json`), regenerate the web e2e fixtures (`cna-web` the_e2e_fixtures_are_current) and `golden.spec.ts`'s pins.
+Blocked: Mission 4 on Brian's review of #25; convoy bombing on cna's lane table (request on main).
+
+## 2026-10-25 19:42 MST — autopilot/m5-collapse-surrender
+Done this run: #37 slice 4 and #38 air lift merged; #41 slice 6 plan merged. Ready, CI running at handoff: #39 (R-125 recce breakdown, R-123 motorised foot units, box flights; Playwright 34/35, the one a runner clash, rerun 14/14), #42 (convoy bombing core: chart readers, 32.65 losses), #43 (6.26: a −26 unit surrenders to an enemy alongside). Draft #40 (R-120 defence). Requests for cna on main: 56.1 lanes + 32.66 readings; R-120 with HQs; each HQ's organisation type (slice 6 Task 3).
+In flight: nothing uncommitted.
+Next: merge #39, #42, #43 when green (`gh pr merge N --merge`). Then #40: re-script the module-on golden fight at Halfaya (R-120 makes the CW surrender there), regenerate `tests/games/graziani-m5.json`, the cna-web e2e fixtures and golden.spec pins. Then slice 6 Task 1–2 (attachment state and orders; no golden move splits an attached unit, checked).
+Blocked: Mission 4 on Brian's review of #25.

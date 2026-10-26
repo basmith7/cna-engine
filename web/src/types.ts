@@ -177,6 +177,7 @@ export type Order =
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { rail: { pieces: PieceId[]; path: HexId[] } }
+  | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | "pass";
 
@@ -288,6 +289,7 @@ export type Event =
   | { "motorisation-lost": { side: Side; percent: number; of: number; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
+  | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }

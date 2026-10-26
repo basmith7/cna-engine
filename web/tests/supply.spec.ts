@@ -95,6 +95,74 @@ test("phase C: attaching motorisation to a supply unit is the engine's call (32.
   await expect(page.getByTestId("toast")).toContainText("needs 30 motorisation points and C4807 has 5");
 });
 
+test("phase C: a supply unit flies from Tobruk to an HQ at El Adem, once a Game-Turn (32.37)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C4807");
+  const tick = () => page.locator('[data-unit="supply:axis:1"] input.tick').check();
+  await tick();
+  // Bardia (column 21) lies east of the farthest Axis division HQ, at Fort Capuzzo's column 20 (R-124).
+  await controls.locator('[data-order="air-lift"]').click();
+  await expect(page.getByTestId("fly-hint")).toBeVisible();
+  await clickHex(page, "C4321");
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.37)");
+  await expect(page.getByTestId("toast")).toContainText("beyond the farthest axis division HQ");
+  // El Adem holds the 240th Legion's HQ.
+  await clickHex(page, "C4807");
+  await tick();
+  await controls.locator('[data-order="air-lift"]').click();
+  await clickHex(page, "C4507");
+  await expect(log(page).filter({ hasText: "flown C4807 → C4507, 12 fuel from" })).toHaveCount(1);
+  const s = await page.evaluate(() => window.__cna.view().pieces["supply:axis:1"]);
+  expect(s.location).toEqual({ hex: "C4507" });
+  expect(s.load?.fuel).toBe(38);
+  // A second flight this Game-Turn is refused.
+  await clickHex(page, "C4807");
+  await page.locator('[data-unit="supply:axis:2"] input.tick').check();
+  await controls.locator('[data-order="air-lift"]').click();
+  await clickHex(page, "C4507");
+  await expect(page.getByTestId("toast")).toContainText("this Game-Turn");
+});
+
+test("phase C: a supply unit flies back to the Tripoli box, where the 2nd CCNN Division's HQ waits (32.37)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C4807");
+  await page.locator('[data-unit="supply:axis:1"] input.tick').check();
+  await controls.locator('[data-order="air-lift"]').click();
+  await controls.locator('[data-order="air-lift-box"][data-box="tripoli"]').click();
+  await expect(log(page).filter({ hasText: "flown C4807 → the tripoli box" })).toHaveCount(1);
+  const s = await page.evaluate(() => window.__cna.view().pieces["supply:axis:1"]);
+  expect(s.location).toEqual({ box: "tripoli" });
+});
+
+test("phase C: a foot battalion takes a motorisation point per TOE point and moves at 20 (32.54, R-123)", async ({ page }) => {
+  // The set-up, with 5 points beside the I Libyan Motorised Battalion (CPA 10+, 5 TOE points) at C3617.
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  save.motorisation.axis.C3617 = 5;
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C3617");
+  const checked = page.locator('[data-testid="stack-panel"] input.tick:checked');
+  while ((await checked.count()) > 0) await checked.first().uncheck();
+  // A tank battalion has its own transport.
+  await page.locator('[data-unit="unit:it:iim-tank-bn"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(page.getByTestId("toast")).toContainText("own transport");
+  await page.locator('[data-unit="unit:it:iim-tank-bn"] input.tick').uncheck();
+  await page.locator('[data-unit="unit:it:i-libyan-mtr-bn"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(log(page).filter({ hasText: "takes 5 motorisation points." })).toHaveCount(1);
+  const bn = await page.evaluate(() => window.__cna.view().pieces["unit:it:i-libyan-mtr-bn"]);
+  expect(bn.motorised).toBe(5);
+  await expect(controls.locator('[data-order="detach-motorisation"]')).toContainText("Dismount");
+});
+
 test("phase C: two ticked supply units in one hex trade ammunition and fuel within the caps (32.1x)", async ({ page }) => {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");

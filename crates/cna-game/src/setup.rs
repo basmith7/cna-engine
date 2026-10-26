@@ -209,6 +209,7 @@ pub(crate) fn supply_piece(
         escorted: false,
         breakdown_halves: 0,
         breakdown_checked: None,
+        flown: false,
     }
 }
 
@@ -388,6 +389,7 @@ fn piece(
         escorted: false,
         breakdown_halves: 0,
         breakdown_checked: None,
+        flown: false,
     }
 }
 
