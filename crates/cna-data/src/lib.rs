@@ -8,6 +8,7 @@ pub mod calendar;
 pub mod characteristics;
 pub mod close_assault;
 pub mod construction;
+pub mod convoy;
 pub mod cp;
 pub mod errata;
 pub mod initiative;
