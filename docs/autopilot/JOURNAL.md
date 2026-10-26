@@ -376,3 +376,15 @@ Done: #51: vendor/cna bb0a8d1 -> 818fbf6 (c9be633; every request answered), R-13
 In flight: #51's CI; two stacked branches from it: `autopilot/m5-convoy-bombing` (32.6x with lanes, R-126..R-128) and `autopilot/m5-slice-6-limits` (slice 6 Task 3, caps and shells, R-130), worktrees in ../wt-*.
 Next: merge #51 on green CI, then the two stacked PRs once their gates pass. R-132's off-map prisoner stages (3 at CPA 8) are a small follow-up.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 03:36 MST — autopilot/m5-docs
+Done: merged #51 (cna 818fbf6, R-133/R-134), #52 (convoy bombing, subagent), #53 (reserve once per stage), #55 (attachment limits and shells, subagent). Opened #54 (15.84/14.14 gun losses; short golden re-pinned), #56 (design Status, README modules), #57 (shells one size smaller in 15.5x; fixes #55's battalion shells, empty OA TOE), #58 (R-132 prisoners off map; log line for ConvoyBombed, whose absence throws in the browser).
+In flight: CI on #54/#56/#57/#58; slice 6 Task 5 UI (subagent, branch autopilot/m5-slice-6-ui, worktree ../wt-slice-6-ui).
+Next: merge the four on green CI (#58 first); then division-sized formations in 15.5x's size table (plan 2026-10-26-m5-slice-6-organisation.md, Task 3 open item).
+Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 03:55 MST — autopilot/m5-docs
+Done: also merged #54 (gun losses) and #58 (R-132 prisoners off map; ConvoyBombed log line, whose absence threw in the browser). #60 (stack-panel nesting, shell badge; subagent) fixed for tsc and merged with main; #57 merged with main; all green locally.
+In flight: CI on #56, #57, #60; draft #59 (formations in 15.5x's size table) fails on purpose: set-up stacks HQs with their formations, so assaults see divisions and the short golden diverges at GT1 stage 1's close assault.
+Next: merge #56/#57/#60 on green CI; then #59: confirm 15.55's reading, fix its test set-up, re-play both golden scripts and the e2e golden, re-pin.
+Blocked: Mission 4 on Brian's review of #25.

@@ -15,59 +15,24 @@ writes is **Feedback**.
 
 ## Status
 
-**MISSION 5 started ahead of Mission 4** (2026-10-13), so the autopilot
-is not idle while Brian reviews #25: the spec for the rest of the Land
-Game turn merged as PR #29 (`docs/designs/2026-10-13-land-turn-design.md`).
-Slices 1 (supply state, #31) and 2 (spending, #32) are merged. **Slice 3**
-(supply movement) merged as PR #34 on 2026-10-24:
-phase C attaches motorisation and trades loads; supply units move with
-an escort in G or alone in H; the Commonwealth rails two a stage in
-phase J; a side may destroy its own supply; captured supply goes over
-to the captor. The air lift moved out (cna has no HQ echelons).
-**Slice 5** (breakdown and field repair) merged as PR #35 on
-2026-10-25: motorised units collect breakdown points and check where
-they stop; broken-down vehicles stay in the hex, show on the map, can be
-captured, and phase K tries them in the field. Towing and facility
-repair moved to the construction slice. **The cna bump** merged as #36:
-typed set-up placements enforced (Helwan still never offered), R-121
-company ammunition, R-122 loss base, motorisation from typed data.
-**Slice 4** (arrivals) merged as PR #37 on 2026-10-26: the calendar,
-each turn's planning rolls, Commonwealth arrivals at Cairo and
-Alexandria, Axis convoys to Tripoli (three a lane), monthly motorisation
-losses. Convoy bombing waits on cna's lane table (request below); its
-chart readers and loss rule merged as #42. **The air lift** (32.37, R-124)
-merged as #38. **#39** (merged): recce units break down and repair by
-their vehicle class (R-125), foot units ride motorisation points (R-123),
-the Axis may fly supply back to the Tripoli or Tunisia box. **PR #43 (merged)**: a unit at −26 surrenders to an enemy coming alongside (6.26).
-**PR #40 (merged 2026-10-26)**: R-120's defence side: defenders out of
-ammunition sit out and an all-out hex surrenders, so the module-on
-golden game's Halfaya Pass now falls by surrender (439 orders, played by
-clicks in Playwright). **Slice 6a** (plan #41, resliced) merged as
-**PR #44** on 2026-10-26: attachment is state (`Piece.attached_to`;
-set-up, placements and arrivals attach, old saves fill), stacking and an
-HQ's CPA read it, `Attach`/`Detach` at a CP each in phase C or the own
-movement segment (hexes and boxes), and moves, reactions, retreats and
-off-map moves carry attached units, refuse a lone attached one, and stop
-a unit detached while moving with its parent. The stack panel and the
-off-map panel have Attach/Detach. Slice 6's limits and shells (Task 3)
-wait on cna. **Slice 6b** (PR #45, merged 2026-10-26): §28 prisoner
-points from every surrender and 15.89 roll, marched by the captor in
-phase H to Alexandria/Cairo (or A2802 for the Axis) where they leave
-play; the module-on golden marches Halfaya's 12 west. 24.9 dumps wait on
-cna (request below). **Slice 7** (PR #46, merged 2026-10-26):
-repaired points stand in their hex and a unit there absorbs them in
-phase C at a CP per two, up to printed strength (19.61, 20.41).
-**Slice 8** (PR #47, merged 2026-10-26): prisoner guards and escape
-(28.2x): guard points detailed from infantry, a guard per five on the
-march, unguarded prisoners escape at the end of the captor's phase H,
-an enemy entering frees or recaptures them. **Slice 9a** (PR #48,
-merged): major cities defend at their fortification level, the best
-single in-hex benefit; level-3 cities ignore pins. **Slice 9b** (PR #49, merged): a `construction` module; engineers and
-a 3+ TOE infantry battalion build fortification levels in phase C, three
-idle stages a level; the opponent sees a project but not its item
-(3.61). **Slice 9c** (PR #50, merged): minefields laid real or dummy (the
-owner's secret), the TEC entry costs with engineer escorts, revealing,
-dummy removal, the mine roll, the combat shift, and clearing.
+**MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
+on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
+bar a short list; the design's Status (`docs/designs/2026-10-13-land-turn-design.md`,
+updated in #56) names it. Merged so far: supply state, spending, supply
+movement, arrivals, the air lift, breakdown and repair (#31–#39, #42–#43),
+R-120's defence (#40), attachment (#44), prisoners, guards and
+replacements (#45–#47), construction: fortifications and minefields
+(#48–#50). **On 2026-10-26 (this run):** `vendor/cna` bumped to 818fbf6,
+which answered every open request (#51: minefields spend no supplies under
+§32, R-133; rough not salt marsh, R-134); Axis convoy bombing on the
+Tripoli lane (#52, R-126–R-128); a released reserve unit assaults once per
+stage (#53, 18.23); attachment limits and shells (#55, 19.5, 9.26, R-130).
+Also merged: 15.84/14.14 gun losses (#54), R-132's Axis prisoners
+travelling off map plus a browser log line for `ConvoyBombed` (#58).
+Also merged: shells one size smaller in 15.5x, fixing #55's battalion
+shells (#57), and organisation in the stack panel: nesting and a shell
+badge (#60). #56 (design Status, README modules) merged too. Open at handoff: draft #59 (formations in 15.5x's size table; its goldens
+need re-playing).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -118,7 +83,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: slice 9 is merged; next the PR #12 combat follow-ups below (18.2x released units, 15.84/14.14 forward guns), and the rest of the land rules the queue row names. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: finish draft #59 (division-sized formations in 15.5x: the short
+  golden now diverges at GT1 stage 1's assault and needs its script
+  re-played), convoy lanes beyond Tripoli, and the mission's second half
+  (other scenarios' land rules). Helwan as an alternative to Cairo waits
+  for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -132,18 +101,8 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-
-- **24.9 supply dumps under abstract supply (§32).** With the Logistics Game off, a supply unit *is* a dump counter (32.11) with its own load, and dummies are capped at one per three real units received (32.18). Please rule whether 24.9 applies there at all, and if so: does a real dump made for 3 CP become a new supply unit (empty? split from a load in the hex?), and may 2-CP dummy dumps exceed 32.18's cap? Blocks Mission 5 slice 6's dumps (cna-engine builds none meanwhile; `NOT_SIMULATED.md`).
-- **28.15's Axis departure point, the Sirte box.** cna's map and off-map data have no Sirte box (the 8.8x boxes are Tripolitania, Tripoli, Gabes, Tunis). Please say where Axis prisoners leave play: a box from the off-map data, or a map hex. cna-engine uses A2802 (the hex units leave by for the Tripolitania box) until then. Blocks nothing; the engine's choice is reversible.
-- **The Axis Naval Convoy Air Distance Chart's lanes (56.1) as data, and a ruling on reading 32.66.** Simplified Axis convoys (32.6x) split among lanes, and `axis-convoy-bombing.json` picks the bombing column by lane number, but cna has no table saying where each of the six lanes ends (destination port, or off-map box for Tripoli) or which a scenario may use (Graziani's says lanes 2, 3 and 6, 60.37). Please add the lanes (number, origin, destination; opening rules such as 56.11's Greek lanes) and decide: (a) when the westernmost full Commonwealth division is east of a lane's first threshold, is the convoy not attacked or attacked on the 1–20 column; (b) do 5 % results, like 10 %, hit only motorisation and replacement points; (c) are dummy supply units counted before or after bombing (32.1x's one per three received). Blocks Mission 5's convoy bombing (cna-engine #37 moved it out).
-
-- **R-120's surrender with HQs in the hex.** R-120 makes an assaulted hex surrender when every defender is out of ammunition, but HQs (and anything else that owes no ammunition under 32.21) are never "out". Does a hex whose only defenders still in ammunition are HQs surrender? cna-engine #40 says yes (an all-out hex surrenders when every committed defender that *owes* ammunition is out, HQs included); please confirm or correct. Blocks nothing; #40 is built on that reading.
-
-- **Each HQ's organisation type, keyed to `max-attachments.json` and `formation-organisation.json`.** Slice 6 (§19 attachment, plan `docs/plans/2026-10-26-m5-slice-6-organisation.md`) must cap non-assigned attachments by 19.5's parent types (`armour-division`, `infantry-division`, `other-brigade`, `brigade-or-regiment`, `battalion`…) and judge 9.26 shells against 19.3's organisation (with its `type` and turn ranges), but no OA unit says which row it is: the 7th Armoured Division HQ is `echelon: division` with no `armour-division`. Please add, per HQ (and for battalions where 19.5 has a row), the `max-attachments.json` parent key and the `formation-organisation.json` row (parent and type). Blocks Mission 5 slice 6, Task 3.
-
-- **Construction costs under abstract supply (§24 with 32.11), and the minefield terrain.** 32.11 ignores stores and water, but the Construction Chart's real minefield also costs 15 ammunition, which a §32 supply unit carries. Please rule: under §32, does a real minefield draw 15 ammunition from a supply unit in the hex (and a fortification, all stores, nothing)? And the chart lists minefield sites as clear, sand-gravel and salt marsh, where 24.3x's text says clear, sand/gravel or rough: which governs? Blocks nothing; cna-engine slice 9c will draw the ammunition and follow the chart until then.
-
-Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#36).
+None open. Every request through R-134 was answered by 2026-10-26;
+`vendor/cna` moves to 818fbf6 in #51.
 
 ## Runs and quota
 
@@ -269,3 +228,4 @@ Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#3
 | 2026-10-25 20:53 | 71 | 30→31 | 18→2 | $13.68 | 2 | Both CI runs for #44's last commit have now finished green (test and web in each). That covers the duplicate run that was still pending when I merged, so the me |
 | 2026-10-25 22:53 | 66 | 31→33 | 3→13 | $12.34 | 197 | Two Mission 5 slices merged this run, #45 and #46. The third, slice 8, is planned on draft PR #47 but nothing is built for it yet. - **#45, slice 6b (prisoners, |
 | 2026-10-26 00:53 | 82 | 33→34 | 15→18 | $13.53 | 209 | Four PRs merged this run: slice 8 (prisoner guards and escape) and all three parts of slice 9 (fortifications and minefields). Mission 5 keeps moving while Miss |
+| 2026-10-26 02:53 | 85 | 34→35 | 0→7 | $14.67 | 201 | Ten PRs merged this run (#51–#58, #60). Main passes the full Rust suite after the last merge. The only open autopilot PR besides the Mission 4 spec is draft #59 |

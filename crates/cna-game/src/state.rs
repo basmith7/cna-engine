@@ -202,6 +202,10 @@ pub struct GameState {
     /// Prisoner points each captor has sent out of play (28.15).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub prisoners_out: BTreeMap<Side, u32>,
+    /// Axis prisoner points on their way off map A to the Tripolitania
+    /// box (R-132): points and the captor's phase Hs still to go.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners_off_map: BTreeMap<Side, Vec<(u32, u8)>>,
     /// Fortification levels changed from what the map gives (25.1x):
     /// built, reduced or rebuilt. A major city absent here is at its own.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -335,6 +339,7 @@ impl GameState {
             railed: BTreeSet::new(),
             prisoners: BTreeMap::new(),
             prisoners_out: BTreeMap::new(),
+            prisoners_off_map: BTreeMap::new(),
             fortifications: BTreeMap::new(),
             projects: BTreeMap::new(),
             minefields: BTreeMap::new(),

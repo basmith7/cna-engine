@@ -2,7 +2,7 @@
   // What is in the clicked hex (spec, *Moving*): the side to act's own
   // pieces carry a tick, and the ticked ones are the stack an order
   // moves. The app owns the ticks; this only shows and toggles them.
-  import { glyphFor, label, markers, nameParts, stacks } from "./counters";
+  import { glyphFor, label, markers, nameParts, nested, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
@@ -116,16 +116,16 @@
       <p class="empty">Nothing here.</p>
     {:else}
       <ol>
-        {#each pieces as p (p.id)}
+        {#each nested(pieces) as { piece: p, depth } (p.id)}
           {@const text = label(p)}
           {@const name = nameParts(text.long)}
-          <li class="piece side-{p.side}" class:ticked={ticked.includes(p.id)} data-unit={p.id}>
+          <li class="piece side-{p.side}" class:ticked={ticked.includes(p.id)} data-unit={p.id} data-depth={depth} style:margin-left="{depth * 1.1}rem">
             {#if tickable(p, view.to_act)}
               <input type="checkbox" class="tick" checked={ticked.includes(p.id)} aria-label="Move {text.long}" onchange={() => ontoggle?.(p.id)} />
             {:else}
               <span class="tick"></span>
             {/if}
-            <span class="abbr">{text.short}</span>
+            <span class="abbr">{text.short}{#if p.shell}<span class="shell" data-testid="shell" title="A shell: too few of its units attached or too little TOE left, it stacks one level smaller (9.26)">shell</span>{/if}</span>
             <span class="name">{name.text}{#if name.sup}<sup title="Engineering capability">{name.sup}</sup>{/if}</span>
             <span class="facts">
               {sideName(p.side)} · {p.unit_type ?? glyphFor(p.kind, p.unit_type)}
@@ -230,6 +230,16 @@
     justify-self: start;
     margin-top: 0.2rem;
     font-size: 12px;
+  }
+  .shell {
+    margin-left: 0.3rem;
+    padding: 0 0.25rem;
+    border: 1px solid #8a6d1f;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 400;
+    color: #8a6d1f;
+    text-transform: uppercase;
   }
   .piece.ticked {
     background: #e6f4f1;

@@ -24,7 +24,7 @@ mod tests {
 
     /// SHA-256 of the final state's JSON (`GameState::to_json`).
     const FINAL_STATE_SHA256: &str =
-        "b4bc3d4a4cea1c7d180e873d8859d645e8e8d0367b1766a71c607d27f95acd87";
+        "055abce1f8780c74e049d1a047b0d34fcc8ca609d0e40e5b9ebb4dea416ebc75";
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
@@ -314,7 +314,15 @@ mod tests {
                 (Cw, Order::GunPositions { forward: vec![] }),
                 (
                     Axis,
-                    fire("unit:it:1st-libyan-artillery-regt", "unit:cw:3-cldgds"),
+                    // 15.84: the regiment lost a forward gun point in the
+                    // stage 1 assault on Halfaya; it fires what is left.
+                    Order::Barrage {
+                        fires: vec![Fire {
+                            piece: pid("unit:it:1st-libyan-artillery-regt"),
+                            points: state.pieces[&pid("unit:it:1st-libyan-artillery-regt")].toe,
+                            target: pid("unit:cw:3-cldgds"),
+                        }],
+                    },
                 ),
             ]
         };

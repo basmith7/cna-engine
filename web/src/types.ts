@@ -90,6 +90,8 @@ export interface Piece {
   parent: string | null;
   /** The unit this one is merged into (19.1x); absent when it stands alone. */
   attached_to?: string;
+  /** A formation too depleted to count whole: it stacks one level smaller (9.26). */
+  shell?: true;
   toe: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
@@ -318,6 +320,8 @@ export type Event =
   | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { "prisoners-left-map": { side: Side; points: number; stages: number } }
+  | { "convoy-bombed": { lane: number; bomb_points: number; reading: number; percent: number; units: number; sunk: number } }
   | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
   | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
   | { "fortification-built": { side: Side; hex: HexId; level: number } }

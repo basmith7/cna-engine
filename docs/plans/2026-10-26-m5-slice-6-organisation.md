@@ -94,5 +94,6 @@ on cna's HQ organisation types.
 
 ### Task 5: UI, docs
 
-- [ ] Stack panel nesting, Attach/Detach controls, e2e; README,
-  `NOT_SIMULATED.md`, the spec's Status and the queue row.
+- [x] Stack panel nesting, Attach/Detach controls, e2e (shells
+  badged, 9.26).
+- [ ] README, `NOT_SIMULATED.md`, the spec's Status and the queue row.

@@ -99,6 +99,18 @@ impl GameState {
         needed: u32,
         events: &mut Vec<Event>,
     ) -> (u32, u32) {
+        self.absorb_by(data, shares, |_, p| rate(p), needed, events)
+    }
+
+    /// `absorb` with a rate that also reads the piece.
+    pub(crate) fn absorb_by(
+        &mut self,
+        data: &Data,
+        shares: &mut [Share],
+        rate: impl Fn(&PieceId, &Part) -> u32,
+        needed: u32,
+        events: &mut Vec<Event>,
+    ) -> (u32, u32) {
         let mut absorbed = 0;
         let mut removed = 0;
         let mut per_piece: Vec<(PieceId, u32)> = Vec::new();
@@ -110,7 +122,7 @@ impl GameState {
                 }
                 let piece = &self.pieces[&share.piece];
                 for part in self.parts(data, piece) {
-                    let r = rate(&part);
+                    let r = rate(&share.piece, &part);
                     if r == 0 || part.points == 0 {
                         continue;
                     }

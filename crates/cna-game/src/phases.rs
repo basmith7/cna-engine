@@ -143,6 +143,9 @@ impl GameState {
                 Phase::TruckConvoy
                     if {
                         self.marched.clear();
+                        if let Some(side) = self.phasing() {
+                            self.prisoners_off_map_on(data, side, events);
+                        }
                         self.trucks_to_move() || self.prisoners_to_handle()
                     } =>
                 {

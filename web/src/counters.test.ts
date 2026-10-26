@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import charsFile from "../../vendor/cna/data/tables/unit-characteristics.json";
-import { glyphFor, label, nameParts, offMap, sizeMark, stacks, topFirst } from "./counters";
+import { glyphFor, label, nameParts, nested, offMap, sizeMark, stacks, topFirst } from "./counters";
 import type { Piece, View } from "./types";
 
 function piece(over: Partial<Piece> & { id: string }): Piece {
@@ -145,5 +145,22 @@ describe("stacks", () => {
     expect(o.transit.map((p) => p.id)).toEqual(["unit:it:moving"]);
     expect(o.tray.axis.map((p) => p.id)).toEqual(["unit:it:later"]);
     expect(o.tray.cw.map((p) => p.id)).toEqual(["unit:cw:later"]);
+  });
+});
+
+describe("nested", () => {
+  it("puts attached units under their parent, deeper each level", () => {
+    const div = piece({ id: "hq:div" });
+    const bde = piece({ id: "hq:bde", attached_to: "hq:div" });
+    const bn = piece({ id: "unit:bn", attached_to: "hq:bde" });
+    const lone = piece({ id: "unit:lone" });
+    const stray = piece({ id: "unit:stray", attached_to: "hq:elsewhere" });
+    expect(nested([bn, lone, bde, stray, div]).map((n) => [n.piece.id, n.depth])).toEqual([
+      ["unit:lone", 0],
+      ["unit:stray", 0],
+      ["hq:div", 0],
+      ["hq:bde", 1],
+      ["unit:bn", 2],
+    ]);
   });
 });

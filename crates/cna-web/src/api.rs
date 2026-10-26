@@ -55,7 +55,8 @@ impl Game {
     /// What the UI draws: the state minus `log` and `rng`, plus `to_act`
     /// and, per piece, `unit_type` from the characteristics chart (null
     /// for supply units and ID codes the chart lacks) and the OA unit's
-    /// `name` and `abbreviation` (null for supply units);
+    /// `name` and `abbreviation` (null for supply units), and `shell: true`
+    /// on a formation that is a shell (9.26);
     /// `assaults_to_resolve`, the hexes the phasing player still has to
     /// assault in the close assault step. While a sealed step is
     /// pending, the answers already given to it by sides other than
@@ -176,6 +177,18 @@ impl Game {
                 (p.id.as_str().to_owned(), labels)
             })
             .collect();
+        // Shells (9.26) are worked out from what both sides see (attachments
+        // and TOE are not redacted), so every piece carries the flag.
+        let shells: Vec<String> = self
+            .state
+            .pieces
+            .values()
+            .filter(|p| self.state.is_shell(data(), &p.id))
+            .map(|p| p.id.as_str().to_owned())
+            .collect();
+        for id in shells {
+            v["pieces"][&id]["shell"] = json!(true);
+        }
         for (id, labels) in labels {
             for (k, val) in labels.as_object().context("labels")? {
                 v["pieces"][&id][k] = val.clone();
@@ -296,6 +309,44 @@ mod tests {
         assert_eq!(view["rules_commit"], RULES_COMMIT);
         assert!(view["over"].is_null());
         assert!(view.get("log").is_none() && view.get("rng").is_none());
+    }
+
+    #[test]
+    fn view_marks_shell_formations_and_only_those() {
+        let mut game = Game {
+            state: replay(data(), &setup_log()).unwrap(),
+        };
+        // Strip an HQ of its attached units: it becomes a shell (9.26).
+        let hq = game
+            .state
+            .pieces
+            .values()
+            .find(|p| {
+                p.kind == cna_game::piece::PieceKind::Hq
+                    && !game.state.is_shell(data(), &p.id)
+                    && game.state.pieces.values().any(|q| q.attached_to == p.id.unit())
+            })
+            .expect("a whole formation")
+            .id
+            .clone();
+        let unit = hq.unit();
+        for q in game.state.pieces.values_mut() {
+            if q.attached_to == unit {
+                q.attached_to = None;
+            }
+        }
+        assert!(game.state.is_shell(data(), &hq));
+        let view = game.view().unwrap();
+        for p in game.state.pieces.values() {
+            let shell = game.state.is_shell(data(), &p.id);
+            assert_eq!(
+                view["pieces"][p.id.as_str()].get("shell").is_some(),
+                shell,
+                "{}",
+                p.id.as_str()
+            );
+        }
+        assert_eq!(view["pieces"][hq.as_str()]["shell"], true);
     }
 
     #[test]
