@@ -66,6 +66,11 @@
         <button type="button" data-order="build" title="An engineer and a 3+ TOE infantry battalion, three stages spending no CP (24.41)" onclick={() => hex && onorder({ build: { item: "fortification", hex, builders } })}>Fortify with the ticked</button>
       </p>
     {/if}
+    {#if onorder && view.clock?.phase === "organisation" && !project && minefield && builders.length === 1}
+      <p class="guarding">
+        <button type="button" data-order="clear-minefield" title="One stage spending no CP (26.11)" onclick={() => hex && onorder({ build: { item: "clear-minefield", hex, builders } })}>Clear the minefield</button>
+      </p>
+    {/if}
     {#if onorder && view.clock?.phase === "organisation" && !project && !minefield && builders.length === 1}
       <p class="guarding">
         <button type="button" data-order="lay-real" title="One stage; 15 ammunition from a supply unit here (24.33)" onclick={() => hex && onorder({ build: { item: "real-minefield", hex, builders } })}>Lay a minefield</button>

@@ -28,6 +28,8 @@ pub enum Item {
     RealMinefield,
     /// A dummy minefield, which looks like a real one (24.31).
     DummyMinefield,
+    /// Clearing the minefield in the hex, friendly or enemy (26.11).
+    ClearMinefield,
 }
 
 impl Item {
@@ -35,7 +37,7 @@ impl Item {
     pub fn stages(self) -> u8 {
         match self {
             Item::Fortification => 3,
-            Item::RealMinefield | Item::DummyMinefield => 1,
+            Item::RealMinefield | Item::DummyMinefield | Item::ClearMinefield => 1,
         }
     }
 }
@@ -150,6 +152,10 @@ impl GameState {
             Item::RealMinefield | Item::DummyMinefield => {
                 self.minefield_site(data, player, item, hex, builders)?
             }
+            Item::ClearMinefield => {
+                self.clearance_site(data, player, hex, builders)?;
+                None
+            }
         };
         let mut events = Vec::new();
         if let Some(pay) = payment {
@@ -232,6 +238,44 @@ impl GameState {
         Ok(())
     }
 
+    /// Who may clear `hex`'s minefield (26.11): one engineer unit or a
+    /// Commonwealth E-HQ standing there.
+    fn clearance_site(
+        &self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+        builders: &[PieceId],
+    ) -> Result<(), Illegal> {
+        if !self.minefields.contains_key(hex) {
+            return Err(Illegal::new(
+                "26.11",
+                format!("{hex} has no minefield to clear"),
+            ));
+        }
+        if !self.lone_engineer(data, player, builders) {
+            return Err(Illegal::new(
+                "26.11",
+                "a minefield is cleared by one engineer unit or a Commonwealth E-HQ",
+            ));
+        }
+        Ok(())
+    }
+
+    /// `builders` is one engineer unit, or a Commonwealth E-HQ (24.31,
+    /// 26.11).
+    fn lone_engineer(&self, data: &Data, player: Side, builders: &[PieceId]) -> bool {
+        match builders {
+            [one] => {
+                let p = &self.pieces[one];
+                self.engineer_capable(data, p)
+                    && (p.kind == PieceKind::Combat
+                        || (p.kind == PieceKind::Hq && player == Side::Cw))
+            }
+            _ => false,
+        }
+    }
+
     /// Where and by whom a minefield may be laid (24.3x): one engineer
     /// unit or a Commonwealth E-HQ, on the chart's terrain, never in a
     /// major city or an enemy ZOC, one field to a hex. A real one under
@@ -244,15 +288,7 @@ impl GameState {
         hex: &HexId,
         builders: &[PieceId],
     ) -> Result<Option<crate::ammo::AmmoPayment>, Illegal> {
-        let layer = match builders {
-            [one] => Some(&self.pieces[one]),
-            _ => None,
-        };
-        let able = layer.is_some_and(|p| {
-            (p.kind == PieceKind::Combat && self.engineer_capable(data, p))
-                || (p.kind == PieceKind::Hq && p.side == Side::Cw && self.engineer_capable(data, p))
-        });
-        if !able {
+        if !self.lone_engineer(data, player, builders) {
             return Err(Illegal::new(
                 "24.31",
                 "a minefield is laid by one engineer unit or a Commonwealth E-HQ",
@@ -450,6 +486,11 @@ impl GameState {
                         hex,
                         level,
                     });
+                }
+                Item::ClearMinefield => {
+                    if self.minefields.remove(&hex).is_some() {
+                        events.push(Event::MinefieldRemoved { hex });
+                    }
                 }
                 Item::RealMinefield | Item::DummyMinefield => {
                     self.minefields.insert(
@@ -893,6 +934,27 @@ mod tests {
         let mut events = Vec::new();
         state.mine_rolls(&data, &stack, &to, &mut events);
         assert!(events.is_empty());
+    }
+
+    #[test]
+    fn an_engineer_idle_for_a_stage_clears_a_field_friend_or_foe_26_11() {
+        let data = graziani();
+        let (mut state, site, builders) = organising(&data);
+        let clear = lay(Item::ClearMinefield, &site, &builders[0]);
+        let err = state.apply(&data, Side::Axis, clear.clone()).unwrap_err();
+        assert_eq!(err.case, "26.11");
+        state.minefields.insert(
+            site.clone(),
+            Minefield {
+                side: Side::Cw,
+                real: true,
+                revealed: true,
+            },
+        );
+        state.apply(&data, Side::Axis, clear).unwrap();
+        let events = pass_stage(&data, &mut state);
+        assert!(events.contains(&Event::MinefieldRemoved { hex: site.clone() }));
+        assert!(!state.minefields.contains_key(&site));
     }
 
     #[test]

@@ -191,7 +191,7 @@ export type Order =
   | "pass";
 
 /** What a construction project builds (24.1x). */
-export type BuildItem = "fortification" | "real-minefield" | "dummy-minefield";
+export type BuildItem = "fortification" | "real-minefield" | "dummy-minefield" | "clear-minefield";
 
 /** A project under way in a hex (24.1x): its builders and the stages counted so far. */
 export interface Project {

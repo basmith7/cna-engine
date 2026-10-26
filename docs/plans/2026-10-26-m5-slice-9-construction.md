@@ -70,8 +70,6 @@ needs the Air Bombardment Table); the Logistics Game's stores and water
 - [x] Entry: TEC costs with engineer escorts, revealing on enemy entry,
   dummy removal at the end of the movement phase, the 5–6 roll per
   unescorted motorised combat unit, the combat shift (26.26).
-- [ ] Clearing (26.11) as an order: an engineer that starts the stage in
-  the hex and spends no movement CP clears a real field at the stage's
-  end (a choice, so `Order::ClearMinefield` in phase C, counted like a
-  project). Then the trucks' roll, and mine costs on a step into enemy
-  ZOC.
+- [x] Clearing (26.11): `clear-minefield` on `Order::Build`, a one-stage
+  project for one engineer (a choice, so an order), friend or foe.
+- [ ] Later: the trucks' roll, and mine costs on a step into enemy ZOC.

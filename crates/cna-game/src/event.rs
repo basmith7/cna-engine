@@ -383,7 +383,8 @@ pub enum Event {
         hex: HexId,
         real: bool,
     },
-    /// The dummy minefield in `hex` was taken off (26.11).
+    /// The minefield in `hex` was taken off: a dummy an enemy paid to
+    /// enter, or a field an engineer cleared (26.11).
     MinefieldRemoved {
         hex: HexId,
     },
