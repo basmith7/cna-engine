@@ -8,7 +8,9 @@ Slices 1–5, 6a/6b and 6's limits, 7 (replacements), 8 (guards) and 9
 Still open: slice 6's organisation in the stack panel and its close-assault
 shell rule (`2026-10-26-m5-slice-6-organisation.md`), R-132's off-map
 prisoner stages, convoy lanes beyond Tripoli. Then the mission's second
-half: other scenarios' land rules (*Non-goals*). Mission 4 still comes
+half: other scenarios' land rules (*Non-goals*). Its first step (#61):
+five of the nine scenarios set up and play a Game-Turn
+(`cna-game::scenarios`); the other four wait on cna. Mission 4 still comes
 first the moment its spec (PR #25) is approved (see *Order against
 Mission 4*).
 

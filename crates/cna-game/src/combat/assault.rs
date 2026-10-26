@@ -431,28 +431,51 @@ impl GameState {
         }
     }
 
-    /// The side's largest unit equivalent, as the size table names it;
-    /// a shell counts one size smaller (9.28).
+    /// The side's largest unit equivalent, as the size table names it
+    /// (15.5x): a piece under an HQ on its hex counts as that HQ's
+    /// formation, as in stacking (9.2x), so a brigade is part of a
+    /// division only through its attached HQ (15.55); a shell counts one
+    /// size smaller (9.28).
     fn largest(&self, data: &Data, ids: impl Iterator<Item = PieceId>) -> Option<&'static str> {
-        let mut best: Option<u8> = None;
+        const NAMES: [&str; 5] = ["company", "battalion", "brigade-2", "brigade-3", "division"];
+        let mut best: Option<usize> = None;
         for id in ids {
-            let rank = match self.pieces[&id].equivalent {
-                Some(Equivalent::Brigade) => 3,
-                Some(Equivalent::Battalion) => 2,
-                Some(Equivalent::Company) => 1,
-                _ => continue,
+            let Some(rank) = self.size_rank(data, &id) else {
+                continue;
             };
-            let rank = if rank > 1 && self.is_shell(data, &id) {
-                rank - 1
-            } else {
-                rank
-            };
-            best = Some(best.map_or(rank, |b: u8| b.max(rank)));
+            best = Some(best.map_or(rank, |b| b.max(rank)));
         }
-        best.map(|b| match b {
-            3 => "brigade",
-            2 => "battalion",
-            _ => "company",
+        best.map(|b| NAMES[b])
+    }
+
+    /// `id`'s size as an index into `largest`'s names, or None for a
+    /// piece of no size.
+    fn size_rank(&self, data: &Data, id: &PieceId) -> Option<usize> {
+        let p = &self.pieces[id];
+        if let Some(hq) = p.hex().and_then(|h| self.top_formation(p, h)) {
+            let unit = hq.id.unit().expect("an HQ comes from a sheet");
+            let whole = !self.is_shell(data, &hq.id);
+            return Some(match (self.has_sub_formation(&unit), whole) {
+                (true, true) => 4,
+                (true, false) | (false, true) => 2,
+                (false, false) => 1,
+            });
+        }
+        let rank = match p.equivalent {
+            Some(Equivalent::Brigade)
+                if cna_rules::stacking::points(&data.stacking, p.equivalent) >= 3 =>
+            {
+                3
+            }
+            Some(Equivalent::Brigade) => 2,
+            Some(Equivalent::Battalion) => 1,
+            Some(Equivalent::Company) => 0,
+            _ => return None,
+        };
+        Some(match rank {
+            3 | 2 if self.is_shell(data, id) => 1,
+            1 if self.is_shell(data, id) => 0,
+            r => r,
         })
     }
 
@@ -1383,6 +1406,75 @@ mod tests {
     }
 
     #[test]
+    fn a_battalion_under_a_whole_division_on_its_hex_counts_as_a_division_15_55() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        let division = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Cw
+                    && p.kind == PieceKind::Hq
+                    && p.id.unit().and_then(|u| data.oa.unit(&u)?.echelon)
+                        == Some(cna_data::oa::Echelon::Division)
+                    && p.hex().is_some()
+            })
+            .unwrap()
+            .id
+            .clone();
+        let div_unit = division.unit().unwrap();
+        let at = state.pieces[&division].hex().unwrap().clone();
+        let brigades: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.parent.as_ref() == Some(&div_unit) && p.kind == PieceKind::Hq)
+            .map(|p| p.id.clone())
+            .collect();
+        assert!(!brigades.is_empty());
+        let bde_unit = brigades[0].unit().unwrap();
+        let battalion = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.parent.as_ref() == Some(&bde_unit)
+                    && p.kind == PieceKind::Combat
+                    && p.equivalent == Some(Equivalent::Battalion)
+            })
+            .unwrap()
+            .id
+            .clone();
+        // Set-up stacks HQs with their formations; detached, the
+        // battalion is only itself.
+        state.pieces.get_mut(&battalion).unwrap().attached_to = None;
+        assert_eq!(
+            state.largest(&data, [battalion.clone()].into_iter()),
+            Some("battalion")
+        );
+        for b in &brigades {
+            let p = state.pieces.get_mut(b).unwrap();
+            p.location = Location::Hex(at.clone());
+            p.attached_to = Some(div_unit.clone());
+        }
+        let p = state.pieces.get_mut(&battalion).unwrap();
+        p.location = Location::Hex(at.clone());
+        p.attached_to = Some(bde_unit.clone());
+        assert!(!state.is_shell(&data, &division));
+        assert_eq!(
+            state.largest(&data, [battalion.clone()].into_iter()),
+            Some("division")
+        );
+        // Without its brigade HQs the division is a shell: a brigade (9.28).
+        for b in &brigades {
+            state.pieces.get_mut(b).unwrap().attached_to = None;
+        }
+        state.pieces.get_mut(&battalion).unwrap().attached_to = Some(div_unit);
+        assert_eq!(
+            state.largest(&data, [battalion].into_iter()),
+            Some("brigade-2")
+        );
+    }
+
+    #[test]
     fn return_fire_is_banned_across_the_hexside_the_assault_crosses() {
         // 14.34 bans anti-armour fire by either side across the hexside
         // the phasing points assault over. Both stacks move up to
@@ -1661,10 +1753,12 @@ mod tests {
         );
         // Pinned to seed 3 so the fixture stays honest.
         assert_eq!((attacker.reading, defender.reading), (43, 36));
-        // Adjusted +1 under this seed: no refund, no retreat. CP: the
+        // The Libyan battalions defend under their whole division on its
+        // hex, against battalions: four columns their way (15.53, 15.55).
+        // Adjusted -3 under this seed: no refund, no retreat. CP: the
         // attacking hex 5; the defended hex 3 (the bad-attack refund has
         // its own test below).
-        assert_eq!(basic + shifts, 1);
+        assert_eq!(basic + shifts, -3);
         assert_eq!(defender.retreat, 0);
         assert_eq!(state.pending, None);
         for id in ["unit:cw:1-krrc", "unit:cw:1-rtr", "unit:cw:7-med"] {

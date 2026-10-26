@@ -9,10 +9,10 @@
 //! illegal order: it is a client bug, not a rules question.
 
 use crate::embedded::data;
-use cna_game::data::Data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::combat::SealedStep;
+use cna_game::data::Data;
 use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
@@ -48,7 +48,9 @@ impl Game {
     /// (`GameState::check_invariants`): a bad file is an `Err`.
     pub fn load(json: &str) -> Result<Game> {
         let head: Value = serde_json::from_str(json).context("parsing the state")?;
-        let slug = head["scenario"].as_str().context("the state names no scenario")?;
+        let slug = head["scenario"]
+            .as_str()
+            .context("the state names no scenario")?;
         let data = data(slug)?;
         Ok(Game {
             state: GameState::from_json(json, data)?,
@@ -225,12 +227,14 @@ impl Game {
         let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
         let purpose: Purpose = serde_json::from_value(Value::String(purpose.to_owned()))
             .with_context(|| format!("purpose {purpose:?}"))?;
-        Ok(match self.state.reachable(self.data, side, &pieces, purpose) {
-            Ok(reaches) => json!({ "ok": reaches }),
-            Err(illegal) => {
-                json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
-            }
-        })
+        Ok(
+            match self.state.reachable(self.data, side, &pieces, purpose) {
+                Ok(reaches) => json!({ "ok": reaches }),
+                Err(illegal) => {
+                    json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
+                }
+            },
+        )
     }
 
     /// What `side` may answer the sealed step now pending with
@@ -284,7 +288,9 @@ impl Game {
     pub fn preview(&self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
-        Ok(Self::answer(self.state.clone().apply(self.data, side, order)))
+        Ok(Self::answer(
+            self.state.clone().apply(self.data, side, order),
+        ))
     }
 
     fn answer(r: std::result::Result<Vec<Event>, cna_game::event::Illegal>) -> Value {
@@ -338,7 +344,11 @@ mod tests {
             .find(|p| {
                 p.kind == cna_game::piece::PieceKind::Hq
                     && !game.state.is_shell(graziani(), &p.id)
-                    && game.state.pieces.values().any(|q| q.attached_to == p.id.unit())
+                    && game
+                        .state
+                        .pieces
+                        .values()
+                        .any(|q| q.attached_to == p.id.unit())
             })
             .expect("a whole formation")
             .id
@@ -888,7 +898,11 @@ mod tests {
         for (slug, _) in crate::embedded::scenarios().unwrap() {
             let view = Game::new(&slug, 7).unwrap().view().unwrap();
             assert_eq!(view["scenario"], slug.as_str());
-            assert!(view["pending"]["set-up"].is_object(), "{slug}: {}", view["pending"]);
+            assert!(
+                view["pending"]["set-up"].is_object(),
+                "{slug}: {}",
+                view["pending"]
+            );
             assert!(!view["pieces"].as_object().unwrap().is_empty(), "{slug}");
         }
         assert!(Game::new("no-such-scenario", 7).is_err());
@@ -1121,7 +1135,11 @@ mod tests {
             )
             .unwrap();
         forced_retreat
-            .apply(graziani(), Side::Axis, golden_log().orders[72].order.clone())
+            .apply(
+                graziani(),
+                Side::Axis,
+                golden_log().orders[72].order.clone(),
+            )
             .unwrap();
         let Some(Pending::ForcedRetreat {
             side: Side::Cw,

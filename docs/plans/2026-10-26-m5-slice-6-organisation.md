@@ -84,9 +84,9 @@ on cna's HQ organisation types.
 - [x] A shell battalion or brigade-equivalent counts one size smaller in
   close assault's size table (9.28, 15.5x); a battalion's printed
   strength reads its ID code's row where the sheet lists no TOE.
-- [ ] Open: division-sized formations in the size table (assault sizes
-  read single pieces, not an HQ with its attached brigades), the 19.3
-  chart as the shell denominator, substitution.
+- [x] Formations in the size table: a piece counts as the formation of
+  the topmost HQ it is attached under on its hex (15.55, PR #59).
+- [ ] Open: the 19.3 chart as the shell denominator, substitution.
 
 ### Task 4: dumps and prisoners
 

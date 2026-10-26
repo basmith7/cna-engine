@@ -388,3 +388,9 @@ Done: also merged #54 (gun losses) and #58 (R-132 prisoners off map; ConvoyBombe
 In flight: CI on #56, #57, #60; draft #59 (formations in 15.5x's size table) fails on purpose: set-up stacks HQs with their formations, so assaults see divisions and the short golden diverges at GT1 stage 1's close assault.
 Next: merge #56/#57/#60 on green CI; then #59: confirm 15.55's reading, fix its test set-up, re-play both golden scripts and the e2e golden, re-pin.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 05:15 MST — autopilot/m5-division-size
+Done: #59 finished: tests fixed, short golden re-played (Halfaya's defenders now stand and pay a 1-hex retreat) and re-pinned; m5 golden and e2e fixtures unchanged (cb0b169, 12ccbe9). #61 (ready): 61.38 reassignments no longer place 6 RTR twice; `cna-game::scenarios` smoke-tests every scenario (5 of 9 pass a turn). Two cna requests posted on main (ac2ee8d).
+In flight: #59 local Playwright (/tmp/pw-59.log) and CI; subagent on `autopilot/m5-scenario-picker` (browser starts any scenario, stacked on #61).
+Next: merge #59 and #61 on green CI; then the picker PR.
+Blocked: Mission 4 on Brian's review of #25.

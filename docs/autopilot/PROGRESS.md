@@ -101,8 +101,30 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-None open. Every request through R-134 was answered by 2026-10-26;
-`vendor/cna` moves to 818fbf6 in #51.
+- **21st Panzer replacing 5th Light, as data** (Mission 5, second half:
+  every scenario sets up; blocks The Last Chance). `oa/de.json` says only
+  in a note that `unit:de:21-pz-div-hq` "replaces the 5 Le HQ counter", so
+  5th Light's units (2 MG Bn and the rest) are not under 21st Panzer and
+  The Last Chance's `less: ["unit:de:2-mg-bn"]` names a unit outside the
+  entry. Needed: a structured field (e.g. `replaces: "unit:de:5le-div-hq"`
+  from a given Game-Turn) or the scenario's entry restated so its units
+  resolve; any other HQ that replaces another the same way.
+- **Rommel as data (31.0)** (Mission 5, second half: the special rules
+  for Crusader and the Rommel scenarios). `oa/de.json` has
+  `unit:de:dak-hq` with abbreviation "Rommel"; is that the Rommel counter
+  31.0 describes (CPA 60, medium truck, no combat ratings), or a separate
+  piece? Needed: the piece's id and its characteristics row (or a
+  `rommel` block), and Rommel placed in each scenario's set-up where he
+  is present: Operation Crusader's Axis set-up names neither him nor the
+  DAK HQ.
+- **"Any road hex from A to B" as a locator** (Mission 5, second half;
+  blocks Rommel's Arrival, the Desert Fox campaign and the short
+  campaign). Their Axis supply placement is `hexes: ["A1816", "A2703"]`
+  with the constraint "any road hex from El Agheila (A1816) to Nofilia
+  (A2703) inclusive … not on the road from A1716 to Maaten Groter", so an
+  engine can only offer those two hexes, too few for thirteen supply
+  units under supply stacking. Needed: the road hexes listed (or a
+  `road: {from, to}` locator the map can resolve), with the exclusion.
 
 ## Runs and quota
 

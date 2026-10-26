@@ -7,7 +7,9 @@ use crate::data::Data;
 use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
-use cna_data::scenario::{Level, Locator, Objective, Side, SupplyTrace, VictoryKind, VictoryLevel};
+use cna_data::scenario::{
+    Level, Locator, Objective, Side, SupplyTrace, Victory, VictoryKind, VictoryLevel,
+};
 use cna_rules::movement::{Mobility, Step, Weather, step_cost};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, VecDeque};
@@ -21,6 +23,30 @@ pub struct VictoryReport {
     pub checked: Vec<Condition>,
     /// Conditions the data states only in prose, which nothing checked.
     pub unchecked: Vec<String>,
+    /// A points victory's places, each with the side that scored it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scored: Vec<Scored>,
+    /// A points victory's totals.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub points: Option<Points>,
+}
+
+/// One place of a points victory at the end.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Scored {
+    /// The place id, or the hexes, as the scenario names them.
+    pub objective: String,
+    pub hexes: Vec<HexId>,
+    /// The side whose combat units alone occupy any of its hexes.
+    pub holder: Option<Side>,
+    pub points: i32,
+}
+
+/// Each side's points total.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Points {
+    pub axis: i32,
+    pub cw: i32,
 }
 
 impl VictoryReport {
@@ -56,6 +82,8 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
         cw: None,
         checked: Vec::new(),
         unchecked: Vec::new(),
+        scored: Vec::new(),
+        points: None,
     };
     let Some(victory) = &data.scenario.victory else {
         report
@@ -63,10 +91,8 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
             .push("the scenario has no victory block".into());
         return report;
     };
-    if victory.kind != VictoryKind::Levels {
-        report
-            .unchecked
-            .push("a points victory is not evaluated".into());
+    if victory.kind == VictoryKind::Points {
+        points(data, state, victory, &mut report);
         return report;
     }
     for level in &victory.levels {
@@ -103,6 +129,84 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
         }
     }
     report
+}
+
+/// A points victory: each place scores for the side whose combat units
+/// occupy any of its hexes with no enemy combat unit in any; the higher
+/// total wins by the margin, whose level is the highest `min` it reaches
+/// (a level cna names that is not a victory level, as Crusader's draw,
+/// gives none). The data's notes, which hold the occupation's supply
+/// conditions in prose, are reported unchecked.
+fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut VictoryReport) {
+    let mut totals = Points { axis: 0, cw: 0 };
+    for o in &victory.points {
+        let hexes: Vec<HexId> = o
+            .place
+            .iter()
+            .filter_map(|id| data.map.place(id))
+            .flat_map(|p| p.hexes.iter().cloned())
+            .chain(o.hexes.iter().cloned())
+            .collect();
+        let sides: BTreeSet<Side> = state
+            .pieces
+            .values()
+            .filter(|p| p.kind == PieceKind::Combat && p.hex().is_some_and(|h| hexes.contains(h)))
+            .map(|p| p.side)
+            .collect();
+        let holder = (sides.len() == 1).then(|| *sides.first().unwrap());
+        let points = match holder {
+            Some(Side::Axis) => o.axis,
+            Some(Side::Cw) => o.cw,
+            None => 0,
+        };
+        match holder {
+            Some(Side::Axis) => totals.axis += points,
+            Some(Side::Cw) => totals.cw += points,
+            None => {}
+        }
+        let objective = o.place.clone().unwrap_or_else(|| {
+            o.hexes
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(" ")
+        });
+        report.scored.push(Scored {
+            objective,
+            hexes,
+            holder,
+            points,
+        });
+    }
+    let (winner, margin) = if totals.axis >= totals.cw {
+        (Side::Axis, totals.axis - totals.cw)
+    } else {
+        (Side::Cw, totals.cw - totals.axis)
+    };
+    let level = victory
+        .margins
+        .iter()
+        .filter(|m| margin >= m.min)
+        .max_by_key(|m| m.min)
+        .and_then(|m| match m.level.as_str() {
+            "tactical" => Some(VictoryLevel::Tactical),
+            "decisive" => Some(VictoryLevel::Decisive),
+            "strategic" => Some(VictoryLevel::Strategic),
+            _ => None,
+        });
+    if margin > 0 {
+        match winner {
+            Side::Axis => report.axis = level,
+            Side::Cw => report.cw = level,
+        }
+    }
+    if victory.margins.is_empty() {
+        report
+            .unchecked
+            .push("the scenario gives no margins: no level".into());
+    }
+    report.unchecked.extend(victory.notes.iter().cloned());
+    report.points = Some(totals);
 }
 
 /// The route trace of R-110 for one side: as a medium truck in normal
@@ -291,6 +395,94 @@ mod tests {
             .iter()
             .find(|c| c.side == side && c.level == level && c.objective == obj)
             .unwrap_or_else(|| panic!("no condition {side} {level} {obj}"))
+    }
+
+    fn crusader() -> Data {
+        Data::load("operation-crusader").unwrap()
+    }
+
+    /// A points scenario's set-up, every piece placed.
+    fn crusader_set_up(data: &Data) -> GameState {
+        let mut state = GameState::with_modules(data, 5, crate::state::Modules::ALL).unwrap();
+        crate::state::test_support::auto_place(data, &mut state);
+        state
+    }
+
+    #[test]
+    fn a_points_victory_scores_each_place_for_its_sole_holder() {
+        let data = crusader();
+        let mut state = crusader_set_up(&data);
+        // Empty every objective, then give Tobruk (6 Axis, 4 CW) to the
+        // Commonwealth and Bardia (2 Axis, 3 CW) to the Axis.
+        let objective_hexes: Vec<HexId> = data
+            .scenario
+            .victory
+            .as_ref()
+            .unwrap()
+            .points
+            .iter()
+            .flat_map(|o| {
+                o.place
+                    .iter()
+                    .filter_map(|id| data.map.place(id))
+                    .flat_map(|p| p.hexes.clone())
+                    .chain(o.hexes.clone())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        for p in state.pieces.values_mut() {
+            if p.hex().is_some_and(|h| objective_hexes.contains(h)) {
+                p.location = Location::Eliminated;
+            }
+        }
+        let r = evaluate(&data, &state);
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
+        // Margin 0 is Crusader's draw: no level either way.
+        assert_eq!((r.axis, r.cw), (None, None));
+        let cw = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::Combat && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        let axis = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        let tobruk = data.map.place("tobruk").unwrap().hexes[0].clone();
+        let bardia = data.map.place("bardia").unwrap().hexes[0].clone();
+        state.put(&cw, Location::Hex(tobruk));
+        state.put(&axis, Location::Hex(bardia.clone()));
+        let r = evaluate(&data, &state);
+        assert_eq!(r.points, Some(Points { axis: 2, cw: 4 }));
+        let scored = |obj: &str| r.scored.iter().find(|s| s.objective == obj).unwrap();
+        assert_eq!(scored("tobruk").holder, Some(Side::Cw));
+        assert_eq!(scored("bardia").holder, Some(Side::Axis));
+        assert_eq!(scored("sollum").holder, None);
+        // CW by 2: tactical (1+).
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Tactical)));
+        // An enemy combat unit in the place denies it to both.
+        let other_cw = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Cw && p.kind == PieceKind::Combat && p.id != cw && p.hex().is_some()
+            })
+            .unwrap()
+            .id
+            .clone();
+        state.put(&other_cw, Location::Hex(bardia));
+        let r = evaluate(&data, &state);
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 4 }));
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Tactical)));
+        // The occupation's supply conditions are prose: reported unchecked.
+        assert!(!r.unchecked.is_empty());
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(serde_json::from_str::<VictoryReport>(&json).unwrap(), r);
     }
 
     #[test]
