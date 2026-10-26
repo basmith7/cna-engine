@@ -82,10 +82,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #66 if a run finds it green;
-  first fix its audit's unsound choice (ledger on #66): a recalled Rommel
-  stays on his hex and can move or be lost; he should be out of play for
-  the turn and come back where he left. Then Rommel's +5 CPA escort (an order naming the unit), his
+- Mission 5 continues unattended: merge #66 if a run finds it green
+  (its audit ledger is a comment there; the one unsound choice, a
+  recalled Rommel still movable, is fixed in c98e045). Then Rommel's +5 CPA escort (an order naming the unit), his
   reactions and retreats through ZOC, the LRDG raid (27.9x); convoy lanes
   beyond Tripoli; the 19.3 chart as the shell denominator. The end
   dialog's points table is not yet seen in a browser.
