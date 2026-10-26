@@ -5,9 +5,8 @@
 /// Scenarios that do not set up yet, waiting on cna (Requests for cna
 /// in `PROGRESS.md`); the browser offers every other one.
 pub const WAITING: &[&str] = &[
-    // Two placements are given by their corner hexes only: the four
-    // Italian divisions "between" A2010 and A2703, two hexes apart, and
-    // the Commonwealth's triangle Tocra, Er Regima, Benghazi.
+    // The four Italian divisions go "between" A2010 and A2703, two
+    // hexes apart, but the data gives only those two hexes.
     "rommels-arrival",
     "desert-fox-campaign",
     "short-campaign-game",
