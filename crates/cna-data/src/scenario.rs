@@ -90,13 +90,16 @@ pub struct NotWithin {
 }
 
 /// A placement: one or more locators (a hex must satisfy every one, in
-/// schema order), narrowed by `not_within`, by `together` and by
-/// `constraint`, a sentence the grammar cannot check.
+/// schema order), narrowed by `not_within`, by `apart`, by `together` and
+/// by `constraint`, a sentence the grammar cannot check.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "PlacementRaw", into = "PlacementRaw")]
 pub struct Placement {
     pub locators: Vec<Locator>,
     pub not_within: Option<NotWithin>,
+    /// Each entry of the block (a listed unit with everything it brings)
+    /// at least this many hexes from every other entry (R-136).
+    pub apart: Option<u32>,
     /// Every unit, dump or supply unit of the block goes into one hex.
     pub together: bool,
     pub constraint: Option<String>,
@@ -108,6 +111,7 @@ impl Placement {
         Placement {
             locators: vec![locator],
             not_within: None,
+            apart: None,
             together: false,
             constraint: None,
         }
@@ -154,6 +158,8 @@ struct PlacementRaw {
     stacked_with: Option<StackedWith>,
     #[serde(skip_serializing_if = "Option::is_none")]
     not_within: Option<NotWithin>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apart: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     together: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -219,6 +225,7 @@ impl TryFrom<PlacementRaw> for Placement {
         Ok(Placement {
             locators: found,
             not_within: r.not_within,
+            apart: r.apart,
             together: r.together == Some(true),
             constraint: r.constraint,
         })
@@ -229,6 +236,7 @@ impl From<Placement> for PlacementRaw {
     fn from(p: Placement) -> PlacementRaw {
         let mut r = PlacementRaw {
             not_within: p.not_within,
+            apart: p.apart,
             together: p.together.then_some(true),
             constraint: p.constraint,
             ..PlacementRaw::default()
@@ -749,6 +757,18 @@ mod tests {
     }
 
     #[test]
+    fn the_italian_divisions_go_two_hexes_apart() {
+        // 61.41 by R-136: the hexes between Ras el Ali and Nofilia, listed.
+        let s = Scenario::load("rommels-arrival").unwrap();
+        let p = &s.side(Side::Axis).deployments[2].placement;
+        assert_eq!(p.apart, Some(2));
+        let Some(Locator::Hexes(hexes)) = p.sole() else {
+            panic!("{p:?}")
+        };
+        assert!(hexes.len() > 20, "{hexes:?}");
+    }
+
+    #[test]
     fn every_scenario_file_deserialises() {
         for slug in [
             "campaign-game",
@@ -896,6 +916,7 @@ mod tests {
                 of: "enemy-unit".into(),
                 hexes: 4,
             }),
+            apart: Some(2),
             together: true,
             constraint: Some("x".into()),
         };
