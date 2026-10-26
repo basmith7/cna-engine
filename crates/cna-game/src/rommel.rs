@@ -103,7 +103,7 @@ impl GameState {
                         && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
                         && p.hex() == Some(hex) =>
                 {
-                    u32::try_from(*n).unwrap_or(0)
+                    *n
                 }
                 _ => 0,
             };
