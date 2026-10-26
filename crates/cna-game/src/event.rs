@@ -377,6 +377,12 @@ pub enum Event {
         side: Side,
         hex: HexId,
     },
+    /// An enemy entered the minefield in `hex`, turning it face up
+    /// (26.11).
+    MinefieldRevealed {
+        hex: HexId,
+        real: bool,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {

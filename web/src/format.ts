@@ -111,6 +111,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("construction-lost" in e) return `${sideName(e["construction-lost"].side)} loses its ${itemName(e["construction-lost"].item)} project in ${e["construction-lost"].hex}: a builder left.`;
   if ("fortification-built" in e) return `${sideName(e["fortification-built"].side)} fortifies ${e["fortification-built"].hex} to level ${e["fortification-built"].level}.`;
   if ("minefield-laid" in e) return `${sideName(e["minefield-laid"].side)} lays a minefield in ${e["minefield-laid"].hex}.`;
+  if ("minefield-revealed" in e) return `The minefield in ${e["minefield-revealed"].hex} is ${e["minefield-revealed"].real ? "real" : "a dummy"}.`;
   if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${e["guards-detailed"].points} guard points in ${e["guards-detailed"].hex}.`;
   if ("guards-released" in e) return `${e["guards-released"].points} guard points rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
   if ("prisoners-escaped" in e) {

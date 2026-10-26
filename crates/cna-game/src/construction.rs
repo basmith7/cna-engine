@@ -305,6 +305,51 @@ impl GameState {
         }))
     }
 
+    /// What `piece`, moving with `stack`, pays on top of the terrain to
+    /// enter `to`'s minefield (TEC, 26.21–26.23): a friendly field 1 on
+    /// foot and 4 motorised, an enemy one 4 on foot and the unit's CPA
+    /// motorised; with an engineer battalion or a Commonwealth E-HQ in the
+    /// stack (or being one), +4 into an enemy field and nothing into a
+    /// friendly one.
+    pub(crate) fn minefield_cost(
+        &self,
+        data: &Data,
+        side: Side,
+        stack: &[PieceId],
+        piece: &PieceId,
+        motorised: bool,
+        to: &HexId,
+    ) -> Cp {
+        let Some(field) = self.minefields.get(to) else {
+            return Cp::ZERO;
+        };
+        let friendly = field.side == side;
+        let escorted = stack.iter().any(|id| {
+            let p = &self.pieces[id];
+            self.engineer_capable(data, p) && (p.kind == PieceKind::Combat || p.side == Side::Cw)
+        });
+        match (friendly, escorted, motorised) {
+            (true, true, _) => Cp::ZERO,
+            (true, false, false) => Cp::whole(1),
+            (true, false, true) | (false, true, _) | (false, false, false) => Cp::whole(4),
+            (false, false, true) => Cp::whole(self.cpa(&self.pieces[piece]).unwrap_or(0)),
+        }
+    }
+
+    /// An enemy entering a minefield turns it face up (26.11).
+    pub(crate) fn reveal_minefield(&mut self, side: Side, to: &HexId, events: &mut Vec<Event>) {
+        if let Some(field) = self.minefields.get_mut(to)
+            && field.side != side
+            && !field.revealed
+        {
+            field.revealed = true;
+            events.push(Event::MinefieldRevealed {
+                hex: to.clone(),
+                real: field.real,
+            });
+        }
+    }
+
     /// The end of an OpStage (24.11, 24.2x): a project whose builders all
     /// stand in its hex and spent no CP, out of any storm, counts the
     /// stage; with every stage counted the item is built. A project whose
@@ -629,6 +674,78 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "24.35");
+    }
+
+    /// The Axis movement segment of GT1 OpStage 1 with a foot battalion
+    /// beside an empty clear hex no enemy controls; its CP to walk in.
+    fn walking(data: &Data) -> (GameState, PieceId, HexId, Cp) {
+        use cna_rules::movement::Mobility;
+        let state = crate::movement::test_support::moving(data, 3, Side::Axis);
+        let candidates: Vec<(PieceId, HexId)> = state
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side == Side::Axis
+                    && p.kind == PieceKind::Combat
+                    && state.mobility(data, p) == Mobility::Foot
+                    && !state.engineer_capable(data, p)
+            })
+            .filter_map(|p| p.hex().map(|h| (p.id.clone(), h.clone())))
+            .flat_map(|(id, h)| {
+                data.map
+                    .neighbours(&h)
+                    .into_iter()
+                    .filter(|n| {
+                        state.holder(n).is_none()
+                            && data.map.hex(n).is_some_and(|x| x.terrain == Terrain::Clear)
+                            && state.zoc_at(data, n, Side::Axis) == Zoc::Clear
+                    })
+                    .map(move |n| (id.clone(), n))
+            })
+            .collect();
+        let (piece, to, base) = candidates
+            .into_iter()
+            .find_map(|(piece, to)| {
+                let mut probe = state.clone();
+                probe.apply(data, Side::Axis, walk(&piece, &to)).ok()?;
+                let base = probe.pieces[&piece].cp_spent;
+                Some((piece, to, base))
+            })
+            .expect("a foot battalion with room to walk");
+        (state, piece, to, base)
+    }
+
+    fn walk(piece: &PieceId, to: &HexId) -> Order {
+        Order::Move {
+            pieces: vec![piece.clone()],
+            path: vec![to.clone()],
+            assault: false,
+            fuel_from: None,
+        }
+    }
+
+    #[test]
+    fn foot_units_pay_four_into_an_enemy_minefield_and_one_into_their_own_26_21() {
+        let data = graziani();
+        for (owner, extra) in [(Side::Cw, 4), (Side::Axis, 1)] {
+            let (mut state, piece, to, base) = walking(&data);
+            state.minefields.insert(
+                to.clone(),
+                Minefield {
+                    side: owner,
+                    real: false,
+                    revealed: false,
+                },
+            );
+            state.apply(&data, Side::Axis, walk(&piece, &to)).unwrap();
+            assert_eq!(
+                state.pieces[&piece].cp_spent,
+                base + Cp::whole(extra),
+                "{owner}"
+            );
+            // An enemy entering a field turns it face up (26.11).
+            assert_eq!(state.minefields[&to].revealed, owner == Side::Cw);
+        }
     }
 
     #[test]

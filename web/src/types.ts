@@ -322,6 +322,7 @@ export type Event =
   | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
   | { "fortification-built": { side: Side; hex: HexId; level: number } }
   | { "minefield-laid": { side: Side; hex: HexId } }
+  | { "minefield-revealed": { hex: HexId; real: boolean } }
   | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
   | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }

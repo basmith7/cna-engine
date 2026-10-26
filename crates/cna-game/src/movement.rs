@@ -481,7 +481,11 @@ impl GameState {
         let mut cost = Cp::ZERO;
         for (id, m) in mover.pieces.iter().zip(&mover.mobilities) {
             match step_cost(&data.terrain, *m, &step) {
-                Ok(c) => cost = cost.max(c),
+                Ok(c) => {
+                    let mines =
+                        self.minefield_cost(data, mover.side, &mover.pieces, id, m.motorised(), to);
+                    cost = cost.max(c + mines);
+                }
                 Err(p) => {
                     return Err(Illegal::new(
                         p.case,
@@ -773,6 +777,9 @@ impl GameState {
                 self.charge(id, cost, false, &mut events);
             }
             self.capture_wrecks(data, pieces, &to, &mut events);
+            if let Some(side) = pieces.first().map(|id| self.pieces[id].side) {
+                self.reveal_minefield(side, &to, &mut events);
+            }
             self.surrender_collapsed(data, pieces, &to, &mut events);
             self.free_prisoners(data, pieces, &to, &mut events);
             at = to;
