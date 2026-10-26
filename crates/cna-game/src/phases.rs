@@ -123,7 +123,11 @@ impl GameState {
                         events.push(Event::PhaseSkipped { clock });
                     }
                 }
-                Phase::Organisation if self.modules.abstract_supply => {
+                // Phase C opens for supply under the module, and for
+                // repaired points waiting to be absorbed (20.41).
+                Phase::Organisation
+                    if self.modules.abstract_supply || !self.repaired.is_empty() =>
+                {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }

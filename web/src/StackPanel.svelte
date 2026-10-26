@@ -6,6 +6,7 @@
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
   import { prisonersAt } from "./prisoners";
+  import { repairedAt } from "./replacements";
   import { loadLabel, motorisationAt } from "./supply";
   import type { Order, PieceId, View } from "./types";
 
@@ -22,6 +23,10 @@
   const points = $derived(hex ? motorisationAt(view, hex) : null);
   const wrecks = $derived(hex ? (view.broken_down?.[hex] ?? []) : []);
   const prisoners = $derived(hex ? prisonersAt(view, hex) : []);
+  const repaired = $derived(hex ? repairedAt(view, hex) : []);
+  /** The side to act's units in the hex, which may absorb repaired points in phase C (20.41). */
+  const absorbers = $derived(pieces.filter((p) => p.side === view.to_act && (p.kind === "combat" || p.kind === "hq")));
+  let absorbing: Record<string, { piece: PieceId | null; points: number }> = $state({});
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -39,6 +44,21 @@
     {/each}
     {#each prisoners as g (g.side)}
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
+    {/each}
+    {#each repaired as r (r.weapon)}
+      {@const pick = absorbing[r.weapon] ?? { piece: absorbers[0]?.id ?? null, points: r.points }}
+      <p class="repaired" data-testid="repaired" data-weapon={r.weapon}>
+        {r.points} repaired {r.weapon} point{r.points === 1 ? "" : "s"} waiting
+        {#if onorder && view.clock?.phase === "organisation" && absorbers.length > 0}
+          <select aria-label="Unit to absorb {r.weapon}" value={pick.piece} onchange={(e) => (absorbing[r.weapon] = { ...pick, piece: (e.target as HTMLSelectElement).value })}>
+            {#each absorbers as a (a.id)}
+              <option value={a.id}>{label(a).short}</option>
+            {/each}
+          </select>
+          <input type="number" min="1" max={r.points} value={pick.points} aria-label="Points of {r.weapon} to absorb" oninput={(e) => (absorbing[r.weapon] = { ...pick, points: Number((e.target as HTMLInputElement).value) })} />
+          <button type="button" data-order="absorb" title="A CP per two points from the unit and its parent (19.61)" onclick={() => pick.piece && onorder({ absorb: { piece: pick.piece, weapon: r.weapon, points: pick.points } })}>Absorb</button>
+        {/if}
+      </p>
     {/each}
     {#if pieces.length === 0}
       <p class="empty">Nothing here.</p>
@@ -111,6 +131,14 @@
     margin: 0 0 0.3rem;
     font-size: 12px;
     color: #555;
+  }
+  .repaired {
+    margin: 0 0 0.3rem;
+    font-size: 12px;
+    color: #1f4d3a;
+  }
+  .repaired input {
+    width: 3rem;
   }
   .prisoners {
     margin: 0 0 0.3rem;

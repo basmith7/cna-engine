@@ -105,6 +105,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["prisoners-marched"];
     return `${sideName(d.side)} marches ${d.points} prisoner points ${d.path[0]} → ${d.path[d.path.length - 1]} (${d.cp} CP).`;
   }
+  if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} repaired ${e.absorbed.weapon} points for ${e.absorbed.cp} CP.`;
   if ("prisoners-gone" in e) return `${e["prisoners-gone"].points} ${sideName(e["prisoners-gone"].side)} prisoner points leave play at ${e["prisoners-gone"].hex}.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
   if ("engaged" in e) return `${list(e.engaged.pieces, name)} are engaged.`;

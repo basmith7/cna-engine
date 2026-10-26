@@ -184,6 +184,7 @@ export type Order =
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
+  | { absorb: { piece: PieceId; weapon: string; points: number } }
   | "pass";
 
 /** Broken-down TOE points of one weapon system in a hex (21.4x). */
@@ -302,6 +303,7 @@ export type Event =
   | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
@@ -415,8 +417,8 @@ export interface View {
   prisoners_out?: Partial<Record<Side, number>>;
   /** Hexes prisoners marched into this phase H: they go no further (28.13). */
   marched?: HexId[];
-  /** Repaired points by weapon system waiting as replacements (22.5), the side to act's own only. */
-  repaired?: Partial<Record<Side, Record<string, number>>>;
+  /** Repaired points by hex and weapon system waiting for a unit there to absorb them (22.5, 20.41), the side to act's own only. */
+  repaired?: Partial<Record<Side, Record<HexId, Record<string, number>>>>;
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];

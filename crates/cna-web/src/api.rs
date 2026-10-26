@@ -330,13 +330,17 @@ mod tests {
         use std::collections::BTreeMap;
         let mut game = Game::with_modules(7, Modules::ALL).unwrap();
         for side in [Side::Axis, Side::Cw] {
-            game.state
-                .repaired
-                .insert(side, BTreeMap::from([("tank".to_string(), 1)]));
+            game.state.repaired.insert(
+                side,
+                BTreeMap::from([(
+                    cna_data::map::HexId::parse("C4021").unwrap(),
+                    BTreeMap::from([("tank".to_string(), 1)]),
+                )]),
+            );
         }
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "axis");
-        assert_eq!(view["repaired"]["axis"]["tank"], 1);
+        assert_eq!(view["repaired"]["axis"]["C4021"]["tank"], 1);
         assert!(view["repaired"].get("cw").is_none());
     }
 
