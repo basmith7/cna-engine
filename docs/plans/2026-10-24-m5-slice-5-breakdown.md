@@ -25,7 +25,7 @@ broken-down vehicles.
 | Which TOE points | Tank, SP-gun, armoured-car and armoured-recce weapon systems on the piece; BAR per model from the characteristics where cna gives it, else the type's base | 21.1x |
 | When | At each stop (end of an order) a unit over 3 points in a higher column checks, one reading per vehicle group | 21.2x |
 | Broken-down points | A `BrokenDown` marker piece in the hex (no CPA, no combat), holding the points by weapon system; half left in the start hex when the move began near the enemy (21.41) | 21.4x |
-| Capture, towing, repair | Capture by a battalion-plus moving adjacent (21.5x); towing 10 CP in phase K (21.6x); field repair on `vehicle-repair.json` (§22) | 21.5x, 21.6x, §22 |
+| Capture, towing, repair | Capture by a battalion-plus moving adjacent (21.5x); field repair on `vehicle-repair.json` (22.2x), one order per type per hex, a fuel a point from a supply unit in the hex or in range of a friendly unit there; repaired points wait in `GameState.repaired` for organisation (22.5). Towing (21.6x) goes only toward a repair facility and facility repair (22.3x) needs one, so both move to the construction slice with the facilities | 21.5x, 21.6x, §22 |
 
 ## Tasks
 
@@ -43,7 +43,7 @@ broken-down vehicles.
 - [x] At each stop a check per vehicle weapon system in a higher column
   (`Piece.breakdown_checked`), BAR by model from `weapon-systems.json`,
   hot weather one right; losses leave the TOE.
-- [ ] Armoured cars, recce and trucks inside a unit's TOE. The sandstorm
+- [ ] Moved out: armoured cars, recce and trucks inside a unit's TOE (cna R-125 types recce; take it with the bump). The sandstorm
   shift is done, read per order rather than per phase.
 
 ### Task 3: markers, capture, towing, repair
@@ -51,9 +51,11 @@ broken-down vehicles.
 - [x] Broken-down points kept per hex and side, by weapon system (`GameState.broken_down`): a map of wrecks rather than marker pieces, so no piece-kind match changes.
 - [x] Capture (21.5x) by a battalion or brigade moving next to unguarded enemy wrecks out of enemy ZOC; they change sides where they stand.
 - [x] 21.41: a move begun next to an enemy brigade-equivalent, or two hexes from one through an open hex (no friendly unit, no friendly ZOC, not sea), leaves at least half of what breaks down in its start hex.
-- [ ] Capture's three-hex placement and passable-terrain test; phase K towing (21.6x) and field repair (§22); wrecks in the UI.
+- [x] Phase K field repair (22.2x): `Order::Repair`, `cna-data::repair`, K skipped when nothing may be tried; wrecks marked on the map and listed in the stack panel.
+- [ ] Moved out: capture's three-hex placement and passable-terrain test; towing (21.6x) and facility repair, with the facilities (construction slice).
 
 ### Task 4: UI, golden, docs
 
-- [ ] Stack panel shows points accumulated and markers; the log names
-  checks and losses; the golden re-pinned; `NOT_SIMULATED.md`.
+- [x] Stack panel shows points accumulated and wrecks; the log names
+  checks, losses, captures and repair rolls; the golden re-pinned;
+  `NOT_SIMULATED.md`. Playwright: `supply.spec.ts` phase K.

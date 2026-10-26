@@ -102,6 +102,8 @@ export interface Piece {
   reserve?: Reserve;
   released?: Reserve;
   landed?: boolean;
+  /** Breakdown points collected this OpStage, in halves (21.2x); absent for none. */
+  breakdown_halves?: number;
   /** Motorisation points attached to a supply unit (32.31); absent for none. */
   motorised?: number;
   /** A supply unit's ammunition and fuel (32.1x); only on the side to act's own. */
