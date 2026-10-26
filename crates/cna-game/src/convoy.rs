@@ -137,6 +137,89 @@ impl GameState {
     }
 }
 
+impl GameState {
+    /// Phase D of the arrival turn's first OpStage: the Commonwealth's
+    /// planned supply units appear loaded (40 ammunition, 60 fuel), one
+    /// in Alexandria (its west hex, E3613, where the Commonwealth's
+    /// supply starts) for every three received and the rest in Cairo,
+    /// with a dummy in Cairo for every three (32.4x, 32.1x). Arrivals do
+    /// not check stacking, as reinforcements do not. The Axis's come by
+    /// convoy, which Task 3 adds. True when anything arrived.
+    pub(crate) fn supply_arrivals(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
+        use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+        if !self.modules.abstract_supply || self.clock.stage != 1 {
+            return false;
+        }
+        let turn = self.clock.game_turn;
+        let units: u32 = self
+            .planned
+            .iter()
+            .filter(|p| p.side == Side::Cw && p.arrives == turn)
+            .map(|p| p.units)
+            .sum();
+        self.planned
+            .retain(|p| !(p.side == Side::Cw && p.arrives == turn));
+        if units == 0 {
+            return false;
+        }
+        let hex = |name: &str| {
+            Location::Hex(
+                data.map
+                    .place(name)
+                    .unwrap_or_else(|| panic!("places.json has {name}"))
+                    .hex
+                    .clone(),
+            )
+        };
+        let (cairo, alexandria) = (hex("cairo"), hex("alexandria-west"));
+        let next = |state: &GameState, dummy: bool| {
+            (1..)
+                .map(|n| {
+                    if dummy {
+                        PieceId::dummy_supply(Side::Cw, n)
+                    } else {
+                        PieceId::supply(Side::Cw, n)
+                    }
+                })
+                .find(|id| !state.pieces.contains_key(id))
+                .expect("a free number")
+        };
+        let to_alexandria = units / 3;
+        let mut at_cairo = Vec::new();
+        let mut at_alexandria = Vec::new();
+        for i in 0..units + units / 3 {
+            let dummy = i >= units;
+            let id = next(self, dummy);
+            let (at, list) = if !dummy && i < to_alexandria {
+                (alexandria.clone(), &mut at_alexandria)
+            } else {
+                (cairo.clone(), &mut at_cairo)
+            };
+            let (kind, load) = if dummy {
+                (PieceKind::DummySupplyUnit, None)
+            } else {
+                (
+                    PieceKind::SupplyUnit,
+                    Some(Load {
+                        ammo: MAX_AMMO,
+                        fuel: MAX_FUEL,
+                    }),
+                )
+            };
+            let mut p = crate::setup::supply_piece(Side::Cw, kind, id.clone(), at, load);
+            p.landed = true;
+            self.pieces.insert(id.clone(), p);
+            list.push(id);
+        }
+        for (pieces, at) in [(at_alexandria, alexandria), (at_cairo, cairo)] {
+            if !pieces.is_empty() {
+                events.push(Event::Arrived { pieces, at });
+            }
+        }
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,6 +303,51 @@ mod tests {
         let mut again = at_turn(&data, 3);
         again.plan_supply(&data, &mut Vec::new());
         assert_eq!(again.planned, state.planned);
+    }
+
+    #[test]
+    fn commonwealth_supply_arrives_in_cairo_and_alexandria_with_dummies_32_4x() {
+        use crate::clock::Phase;
+        use crate::piece::PieceKind;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        state.clock.phase = Phase::Arrival;
+        // Set-up ran GT1's planning, which may be due now too.
+        state.planned.clear();
+        state.planned.push(Planned {
+            side: Side::Cw,
+            arrives: 5,
+            units: 7,
+        });
+        let count = |s: &GameState, k: PieceKind| {
+            s.pieces
+                .values()
+                .filter(|p| p.side == Side::Cw && p.kind == k)
+                .count()
+        };
+        let (real, dummies) = (
+            count(&state, PieceKind::SupplyUnit),
+            count(&state, PieceKind::DummySupplyUnit),
+        );
+        let mut events = Vec::new();
+        assert!(state.supply_arrivals(&data, &mut events));
+        assert_eq!(count(&state, PieceKind::SupplyUnit), real + 7);
+        assert_eq!(count(&state, PieceKind::DummySupplyUnit), dummies + 2);
+        let alexandria = data.map.place("alexandria-west").unwrap().hex.clone();
+        let Event::Arrived { pieces, at } = &events[0] else {
+            panic!("{events:?}");
+        };
+        assert_eq!(*at, crate::piece::Location::Hex(alexandria));
+        assert_eq!(pieces.len(), 2);
+        assert!(
+            pieces
+                .iter()
+                .all(|id| state.pieces[id].load.unwrap().fuel == 60)
+        );
+        assert!(state.planned.is_empty());
+        // Nothing more in a later OpStage.
+        state.clock.stage = 2;
+        assert!(!state.supply_arrivals(&data, &mut Vec::new()));
     }
 
     #[test]

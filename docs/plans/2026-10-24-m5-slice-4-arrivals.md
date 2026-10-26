@@ -45,7 +45,7 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 ### Task 2: Commonwealth arrivals
 
-- [ ] Phase D places the turn's Commonwealth units in Cairo and
+- [x] Phase D places the turn's Commonwealth units in Cairo and
   Alexandria (one in three), with their dummies.
 
 ### Task 3: Axis convoys and bombing

@@ -54,6 +54,9 @@ impl GameState {
                 }
             }
         }
+        if self.supply_arrivals(data, events) {
+            any = true;
+        }
         any
     }
 }

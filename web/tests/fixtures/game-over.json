@@ -59,16 +59,6 @@
       "units": 2
     },
     {
-      "side": "cw",
-      "arrives": 5,
-      "units": 3
-    },
-    {
-      "side": "cw",
-      "arrives": 6,
-      "units": 3
-    },
-    {
       "side": "axis",
       "arrives": 5,
       "units": 1
@@ -1069,6 +1059,118 @@
       "contact": false,
       "engaged": false
     },
+    "supply:cw:16": {
+      "id": "supply:cw:16",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:17": {
+      "id": "supply:cw:17",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:18": {
+      "id": "supply:cw:18",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:19": {
+      "id": "supply:cw:19",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "supply:cw:2": {
       "id": "supply:cw:2",
       "side": "cw",
@@ -1083,6 +1185,62 @@
       "equivalent": null,
       "location": {
         "hex": "D3714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:20": {
+      "id": "supply:cw:20",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:21": {
+      "id": "supply:cw:21",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
       },
       "load": {
         "ammo": 40,
@@ -1361,6 +1519,54 @@
       "group": 6,
       "location": {
         "hex": "D3614"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-4": {
+      "id": "supply:cw:dummy-4",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-5": {
+      "id": "supply:cw:dummy-5",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,

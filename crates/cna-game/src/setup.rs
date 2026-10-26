@@ -155,48 +155,61 @@ pub fn expand(
                     PieceId::dummy_supply(side, dummies)
                 };
                 ids.push(id.clone());
-                setup.pieces.push(Piece {
-                    id,
-                    side,
-                    kind,
-                    nation: None,
-                    id_code: None,
-                    parent: None,
-                    toe: 0,
-                    weapons: Vec::new(),
-                    cpa: None,
-                    morale: None,
-                    status: None,
-                    equivalent: None,
-                    garrison_of: None,
-                    group: None,
-                    location: location.clone(),
-                    load: (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| {
-                        Load {
-                            ammo: b.ammo.unwrap_or(0),
-                            fuel: b.fuel.unwrap_or(0),
-                        }
-                    }),
-                    cp_spent: Cp::ZERO,
-                    cp_enemy_half: Cp::ZERO,
-                    cohesion: Default::default(),
-                    contact: false,
-                    engaged: false,
-                    reserve: None,
-                    released: None,
-                    landed: false,
-                    fuelled: false,
-                    fuelled_over: false,
-                    motorised: 0,
-                    escorted: false,
-                    breakdown_halves: 0,
-                    breakdown_checked: None,
-                });
+                let load =
+                    (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| Load {
+                        ammo: b.ammo.unwrap_or(0),
+                        fuel: b.fuel.unwrap_or(0),
+                    });
+                setup
+                    .pieces
+                    .push(supply_piece(side, kind, id, location.clone(), load));
             }
             log_constraint(&mut setup, side, &b.placement, ids);
         }
     }
     Ok(setup)
+}
+
+/// A supply unit or dummy, fresh: no CP spent, nothing attached.
+pub(crate) fn supply_piece(
+    side: Side,
+    kind: PieceKind,
+    id: PieceId,
+    location: Location,
+    load: Option<Load>,
+) -> Piece {
+    Piece {
+        id,
+        side,
+        kind,
+        nation: None,
+        id_code: None,
+        parent: None,
+        toe: 0,
+        weapons: Vec::new(),
+        cpa: None,
+        morale: None,
+        status: None,
+        equivalent: None,
+        garrison_of: None,
+        group: None,
+        location,
+        load,
+        cp_spent: Cp::ZERO,
+        cp_enemy_half: Cp::ZERO,
+        cohesion: Default::default(),
+        contact: false,
+        engaged: false,
+        reserve: None,
+        released: None,
+        landed: false,
+        fuelled: false,
+        fuelled_over: false,
+        motorised: 0,
+        escorted: false,
+        breakdown_halves: 0,
+        breakdown_checked: None,
+    }
 }
 
 /// A unit the set-up brings, and what it is under.
