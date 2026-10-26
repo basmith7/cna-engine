@@ -60,16 +60,13 @@ pub fn data(slug: &str) -> Result<&'static Data> {
 }
 
 /// The scenarios a new game can start, `(slug, name)` in file order:
-/// every embedded one but those `cna_game::scenarios::WAITING` on cna.
+/// every embedded one (`cna_game::scenarios` smoke-tests each).
 pub fn scenarios() -> Result<Vec<(String, String)>> {
     let mut out = Vec::new();
     for file in Embedded.list("scenarios")? {
         let Some(slug) = file.strip_suffix(".json") else {
             continue;
         };
-        if cna_game::scenarios::WAITING.contains(&slug) {
-            continue;
-        }
         let v: serde_json::Value =
             serde_json::from_str(&Embedded.read(&format!("scenarios/{file}"))?)?;
         let name = v["name"]
@@ -115,18 +112,13 @@ mod tests {
     }
 
     #[test]
-    fn scenarios_offers_all_but_the_waiting_ones_and_graziani_first_named() {
+    fn scenarios_offers_every_one_and_graziani_first_named() {
         let all = scenarios().unwrap();
         let slugs: Vec<&str> = all.iter().map(|(s, _)| s.as_str()).collect();
         assert!(slugs.contains(&DEFAULT_SCENARIO));
         assert!(all.contains(&("operation-crusader".into(), "Operation Crusader".into())));
-        assert_eq!(
-            all.len() + cna_game::scenarios::WAITING.len(),
-            Embedded.list("scenarios").unwrap().len()
-        );
-        for w in cna_game::scenarios::WAITING {
-            assert!(!slugs.contains(w), "{w}");
-        }
+        assert_eq!(all.len(), Embedded.list("scenarios").unwrap().len());
+        assert!(slugs.contains(&"rommels-arrival"));
         assert!(data("no-such-scenario").is_err());
     }
 }

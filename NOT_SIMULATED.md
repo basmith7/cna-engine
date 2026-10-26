@@ -101,7 +101,9 @@ rulings*). Each names where it is enforced.
 | R-132 | Axis prisoners marched to A2802 leave the map and leave play on reaching the Tripolitania box, three of the captor's phase Hs later (8.89 at CPA 8; `cna-game::prisoners`) |
 | R-133 | under abstract supply construction spends no supplies (`cna-game::construction`) |
 | R-134 | minefields are laid in clear, sand/gravel or rough hexes, not salt marsh (`cna-game::construction`) |
-| R-135 | Rommel is his own counter (`PieceKind::Commander`, CPA 60), sets up with a German unit, stacks free and never fights; on the map he rates the Axis 6 for initiative, a 12 at a Game-Turn's start recalls him for the turn (rating 3), and Axis units in his hex add +1 to assault morale (`cna-game::rommel`). Not yet: the +5 CPA for a unit he spends a whole stage with (a ruling is requested), his reactions and retreats through ZOC (alone in an enemy ZOC he is lost like a lone HQ, 10.29), the LRDG raid (27.9x) |
+| R-135 | Rommel is his own counter (`PieceKind::Commander`, CPA 60), sets up with a German unit, stacks free and never fights; on the map he rates the Axis 6 for initiative, a 12 at a Game-Turn's start recalls him for the turn (rating 3), and Axis units in his hex add +1 to assault morale (`cna-game::rommel`). Not yet: the +5 CPA (R-137), his reactions and retreats through ZOC (alone in an enemy ZOC he is lost like a lone HQ, 10.29), the LRDG raid (27.9x) |
+| R-137 | not built yet: every unit in Rommel's hex at an OpStage's start gets CPA +5 while it stays with him, and parting charges the DP it spared |
+| R-136 | an `apart` set-up block keeps each entry (a listed unit with everything it brings) that many hexes from every other: Rommel's Arrival's four Italian divisions (`cna-game::place`). Set-up offers only legal hexes but does not look ahead, so a player can crowd the band until a later division has no hex left |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)

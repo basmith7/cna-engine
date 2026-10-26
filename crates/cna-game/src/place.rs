@@ -147,6 +147,23 @@ impl GameState {
                 ));
             }
         }
+        if let (Some(n), Some(entry)) = (placement.apart, p.entry) {
+            let near = data.map.within(hex, n.saturating_sub(1));
+            if let Some(other) = self.pieces.values().find(|q| {
+                q.entry
+                    .is_some_and(|e| e.block == entry.block && e.index != entry.index)
+                    && q.hex().is_some_and(|qh| near.contains(qh))
+            }) {
+                return Err(Illegal::new(
+                    "R-136",
+                    format!(
+                        "{piece}'s block goes {n} hexes apart: {} is at {}",
+                        other.id,
+                        other.hex().expect("on a hex")
+                    ),
+                ));
+            }
+        }
         let terrain = h.terrain.name();
         let Some(ceiling) = data.terrain.ceiling(terrain) else {
             return Err(Illegal::new(
@@ -596,5 +613,57 @@ mod tests {
             )
             .unwrap();
         assert_eq!(state.pieces[&rommel].hex(), Some(&hex));
+    }
+
+    /// R-136 (61.41): no Italian division within two hexes of another;
+    /// a division's own units may stand together.
+    #[test]
+    fn the_italian_divisions_set_up_two_hexes_apart() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut state = GameState::new(&data, 7).unwrap();
+        let unit = |s: &str| PieceId::from(cna_data::oa::UnitId::parse(s).unwrap());
+        let (pavia, bologna) = (
+            unit("unit:it:17th-pavia-div-hq"),
+            unit("unit:it:25th-bologna-div-hq"),
+        );
+        let at = HexId::parse("A2307").unwrap();
+        let place = |state: &mut GameState, piece: &PieceId, hex: &HexId| {
+            state.apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: piece.clone(),
+                    hex: hex.clone(),
+                },
+            )
+        };
+        let area = state.placements(&data, &bologna);
+        place(&mut state, &pavia, &at).unwrap();
+        let next = data.map.neighbours(&at);
+        let two = data
+            .map
+            .within(&at, 2)
+            .into_iter()
+            .find(|h| {
+                !next.contains(h) && h != &at && state.placements(&data, &bologna).contains(h)
+            })
+            .expect("a hex two away in the area");
+        let offered = state.placements(&data, &bologna);
+        assert!(
+            offered.iter().all(|h| h != &at && !next.contains(h)),
+            "{offered:?}"
+        );
+        let touching = next.iter().find(|h| area.contains(h)).unwrap();
+        let refused = place(&mut state, &bologna, touching).unwrap_err();
+        assert_eq!(refused.case, "R-136");
+        // Pavia's own units may join or touch its HQ.
+        let own = state
+            .pieces
+            .values()
+            .find(|q| q.is_pending() && q.id != pavia && q.entry == state.pieces[&pavia].entry)
+            .map(|q| q.id.clone())
+            .expect("a Pavia unit");
+        assert!(state.placements(&data, &own).contains(&at));
+        place(&mut state, &bologna, &two).unwrap();
     }
 }

@@ -1,14 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { openStart } from "./helpers.ts";
 
-test("the start screen offers the scenarios that set up, Graziani's Offensive first picked", async ({ page }) => {
+test("the start screen offers every scenario, Graziani's Offensive first picked", async ({ page }) => {
   await openStart(page);
   const picker = page.getByTestId("scenario");
   await expect(picker).toHaveValue("grazianis-offensive");
   await expect(picker.locator("option", { hasText: "Operation Crusader" })).toHaveCount(1);
   await expect(picker.locator('option[value="the-last-chance"]')).toHaveCount(1);
-  // Waiting on cna (cna-game/src/scenarios.rs): not offered.
-  await expect(picker.locator('option[value="rommels-arrival"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="rommels-arrival"]')).toHaveCount(1);
 });
 
 test("Operation Crusader starts from the start screen, its pieces pending set-up", async ({ page }) => {
