@@ -126,16 +126,16 @@ impl GameState {
         }
     }
 
-    /// One of the player's combat units or HQs, on the map.
+    /// One of the player's combat units or HQs, on a hex or in a box.
     fn own_unit(&self, player: Side, id: &PieceId) -> Result<&crate::piece::Piece, Illegal> {
         self.pieces
             .get(id)
             .filter(|p| p.side == player && matches!(p.kind, PieceKind::Combat | PieceKind::Hq))
-            .filter(|p| p.hex().is_some())
+            .filter(|p| matches!(p.location, Location::Hex(_) | Location::Box(_)))
             .ok_or_else(|| {
                 Illegal::new(
                     "19.4x",
-                    format!("{id} is not one of {player}'s units on the map"),
+                    format!("{id} is not one of {player}'s units on a hex or in a box"),
                 )
             })
     }
@@ -164,10 +164,10 @@ impl GameState {
                 format!("{piece} is attached to {on}: detach it first"),
             ));
         }
-        if p.hex() != parent.hex() {
+        if p.location != parent.location {
             return Err(Illegal::new(
                 "19.4x",
-                format!("{piece} and {to} are not in one hex"),
+                format!("{piece} and {to} are not in one place"),
             ));
         }
         let unit = to.unit().expect("a unit has a sheet id");
@@ -511,5 +511,37 @@ mod tests {
         state
             .apply(&data, Side::Axis, mv(&[TANKS], &[&near]))
             .unwrap();
+    }
+
+    #[test]
+    fn a_unit_in_a_box_detaches_and_attaches_there() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let (tanks, hq) = (pid(TANKS), pid(MALETTI));
+        for id in [&tanks, &hq] {
+            state.pieces.get_mut(id).unwrap().location =
+                Location::Box(cna_data::scenario::OffMapBox::Tripoli);
+        }
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&tanks].attached_to, None);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Attach {
+                    piece: tanks.clone(),
+                    to: hq,
+                },
+            )
+            .unwrap();
+        assert!(state.pieces[&tanks].attached_to.is_some());
     }
 }
