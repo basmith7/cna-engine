@@ -746,6 +746,10 @@
       }
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": "pass"
     },

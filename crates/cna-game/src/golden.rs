@@ -24,7 +24,7 @@ mod tests {
 
     /// SHA-256 of the final state's JSON (`GameState::to_json`).
     const FINAL_STATE_SHA256: &str =
-        "055abce1f8780c74e049d1a047b0d34fcc8ca609d0e40e5b9ebb4dea416ebc75";
+        "fae3aa3210beade97a8d4d423136ceb8f728655f3797d6838e498282995c606a";
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
@@ -189,9 +189,18 @@ mod tests {
                         target: hex("C3922"),
                     },
                 ),
-                (Axis, Order::Pass),
-                (Axis, Order::Pass),
             ],
+        );
+        if !modules.abstract_supply {
+            // The Libyans assault under their whole division (15.55) and
+            // push Halfaya's defenders back a hex; they stand and pay for
+            // it instead (15.82, R-012). With the module on they surrender.
+            play(data, &mut state, vec![(Cw, Order::Pass)]);
+        }
+        play(
+            data,
+            &mut state,
+            vec![(Axis, Order::Pass), (Axis, Order::Pass)],
         );
         if modules.abstract_supply {
             // Phase H: Halfaya's 12 infantry points are the Axis's
