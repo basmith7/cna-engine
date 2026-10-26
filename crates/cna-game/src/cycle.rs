@@ -20,10 +20,10 @@ const DIVISION_SP: u32 = 5;
 const BRIGADE_SP: u32 = 2;
 
 impl GameState {
-    /// The unit this piece is under, as a piece, if that piece is on
-    /// `hex`.
+    /// The unit this piece is attached to, as a piece, if that piece is
+    /// on `hex`.
     fn parent_on<'a>(&'a self, piece: &Piece, hex: &HexId) -> Option<&'a Piece> {
-        let parent = piece.parent.as_ref()?;
+        let parent = piece.attached_to.as_ref()?;
         let p = self.pieces.get(&PieceId::from(parent))?;
         (p.hex() == Some(hex)).then_some(p)
     }
@@ -65,8 +65,8 @@ impl GameState {
                 .is_some_and(|r| r.unit_type.contains("Anti-air"))
     }
 
-    /// Stacking points in a hex (9.1x): a unit stacked with an HQ it is
-    /// under counts as part of that HQ's formation, a division 5 SP and a
+    /// Stacking points in a hex (9.1x): a unit attached to an HQ in the
+    /// hex counts as part of that HQ's formation, a division 5 SP and a
     /// brigade equivalent 2 (9.13, 9.21, 9.4); an HQ alone is 0 (9.25);
     /// anything else its equivalent's value, or nothing by 9.16.
     pub(crate) fn stacked(&self, data: &Data, hex: &HexId) -> u32 {

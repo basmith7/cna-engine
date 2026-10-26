@@ -585,8 +585,10 @@ mod tests {
     fn a_non_combat_unit_may_not_enter_an_unoccupied_enemy_zoc() {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
+        // The HQ alone moves on its attached armour's CPA, as a vehicle,
+        // so it comes from C4022, across no escarpment (8.4x).
         let hq = pid("unit:cw:7th-armored-div-hq");
-        state.pieces.get_mut(&hq).unwrap().location = Location::Hex(hex("C3922"));
+        state.pieces.get_mut(&hq).unwrap().location = Location::Hex(hex("C4022"));
         state
             .apply(
                 &data,

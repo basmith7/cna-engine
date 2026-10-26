@@ -44,6 +44,7 @@ impl GameState {
                         ids.push(p.id.clone());
                         self.pieces.insert(p.id.clone(), p);
                     }
+                    self.attach_where_stacked(Some(&ids));
                     if !ids.is_empty() {
                         any = true;
                         events.push(Event::Arrived {

@@ -140,6 +140,10 @@ pub struct Piece {
     /// The unit this one is under: the OA parent, or the unit the set-up
     /// attached or assigned it to.
     pub parent: Option<UnitId>,
+    /// The unit this one is attached to, merged into its counter (19.1x):
+    /// usually `parent`, and always standing where this one does.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attached_to: Option<UnitId>,
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,

@@ -67,7 +67,8 @@ impl GameState {
     }
 
     /// The CPA a piece moves on (6.1x): its printed allowance, or for an
-    /// HQ the slowest unit under it (its whole subtree, 6.15); none for a
+    /// HQ the slowest unit attached to it, nested attachments included
+    /// (6.15); none for a
     /// printed 0, which cannot move on its own. A supply unit moves on 15
     /// with its motorisation points, else not at all (32.5x).
     pub(crate) fn cpa(&self, piece: &Piece) -> Option<u32> {
@@ -90,7 +91,7 @@ impl GameState {
             let mut heads = vec![unit];
             while let Some(head) = heads.pop() {
                 for q in self.pieces.values() {
-                    if q.parent.as_ref() != Some(&head) {
+                    if q.attached_to.as_ref() != Some(&head) {
                         continue;
                     }
                     if let Some(v) = self

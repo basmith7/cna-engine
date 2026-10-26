@@ -47,7 +47,10 @@ impl GameState {
     /// invariant `apply` relies on (`check_invariants`): a hostile or
     /// hand-edited save is an error, never a panic.
     pub fn from_json(json: &str, data: &Data) -> Result<GameState> {
-        let state: GameState = serde_json::from_str(json).context("parsing the state")?;
+        let mut state: GameState = serde_json::from_str(json).context("parsing the state")?;
+        if !state.attachment_tracked {
+            state.attach_where_stacked(None);
+        }
         state.check(data)?;
         state.check_invariants(data)?;
         Ok(state)
@@ -108,6 +111,9 @@ impl GameState {
             }
             if let Some(h) = &p.garrison_of {
                 ids.hex("a garrison", h)?;
+            }
+            if let Some(parent) = &p.attached_to {
+                ids.piece("an attachment", &PieceId::from(parent))?;
             }
             // 32.1x: only real supply units carry loads, and only with
             // the module on.

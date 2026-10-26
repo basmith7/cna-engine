@@ -161,6 +161,10 @@ pub struct GameState {
     /// is organising.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub organised: bool,
+    /// Whether pieces' `attached_to` is kept (slice 6); a save from
+    /// before it reads its units stacked with their parent as attached.
+    #[serde(default)]
+    pub attachment_tracked: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
     pub pending: Option<Pending>,
@@ -247,6 +251,7 @@ impl GameState {
             initiative: None,
             player_a: None,
             organised: false,
+            attachment_tracked: false,
             planned: Vec::new(),
             scuttled: BTreeSet::new(),
             broken_down: BTreeMap::new(),
@@ -270,6 +275,7 @@ impl GameState {
             log: Vec::new(),
         };
         state.check_weapons(data)?;
+        state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {
             state.start_play(data);

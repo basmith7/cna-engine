@@ -4,6 +4,7 @@
 mod air_lift;
 mod ammo;
 mod arrival;
+mod attachment;
 pub mod breakdown;
 pub mod clock;
 pub mod combat;
