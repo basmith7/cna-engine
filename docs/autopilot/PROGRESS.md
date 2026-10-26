@@ -50,7 +50,13 @@ movement segment (hexes and boxes), and moves, reactions, retreats and
 off-map moves carry attached units, refuse a lone attached one, and stop
 a unit detached while moving with its parent. The stack panel and the
 off-map panel have Attach/Detach. Slice 6's limits and shells (Task 3)
-wait on cna; dumps and prisoners (Task 4) are next.
+wait on cna. **Slice 6b** (PR #45, 2026-10-26, ready): §28 prisoner
+points from every surrender and 15.89 roll, marched by the captor in
+phase H to Alexandria/Cairo (or A2802 for the Axis) where they leave
+play; the module-on golden marches Halfaya's 12 west. 24.9 dumps wait on
+cna (request below). **Slice 7** (PR #46, draft, on top of #45):
+repaired points stand in their hex and a unit there absorbs them in
+phase C (19.61, 20.41).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -101,7 +107,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: slice 6 Task 4 (24.9 dumps, §28 prisoners) on its own PR; Task 3 waits on cna's HQ organisation types. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #45 then #46 on green CI; next, prisoner guards and escape (28.2x) or the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
