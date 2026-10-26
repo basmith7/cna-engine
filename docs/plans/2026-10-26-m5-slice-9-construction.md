@@ -64,5 +64,12 @@ needs the Air Bombardment Table); the Logistics Game's stores and water
 
 ### Task 3 (9c): minefields
 
-- [ ] Write the failing tests for each row of the minefield decision.
-- [ ] State, entry costs in `movement.rs`, the roll, combat shift, UI.
+- [x] Laying: `Item::RealMinefield`/`DummyMinefield` on `Order::Build`,
+  `GameState.minefields`, 24.33's ammunition, the view's secret, the
+  stack panel's Lay controls (`construction.spec.ts`).
+- [ ] Write the failing tests for entry: TEC costs (friendly 1/4, enemy
+  4/CPA; +4 and 0 with an engineer battalion or CW E-HQ in the stack),
+  revealing on enemy entry, dummy removal at the end of the movement
+  phase, the 5–6 roll per unescorted vehicle unit.
+- [ ] Entry costs in `movement.rs` and `reach.rs`, the roll, the combat
+  shift (26.26), clearing (26.11).
