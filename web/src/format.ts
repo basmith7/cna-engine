@@ -138,6 +138,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["field-repaired"];
     return `Field repair at ${d.hex}, ${d.weapon}: ${d.die} → ${d.repaired} of ${d.attempted} repaired.`;
   }
+  if ("air-lifted" in e) {
+    const d = e["air-lifted"];
+    return `${name(d.piece)} flown ${where(d.from)} → ${where(d.to)}, 12 fuel from ${name(d.fuel_from)}.`;
+  }
   if ("railed" in e) {
     const d = e.railed;
     return `${d.pieces.map(name).join(", ")} by rail ${d.from} → ${d.to}.`;

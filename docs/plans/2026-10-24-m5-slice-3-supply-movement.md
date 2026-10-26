@@ -68,7 +68,7 @@ needs the naval convoy stage, slice 4).
   when the Commonwealth has a supply unit that may ride, so the golden
   passes J once (495 orders). Combat units do not ride yet (R-005's
   units half).
-- [ ] Air lift in C with its limits and 12 fuel. **Moved out of this slice**: its limits name division and brigade HQs and "the farthest hex row held by a division", and the OA data has no echelon; a request for cna is on `main`. It lands with §20 organisation (slice 6), which needs echelons too.
+- [ ] Air lift in C with its limits and 12 fuel. **Moved out of this slice**: its limits name division and brigade HQs and "the farthest hex row held by a division", and the OA data has no echelon; a request for cna is on `main`. It lands with §20 organisation (slice 6), which needs echelons too. **Landed** on its own PR (#38) once cna's R-124 gave every HQ its echelon.
 - [x] Destroying one's own supply: `DestroySupply { hex }` before anything moves in the segment, half CPA from every unit there, a die per supply unit (1–3, +1 at 1 SP or less), once per unit per segment.
 
 ### Task 4: UI and the golden game

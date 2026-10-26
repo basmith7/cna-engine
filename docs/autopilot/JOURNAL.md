@@ -280,3 +280,9 @@ Done: #36 (cna bump) merged (11c1a5e); PROGRESS on main (fc16e3e): every cna req
 In flight: nothing uncommitted.
 Next: on #37, convoy bombing (32.6x) with R-124's echelons for "westernmost full Commonwealth division" and the Air Bombardment Table; then mark #37 ready (per-side event redaction, e.g. `supply-planned`, is the Mission 4 server's job: hot-seat shares one log). After: Helwan, R-120 defence, R-123, R-125, the air lift; slice 6.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 19:07 MST — autopilot/m5-air-lift
+Done: #37 marked ready (6665386: convoy bombing moved out); request for cna on main (b6e9e2a): 56.1's lanes and a 32.66 ruling. Air lift on draft #38, stacked on #37: `Echelon` in cna-data and `Order::AirLift` (5d56fde), web Fly… button and e2e (3103e02, supply.spec.ts 10/10).
+In flight: full Playwright run on #38; a fresh review of the air-lift diff.
+Next: merge #37 when its web CI is green, merge main into #38, act on the review, mark #38 ready. Then R-120 defence / R-123 / R-125 / Helwan follow-ups, then slice 6's plan (§19 attachment as explicit state).
+Blocked: Mission 4 on Brian's review of #25; convoy bombing on cna's lane table.

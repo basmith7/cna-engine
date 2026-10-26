@@ -12,12 +12,17 @@
     view,
     ticked,
     hex = null,
+    flying = null,
+    onfly,
     onorder,
   }: {
     view: View;
     ticked: PieceId[];
     /** The selected hex, for orders about a whole hex. */
     hex?: HexId | null;
+    /** The supply unit armed to fly: the next hex clicked is its destination (32.37). */
+    flying?: PieceId | null;
+    onfly?: (piece: PieceId | null) => void;
     onorder: (
       o:
         | "end-segment"
@@ -81,6 +86,12 @@
         <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: supply } })}>Detach motorisation</button>
       {:else}
         <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
+        {#if flying === supply}
+          <span class="hint" data-testid="fly-hint">Click the hex to fly {label(view.pieces[supply]).short} to (32.37).</span>
+          <button type="button" data-order="air-lift-cancel" onclick={() => onfly?.(null)}>Cancel flight</button>
+        {:else}
+          <button type="button" data-order="air-lift" onclick={() => onfly?.(supply)}>Fly…</button>
+        {/if}
       {/if}
       {#if loaded.length >= 2}
         <span class="transfer" data-testid="transfer">

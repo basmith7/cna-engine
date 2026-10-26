@@ -95,6 +95,36 @@ test("phase C: attaching motorisation to a supply unit is the engine's call (32.
   await expect(page.getByTestId("toast")).toContainText("needs 30 motorisation points and C4807 has 5");
 });
 
+test("phase C: a supply unit flies from Tobruk to an HQ at El Adem, once a Game-Turn (32.37)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C4807");
+  const tick = () => page.locator('[data-unit="supply:axis:1"] input.tick').check();
+  await tick();
+  // Bardia (column 21) lies east of the farthest Axis division HQ, at Fort Capuzzo's column 20 (R-124).
+  await controls.locator('[data-order="air-lift"]').click();
+  await expect(page.getByTestId("fly-hint")).toBeVisible();
+  await clickHex(page, "C4321");
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.37)");
+  await expect(page.getByTestId("toast")).toContainText("beyond the farthest axis division HQ");
+  // El Adem holds the 240th Legion's HQ.
+  await clickHex(page, "C4807");
+  await tick();
+  await controls.locator('[data-order="air-lift"]').click();
+  await clickHex(page, "C4507");
+  await expect(log(page).filter({ hasText: "flown C4807 → C4507, 12 fuel from" })).toHaveCount(1);
+  const s = await page.evaluate(() => window.__cna.view().pieces["supply:axis:1"]);
+  expect(s.location).toEqual({ hex: "C4507" });
+  expect(s.load?.fuel).toBe(38);
+  // A second flight this Game-Turn is refused.
+  await clickHex(page, "C4807");
+  await page.locator('[data-unit="supply:axis:2"] input.tick').check();
+  await controls.locator('[data-order="air-lift"]').click();
+  await clickHex(page, "C4507");
+  await expect(page.getByTestId("toast")).toContainText("this Game-Turn");
+});
+
 test("phase C: two ticked supply units in one hex trade ammunition and fuel within the caps (32.1x)", async ({ page }) => {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");

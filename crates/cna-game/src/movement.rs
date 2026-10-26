@@ -76,7 +76,8 @@ impl GameState {
             piece.kind,
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
         ) {
-            return (self.modules.abstract_supply && piece.motorised > 0).then_some(15);
+            return (self.modules.abstract_supply && piece.motorised > 0 && !piece.flown)
+                .then_some(15);
         }
         let own = piece.cpa.as_ref()?.value?;
         let mut cpa = own;

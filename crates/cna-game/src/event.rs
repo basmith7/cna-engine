@@ -249,6 +249,13 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// A supply unit flown in phase C, `fuel_from` paying 12 fuel (32.37).
+    AirLifted {
+        piece: PieceId,
+        from: crate::piece::Location,
+        to: crate::piece::Location,
+        fuel_from: PieceId,
+    },
     /// Supply units ran along the railway (8.7x, 32.3x).
     Railed {
         pieces: Vec<PieceId>,
