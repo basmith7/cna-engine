@@ -39,11 +39,14 @@ chart readers and loss rule merged as #42. **The air lift** (32.37, R-124)
 merged as #38. **#39** (merged): recce units break down and repair by
 their vehicle class (R-125), foot units ride motorisation points (R-123),
 the Axis may fly supply back to the Tripoli or Tunisia box. **PR #43 (merged)**: a unit at −26 surrenders to an enemy coming alongside (6.26).
-**Draft PR #40**: R-120's defence side (defenders out of ammunition sit
-out, an all-out hex surrenders); its rule tests pass but the module-on
-golden game's fight at Halfaya Pass now ends in surrender and must be
-re-scripted, with the web fixtures built on it. **Slice 6's plan**
-(attachment as state, shells, dumps, prisoners) merged as #41.
+**PR #40 (merged 2026-10-26)**: R-120's defence side: defenders out of
+ammunition sit out and an all-out hex surrenders, so the module-on
+golden game's Halfaya Pass now falls by surrender (439 orders, played by
+clicks in Playwright). **Slice 6** (plan #41) is on **draft PR #44**:
+attachment is state (`Piece.attached_to`, set-up and arrivals attach,
+old saves fill), stacking and an HQ's CPA read it, `Attach`/`Detach`
+orders at a CP each, and moves, reactions and retreats carry attached
+units and refuse a lone attached one.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -94,7 +97,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: re-script the module-on golden game for #40; then slice 6 (`docs/plans/2026-10-26-m5-slice-6-organisation.md`), Tasks 1–2 first. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended on #44: the detach-in-movement stop (19.4x), then the UI's Attach/Detach (Task 5's part) so a lone battalion can be split off by clicks; Task 3 waits on cna's HQ organisation types. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
