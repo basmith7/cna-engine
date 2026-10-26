@@ -31,10 +31,17 @@ captured, and phase K tries them in the field. Towing and facility
 repair moved to the construction slice. **The cna bump** merged as #36:
 typed set-up placements enforced (Helwan still never offered), R-121
 company ammunition, R-122 loss base, motorisation from typed data.
-**Slice 4** (arrivals) is draft PR #37: the calendar, each turn's
-planning rolls, Commonwealth arrivals at Cairo and Alexandria, Axis
-convoys to Tripoli (three a lane), monthly motorisation losses. Convoy
-bombing waits on the HQ echelons now in cna.
+**Slice 4** (arrivals) merged as PR #37 on 2026-10-26: the calendar,
+each turn's planning rolls, Commonwealth arrivals at Cairo and
+Alexandria, Axis convoys to Tripoli (three a lane), monthly motorisation
+losses. Convoy bombing moved out: it needs cna's lane table (request
+below) and §19's full divisions. Three follow-ups cna's answers unblocked
+are open: **the air lift** (32.37, R-124) is PR #38, ready; **recce
+breakdown** (R-125) and **motorised foot units** (R-123) are PR #39,
+stacked on #38. **R-120's defence side** (defenders out of ammunition sit
+out; an all-out hex surrenders) is draft PR #40: its rule tests pass, but
+the module-on golden game must be re-scripted around the GT1 assault on
+Halfaya Pass, which now ends in surrender.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -65,12 +72,11 @@ report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
 
 Nonblocking combat follow-ups from PR #12's review stay open for a later
 slice (listed in the journal entry of 2026-10-12 and PR #15's body): rule
-tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; the retreat-short 10 % taken
-after rounding rather than folded in (15.83); a must-attack `Pass`
-surrendering a stack that has a path (10.36); attacking forward guns and
+tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; attacking forward guns and
 artillery in the anti-armour role (15.84, 14.14); a released unit's later
-combat segments (18.2x); a malformed save with an empty sealed `waiting`
-panics.
+combat segments (18.2x). Closed: 10.36's must-attack Pass (#27), the empty
+sealed `waiting` panic (`log.rs` refuses such a save), and 15.83's short
+percentage, which cna's text adds after the rounded table loss, as built.
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -86,7 +92,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: finish slice 4 (#37: convoy bombing with R-124's echelons, redacting the other side's planning rolls), then the follow-ups cna's answers unblock: Helwan as an alternative to Cairo, R-120's defence side, R-123 motorising foot units, R-125 recce breakdown, the air lift (R-124); then slice 6 (organisation, §20).
+- Mission 5 continues unattended: merge #38 then #39 when CI is green; re-script the module-on golden game for #40; then slice 6 (§19 attachment as explicit state, which also gives convoy bombing its full divisions). Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -102,6 +108,8 @@ the bullet once it lands and `vendor/cna` is bumped.
 
 
 - **The Axis Naval Convoy Air Distance Chart's lanes (56.1) as data, and a ruling on reading 32.66.** Simplified Axis convoys (32.6x) split among lanes, and `axis-convoy-bombing.json` picks the bombing column by lane number, but cna has no table saying where each of the six lanes ends (destination port, or off-map box for Tripoli) or which a scenario may use (Graziani's says lanes 2, 3 and 6, 60.37). Please add the lanes (number, origin, destination; opening rules such as 56.11's Greek lanes) and decide: (a) when the westernmost full Commonwealth division is east of a lane's first threshold, is the convoy not attacked or attacked on the 1–20 column; (b) do 5 % results, like 10 %, hit only motorisation and replacement points; (c) are dummy supply units counted before or after bombing (32.1x's one per three received). Blocks Mission 5's convoy bombing (cna-engine #37 moved it out).
+
+- **R-120's surrender with HQs in the hex.** R-120 makes an assaulted hex surrender when every defender is out of ammunition, but HQs (and anything else that owes no ammunition under 32.21) are never "out". Does a hex whose only defenders still in ammunition are HQs surrender? cna-engine #40 says yes (an all-out hex surrenders when every committed defender that *owes* ammunition is out, HQs included); please confirm or correct. Blocks nothing; #40 is built on that reading.
 
 Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#36).
 
