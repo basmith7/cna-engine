@@ -16,7 +16,7 @@ counters are made at set-up (R-096), so The Last Chance joins; with cna
 fc78330 (#67) the Italian divisions' hexes are listed and set up two
 apart (R-136), so all nine set up and play a Game-Turn. #66 builds 31.0's initiative, recall
 and morale, #68 his +5 CPA escort (R-137), reactions and free retreat
-through enemy ZOC; the LRDG raid (27.9x) remains, with the desert raiders. Mission 4 still comes first the moment its spec
+through enemy ZOC, #70 his capture alone in an enemy ZOC once his escape is spent (R-138); the LRDG raid (27.9x) remains, with the desert raiders. Mission 4 still comes first the moment its spec
 (PR #25) is approved (see *Order against Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every

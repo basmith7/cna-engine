@@ -2,7 +2,7 @@
   "id": "R-018",
   "kind": "bar",
   "question": "What a supply dump costs under each option",
-  "rules_commit": "fc78330cff52eb5fbf26e9b762669edf468c3816",
+  "rules_commit": "fcf8ea7b36858430eca219e336ee5e435e750ee9",
   "engine_commit": "see git log",
   "x": {
     "label": "Cost",
