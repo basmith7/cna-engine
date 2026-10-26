@@ -2,8 +2,7 @@
 //! target, rolled, and applied together after the last roll.
 
 use super::cp::{NON_PHASING_CEILING, PHASING_CEILING};
-use super::strength::Kind;
-use super::terrain::hex_shift;
+use super::strength::{Class, Kind};
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::PieceId;
@@ -72,12 +71,13 @@ impl GameState {
                     continue;
                 };
                 let points = actual(pool.raw);
+                let class = self.class_of(data, &self.pieces[&target]);
                 let shift = terrain_shift(
                     &self.ruleset,
-                    hex_shift(data, &hex, Kind::Barrage).unwrap_or(0),
+                    self.in_hex_shift(data, &hex, Kind::Barrage, class == Class::Armour)
+                        .unwrap_or(0),
                     side == phasing,
                 );
-                let class = self.class_of(data, &self.pieces[&target]);
                 let reading = self.rng.two_dice_sequential();
                 events.push(Event::DieRolled {
                     purpose: format!("barrage at {target}"),
@@ -85,7 +85,10 @@ impl GameState {
                 });
                 let result = resolve(&data.barrage, class.key(), points, shift, reading);
                 match result {
-                    BarrageResult::Pinned if !self.is_gun_unit(data, &self.pieces[&target]) => {
+                    BarrageResult::Pinned
+                        if !self.is_gun_unit(data, &self.pieces[&target])
+                            && !self.ignores_pins(data, &hex) =>
+                    {
                         self.combat.pinned.insert(target.clone());
                     }
                     BarrageResult::Lose(n) => losses.push((target.clone(), n)),

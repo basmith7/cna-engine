@@ -5,7 +5,7 @@
 use super::cp::{BAD_ATTACK_REFUND, NON_PHASING_CEILING, PHASING_CEILING};
 use super::losses::Share;
 use super::strength::{Class, Kind, Part};
-use super::terrain::{hex_shift, hexside_shift};
+use super::terrain::hexside_shift;
 use super::{AssaultRecord, RetreatReason};
 use crate::clock::Segment;
 use crate::data::Data;
@@ -283,7 +283,8 @@ impl GameState {
             let shift = cna_rules::anti_armour::terrain_shift(
                 &self.ruleset,
                 true,
-                hex_shift(data, &target, Kind::AntiArmour).unwrap_or(0),
+                self.in_hex_shift(data, &target, Kind::AntiArmour, true)
+                    .unwrap_or(0),
                 hexside,
             );
             // Committed defenders, and units that retreated in (14.13).
@@ -355,7 +356,10 @@ impl GameState {
             }
             let hex_of_armour = armour
                 .iter()
-                .map(|c| hex_shift(data, &c.hex, Kind::AntiArmour).unwrap_or(0))
+                .map(|c| {
+                    self.in_hex_shift(data, &c.hex, Kind::AntiArmour, true)
+                        .unwrap_or(0)
+                })
                 .min()
                 .unwrap_or(0);
             let hexside = armour
@@ -700,7 +704,9 @@ impl GameState {
         let basic = a_act as i32 - d_act as i32;
         let mut shifts = 0;
         // Terrain: the hex, and the hexsides crossed (15.3x).
-        shifts += hex_shift(data, target, Kind::Defence).unwrap_or(0);
+        shifts += self
+            .in_hex_shift(data, target, Kind::Defence, false)
+            .unwrap_or(0);
         let hexsides: Vec<i32> = attackers
             .iter()
             .map(|c| c.hex.clone())
