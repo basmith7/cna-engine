@@ -821,6 +821,15 @@ impl GameState {
             // (8.5x). Only a combat unit's arrival asks the question.
             if combat {
                 let eligible = self.reactors_next_to(data, &at, pieces, assault);
+                self.capture_lone_rommel(data, &eligible, &mut events);
+                // R-138: Rommel offered a reaction stands in the mover's
+                // ZOC, so in contact: he pays to break off if he goes.
+                for id in &eligible {
+                    let p = self.pieces.get_mut(id).expect("offered");
+                    if p.kind == PieceKind::Commander {
+                        p.contact = true;
+                    }
+                }
                 if !eligible.is_empty() {
                     reaction = Some(eligible);
                     break;

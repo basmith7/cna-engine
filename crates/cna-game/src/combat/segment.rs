@@ -309,6 +309,8 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.pending = None;
         let mut events = Vec::new();
+        // R-138: a lone Rommel who did not retreat is taken now.
+        self.capture_lone_rommel(data, &[], &mut events);
         self.open_step(data, Segment::ForceAssignment, &mut events);
         Ok(events)
     }
