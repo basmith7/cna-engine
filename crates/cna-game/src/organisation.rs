@@ -68,7 +68,7 @@ impl GameState {
                 ),
             ));
         }
-        if p.motorised > 0 {
+        if riding(p).is_some() {
             return Err(Illegal::new(
                 CASE,
                 format!("{id} already has its motorisation points"),
@@ -96,7 +96,8 @@ impl GameState {
                 ),
             ));
         }
-        let need = p.toe;
+        // A unit reinforced past its points tops up (R-123).
+        let need = p.toe - p.motorised;
         let have = self
             .motorisation
             .get(&player)
@@ -115,7 +116,7 @@ impl GameState {
         } else {
             pool.insert(hex, have - need);
         }
-        self.pieces.get_mut(id).expect("checked").motorised = need;
+        self.pieces.get_mut(id).expect("checked").motorised += need;
         Ok(vec![Event::MotorisationAttached {
             piece: id.clone(),
             points: need,
@@ -181,10 +182,13 @@ impl GameState {
             return false;
         };
         self.modules.abstract_supply
-            && self
-                .pieces
-                .values()
-                .any(|p| p.side == side && p.motorised > 0 && !p.escorted && p.hex().is_some())
+            && self.pieces.values().any(|p| {
+                p.side == side
+                    && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && p.motorised > 0
+                    && !p.escorted
+                    && p.hex().is_some()
+            })
     }
 
     /// `Order::DestroySupply` (32.1x): before any movement in the
@@ -1057,6 +1061,42 @@ mod tests {
             )
             .unwrap_err();
         assert!(err.reason.contains("own transport"), "{}", err.reason);
+    }
+
+    #[test]
+    fn a_motorised_battalion_does_not_hold_up_phase_h_and_tops_up_after_reinforcement() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        for p in state.pieces.values_mut() {
+            p.motorised = 0;
+        }
+        let bn = uid("unit:it:i-libyan-mtr-bn");
+        state.pieces.get_mut(&bn).unwrap().motorised = 5;
+        state.clock.phase = Phase::TruckConvoy;
+        state.clock.half = Some(crate::clock::Half::A);
+        assert!(!state.trucks_to_move(), "phase H moves supply units only");
+        // Reinforced to 7 TOE points it walks until it takes 2 more.
+        state.clock.phase = Phase::Organisation;
+        state.clock.half = None;
+        state.pieces.get_mut(&bn).unwrap().toe = 7;
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(10));
+        pool_at(&mut state, &bn, 2);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AttachMotorisation { piece: bn.clone() },
+            )
+            .unwrap();
+        assert_eq!(
+            events,
+            vec![Event::MotorisationAttached {
+                piece: bn.clone(),
+                points: 2
+            }]
+        );
+        assert_eq!(state.pieces[&bn].motorised, 7);
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(20));
     }
 
     #[test]
