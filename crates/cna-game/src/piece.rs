@@ -130,6 +130,14 @@ pub struct Load {
 pub const MAX_AMMO: u32 = 40;
 pub const MAX_FUEL: u32 = 60;
 
+/// One entry of an `apart` set-up block: a listed unit with everything it
+/// brings (R-136).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Entry {
+    pub block: u32,
+    pub index: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Piece {
     pub id: PieceId,
@@ -168,6 +176,10 @@ pub struct Piece {
     /// placement): every piece of the block has the same group.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<u32>,
+    /// Which entry of which set-up block this piece came from, for a block
+    /// whose entries go `apart` (R-136); none for every other piece.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entry: Option<Entry>,
     pub location: Location,
     /// A real supply unit's ammunition and fuel, with the abstract
     /// supply module on (32.1x); none for everything else.

@@ -35,7 +35,8 @@ mod replacements;
 mod reserve;
 pub mod rng;
 mod rommel;
-pub mod scenarios;
+#[cfg(test)]
+mod scenarios;
 pub mod setup;
 pub mod state;
 mod supply;

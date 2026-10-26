@@ -12,7 +12,7 @@
 //! The Land-Game-only abstraction is applied first (60.92), so the supply
 //! blocks seen here are supply units, which become inert pieces.
 
-use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
+use crate::piece::{Entry, Load, Location, Piece, PieceId, PieceKind};
 use crate::state::Modules;
 use anyhow::{Context, Result, bail};
 use cna_data::characteristics::{Characteristics, Equivalent, Rating, Row};
@@ -85,6 +85,8 @@ pub fn expand(
         motorisation: Vec::new(),
     };
     let mut placed = BTreeSet::new();
+    // `apart` blocks so far, numbering each one's entries (R-136).
+    let mut blocks = 0;
     for side in [Side::Axis, Side::Cw] {
         let set = scenario.side(side);
         // A unit an entry names as `attached` or `assigned` is that
@@ -113,7 +115,7 @@ pub fn expand(
             let location = resolve(&d.placement, map)
                 .with_context(|| format!("{side} deployment {}", di + 1))?;
             let mut ids = Vec::new();
-            for e in &d.units {
+            for (ei, e) in d.units.iter().enumerate() {
                 let members = members(e, oa, scenario.start, &named, &own)
                     .with_context(|| format!("{side} deployment {}", di + 1))?;
                 for m in members {
@@ -121,7 +123,13 @@ pub fn expand(
                     if !placed.insert(m.id.clone()) {
                         bail!("{}: placed twice (R-094)", m.id);
                     }
-                    let piece = piece(side, unit, m.parent, e, chars, oa, location.clone());
+                    let mut piece = piece(side, unit, m.parent, e, chars, oa, location.clone());
+                    if d.placement.apart.is_some() {
+                        piece.entry = Some(Entry {
+                            block: blocks,
+                            index: u32::try_from(ei).expect("a short block"),
+                        });
+                    }
                     ids.push(piece.id.clone());
                     setup.pieces.push(piece);
                 }
@@ -144,6 +152,9 @@ pub fn expand(
                     points,
                     pieces: ids.clone(),
                 });
+            }
+            if d.placement.apart.is_some() {
+                blocks += 1;
             }
             log_constraint(&mut setup, side, &d.placement, ids);
         }
@@ -248,6 +259,7 @@ pub(crate) fn supply_piece(
         equivalent: None,
         garrison_of: None,
         group: None,
+        entry: None,
         location,
         load,
         cp_spent: Cp::ZERO,
@@ -518,6 +530,7 @@ fn piece(
         equivalent,
         garrison_of: oa.formation_of(&unit.id).garrison_hex(),
         group: None,
+        entry: None,
         location,
         load: None,
         cp_spent: Cp::ZERO,
