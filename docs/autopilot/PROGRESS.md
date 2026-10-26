@@ -30,7 +30,8 @@ set-up (#65), 31.0's initiative, recall and morale (#66). **On
 Rommel's Arrival and both campaigns set up: all nine scenarios now set
 up and play a Game-Turn, and the browser offers every one. #68 builds
 the rest of 31.0 bar the LRDG raid: the +5 CPA escort (R-137), his
-reactions, and his free retreat through enemy ZOC (merged).
+reactions, and his free retreat through enemy ZOC (merged). #69
+(merged) lets a side take back a piece during its set-up.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -82,11 +83,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
 - Mission 5 continues unattended (#68 merged; its audit ledger is a
-  comment there). First: #69 (the ledger's U1: `Order::Unplace` and
-  a Take back button during set-up, so an `apart` set-up cannot strand
-  itself) — merge it once CI is green (local Rust gates, vitest and
-  its new Playwright test pass; the full local Playwright run was in
-  flight at handoff). Then: Axis convoy lanes
+  comment there). #69 (merged) closed the
+  ledger's U1: `Order::Unplace` and a Take back button during set-up.
+  Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
   on Rommel needs. The end dialog's points table is not yet seen in a
