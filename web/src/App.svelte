@@ -49,6 +49,8 @@
   let curtain: Side | null = $state(null);
   /** The pieces an order moves: the stack panel's ticks (spec, *Moving*). UI-only state. */
   let ticked: PieceId[] = $state([]);
+  /** A supply unit armed to fly in phase C: the next hex clicked is where (32.37). */
+  let flying: PieceId | null = $state(null);
   /** The assault toggle for the next move. */
   let assault = $state(false);
   /** The custom path shift-clicks build; Enter sends it. */
@@ -209,6 +211,13 @@
       if (send({ place: { piece: picked, hex: h } })) {
         picked = view!.to_act === side && side ? nextToPlace(view!, side) : null;
       }
+      return;
+    }
+    // An armed air lift: the click is its destination, legal or not.
+    if (flying) {
+      const piece = flying;
+      flying = null;
+      send({ "air-lift": { piece, to: { hex: h } } });
       return;
     }
     // The close assault step: a click on a hex still to assault resolves it.
@@ -421,7 +430,7 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
-          <PhaseControls {view} {ticked} {hex} onorder={(o) => send(o)} />
+          <PhaseControls {view} {ticked} {hex} {flying} onfly={(p) => (flying = p)} onorder={(o) => send(o)} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
