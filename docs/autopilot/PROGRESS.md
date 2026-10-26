@@ -38,8 +38,7 @@ losses. Convoy bombing waits on cna's lane table (request below); its
 chart readers and loss rule merged as #42. **The air lift** (32.37, R-124)
 merged as #38. **#39** (merged): recce units break down and repair by
 their vehicle class (R-125), foot units ride motorisation points (R-123),
-the Axis may fly supply back to the Tripoli or Tunisia box. **PR #43 (merged)**
-: a unit at −26 surrenders to an enemy coming alongside (6.26).
+the Axis may fly supply back to the Tripoli or Tunisia box. **PR #43 (merged)**: a unit at −26 surrenders to an enemy coming alongside (6.26).
 **Draft PR #40**: R-120's defence side (defenders out of ammunition sit
 out, an all-out hex surrenders); its rule tests pass but the module-on
 golden game's fight at Halfaya Pass now ends in surrender and must be
