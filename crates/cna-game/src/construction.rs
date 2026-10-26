@@ -324,15 +324,57 @@ impl GameState {
             return Cp::ZERO;
         };
         let friendly = field.side == side;
-        let escorted = stack.iter().any(|id| {
-            let p = &self.pieces[id];
-            self.engineer_capable(data, p) && (p.kind == PieceKind::Combat || p.side == Side::Cw)
-        });
+        let escorted = self.escorted(data, stack);
         match (friendly, escorted, motorised) {
             (true, true, _) => Cp::ZERO,
             (true, false, false) => Cp::whole(1),
             (true, false, true) | (false, true, _) | (false, false, false) => Cp::whole(4),
             (false, false, true) => Cp::whole(self.cpa(&self.pieces[piece]).unwrap_or(0)),
+        }
+    }
+
+    /// Whether `stack` has an engineer that escorts others through
+    /// minefields (26.23): an engineer combat unit or a Commonwealth E-HQ.
+    fn escorted(&self, data: &Data, stack: &[PieceId]) -> bool {
+        stack.iter().any(|id| {
+            let p = &self.pieces[id];
+            self.engineer_capable(data, p) && (p.kind == PieceKind::Combat || p.side == Side::Cw)
+        })
+    }
+
+    /// Vehicles entering an enemy real minefield with no engineer escort
+    /// risk the mines (26.24): a die for each motorised combat unit, a 5
+    /// or 6 destroying one of its TOE points. Trucks are not rolled for.
+    pub(crate) fn mine_rolls(
+        &mut self,
+        data: &Data,
+        stack: &[PieceId],
+        to: &HexId,
+        events: &mut Vec<Event>,
+    ) {
+        let Some(side) = stack.first().map(|id| self.pieces[id].side) else {
+            return;
+        };
+        let armed = self
+            .minefields
+            .get(to)
+            .is_some_and(|f| f.side != side && f.real);
+        if !armed || self.escorted(data, stack) {
+            return;
+        }
+        for id in stack {
+            let p = &self.pieces[id];
+            if p.kind != PieceKind::Combat || !self.mobility(data, p).motorised() {
+                continue;
+            }
+            let die = self.rng.d6();
+            events.push(Event::DieRolled {
+                purpose: format!("mines at {to} for {id}"),
+                value: die,
+            });
+            if die >= 5 {
+                self.take_loss(id, 1, events);
+            }
         }
     }
 
@@ -785,6 +827,72 @@ mod tests {
             pass_stage(&data, &mut state);
             assert_eq!(state.minefields.contains_key(&to), real, "real: {real}");
         }
+    }
+
+    #[test]
+    fn unescorted_vehicles_entering_an_enemy_field_roll_for_mines_26_24() {
+        let data = graziani();
+        let mut state = crate::movement::test_support::moving(&data, 3, Side::Axis);
+        let to = hex("B1010");
+        let vehicles: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side == Side::Axis
+                    && p.kind == PieceKind::Combat
+                    && p.hex().is_some()
+                    && state.mobility(&data, p).motorised()
+                    && !state.engineer_capable(&data, p)
+            })
+            .map(|p| p.id.clone())
+            .take(6)
+            .collect();
+        assert_eq!(vehicles.len(), 6);
+        let foot = pid("unit:it:ix-libyan-bn");
+        let mut stack = vehicles.clone();
+        stack.push(foot.clone());
+        for id in &stack {
+            state.pieces.get_mut(id).unwrap().location = crate::piece::Location::Hex(to.clone());
+        }
+        let toe: Vec<u32> = vehicles.iter().map(|id| state.pieces[id].toe).collect();
+        for real in [false, true] {
+            state.minefields.insert(
+                to.clone(),
+                Minefield {
+                    side: Side::Cw,
+                    real,
+                    revealed: false,
+                },
+            );
+            let mut events = Vec::new();
+            state.mine_rolls(&data, &stack, &to, &mut events);
+            let rolls: Vec<u8> = events
+                .iter()
+                .filter_map(|e| match e {
+                    Event::DieRolled { purpose, value } if purpose.starts_with("mines") => {
+                        Some(*value)
+                    }
+                    _ => None,
+                })
+                .collect();
+            // A dummy has no mines; a real field asks one die a vehicle
+            // unit, none for foot, and a 5 or 6 costs a TOE point.
+            assert_eq!(rolls.len(), if real { vehicles.len() } else { 0 });
+            let hits = rolls.iter().filter(|r| **r >= 5).count() as u32;
+            let lost: u32 = vehicles
+                .iter()
+                .zip(&toe)
+                .map(|(id, t)| t - state.pieces[id].toe)
+                .sum();
+            assert_eq!(lost, hits);
+        }
+        // With an engineer battalion in the stack, nobody rolls.
+        let engineer = pid("unit:it:201st-engineer-bn");
+        state.pieces.get_mut(&engineer).unwrap().location = crate::piece::Location::Hex(to.clone());
+        stack.push(engineer);
+        let mut events = Vec::new();
+        state.mine_rolls(&data, &stack, &to, &mut events);
+        assert!(events.is_empty());
     }
 
     #[test]

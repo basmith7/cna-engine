@@ -152,6 +152,7 @@ impl GameState {
         for (to, cost) in &plan.steps {
             self.collect_breakdown(data, pieces, &at, to);
             self.capture_wrecks(data, pieces, to, &mut events);
+            self.mine_rolls(data, pieces, to, &mut events);
             if let Some(side) = pieces.first().map(|id| self.pieces[id].side) {
                 self.reveal_minefield(side, to, &mut events);
             }

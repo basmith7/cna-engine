@@ -777,6 +777,7 @@ impl GameState {
                 self.charge(id, cost, false, &mut events);
             }
             self.capture_wrecks(data, pieces, &to, &mut events);
+            self.mine_rolls(data, pieces, &to, &mut events);
             if let Some(side) = pieces.first().map(|id| self.pieces[id].side) {
                 self.reveal_minefield(side, &to, &mut events);
             }
