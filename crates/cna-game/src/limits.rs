@@ -238,8 +238,15 @@ impl GameState {
                 total > 0 && 3 * whole < 2 * total
             }
             (PieceKind::Combat, _) if p.equivalent == Some(Equivalent::Battalion) => {
-                let printed: u32 = sheet
-                    .map(|u| u.toe.iter().map(|t| t.points).sum())
+                // Printed strength: the sheet's TOE, or the ID code's row.
+                let printed = sheet
+                    .map(|u| {
+                        let row = u
+                            .id_code
+                            .as_deref()
+                            .and_then(|code| data.chars.row(u.id.nation(), code));
+                        crate::setup::toe_points(u, row)
+                    })
                     .unwrap_or(0);
                 if printed == 0 {
                     return false;
