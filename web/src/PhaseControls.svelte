@@ -28,7 +28,8 @@
         | { "attach-motorisation": { piece: PieceId } }
         | { "detach-motorisation": { piece: PieceId } }
         | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
-        | { "destroy-supply": { hex: HexId } },
+        | { "destroy-supply": { hex: HexId } }
+        | { repair: { hex: HexId; weapon: string } },
     ) => void;
   } = $props();
 
@@ -49,6 +50,12 @@
     c.phase === "movement-combat" && c.segment === "movement" && view.moved.length === 0 && hex !== null
       ? Object.values(view.pieces).some((p) => p.side === view.to_act && (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex)
       : false,
+  );
+  // Phase K: one field-repair roll per broken-down type of the side to act's in the selected hex (22.2x).
+  const repairs = $derived(
+    c.phase === "repair" && hex !== null
+      ? [...new Set((view.broken_down?.[hex] ?? []).filter((w) => w.side === view.to_act).map((w) => w.weapon))]
+      : [],
   );
   let ammo = $state(0);
   let fuel = $state(0);
@@ -86,6 +93,12 @@
     {#if scuttle && hex}
       <button type="button" data-order="destroy-supply" onclick={() => onorder({ "destroy-supply": { hex } })}>Destroy supply at {hex}</button>
     {/if}
+    {#if c.phase === "repair" && repairs.length === 0}
+      <span class="hint" data-testid="repair-hint">Select a hex with your broken-down vehicles to try field repair (22.2x).</span>
+    {/if}
+    {#each repairs as weapon (weapon)}
+      <button type="button" data-order="repair" data-weapon={weapon} onclick={() => hex && onorder({ repair: { hex, weapon } })}>Repair {weapon} at {hex}</button>
+    {/each}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>
     {/if}

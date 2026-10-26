@@ -172,7 +172,16 @@ export type Order =
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { rail: { pieces: PieceId[]; path: HexId[] } }
+  | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | "pass";
+
+/** Broken-down TOE points of one weapon system in a hex (21.4x). */
+export interface Wreck {
+  side: Side;
+  nation?: string | null;
+  weapon: string;
+  points: number;
+}
 
 export type VictoryLevel = string;
 
@@ -272,6 +281,7 @@ export type Event =
   | { "motorisation-detached": { piece: PieceId; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
+  | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
@@ -378,6 +388,10 @@ export interface View {
   over: VictoryReport | null;
   /** Abstract supply: motorisation points by hex id (or box), the side to act's own only. */
   motorisation?: Partial<Record<Side, Record<string, number>>>;
+  /** Breakdown: broken-down vehicles by hex (21.4x), both sides', in the open. */
+  broken_down?: Record<HexId, Wreck[]>;
+  /** Repaired points by weapon system waiting as replacements (22.5), the side to act's own only. */
+  repaired?: Partial<Record<Side, Record<string, number>>>;
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];

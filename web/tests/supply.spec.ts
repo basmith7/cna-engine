@@ -197,3 +197,28 @@ test("a supply unit takes its points in phase C and moves with a combat unit in 
   const at = await page.evaluate(() => ["unit:it:lxl-tank-bn", "supply:axis:4"].map((id) => window.__cna.view().pieces[id].location));
   expect(at).toEqual([{ hex: target }, { hex: target }]);
 });
+
+test("phase K: field repair of broken-down tanks at Alexandria, one roll a type (22.2x)", async ({ page }) => {
+  await openFixture(page, "repair");
+  await expect(page.getByTestId("clock")).toContainText("repair");
+  await expect(page.getByTestId("repair-hint")).toBeVisible();
+  await expect(page.locator('[data-testid="marks"][data-kind="wreck"]')).toHaveAttribute("data-count", "1");
+  await clickHex(page, "E3613");
+  await expect(page.getByTestId("wreck")).toContainText("4 Mark VI Light");
+  const repair = page.getByTestId("phase-controls").locator('[data-order="repair"][data-weapon="Mark VI Light"]');
+  await repair.click();
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "Field repair at E3613, Mark VI Light" })).toHaveCount(1);
+  const after = await page.evaluate(() => {
+    const v = window.__cna.view();
+    const left = (v.broken_down?.["E3613"] ?? []).reduce((n: number, w: { points: number }) => n + w.points, 0);
+    return left + (v.repaired?.cw?.["Mark VI Light"] ?? 0);
+  });
+  expect(after).toBe(4);
+  // One roll per type per hex this phase: a second is the engine's refusal.
+  if (await repair.isVisible()) {
+    await repair.click();
+    await expect(page.getByTestId("toast")).toContainText("22.23");
+  }
+  await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
+  await expect(page.getByTestId("clock")).not.toContainText("repair");
+});

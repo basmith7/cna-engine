@@ -3,7 +3,8 @@
 <script lang="ts">
   // Hexes a panel is asking about, outlined on the map (the ZOC
   // declaration's hexes; the hexes still to assault in the close assault
-  // step, which a click assaults). Only those hexes are in this layer.
+  // step, which a click assaults; broken-down vehicles, 21.4x). Only
+  // those hexes are in this layer.
   import { polygonPoints } from "./geom";
   import type { HexId } from "./types";
 
@@ -31,5 +32,11 @@
     stroke: #7a1410;
     stroke-width: 2;
     stroke-dasharray: none;
+  }
+  .kind-wreck .mark {
+    fill: none;
+    stroke: #7a3b16;
+    stroke-width: 1.4;
+    stroke-dasharray: 1 2;
   }
 </style>

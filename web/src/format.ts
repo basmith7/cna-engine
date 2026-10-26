@@ -126,6 +126,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["broke-down"];
     return `${name(d.piece)} breakdown check, ${d.weapon}: ${d.reading} → ${d.percent} %, ${d.points} broken down.`;
   }
+  if ("field-repaired" in e) {
+    const d = e["field-repaired"];
+    return `Field repair at ${d.hex}, ${d.weapon}: ${d.die} → ${d.repaired} of ${d.attempted} repaired.`;
+  }
   if ("railed" in e) {
     const d = e.railed;
     return `${d.pieces.map(name).join(", ")} by rail ${d.from} → ${d.to}.`;

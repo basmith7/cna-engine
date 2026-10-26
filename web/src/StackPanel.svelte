@@ -18,6 +18,7 @@
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
   const points = $derived(hex ? motorisationAt(view, hex) : null);
+  const wrecks = $derived(hex ? (view.broken_down?.[hex] ?? []) : []);
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -30,6 +31,9 @@
     {#if points !== null}
       <p class="motorisation" data-testid="motorisation">{points} motorisation point{points === 1 ? "" : "s"} here</p>
     {/if}
+    {#each wrecks as w, i (i)}
+      <p class="wreck side-{w.side}" data-testid="wreck">Broken down: {w.points} {w.weapon} ({sideName(w.side)})</p>
+    {/each}
     {#if pieces.length === 0}
       <p class="empty">Nothing here.</p>
     {:else}
@@ -89,6 +93,11 @@
     margin: 0 0 0.3rem;
     font-size: 12px;
     color: #555;
+  }
+  .wreck {
+    margin: 0 0 0.3rem;
+    font-size: 12px;
+    color: #7a3b16;
   }
   .empty {
     margin: 0;
