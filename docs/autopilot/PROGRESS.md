@@ -101,7 +101,9 @@ blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
 
-None open. cna answered every request by 2026-10-25 (typed set-up constraints, R-120 to R-125, per-unit loads, motorisation as data, the Game-Turn calendar, HQ echelons); `vendor/cna` is at bb0a8d1 (#36). Engine follow-ups they unblock are under **Next steps**.
+- **The Axis Naval Convoy Air Distance Chart's lanes (56.1) as data, and a ruling on reading 32.66.** Simplified Axis convoys (32.6x) split among lanes, and `axis-convoy-bombing.json` picks the bombing column by lane number, but cna has no table saying where each of the six lanes ends (destination port, or off-map box for Tripoli) or which a scenario may use (Graziani's says lanes 2, 3 and 6, 60.37). Please add the lanes (number, origin, destination; opening rules such as 56.11's Greek lanes) and decide: (a) when the westernmost full Commonwealth division is east of a lane's first threshold, is the convoy not attacked or attacked on the 1–20 column; (b) do 5 % results, like 10 %, hit only motorisation and replacement points; (c) are dummy supply units counted before or after bombing (32.1x's one per three received). Blocks Mission 5's convoy bombing (cna-engine #37 moved it out).
+
+Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#36).
 
 ## Runs and quota
 
