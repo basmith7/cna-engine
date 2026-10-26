@@ -350,6 +350,21 @@ impl GameState {
         }
     }
 
+    /// The end of a movement phase (26.11): a dummy field an enemy paid
+    /// to enter is taken off.
+    pub(crate) fn lift_revealed_dummies(&mut self, events: &mut Vec<Event>) {
+        let gone: Vec<HexId> = self
+            .minefields
+            .iter()
+            .filter(|(_, f)| f.revealed && !f.real)
+            .map(|(h, _)| h.clone())
+            .collect();
+        for hex in gone {
+            self.minefields.remove(&hex);
+            events.push(Event::MinefieldRemoved { hex });
+        }
+    }
+
     /// The end of an OpStage (24.11, 24.2x): a project whose builders all
     /// stand in its hex and spent no CP, out of any storm, counts the
     /// stage; with every stage counted the item is built. A project whose
@@ -745,6 +760,30 @@ mod tests {
             );
             // An enemy entering a field turns it face up (26.11).
             assert_eq!(state.minefields[&to].revealed, owner == Side::Cw);
+        }
+    }
+
+    #[test]
+    fn a_dummy_an_enemy_paid_to_enter_is_gone_at_the_end_of_the_phase_26_11() {
+        let data = graziani();
+        for real in [false, true] {
+            let (mut state, piece, to, _) = walking(&data);
+            state.minefields.insert(
+                to.clone(),
+                Minefield {
+                    side: Side::Cw,
+                    real,
+                    revealed: false,
+                },
+            );
+            let events = state.apply(&data, Side::Axis, walk(&piece, &to)).unwrap();
+            assert!(events.contains(&Event::MinefieldRevealed {
+                hex: to.clone(),
+                real,
+            }));
+            assert!(state.minefields.contains_key(&to));
+            pass_stage(&data, &mut state);
+            assert_eq!(state.minefields.contains_key(&to), real, "real: {real}");
         }
     }
 

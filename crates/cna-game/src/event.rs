@@ -383,6 +383,10 @@ pub enum Event {
         hex: HexId,
         real: bool,
     },
+    /// The dummy minefield in `hex` was taken off (26.11).
+    MinefieldRemoved {
+        hex: HexId,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {
