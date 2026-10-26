@@ -17,22 +17,21 @@ writes is **Feedback**.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
-bar a short list; the design's Status (`docs/designs/2026-10-13-land-turn-design.md`,
-updated in #56) names it. Merged so far: supply state, spending, supply
-movement, arrivals, the air lift, breakdown and repair (#31–#39, #42–#43),
-R-120's defence (#40), attachment (#44), prisoners, guards and
-replacements (#45–#47), construction: fortifications and minefields
-(#48–#50). **On 2026-10-26 (this run):** `vendor/cna` bumped to 818fbf6,
-which answered every open request (#51: minefields spend no supplies under
-§32, R-133; rough not salt marsh, R-134); Axis convoy bombing on the
-Tripoli lane (#52, R-126–R-128); a released reserve unit assaults once per
-stage (#53, 18.23); attachment limits and shells (#55, 19.5, 9.26, R-130).
-Also merged: 15.84/14.14 gun losses (#54), R-132's Axis prisoners
-travelling off map plus a browser log line for `ConvoyBombed` (#58).
-Also merged: shells one size smaller in 15.5x, fixing #55's battalion
-shells (#57), and organisation in the stack panel: nesting and a shell
-badge (#60). #56 (design Status, README modules) merged too. Open at handoff: draft #59 (formations in 15.5x's size table; its goldens
-need re-playing).
+bar a short list (`docs/designs/2026-10-13-land-turn-design.md`, Status).
+Merged through 2026-10-26: supply, spending, supply movement, arrivals,
+the air lift, breakdown and repair, attachment, prisoners, guards,
+replacements, construction, convoy bombing on the Tripoli lane, gun
+losses, shells, the stack panel's organisation (#31–#60). **On
+2026-10-26, second run:** formations in close assault's size table
+(#59, 15.55: a piece counts as its attached formation on its hex; the
+short golden re-played and re-pinned); the mission's second half began:
+every scenario cna ships is smoke-tested (#61, `cna-game::scenarios`:
+the campaign game, the Italian campaign, Graziani's Offensive,
+Operation Crusader and The Long Retreat set up and pass a Game-Turn;
+61.38's reassigned 6 RTR no longer fails set-up) and points victories
+are scored (#63: six of nine scenarios use them; the end dialog shows
+totals). Open at handoff: #62 (the browser starts any scenario that
+sets up; CI running). Four scenarios wait on cna (requests below).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -83,11 +82,13 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: finish draft #59 (division-sized formations in 15.5x: the short
-  golden now diverges at GT1 stage 1's assault and needs its script
-  re-played), convoy lanes beyond Tripoli, and the mission's second half
-  (other scenarios' land rules). Helwan as an alternative to Cairo waits
-  for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #62 on green CI (the browser's
+  scenario picker; the end dialog's points table is not yet seen in a
+  browser). Then refresh the land-turn design's Status (its R-132 and
+  stack-panel items are merged), and take the next scenario land rule
+  that cna's data supports; Rommel (§31), The Last Chance and Rommel's
+  Arrival wait on the requests below. Convoy lanes beyond Tripoli and
+  the 19.3 chart as the shell denominator remain.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
