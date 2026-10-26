@@ -223,3 +223,4 @@ None open. cna answered every request by 2026-10-25 (typed set-up constraints, R
 | 2026-10-13 12:53 | 11 | 6→7 | 93→100 | $2.51 | 1 | You've hit your session limit · resets 1:30pm (America/Phoenix) |
 | 2026-10-24 08:53 | 67 | 20→21 | 0→4 | $15.17 | 246 | Mission 5 slice 2 is merged (PR #32). Slice 3 (supply movement) is about half built on draft PR #34. Everything is pushed and the gates pass locally: clippy, `c |
 | 2026-10-24 10:53 | 75 | 21→22 | 4→11 | $18.97 | 3 | Rule 21.41 is done and pushed on PR #35 (fd815bb). If a unit's move began next to an enemy brigade-sized unit, or two hexes from one across an open hex, half of |
+| 2026-10-25 16:53 | 69 | 27→29 | 0→10 | $16.44 | 3 | All three steps were already done in the last turn, about 20 minutes before the 01:23Z deadline: - **Playwright on #37:** `/tmp/pw-s4.txt` shows 33 passed (8.7m |
