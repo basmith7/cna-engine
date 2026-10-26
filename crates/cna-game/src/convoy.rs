@@ -141,14 +141,74 @@ impl GameState {
 /// (32.6x).
 const LANE_SUPPLY: u32 = 3;
 
+/// Supply units sunk from `units` by a `percent` convoy result (32.65):
+/// under 20 % only motorisation and replacement points are hit, and a
+/// convoy carries neither yet (R-127); from 20 % that share, fractions
+/// down, at least one.
+fn supply_sunk(units: u32, percent: u32) -> u32 {
+    if percent < 20 {
+        return 0;
+    }
+    (units * percent / 100).max(1).min(units)
+}
+
 impl GameState {
+    /// A Commonwealth or Axis HQ whose OA echelon is division: the
+    /// engine's reading of a full division (§19) for 32.64.
+    pub(crate) fn is_division_hq(&self, data: &Data, p: &crate::piece::Piece) -> bool {
+        p.kind == crate::piece::PieceKind::Hq
+            && p.id.unit().and_then(|u| data.oa.unit(&u)?.echelon)
+                == Some(cna_data::oa::Echelon::Division)
+    }
+
+    /// The Commonwealth attacks the Axis convoy on `lane` carrying
+    /// `units` supply units (32.63–32.65): bomb points from the chart's
+    /// row for the westernmost Commonwealth division HQ on the map; none
+    /// reached, no attack (R-126). Two dice, read in order, come from a
+    /// stream of their own, seeded by the game and the turn, so bombing
+    /// never shifts the dice of play. Returns the units sunk.
+    fn bomb_convoy(&mut self, data: &Data, lane: u8, units: u32, events: &mut Vec<Event>) -> u32 {
+        let west = self
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && self.is_division_hq(data, p))
+            .filter_map(|p| p.hex())
+            .map(|h| (h.sheet(), h.col()))
+            .min();
+        let Some((sheet, col)) = west else {
+            return 0;
+        };
+        let Some(band) = data.convoy_bombing.bomb_points(lane, sheet, col) else {
+            return 0;
+        };
+        let salt = (u64::from(self.clock.game_turn) << 8) | 0x80 | u64::from(lane);
+        let mut rng =
+            crate::rng::GameRng::new(self.rng.seed() ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15));
+        let reading = rng.d6() * 10 + rng.d6();
+        let percent = data
+            .convoy_bombardment
+            .percent(band.from, reading)
+            .unwrap_or(0);
+        let sunk = supply_sunk(units, percent);
+        events.push(Event::ConvoyBombed {
+            lane,
+            bomb_points: band.from,
+            reading,
+            percent,
+            units,
+            sunk,
+        });
+        sunk
+    }
+
     /// Phase D of the arrival turn's first OpStage: the planned supply
     /// units appear loaded (40 ammunition, 60 fuel), with a dummy for
     /// every three real ones (32.4x, 32.1x). The Commonwealth's land in
     /// Cairo, one in three in Alexandria (its west hex, E3613, where the
     /// Commonwealth's supply starts). The Axis's come by convoy to the
-    /// Tripoli box on one lane, at most three a stage; the rest sail with
-    /// the next turn's convoy (32.6x). Arrivals do not check stacking, as
+    /// Tripoli box on lane 2, at most three a stage, the rest sailing with
+    /// the next turn's convoy, and may be bombed on the way (32.6x); the
+    /// dummies count only the units that land (R-128). Arrivals do not check stacking, as
     /// reinforcements do not. True when anything arrived.
     pub(crate) fn supply_arrivals(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
         use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
@@ -176,17 +236,28 @@ impl GameState {
                 .sum();
             self.planned
                 .retain(|p| !(p.side == side && p.arrives == turn));
-            let units = match side {
+            let sailing = match side {
                 Side::Axis => due.min(LANE_SUPPLY),
                 Side::Cw => due,
             };
-            if due > units {
+            if due > sailing {
                 self.planned.push(Planned {
                     side,
                     arrives: turn + 1,
-                    units: due - units,
+                    units: due - sailing,
                 });
             }
+            let units = match side {
+                Side::Axis if sailing > 0 => {
+                    let lane = data
+                        .convoy_lanes
+                        .to_box("tripoli")
+                        .expect("convoy-lanes.json has a Tripoli lane")
+                        .lane;
+                    sailing - self.bomb_convoy(data, lane, sailing, events)
+                }
+                _ => sailing,
+            };
             if units == 0 {
                 continue;
             }
@@ -421,5 +492,99 @@ mod tests {
             assert!(events.is_empty(), "GT{turn}: {events:?}");
             assert_eq!(state.motorisation, before);
         }
+    }
+    fn axis_convoy_of(state: &mut GameState, units: u32) {
+        state.clock.phase = crate::clock::Phase::Arrival;
+        state.planned.clear();
+        state.planned.push(Planned {
+            side: Side::Axis,
+            arrives: state.clock.game_turn,
+            units,
+        });
+    }
+
+    fn bombed(events: &[Event]) -> Vec<&Event> {
+        events
+            .iter()
+            .filter(|e| matches!(e, Event::ConvoyBombed { .. }))
+            .collect()
+    }
+
+    #[test]
+    fn a_convoy_no_division_reaches_is_not_attacked_r_126() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        axis_convoy_of(&mut state, 3);
+        let mut events = Vec::new();
+        assert!(state.supply_arrivals(&data, &mut events));
+        assert!(bombed(&events).is_empty());
+    }
+
+    #[test]
+    fn a_division_far_west_bombs_the_tripoli_convoy_and_dummies_count_survivors_32_6x() {
+        use crate::piece::{Location, PieceKind};
+        use cna_data::map::HexId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut sunk_seen = false;
+        for seed in 0..40 {
+            let mut state = GameState::with_modules(&data, seed, Modules::ALL).unwrap();
+            crate::state::test_support::auto_place(&data, &mut state);
+            state.clock = Clock::start(5);
+            let hq = state
+                .pieces
+                .values()
+                .find(|p| p.side == Side::Cw && state.is_division_hq(&data, p))
+                .expect("a Commonwealth division HQ")
+                .id
+                .clone();
+            state.put(&hq, Location::Hex(HexId::parse("A2010").unwrap()));
+            axis_convoy_of(&mut state, 3);
+            let count =
+                |s: &GameState, k: PieceKind| s.pieces.values().filter(|p| p.kind == k).count();
+            let (real0, dummy0) = (
+                count(&state, PieceKind::SupplyUnit),
+                count(&state, PieceKind::DummySupplyUnit),
+            );
+            let mut events = Vec::new();
+            state.supply_arrivals(&data, &mut events);
+            let hits = bombed(&events);
+            assert_eq!(hits.len(), 1, "seed {seed}");
+            let Event::ConvoyBombed {
+                lane,
+                bomb_points,
+                percent,
+                sunk,
+                ..
+            } = hits[0]
+            else {
+                unreachable!()
+            };
+            assert_eq!((*lane, *bomb_points), (2, 201));
+            let expect = if *percent >= 20 {
+                (3 * percent / 100).max(1)
+            } else {
+                0
+            };
+            assert_eq!(*sunk, expect, "seed {seed}");
+            sunk_seen |= *sunk > 0;
+            let landed = 3 - *sunk as usize;
+            assert_eq!(count(&state, PieceKind::SupplyUnit), real0 + landed);
+            assert_eq!(
+                count(&state, PieceKind::DummySupplyUnit),
+                dummy0 + landed / 3
+            );
+        }
+        assert!(sunk_seen, "some seed sinks a supply unit");
+    }
+
+    #[test]
+    fn twenty_percent_or_more_sinks_at_least_one_and_less_sinks_nothing_r_127() {
+        assert_eq!(supply_sunk(3, 0), 0);
+        assert_eq!(supply_sunk(3, 5), 0);
+        assert_eq!(supply_sunk(3, 10), 0);
+        assert_eq!(supply_sunk(3, 20), 1);
+        assert_eq!(supply_sunk(3, 50), 1);
+        assert_eq!(supply_sunk(10, 50), 5);
+        assert_eq!(supply_sunk(0, 50), 0);
     }
 }

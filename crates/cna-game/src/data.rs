@@ -56,6 +56,9 @@ pub struct Data {
     pub calendar: cna_data::calendar::Calendar,
     pub motorisation_losses: cna_data::calendar::MotorisationLosses,
     pub simplified_supply: cna_data::calendar::SimplifiedSupply,
+    pub convoy_lanes: cna_data::convoy::ConvoyLanes,
+    pub convoy_bombing: cna_data::convoy::ConvoyBombing,
+    pub convoy_bombardment: cna_data::convoy::ConvoyBombardment,
 }
 
 impl Data {
@@ -92,6 +95,9 @@ impl Data {
             calendar: cna_data::calendar::Calendar::load_from(src)?,
             motorisation_losses: cna_data::calendar::MotorisationLosses::load_from(src)?,
             simplified_supply: cna_data::calendar::SimplifiedSupply::load_from(src)?,
+            convoy_lanes: cna_data::convoy::ConvoyLanes::load_from(src)?,
+            convoy_bombing: cna_data::convoy::ConvoyBombing::load_from(src)?,
+            convoy_bombardment: cna_data::convoy::ConvoyBombardment::load_from(src)?,
         })
     }
 
