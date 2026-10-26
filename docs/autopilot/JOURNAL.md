@@ -268,3 +268,9 @@ Done: phase K field repair (70aaaa5: `Order::Repair`, `cna-data::repair`, a fuel
 In flight: full Playwright run on 4821d40's parent; a fresh review of the repair diff. A parallel agent is bumping `vendor/cna` on `autopilot/cna-bump` (cna answered every request: calendar, echelons, R-120–R-125, set-up constraints).
 Next: act on the review, mark #35 ready, merge when CI is green; then the cna-bump PR; then slice 4 (arrivals, now unblocked by `calendar.json`).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-25 17:46 MST — autopilot/m5-slice-4-arrivals-2
+Done: #35 (slice 5) merged (eae994d) after review fixes (3384b90). The cna bump (#36, by a subagent: typed placements, R-120–R-122, motorisation data) got main merged in (197fb5d). Slice 4 on draft #37, branched from #36: calendar (0220a47), monthly motorisation losses (03ce4e1), planning rolls on their own dice (38939b6), Commonwealth arrivals in phase D (9bd388e).
+In flight: full Playwright on #36's merge; #36 to merge when green, then main into #37.
+Next: slice 4 Task 3 (Axis convoys to Tripoli with the bombing chart), Task 5 (log, NOT_SIMULATED); delete the answered request bullets once #36 merges; Helwan and R-120's defence side are #36's open follow-ups.
+Blocked: Mission 4 on Brian's review of #25.
