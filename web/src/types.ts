@@ -185,9 +185,21 @@ export type Order =
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
+  | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
   | { "detail-guards": { piece: PieceId; points: number } }
   | { "release-guards": { piece: PieceId; points: number } }
   | "pass";
+
+/** What a construction project builds (24.1x). */
+export type BuildItem = "fortification";
+
+/** A project under way in a hex (24.1x): its builders and the stages counted so far. */
+export interface Project {
+  side: Side;
+  item: BuildItem;
+  builders: PieceId[];
+  stages?: number;
+}
 
 /** Broken-down TOE points of one weapon system in a hex (21.4x). */
 export interface Wreck {
@@ -305,6 +317,9 @@ export type Event =
   | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
+  | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
+  | { "fortification-built": { side: Side; hex: HexId; level: number } }
   | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
   | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
@@ -421,6 +436,10 @@ export interface View {
   prisoners?: Partial<Record<Side, Record<HexId, number>>>;
   /** Prisoner points each captor has sent out of play (28.15). */
   prisoners_out?: Partial<Record<Side, number>>;
+  /** Fortification levels changed from the map's (25.1x); a major city absent here is at its own. */
+  fortifications?: Record<HexId, number>;
+  /** Projects under way by hex (24.1x): open. */
+  projects?: Record<HexId, Project>;
   /** Guard points by owner and hex (28.21): open. */
   guards?: Partial<Record<Side, Record<HexId, number>>>;
   /** Escapees by their own side and hex (28.25): open. */

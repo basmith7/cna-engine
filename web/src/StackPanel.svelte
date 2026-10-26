@@ -25,6 +25,9 @@
   const prisoners = $derived(hex ? prisonersAt(view, hex) : []);
   const repaired = $derived(hex ? repairedAt(view, hex) : []);
   const guards = $derived(hex ? guardsAt(view, hex) : []);
+  const project = $derived(hex ? view.projects?.[hex] : undefined);
+  /** The side to act's ticked pieces here, the builders a Fortify order names (24.41). */
+  const builders = $derived(ticked.filter((id) => pieces.some((p) => p.id === id && p.side === view.to_act)));
   const escapees = $derived(hex ? escapeesAt(view, hex) : []);
   /** The side to act's combat units in the hex, which detail guards or take them back (28.21, 28.22). */
   const guarders = $derived(pieces.filter((p) => p.side === view.to_act && p.kind === "combat"));
@@ -50,6 +53,14 @@
     {#each prisoners as g (g.side)}
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
     {/each}
+    {#if project}
+      <p class="prisoners side-{project.side}" data-testid="project">{sideName(project.side)} {project.item} under way: {project.stages ?? 0} of 3 stages</p>
+    {/if}
+    {#if onorder && view.clock?.phase === "organisation" && !project && builders.length >= 2}
+      <p class="guarding">
+        <button type="button" data-order="build" title="An engineer and a 3+ TOE infantry battalion, three stages spending no CP (24.41)" onclick={() => hex && onorder({ build: { item: "fortification", hex, builders } })}>Fortify with the ticked</button>
+      </p>
+    {/if}
     {#each guards as g (g.side)}
       <p class="prisoners side-{g.side}" data-testid="guards">{g.points} guard point{g.points === 1 ? "" : "s"} of the {sideName(g.side)}</p>
     {/each}
