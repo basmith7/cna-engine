@@ -24,7 +24,8 @@ replacements, construction, convoy bombing, gun losses, shells, the
 stack panel's organisation, formations in the size table, every
 scenario smoke-tested, points victories, the browser's scenario picker
 (#31–#64). **On 2026-10-26, third run:** cna answered all three
-requests; #65 bumps `vendor/cna` to 803d5d5 and builds what they unlock:
+requests; #65 (merged) bumps `vendor/cna` to 803d5d5 and builds what
+they unlock:
 Rommel as a commander piece placed with a German unit (R-135), and
 replacement counters made at set-up (21st Panzer for 5th Light, R-096),
 so The Last Chance sets up and plays (six of nine scenarios now). #66
@@ -91,7 +92,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna 803d5d5 once #65 merges.
+  cna 803d5d5.
 
 ## Requests for cna
 
@@ -102,7 +103,7 @@ the bullet once it lands and `vendor/cna` is bumped.
 - **Rommel's Arrival's other two corner-hex placements, as hex lists**
   (Mission 5, second half; blocks Rommel's Arrival, the Desert Fox
   campaign and the short campaign, the last three scenarios that do not
-  set up). With #259–#261 in (vendor/cna 803d5d5, PR #65 here), set-up
+  set up). With #259–#261 in (vendor/cna 803d5d5, #65 here), set-up
   now stops at the Axis block `hexes: ["A2010", "A2703"]` for the Pavia,
   Bologna, Brescia and Savona divisions ("anywhere between Ras el Ali and
   Nofilia; no division within two hexes of another"): two hexes cannot
