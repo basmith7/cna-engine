@@ -324,7 +324,11 @@ mod tests {
             .find(|p| {
                 p.kind == cna_game::piece::PieceKind::Hq
                     && !game.state.is_shell(data(), &p.id)
-                    && game.state.pieces.values().any(|q| q.attached_to == p.id.unit())
+                    && game
+                        .state
+                        .pieces
+                        .values()
+                        .any(|q| q.attached_to == p.id.unit())
             })
             .expect("a whole formation")
             .id

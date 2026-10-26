@@ -1443,6 +1443,9 @@ mod tests {
             .unwrap()
             .id
             .clone();
+        // Set-up stacks HQs with their formations; detached, the
+        // battalion is only itself.
+        state.pieces.get_mut(&battalion).unwrap().attached_to = None;
         assert_eq!(
             state.largest(&data, [battalion.clone()].into_iter()),
             Some("battalion")
@@ -1750,10 +1753,12 @@ mod tests {
         );
         // Pinned to seed 3 so the fixture stays honest.
         assert_eq!((attacker.reading, defender.reading), (43, 36));
-        // Adjusted +1 under this seed: no refund, no retreat. CP: the
+        // The Libyan battalions defend under their whole division on its
+        // hex, against battalions: four columns their way (15.53, 15.55).
+        // Adjusted -3 under this seed: no refund, no retreat. CP: the
         // attacking hex 5; the defended hex 3 (the bad-attack refund has
         // its own test below).
-        assert_eq!(basic + shifts, 1);
+        assert_eq!(basic + shifts, -3);
         assert_eq!(defender.retreat, 0);
         assert_eq!(state.pending, None);
         for id in ["unit:cw:1-krrc", "unit:cw:1-rtr", "unit:cw:7-med"] {
