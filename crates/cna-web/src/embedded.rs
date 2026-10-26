@@ -3,7 +3,8 @@
 use anyhow::{Context, Result};
 use cna_data::source::Source;
 use cna_game::data::Data;
-use std::sync::OnceLock;
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/embedded.rs"));
@@ -11,9 +12,8 @@ mod generated {
 
 pub use generated::RULES_COMMIT;
 
-/// The scenario this build plays. Only Graziani's Offensive is embedded
-/// and tested (spec, *Non-goals*).
-pub const SCENARIO: &str = "grazianis-offensive";
+/// The scenario the start screen offers first.
+pub const DEFAULT_SCENARIO: &str = "grazianis-offensive";
 
 /// `vendor/cna/data` as compiled into this crate.
 pub struct Embedded;
@@ -38,15 +38,43 @@ impl Source for Embedded {
     }
 }
 
-/// The scenario's `Data`, built from the embedded files on first use.
-/// The files are compiled in and the native tests load them, so a
-/// failure here is a build bug, not a runtime condition.
-pub fn data() -> &'static Data {
-    static DATA: OnceLock<Data> = OnceLock::new();
-    DATA.get_or_init(|| {
-        Data::load_from(SCENARIO, &Embedded, RULES_COMMIT.to_owned())
-            .expect("the embedded data loads")
-    })
+/// A scenario's `Data`, built from the embedded files on first use and
+/// kept for the page's life (one per scenario, so leaked). An unknown
+/// slug is an `Err`; the files are compiled in and the native tests
+/// load them, so any other failure is a build bug.
+pub fn data(slug: &str) -> Result<&'static Data> {
+    static DATA: OnceLock<Mutex<BTreeMap<String, &'static Data>>> = OnceLock::new();
+    let mut cache = DATA
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if let Some(d) = cache.get(slug) {
+        return Ok(d);
+    }
+    let d: &'static Data = Box::leak(Box::new(
+        Data::load_from(slug, &Embedded, RULES_COMMIT.to_owned())
+            .with_context(|| format!("scenario {slug}"))?,
+    ));
+    cache.insert(slug.to_owned(), d);
+    Ok(d)
+}
+
+/// The scenarios a new game can start, `(slug, name)` in file order:
+/// every embedded one but those `cna_game::scenarios::WAITING` on cna.
+pub fn scenarios() -> Result<Vec<(String, String)>> {
+    let mut out = Vec::new();
+    for file in Embedded.list("scenarios")? {
+        let Some(slug) = file.strip_suffix(".json") else {
+            continue;
+        };
+        if cna_game::scenarios::WAITING.contains(&slug) {
+            continue;
+        }
+        let v: serde_json::Value = serde_json::from_str(&Embedded.read(&format!("scenarios/{file}"))?)?;
+        let name = v["name"].as_str().with_context(|| format!("{file} has no name"))?;
+        out.push((slug.to_owned(), name.to_owned()));
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -72,8 +100,23 @@ mod tests {
 
     #[test]
     fn embedded_data_equals_the_checkout_data() {
-        let native = Data::load(SCENARIO).unwrap();
-        assert_eq!(native.rules_commit, RULES_COMMIT);
-        assert_eq!(format!("{:?}", data()), format!("{native:?}"));
+        for (slug, _) in scenarios().unwrap() {
+            let native = Data::load(&slug).unwrap();
+            assert_eq!(native.rules_commit, RULES_COMMIT);
+            assert_eq!(format!("{:?}", data(&slug).unwrap()), format!("{native:?}"), "{slug}");
+        }
+    }
+
+    #[test]
+    fn scenarios_offers_all_but_the_waiting_ones_and_graziani_first_named() {
+        let all = scenarios().unwrap();
+        let slugs: Vec<&str> = all.iter().map(|(s, _)| s.as_str()).collect();
+        assert!(slugs.contains(&DEFAULT_SCENARIO));
+        assert!(all.contains(&("operation-crusader".into(), "Operation Crusader".into())));
+        assert_eq!(all.len() + cna_game::scenarios::WAITING.len(), Embedded.list("scenarios").unwrap().len());
+        for w in cna_game::scenarios::WAITING {
+            assert!(!slugs.contains(w), "{w}");
+        }
+        assert!(data("no-such-scenario").is_err());
     }
 }

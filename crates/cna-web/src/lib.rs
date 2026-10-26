@@ -1,4 +1,4 @@
-//! `cna-game` for the browser. The Graziani data is compiled in
+//! `cna-game` for the browser. Every scenario's data is compiled in
 //! (`embedded`), the API is plain JSON over Rust (`api`), and the
 //! `wasm-bindgen` `Game` below only passes strings through, so the
 //! native tests and the page see byte-identical output.
@@ -13,20 +13,31 @@ fn js(e: anyhow::Error) -> JsError {
     JsError::new(&format!("{e:#}"))
 }
 
-/// One game of Graziani's Offensive, driven by JSON strings.
+/// One game of a scenario, driven by JSON strings.
 #[wasm_bindgen]
 pub struct Game(api::Game);
 
 #[wasm_bindgen]
 impl Game {
-    /// A new game with this RNG seed.
+    /// A new game of `scenario` (a slug from `scenarios()`) with this
+    /// RNG seed.
     #[wasm_bindgen(js_name = newGame)]
-    pub fn new_game(seed: u64) -> Result<Game, JsError> {
-        api::Game::new(seed).map(Game).map_err(js)
+    pub fn new_game(scenario: &str, seed: u64) -> Result<Game, JsError> {
+        api::Game::new(scenario, seed).map(Game).map_err(js)
     }
 
-    /// A game from the JSON `save()` wrote; throws if it is of another
-    /// scenario or `vendor/cna` commit.
+    /// The scenarios a new game can start, as `[{slug, name}]` JSON.
+    pub fn scenarios() -> Result<String, JsError> {
+        let v: Vec<_> = embedded::scenarios()
+            .map_err(js)?
+            .into_iter()
+            .map(|(slug, name)| serde_json::json!({ "slug": slug, "name": name }))
+            .collect();
+        Ok(serde_json::to_string(&v)?)
+    }
+
+    /// A game from the JSON `save()` wrote; throws if its scenario is not
+    /// embedded or it is of another `vendor/cna` commit.
     pub fn load(json: &str) -> Result<Game, JsError> {
         api::Game::load(json).map(Game).map_err(js)
     }
