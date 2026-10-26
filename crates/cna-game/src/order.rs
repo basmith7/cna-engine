@@ -131,6 +131,13 @@ pub enum Order {
         path: Vec<HexId>,
         points: u32,
     },
+    /// Phase C: `piece` absorbs `points` of the player's repaired
+    /// `weapon` points waiting in its hex (19.61, 20.41).
+    Absorb {
+        piece: PieceId,
+        weapon: String,
+        points: u32,
+    },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

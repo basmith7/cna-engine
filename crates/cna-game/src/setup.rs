@@ -442,7 +442,7 @@ pub fn reinforcement(
 /// TOE points as the sheet prints them: `N` is the row's `max_toe` plus
 /// any points listed with it; `U@x` and `O@x` are `x`; else the sum of
 /// the listed weapons.
-fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
+pub(crate) fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
     let listed: u32 = unit.toe.iter().map(|t| t.points).sum();
     match unit.toe_mark {
         Some(ToeMark::Full) => {

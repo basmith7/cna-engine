@@ -512,6 +512,14 @@ impl GameState {
             (None, Order::MarchPrisoners { from, path, points }) => {
                 self.march_prisoners(data, player, from, path, *points)
             }
+            (
+                None,
+                Order::Absorb {
+                    piece,
+                    weapon,
+                    points,
+                },
+            ) => self.absorb_replacements(data, player, piece, weapon, *points),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

@@ -352,6 +352,14 @@ pub enum Event {
         hex: HexId,
         points: u32,
     },
+    /// `piece` absorbed `points` repaired `weapon` points for `cp` CP
+    /// (19.61, 20.41).
+    Absorbed {
+        piece: PieceId,
+        weapon: String,
+        points: u32,
+        cp: Cp,
+    },
     /// The scenario's last OpStage is over (60.22): each side's level
     /// and what was checked (60.8).
     GameOver {
