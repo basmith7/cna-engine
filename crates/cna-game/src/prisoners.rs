@@ -24,7 +24,8 @@ pub const MAX_PER_HEX: u32 = 40;
 
 /// Where `captor`'s prisoners leave play (28.15): Alexandria and Cairo
 /// for the Commonwealth; for the Axis, A2802, the hex units leave by for
-/// the Tripolitania box (8.8x), until cna places 28.15's Sirte box.
+/// the Tripolitania box. R-132 makes that box the departure point; the
+/// three off-map stages to it are skipped (`NOT_SIMULATED.md`).
 pub fn departure_hexes(data: &Data, captor: Side) -> Vec<HexId> {
     match captor {
         Side::Cw => ["cairo", "alexandria-east", "alexandria-west"]

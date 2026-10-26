@@ -92,6 +92,15 @@ rulings*). Each names where it is enforced.
 | R-123 | a foot unit (printed CPA 1–10, or a 0+ gun) takes one motorisation point per TOE point in phase C and moves at 20 (15 for a gun) while it has at least that many; `+` units on the map are served first (`cna-game::organisation`); the points pay a fuel a stage. An HQ's CPA reads its motorised units at the truck CPA |
 | R-124 | the air lift's destinations are division and brigade-echelon HQs, its forward limit the farthest division HQ counter (`cna-game::air_lift`) |
 | R-125 | a recce unit's TOE points check for breakdown and repair in the field by its OA vehicle class; `none` never breaks down (`cna-game::breakdown`, `cna-game::repair`) |
+| R-126 | Axis convoy bombing (32.6x): not built yet, Axis convoys arrive unbombed (Mission 5) |
+| R-127 | Axis convoy bombing (32.6x): not built yet, Axis convoys arrive unbombed (Mission 5) |
+| R-128 | Axis convoy bombing (32.6x): not built yet; dummies are counted from the real supply units that arrive (`cna-game::convoy`) |
+| R-129 | confirms R-120's reading above: an all-out hex surrenders though HQs in it owe no ammunition (`cna-game::combat::assault`) |
+| R-130 | attachment caps (19.5): not built yet (Mission 5 slice 6, Task 3) |
+| R-131 | under abstract supply no supply dumps are built; the engine builds none (`cna-game::construction`) |
+| R-132 | Axis prisoners leave play at A2802, short of the Tripolitania box the ruling names (see *Prisoners* below) |
+| R-133 | under abstract supply construction spends no supplies (`cna-game::construction`) |
+| R-134 | minefields are laid in clear, sand/gravel or rough hexes, not salt marsh (`cna-game::construction`) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)
@@ -105,9 +114,9 @@ mission, and the engine neither models nor approximates them.
 | Trucks, halftracks and mounted infantry (12.46, 14.48) | no truck roll after a barrage; no halftrack cap |
 | Destroyed-tank markers and their capture (14.4x, 14.5) | destroyed armour leaves the map |
 | Dummy tank formations (16.4) | none exist |
-| Prisoners (28.0) beyond points, guards and the march | surrenders and 15.89 rolls make prisoner points that the captor marches in phase H to Alexandria or Cairo, or the Axis to A2802 (no Sirte box in cna yet), where they leave play (`cna-game::prisoners`). Guards are points detailed from infantry TOE in phase C or the owner's phase H, a guard to five on the march, one to a camp standing still; the unguarded escape at the end of the captor's phase H (`cna-game::guards`). Not built: guards as counters that fight and react (28.21: 0/1, CPA 10), so a hex of prisoners and guards with no captor's combat unit is freed by any enemy combat unit entering it, the guards taken; escapees walking toward friends and losing 10 % a waterless stage (28.25), so they wait where they got away until an enemy entering recaptures them; the month's delay before escapees return as replacement points (they leave play, tallied in `escaped`); liberation by retreat or advance after combat (only moves and reactions free or recapture); the three-hex shift at surrender; feeding stores (Logistics Game); trucks carrying them. 15.89's points all count as prisoners, guns and tanks included |
+| Prisoners (28.0) beyond points, guards and the march | surrenders and 15.89 rolls make prisoner points that the captor marches in phase H to Alexandria or Cairo, or the Axis to A2802, where they leave play; R-132 sends Axis prisoners on into the Tripolitania box (three off-map stages at their CPA 8, 8.89), which the engine skips (`cna-game::prisoners`). Guards are points detailed from infantry TOE in phase C or the owner's phase H, a guard to five on the march, one to a camp standing still; the unguarded escape at the end of the captor's phase H (`cna-game::guards`). Not built: guards as counters that fight and react (28.21: 0/1, CPA 10), so a hex of prisoners and guards with no captor's combat unit is freed by any enemy combat unit entering it, the guards taken; escapees walking toward friends and losing 10 % a waterless stage (28.25), so they wait where they got away until an enemy entering recaptures them; the month's delay before escapees return as replacement points (they leave play, tallied in `escaped`); liberation by retreat or advance after combat (only moves and reactions free or recapture); the three-hex shift at surrender; feeding stores (Logistics Game); trucks carrying them. 15.89's points all count as prisoners, guns and tanks included |
 | Captured equipment (28.3) | captured guns and tanks are lost, not used by the captor |
-| Supply dumps (24.9) | under abstract supply none are built: the supply unit is the dump, and what 24.9 adds there waits on cna |
+| Supply dumps (24.9) | under abstract supply none are built (R-131); the Logistics Game, which keeps them, is not built |
 | Advance after combat | none: cna's 50-stacking-and-zoc.md says movement in the next segment is not an advance |
 | The owner's choice of which TOE points die (12.45, 14.4x, 15.83) | the engine removes the points that absorb most per point first (`cna-game::combat::losses`) |
 | The "no armour" reassignment of anti-armour points to close assault (14.23) | the points fire at nothing |
