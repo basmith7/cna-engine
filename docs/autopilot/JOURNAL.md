@@ -340,3 +340,9 @@ Done: #45 merged (slice 6b, prisoners). #46 ready (slice 7): repaired points by 
 In flight: #46's CI.
 Next: merge #46 when CI is green (`gh pr merge 46 --merge`). Then prisoner guards and escape (28.2x) or the PR #12 combat follow-ups (18.2x released units, 15.84/14.14 guns). Keep /tmp clear: a second worktree's `target/` filled tmpfs and broke a Playwright trace write.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
+
+## 2026-10-26 00:00 MST — autopilot/m5-slice-8-guards
+Done: #46 merged (slice 7). Plan for slice 8, guards and escape (28.2x): `docs/plans/2026-10-26-m5-slice-8-guards.md`, draft PR.
+In flight: nothing built for slice 8.
+Next: Task 1 of the slice 8 plan, test first. Golden indices shift again when the golden details guards: re-pin `cna-web` HASHED/`golden_prefix` indices and `golden.spec.ts` as #45 did.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
