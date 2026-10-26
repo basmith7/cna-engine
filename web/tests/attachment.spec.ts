@@ -91,7 +91,7 @@ test("the stack panel nests attached units under their parent and marks a shell 
   // Detached, the tanks stand at the top level; every badge matches the view.
   await row(page, TANKS).locator('[data-order="detach"]').click();
   await expect(row(page, TANKS)).toHaveAttribute("data-depth", "0");
-  const shells = await page.evaluate(() => Object.values(window.__cna.view().pieces).filter((p) => p.shell).map((p) => p.id));
+  const shells = await page.evaluate(() => Object.entries(window.__cna.view().pieces).filter(([, p]) => (p as { shell?: boolean }).shell).map(([id]) => id));
   for (const id of await order()) {
     await expect(row(page, id!).getByTestId("shell")).toHaveCount(shells.includes(id!) ? 1 : 0);
   }
