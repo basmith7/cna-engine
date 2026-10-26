@@ -54,7 +54,7 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 ### Task 4: motorisation losses
 
-- [ ] The monthly chart, rounded down per hex; the event names the loss.
+- [x] The monthly chart (`cna-data::calendar::MotorisationLosses`), of all the side's points, fractions down, from the rear map's pools only (no further than they hold); `Event::MotorisationLost`. Graziani (GT1–6) never reads a row: GT3's previous month, September 1940, is a dash.
 
 ### Task 5: UI, golden, docs
 

@@ -51,6 +51,8 @@ pub struct Data {
     pub morale: MoraleModifier,
     pub size_shifts: AssaultSizeShifts,
     pub prisoners: Prisoners,
+    pub calendar: cna_data::calendar::Calendar,
+    pub motorisation_losses: cna_data::calendar::MotorisationLosses,
 }
 
 impl Data {
@@ -82,6 +84,8 @@ impl Data {
             morale: MoraleModifier::load_from(src)?,
             size_shifts: AssaultSizeShifts::load_from(src)?,
             prisoners: Prisoners::load_from(src)?,
+            calendar: cna_data::calendar::Calendar::load_from(src)?,
+            motorisation_losses: cna_data::calendar::MotorisationLosses::load_from(src)?,
         })
     }
 

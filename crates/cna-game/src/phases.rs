@@ -100,6 +100,9 @@ impl GameState {
             match clock.phase {
                 Phase::InitiativeDeclaration => {
                     self.start_stage();
+                    if clock.stage == 1 {
+                        self.naval_convoy_stage(data, events);
+                    }
                     self.determine_initiative(data, events);
                     events.push(Event::PhaseStarted { clock });
                     return;

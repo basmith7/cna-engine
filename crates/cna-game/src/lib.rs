@@ -5,6 +5,7 @@ mod ammo;
 mod arrival;
 pub mod clock;
 pub mod combat;
+mod convoy;
 mod cycle;
 pub mod data;
 mod determinism;

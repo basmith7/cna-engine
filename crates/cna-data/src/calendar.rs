@@ -77,3 +77,62 @@ mod tests {
         assert!(!c.starts_month(16));
     }
 }
+
+/// One month of the Abstract Motorisation Point Loss Chart
+/// (`motorisation-losses.json`, SPI 32.59).
+#[derive(Debug, Clone, Deserialize)]
+pub struct MonthlyLoss {
+    /// `YYYY-MM`.
+    pub month: String,
+    pub cw_percent: u32,
+    pub axis_percent: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MotorisationLosses {
+    pub rows: Vec<MonthlyLoss>,
+}
+
+impl MotorisationLosses {
+    pub fn load() -> Result<Self> {
+        Self::load_from(&crate::source::Fs)
+    }
+
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        Ok(serde_json::from_value(crate::errata::load_table(
+            src,
+            "motorisation-losses",
+        )?)?)
+    }
+
+    /// The month's row (`YYYY-MM`); none for a month the chart prints as
+    /// a dash.
+    pub fn month(&self, key: &str) -> Option<&MonthlyLoss> {
+        self.rows.iter().find(|r| r.month == key)
+    }
+}
+
+/// The `YYYY-MM` key of the month before `week`'s.
+pub fn previous_month(week: &Week) -> String {
+    if week.month == 1 {
+        format!("{}-12", week.year - 1)
+    } else {
+        format!("{}-{:02}", week.year, week.month - 1)
+    }
+}
+
+#[cfg(test)]
+mod loss_tests {
+    use super::*;
+
+    #[test]
+    fn the_chart_starts_in_october_1940() {
+        let t = MotorisationLosses::load().unwrap();
+        assert!(t.month("1940-09").is_none());
+        let oct = t.month("1940-10").unwrap();
+        assert_eq!((oct.cw_percent, oct.axis_percent), (6, 2));
+        let c = Calendar::load().unwrap();
+        assert_eq!(previous_month(&c.week(15).unwrap()), "1940-12");
+        assert_eq!(previous_month(&c.week(7).unwrap()), "1940-10");
+    }
+}
