@@ -8,7 +8,7 @@ import { clickHex, expectDomMatchesView, here, openFixture, shoot as shootInto, 
 const shots = shotsDir("slice-5");
 const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
-/** `cna-play replay` of golden orders 0–78, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
+/** `cna-play replay` of golden orders 0–79, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
 const combatDone = readFileSync(here("fixtures/combat-done.sha256"), "utf8").trim();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -30,7 +30,7 @@ async function expectNoAxisAnswer(page: Page, step: "gun-positions" | "barrage" 
   if (step === "gun-positions") await expect(page.locator(".marker.forward")).toHaveCount(0);
 }
 
-test("golden orders 66–78 by clicks: gun positions, the barrage on 1 KRRC, assignments, the assault on Halfaya, the prisoners' march, the passes", async ({ page }) => {
+test("golden orders 66–79 by clicks: gun positions, the barrage on 1 KRRC, assignments, the assault on Halfaya, guards and the prisoners' march, the passes", async ({ page }) => {
   test.setTimeout(180_000);
   await openFixture(page, "combat-start");
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · G · movement and combat · Player A · gun positions");
@@ -156,8 +156,17 @@ test("golden orders 66–78 by clicks: gun positions, the barrage on 1 KRRC, ass
   await clickHex(page, "C4021");
   await expect(page.getByTestId("prisoners")).toHaveText("12 prisoner points held by the Axis");
 
-  // 76: phase H opens for them; the Axis marches all 12 west by clicks
-  // (28.13), and the hex they reach is done for the phase.
+  // 76: phase H opens for them. Twelve on the march need three guards
+  // (28.17, E-029): the IX Libyan battalion details them.
+  const guards = page.getByTestId("guard-controls");
+  await guards.getByLabel("Unit for guards").selectOption("unit:it:ix-libyan-bn");
+  await guards.getByLabel("Guard points").fill("3");
+  await guards.locator('[data-order="detail-guards"]').click();
+  await expect(log(page).filter({ hasText: "details 3 guard points in C4021." })).toHaveCount(1);
+  await expect(page.getByTestId("guards")).toHaveText("3 guard points of the Axis");
+
+  // 77: the Axis marches all 12 west by clicks (28.13), the guards with
+  // them, and the hex they reach is done for the phase.
   const march = page.getByTestId("march-panel");
   await expect(march).toContainText("C4021");
   await march.getByTestId("march-arm").click();
@@ -168,10 +177,14 @@ test("golden orders 66–78 by clicks: gun positions, the barrage on 1 KRRC, ass
   await expect(log(page).filter({ hasText: "Axis marches 12 prisoner points C4021 → C4120 (2 CP)." })).toHaveCount(1);
   await expect(march).toHaveCount(0);
 
-  // 77–78: the Axis passes phase H; the Commonwealth passes its reserve
-  // designation. The state is `replay`'s.
+  await clickHex(page, "C4120");
+  await expect(page.getByTestId("guards")).toHaveText("3 guard points of the Axis");
+
+  // 78–79: the Axis passes phase H, and nobody escapes; the Commonwealth
+  // passes its reserve designation. The state is `replay`'s.
   await controls.locator('[data-order="pass"]').click();
   await throughCurtain(page, "cw");
+  await expect(log(page).filter({ hasText: "escape" })).toHaveCount(0);
   await expect(page.getByTestId("clock")).toContainText("F · reserve designation · Player B");
   await controls.locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).toContainText("Player B · movement");

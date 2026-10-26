@@ -106,6 +106,14 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${sideName(d.side)} marches ${d.points} prisoner points ${d.path[0]} → ${d.path[d.path.length - 1]} (${d.cp} CP).`;
   }
   if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} repaired ${e.absorbed.weapon} points for ${e.absorbed.cp} CP.`;
+  if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${e["guards-detailed"].points} guard points in ${e["guards-detailed"].hex}.`;
+  if ("guards-released" in e) return `${e["guards-released"].points} guard points rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
+  if ("prisoners-escaped" in e) {
+    const d = e["prisoners-escaped"];
+    const parts = [d.rejoined ? `${d.rejoined} rejoin their side` : "", d.escapees ? `${d.escapees} wait there as escapees` : ""].filter(Boolean);
+    return `${sideName(d.side)} prisoners escape in ${d.hex}: ${parts.join(", ")}.`;
+  }
+  if ("prisoners-freed" in e) return `${sideName(e["prisoners-freed"].side)} frees ${e["prisoners-freed"].points} of its men held prisoner in ${e["prisoners-freed"].hex}.`;
   if ("prisoners-gone" in e) return `${e["prisoners-gone"].points} ${sideName(e["prisoners-gone"].side)} prisoner points leave play at ${e["prisoners-gone"].hex}.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
   if ("engaged" in e) return `${list(e.engaged.pieces, name)} are engaged.`;

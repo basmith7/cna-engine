@@ -185,6 +185,8 @@ export type Order =
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
+  | { "detail-guards": { piece: PieceId; points: number } }
+  | { "release-guards": { piece: PieceId; points: number } }
   | "pass";
 
 /** Broken-down TOE points of one weapon system in a hex (21.4x). */
@@ -303,6 +305,10 @@ export type Event =
   | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
+  | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
+  | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
+  | { "prisoners-freed": { side: Side; hex: HexId; points: number } }
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
@@ -415,6 +421,12 @@ export interface View {
   prisoners?: Partial<Record<Side, Record<HexId, number>>>;
   /** Prisoner points each captor has sent out of play (28.15). */
   prisoners_out?: Partial<Record<Side, number>>;
+  /** Guard points by owner and hex (28.21): open. */
+  guards?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Escapees by their own side and hex (28.25): open. */
+  escapees?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Prisoner points each side has had back by escape or liberation (28.24). */
+  escaped?: Partial<Record<Side, number>>;
   /** Hexes prisoners marched into this phase H: they go no further (28.13). */
   marched?: HexId[];
   /** Repaired points by hex and weapon system waiting for a unit there to absorb them (22.5, 20.41), the side to act's own only. */
