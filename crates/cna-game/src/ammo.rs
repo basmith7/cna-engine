@@ -363,29 +363,50 @@ mod tests {
         assert_eq!(state, before);
     }
 
-    #[test]
-    fn attackers_pay_double_and_a_defender_who_cannot_pay_still_fights() {
-        let data = graziani();
-        let (mut state, supply) = assigning(&data, "C4021", 10);
-        state.apply(&data, Side::Cw, assault_krrc()).unwrap();
+    /// The Commonwealth's assault on Fort Capuzzo (C4020) resolved, the
+    /// Axis committing nothing by hand.
+    fn assault_capuzzo(data: &Data, state: &mut GameState) -> Vec<Event> {
+        state.apply(data, Side::Cw, assault_krrc()).unwrap();
         state
             .apply(
-                &data,
+                data,
                 Side::Axis,
                 Order::AssignForces {
                     assignments: vec![],
                 },
             )
             .unwrap();
-        let events = state
+        state
             .apply(
-                &data,
+                data,
                 Side::Cw,
                 Order::Assault {
                     target: hex("C4020"),
                 },
             )
-            .unwrap();
+            .unwrap()
+    }
+
+    fn at_capuzzo(state: &GameState) -> Vec<PieceId> {
+        state
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side == Side::Axis
+                    && p.hex() == Some(&hex("C4020"))
+                    && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+            })
+            .map(|p| p.id.clone())
+            .collect()
+    }
+
+    #[test]
+    fn attackers_pay_double_and_a_hex_out_of_ammunition_surrenders_r_120() {
+        let data = graziani();
+        let (mut state, supply) = assigning(&data, "C4021", 10);
+        let held = at_capuzzo(&state);
+        assert!(held.len() > 1);
+        let events = assault_capuzzo(&data, &mut state);
         let paid: Vec<_> = events
             .iter()
             .filter_map(|e| match e {
@@ -395,11 +416,49 @@ mod tests {
             .collect();
         assert_eq!(paid, vec![(pid("unit:cw:1-krrc"), 2)]);
         assert_eq!(state.pieces[&supply].load.unwrap().ammo, 8);
+        // No defender has a supply unit in range: the hex surrenders,
+        // everyone in it, and is taken without a roll.
+        assert!(
+            events.contains(&Event::Surrendered {
+                pieces: held.clone()
+            }),
+            "{events:?}"
+        );
+        assert!(at_capuzzo(&state).is_empty());
+        assert!(!events.iter().any(|e| matches!(e, Event::Assault { .. })));
+    }
+
+    #[test]
+    fn a_defender_out_of_ammunition_does_not_defend_but_the_rest_do_r_120() {
+        let data = graziani();
+        let (mut state, _) = assigning(&data, "C4021", 10);
+        // One Axis supply unit at the fort with a single point: one
+        // defender pays, the others are out.
+        let axis = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit)
+            .unwrap()
+            .id
+            .clone();
+        let s = state.pieces.get_mut(&axis).unwrap();
+        s.location = Location::Hex(hex("C4020"));
+        s.load = Some(Load { ammo: 1, fuel: 0 });
+        let events = assault_capuzzo(&data, &mut state);
+        let spent = events
+            .iter()
+            .filter(|e| matches!(e, Event::AmmunitionSpent { from, .. } if *from == axis))
+            .count();
+        assert_eq!(spent, 1, "{events:?}");
         assert!(
             events
                 .iter()
-                .any(|e| matches!(e, Event::AmmunitionShort { .. })),
-            "the Libyan defenders have no supply unit in range"
+                .any(|e| matches!(e, Event::AmmunitionShort { .. }))
+        );
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::Surrendered { .. }))
         );
         assert!(events.iter().any(|e| matches!(e, Event::Assault { .. })));
     }

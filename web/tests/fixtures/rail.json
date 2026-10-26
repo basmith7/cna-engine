@@ -1567,14 +1567,12 @@
       "nation": "cw",
       "id_code": "n",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 6,
+      "toe": 0,
       "cpa": "10+",
       "morale": 2,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3922"
-      },
+      "location": "eliminated",
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
@@ -2379,14 +2377,12 @@
       "nation": "cw",
       "id_code": "p",
       "parent": null,
-      "toe": 6,
+      "toe": 0,
       "cpa": "10",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3922"
-      },
+      "location": "eliminated",
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
@@ -2821,20 +2817,18 @@
       "nation": "cw",
       "id_code": "x",
       "parent": null,
-      "toe": 6,
+      "toe": 0,
       "weapons": [
         {
           "weapon": "60-pounder",
-          "points": 6
+          "points": 0
         }
       ],
       "cpa": "20",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3922"
-      },
+      "location": "eliminated",
       "cp_spent": 3.0,
       "cp_enemy_half": 3.0,
       "cohesion": {
@@ -7530,7 +7524,7 @@
       "cp_spent": 6.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8296,7 +8290,7 @@
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
       "attached_to": "unit:it:1st-libyan-regt-hq",
-      "toe": 3,
+      "toe": 5,
       "cpa": "10",
       "morale": -2,
       "status": null,
@@ -8307,7 +8301,7 @@
       "cp_spent": 6.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8362,7 +8356,7 @@
       "cp_spent": 6.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8387,7 +8381,7 @@
       "cp_spent": 6.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8885,7 +8879,7 @@
   "over": null,
   "rng": {
     "seed": 7,
-    "draws": 12
+    "draws": 4
   },
   "log": [
     {
@@ -9618,24 +9612,6 @@
     {
       "player": "cw",
       "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": [
-            "unit:cw:7-med"
-          ]
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
     },
     {
       "player": "cw",

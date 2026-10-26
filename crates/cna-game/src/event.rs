@@ -209,8 +209,8 @@ pub enum Event {
         from: PieceId,
         ammo: u32,
     },
-    /// A defender that no supply unit in range could pay still fought
-    /// at full strength (32.21).
+    /// A committed defender that no supply unit in range could pay is
+    /// out of ammunition and does not defend (32.21, R-120).
     AmmunitionShort {
         piece: PieceId,
     },

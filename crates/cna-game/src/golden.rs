@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "e0d450406d861b7dd05300d78c008b2ca3edc1db47a495593e71fac96da87d7c";
+        "2c97cd00d7ec3c6fe213e888dc2bc3bfe7a190d1199f131325ea59cf938f5f8b";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -203,6 +203,21 @@ mod tests {
         } else {
             fire("unit:cw:7-med", "unit:it:ix-libyan-bn")
         };
+        // With the module on Halfaya Pass has surrendered (R-120), 7 Medium
+        // with it, so the Commonwealth has no guns to place.
+        let guns = if modules.abstract_supply {
+            vec![]
+        } else {
+            vec![
+                (
+                    Cw,
+                    Order::GunPositions {
+                        forward: vec![pid("unit:cw:7-med")],
+                    },
+                ),
+                (Axis, Order::GunPositions { forward: vec![] }),
+            ]
+        };
         let mut back = vec![(Cw, Order::Pass)];
         if !modules.abstract_supply {
             back.push((Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)));
@@ -213,15 +228,9 @@ mod tests {
             &mut state,
             [
                 back,
+                vec![(Cw, Order::EndSegment)],
+                guns,
                 vec![
-                    (Cw, Order::EndSegment),
-                    (
-                        Cw,
-                        Order::GunPositions {
-                            forward: vec![pid("unit:cw:7-med")],
-                        },
-                    ),
-                    (Axis, Order::GunPositions { forward: vec![] }),
                     (Cw, shell),
                     (Axis, Order::Barrage { fires: vec![] }),
                     (Axis, Order::Pass),
@@ -261,6 +270,14 @@ mod tests {
                 (Axis, Order::Pass),
                 (Axis, none(marmarica, &["C3919", "C3920"], false)),
                 (Axis, Order::EndSegment),
+            ],
+        );
+        // With the module on the Coldstream Guards surrendered at Halfaya
+        // in OpStage 1 and nothing else is in range: no gun positions, no fire.
+        let second = if modules.abstract_supply {
+            vec![(Axis, Order::Barrage { fires: vec![] })]
+        } else {
+            vec![
                 (
                     Axis,
                     Order::GunPositions {
@@ -272,6 +289,13 @@ mod tests {
                     Axis,
                     fire("unit:it:1st-libyan-artillery-regt", "unit:cw:3-cldgds"),
                 ),
+            ]
+        };
+        play(data, &mut state, second);
+        play(
+            data,
+            &mut state,
+            vec![
                 (Cw, Order::Barrage { fires: vec![] }),
                 (Cw, Order::Pass),
                 (
@@ -325,8 +349,11 @@ mod tests {
         );
     }
 
-    // The old orders with the module on (Mission 5): the same fight, the
-    // same report, now with loads and motorisation in the state.
+    // The old orders with the module on (Mission 5), now with loads and
+    // motorisation in the state. Halfaya Pass's defenders have no
+    // ammunition in range, so the hex surrenders to the assault (R-120)
+    // and the Commonwealth no longer holds it; neither side reaches a
+    // level either way.
     #[test]
     fn the_golden_game_with_abstract_supply_replays_to_its_pinned_end() {
         let data = Data::load("grazianis-offensive").unwrap();
@@ -339,8 +366,19 @@ mod tests {
         let json = replayed.to_json().unwrap();
         assert_eq!(json, live.to_json().unwrap());
         assert_eq!(sha256(&json), M5_FINAL_STATE_SHA256);
+        for unit in ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"] {
+            assert_eq!(replayed.pieces[&pid(unit)].hex(), None, "{unit}");
+        }
+        let report = replayed.over.as_ref().unwrap();
+        assert_eq!((report.axis, report.cw), (None, None));
+        let halfaya = report
+            .checked
+            .iter()
+            .find(|c| c.side == Side::Cw && c.objective == "C3922")
+            .unwrap();
+        assert!(!halfaya.met);
         let old = script(&data, Modules::default());
-        assert_eq!(replayed.over, old.over);
+        assert_ne!(replayed.over, old.over);
         assert!(replayed.pieces.values().any(|p| p.load.is_some()));
         assert!(!replayed.motorisation.is_empty());
     }

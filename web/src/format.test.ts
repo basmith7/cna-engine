@@ -48,7 +48,7 @@ const cases: [Event, string][] = [
   [{ losses: { piece: "u:b", points: 2, toe: 4 } }, "B loses 2 points, TOE now 4."],
   [{ "fuel-spent": { piece: "u:a", from: "u:s", fuel: 2 } }, "A burns 2 fuel from S."],
   [{ "ammunition-spent": { piece: "u:a", from: "u:s", ammo: 3 } }, "A fires 3 ammunition from S."],
-  [{ "ammunition-short": { piece: "u:b" } }, "B has no ammunition in range and fights at full strength anyway."],
+  [{ "ammunition-short": { piece: "u:b" } }, "B has no ammunition in range and does not defend."],
   [{ "supply-unit-spent": { piece: "u:s" } }, "S is empty and removed."],
   [{ "supply-destroyed": { piece: "u:s" } }, "S destroyed by its own side."],
   [{ "motorisation-attached": { piece: "u:s", points: 30 } }, "S takes 30 motorisation points."],
