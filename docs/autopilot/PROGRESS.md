@@ -65,7 +65,7 @@ merged): major cities defend at their fortification level, the best
 single in-hex benefit; level-3 cities ignore pins. **Slice 9b** (PR #49, merged): a `construction` module; engineers and
 a 3+ TOE infantry battalion build fortification levels in phase C, three
 idle stages a level; the opponent sees a project but not its item
-(3.61). **Slice 9c** (PR #50, ready): minefields laid real or dummy (the
+(3.61). **Slice 9c** (PR #50, merged): minefields laid real or dummy (the
 owner's secret), the TEC entry costs with engineer escorts, revealing,
 dummy removal, the mine roll, the combat shift, and clearing.
 Mission 4 resumes first the moment **Feedback** approves #25.
@@ -118,7 +118,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #50 (9c) on green CI; then the PR #12 combat follow-ups below (18.2x released units, 15.84/14.14 forward guns), and the rest of the land rules the queue row names. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: slice 9 is merged; next the PR #12 combat follow-ups below (18.2x released units, 15.84/14.14 forward guns), and the rest of the land rules the queue row names. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
