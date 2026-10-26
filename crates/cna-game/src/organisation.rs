@@ -5,17 +5,145 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::characteristics::Mark;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::supply::Carrying;
 
 /// The points that move a real supply unit and a dummy (32.31).
 const REAL_POINTS: u32 = 30;
 const DUMMY_POINTS: u32 = 6;
 
+/// What motorisation points would carry this combat unit (32.53, 32.54):
+/// foot infantry (printed CPA 1 to 10) or a gun printed 0+; none for a
+/// unit with its own transport.
+pub(crate) fn carriable(p: &Piece) -> Option<Carrying> {
+    if p.kind != PieceKind::Combat {
+        return None;
+    }
+    let cpa = p.cpa.as_ref()?;
+    match cpa.value? {
+        1..=10 => Some(Carrying::Infantry),
+        0 if cpa.mark == Some(Mark::Motorisable) => Some(Carrying::Gun),
+        _ => None,
+    }
+}
+
+/// What a combat unit's motorisation points carry, when it has a point
+/// for every TOE point it had when they were attached: fewer and it is
+/// not motorised (R-123).
+pub(crate) fn riding(p: &Piece) -> Option<Carrying> {
+    (p.motorised > 0 && p.motorised >= p.toe)
+        .then(|| carriable(p))
+        .flatten()
+}
+
 impl GameState {
+    /// `Order::AttachMotorisation` for a foot combat unit (32.54, R-123):
+    /// one point per TOE point from its hex's pool, in phase C; units
+    /// printed with `+` (historically motorised) are served first.
+    fn motorise_unit(&mut self, player: Side, id: &PieceId) -> Result<Vec<Event>, Illegal> {
+        const CASE: &str = "32.54";
+        if self.clock.phase != Phase::Organisation || !self.modules.abstract_supply {
+            return Err(Illegal::new(
+                CASE,
+                format!("units are motorised in phase C, not at {}", self.clock),
+            ));
+        }
+        let p = &self.pieces[id];
+        let Some(hex) = p.hex().filter(|_| p.side == player).map(|h| h.to_string()) else {
+            return Err(Illegal::new(
+                CASE,
+                format!("{id} is not one of {player}'s units on the map"),
+            ));
+        };
+        if carriable(p).is_none() {
+            return Err(Illegal::new(
+                CASE,
+                format!(
+                    "{id} has its own transport: motorisation points carry foot units and 0+ guns"
+                ),
+            ));
+        }
+        if riding(p).is_some() {
+            return Err(Illegal::new(
+                CASE,
+                format!("{id} already has its motorisation points"),
+            ));
+        }
+        let marked = |q: &Piece| {
+            q.cpa
+                .as_ref()
+                .is_some_and(|c| c.mark == Some(Mark::Motorisable))
+        };
+        if !marked(p)
+            && let Some(first) = self.pieces.values().find(|q| {
+                q.side == player
+                    && q.hex().is_some()
+                    && marked(q)
+                    && carriable(q).is_some()
+                    && riding(q).is_none()
+            })
+        {
+            return Err(Illegal::new(
+                CASE,
+                format!(
+                    "{} and every other historically motorised (+) unit must be motorised first",
+                    first.id
+                ),
+            ));
+        }
+        // A unit reinforced past its points tops up (R-123).
+        let need = p.toe - p.motorised;
+        let have = self
+            .motorisation
+            .get(&player)
+            .and_then(|m| m.get(&hex))
+            .copied()
+            .unwrap_or(0);
+        if have < need {
+            return Err(Illegal::new(
+                CASE,
+                format!("{id} needs {need} motorisation points and {hex} has {have}"),
+            ));
+        }
+        let pool = self.motorisation.entry(player).or_default();
+        if have == need {
+            pool.remove(&hex);
+        } else {
+            pool.insert(hex, have - need);
+        }
+        self.pieces.get_mut(id).expect("checked").motorised += need;
+        Ok(vec![Event::MotorisationAttached {
+            piece: id.clone(),
+            points: need,
+        }])
+    }
+
+    /// A combat unit's hex, when `player` may take its motorisation
+    /// points off now: phase C, the module on, its own, on the map.
+    fn unit_to_organise(&self, player: Side, id: &PieceId) -> Result<String, Illegal> {
+        if self.clock.phase != Phase::Organisation || !self.modules.abstract_supply {
+            return Err(Illegal::new(
+                "32.54",
+                format!("units are motorised in phase C, not at {}", self.clock),
+            ));
+        }
+        let p = &self.pieces[id];
+        p.hex()
+            .filter(|_| p.side == player)
+            .map(|h| h.to_string())
+            .ok_or_else(|| {
+                Illegal::new(
+                    "32.54",
+                    format!("{id} is not one of {player}'s units on the map"),
+                )
+            })
+    }
+
     /// The supply unit `player` may organise now, and its hex: phase C,
     /// the module on, its own, on the map.
     fn organisable(
@@ -54,10 +182,13 @@ impl GameState {
             return false;
         };
         self.modules.abstract_supply
-            && self
-                .pieces
-                .values()
-                .any(|p| p.side == side && p.motorised > 0 && !p.escorted && p.hex().is_some())
+            && self.pieces.values().any(|p| {
+                p.side == side
+                    && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && p.motorised > 0
+                    && !p.escorted
+                    && p.hex().is_some()
+            })
     }
 
     /// `Order::DestroySupply` (32.1x): before any movement in the
@@ -160,6 +291,13 @@ impl GameState {
         player: Side,
         id: &PieceId,
     ) -> Result<Vec<Event>, Illegal> {
+        if self
+            .pieces
+            .get(id)
+            .is_some_and(|p| p.kind == PieceKind::Combat)
+        {
+            return self.motorise_unit(player, id);
+        }
         let hex = self.organisable(player, id, "32.31")?;
         let p = &self.pieces[id];
         if p.motorised > 0 {
@@ -204,7 +342,15 @@ impl GameState {
         player: Side,
         id: &PieceId,
     ) -> Result<Vec<Event>, Illegal> {
-        let hex = self.organisable(player, id, "32.31")?;
+        let hex = if self
+            .pieces
+            .get(id)
+            .is_some_and(|p| p.kind == PieceKind::Combat)
+        {
+            self.unit_to_organise(player, id)?
+        } else {
+            self.organisable(player, id, "32.31")?
+        };
         let points = self.pieces[id].motorised;
         if points == 0 {
             return Err(Illegal::new(
@@ -803,5 +949,169 @@ mod tests {
         } else {
             assert_eq!(result.unwrap_err().case, "32.1x");
         }
+    }
+
+    fn uid(s: &str) -> PieceId {
+        PieceId::from(cna_data::oa::UnitId::parse(s).unwrap())
+    }
+
+    /// `points` motorisation points in `id`'s hex for its side.
+    fn pool_at(state: &mut GameState, id: &PieceId, points: u32) {
+        let (side, hex) = {
+            let p = &state.pieces[id];
+            (p.side, p.hex().unwrap().to_string())
+        };
+        state
+            .motorisation
+            .entry(side)
+            .or_default()
+            .insert(hex, points);
+    }
+
+    #[test]
+    fn foot_infantry_takes_a_point_per_toe_point_and_moves_at_20_r_123() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        // The I Libyan Motorised Battalion, CPA 10+, 5 TOE points.
+        let bn = uid("unit:it:i-libyan-mtr-bn");
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(10));
+        pool_at(&mut state, &bn, 4);
+        let attach = Order::AttachMotorisation { piece: bn.clone() };
+        let err = state.apply(&data, Side::Axis, attach.clone()).unwrap_err();
+        assert_eq!(err.case, "32.54");
+        assert!(err.reason.contains("needs 5"), "{}", err.reason);
+        pool_at(&mut state, &bn, 7);
+        let events = state.apply(&data, Side::Axis, attach).unwrap();
+        assert_eq!(
+            events,
+            vec![Event::MotorisationAttached {
+                piece: bn.clone(),
+                points: 5
+            }]
+        );
+        assert_eq!(state.pieces[&bn].motorised, 5);
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(20));
+        assert_eq!(pool(&state, &bn), 2);
+        // Losses leave the points riding along: still motorised.
+        state.pieces.get_mut(&bn).unwrap().toe = 3;
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(20));
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DetachMotorisation { piece: bn.clone() },
+            )
+            .unwrap();
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(10));
+        assert_eq!(pool(&state, &bn), 7);
+    }
+
+    #[test]
+    fn the_historically_motorised_go_first_and_vehicles_never_32_54() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        // A plain CPA 10 battalion while +-marked ones still walk.
+        let plain = uid("unit:it:1-saharan-libyan-bn");
+        pool_at(&mut state, &plain, 30);
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AttachMotorisation {
+                    piece: plain.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.54");
+        assert!(err.reason.contains("first"), "{}", err.reason);
+        // Once every + unit on the map rides, it may.
+        let marked: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.hex().is_some())
+            .filter(|p| {
+                p.cpa
+                    .as_ref()
+                    .is_some_and(|c| c.mark == Some(cna_data::characteristics::Mark::Motorisable))
+            })
+            .map(|p| p.id.clone())
+            .collect();
+        assert!(!marked.is_empty());
+        for id in &marked {
+            let toe = state.pieces[id].toe;
+            state.pieces.get_mut(id).unwrap().motorised = toe;
+        }
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AttachMotorisation {
+                    piece: plain.clone(),
+                },
+            )
+            .unwrap();
+        // A tank battalion has its own transport.
+        let tanks = uid("unit:it:iim-tank-bn");
+        pool_at(&mut state, &tanks, 30);
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AttachMotorisation { piece: tanks },
+            )
+            .unwrap_err();
+        assert!(err.reason.contains("own transport"), "{}", err.reason);
+    }
+
+    #[test]
+    fn a_motorised_battalion_does_not_hold_up_phase_h_and_tops_up_after_reinforcement() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        for p in state.pieces.values_mut() {
+            p.motorised = 0;
+        }
+        let bn = uid("unit:it:i-libyan-mtr-bn");
+        state.pieces.get_mut(&bn).unwrap().motorised = 5;
+        state.clock.phase = Phase::TruckConvoy;
+        state.clock.half = Some(crate::clock::Half::A);
+        assert!(!state.trucks_to_move(), "phase H moves supply units only");
+        // Reinforced to 7 TOE points it walks until it takes 2 more.
+        state.clock.phase = Phase::Organisation;
+        state.clock.half = None;
+        state.pieces.get_mut(&bn).unwrap().toe = 7;
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(10));
+        pool_at(&mut state, &bn, 2);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AttachMotorisation { piece: bn.clone() },
+            )
+            .unwrap();
+        assert_eq!(
+            events,
+            vec![Event::MotorisationAttached {
+                piece: bn.clone(),
+                points: 2
+            }]
+        );
+        assert_eq!(state.pieces[&bn].motorised, 7);
+        assert_eq!(state.cpa(&state.pieces[&bn]), Some(20));
+    }
+
+    #[test]
+    fn motorised_infantry_pays_a_fuel_a_stage_32_22() {
+        let data = graziani();
+        let mut state = declared(&data, Modules::ALL);
+        let bn = uid("unit:it:i-libyan-mtr-bn");
+        assert_eq!(
+            state.fuel_owed(&data, std::slice::from_ref(&bn), cna_data::cp::Cp::whole(1)),
+            0
+        );
+        state.pieces.get_mut(&bn).unwrap().motorised = 5;
+        assert_eq!(
+            state.fuel_owed(&data, std::slice::from_ref(&bn), cna_data::cp::Cp::whole(1)),
+            1
+        );
     }
 }

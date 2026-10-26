@@ -6,7 +6,7 @@
   // included, so the controls stand down.
   import { sideName } from "./clock";
   import { label } from "./counters";
-  import type { HexId, PieceId, Side, View } from "./types";
+  import type { HexId, Location, PieceId, Side, View } from "./types";
 
   let {
     view,
@@ -34,6 +34,7 @@
         | { "detach-motorisation": { piece: PieceId } }
         | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
         | { "destroy-supply": { hex: HexId } }
+        | { "air-lift": { piece: PieceId; to: Location } }
         | { repair: { hex: HexId; weapon: string } },
     ) => void;
   } = $props();
@@ -48,6 +49,11 @@
   const organise = $derived(c.phase === "organisation");
   const supply = $derived(ticked.find((id) => view.pieces[id]?.kind === "supply-unit" || view.pieces[id]?.kind === "dummy-supply-unit") ?? null);
   const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
+  // With no supply unit ticked, the first ticked combat unit: a foot unit takes a point per TOE point (32.54, R-123); the engine refuses the rest.
+  const unit = $derived(supply === null ? (ticked.find((id) => view.pieces[id]?.kind === "combat") ?? null) : null);
+  // Points short of its TOE (none, or a unit reinforced since) leave it walking: it may top up, and any it has it may give back.
+  const unitPoints = $derived(unit ? (view.pieces[unit].motorised ?? 0) : 0);
+  const riding = $derived(unit ? unitPoints >= view.pieces[unit].toe : false);
   // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
   const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
   // The movement segment: the selected hex holds the side to act's supply units, which it may destroy before moving anything (32.1x).
@@ -80,14 +86,26 @@
       <button type="button" data-order="release-reserve" onclick={() => onorder({ "release-reserve": { pieces: ticked } })}>Release reserve ({n} ticked)</button>
     {/if}
     {#if organise}
-      {#if supply === null}
-        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31).</span>
+      {#if supply === null && unit !== null}
+        {#if !riding}
+          <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: unit } })}>Motorise {label(view.pieces[unit]).short}</button>
+        {/if}
+        {#if unitPoints > 0}
+          <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: unit } })}>Dismount {label(view.pieces[unit]).short}</button>
+        {/if}
+      {:else if supply === null}
+        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31), or a foot unit to motorise it (32.54).</span>
       {:else if motorised}
         <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: supply } })}>Detach motorisation</button>
       {:else}
         <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
         {#if flying === supply}
           <span class="hint" data-testid="fly-hint">Click the hex to fly {label(view.pieces[supply]).short} to (32.37).</span>
+          {#if view.to_act === "axis"}
+            {#each ["tripoli", "tunisia"] as const as box (box)}
+              <button type="button" data-order="air-lift-box" data-box={box} onclick={() => { onfly?.(null); onorder({ "air-lift": { piece: supply, to: { box } } }); }}>Fly to the {box} box</button>
+            {/each}
+          {/if}
           <button type="button" data-order="air-lift-cancel" onclick={() => onfly?.(null)}>Cancel flight</button>
         {:else}
           <button type="button" data-order="air-lift" onclick={() => onfly?.(supply)}>Fly…</button>

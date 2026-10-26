@@ -187,6 +187,10 @@ pub struct Unit {
     /// An HQ's level (R-124): none for a unit that is not an HQ.
     #[serde(default)]
     pub echelon: Option<Echelon>,
+    /// A recce unit's vehicles for breakdown (R-125): none off the
+    /// Recce and Reconnaissance rows.
+    #[serde(default)]
+    pub vehicle: Option<ReconVehicle>,
     #[serde(default)]
     pub toe: Vec<ToeEntry>,
     pub arrives: Option<Arrival>,
@@ -208,6 +212,31 @@ pub enum Echelon {
     Division,
     Brigade,
     BattleGroup,
+}
+
+/// What a reconnaissance unit's TOE points break down as (R-125, 21.1x):
+/// keyed into `breakdown-adjustments.json`; camels and motorcycles are
+/// exempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReconVehicle {
+    ArmouredCar,
+    ArmouredRecce,
+    Truck,
+    #[serde(rename = "none")]
+    Exempt,
+}
+
+impl ReconVehicle {
+    /// The adjustment row's and the wreck's name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ReconVehicle::ArmouredCar => "armoured-car",
+            ReconVehicle::ArmouredRecce => "armoured-recce",
+            ReconVehicle::Truck => "truck",
+            ReconVehicle::Exempt => "none",
+        }
+    }
 }
 
 /// A unit printed on one sheet but attached to an HQ of another.

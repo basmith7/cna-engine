@@ -51,7 +51,7 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 ### Task 3: Axis convoys and bombing
 
 - [x] One lane (the Tripoli box), its cap of three; the overflow sails a turn later.
-- Moved out: the bombing chart and the bombardment table. 32.6x lets the Axis split a convoy among lanes, and the bombing column depends on the lane; cna has no lane table yet (56.1's origins and destinations: request on `main`), and "full division" needs §19's attachment, which slice 6 builds. Bombing lands with slice 6 or after it.
+- Moved out: the bombing chart and the bombardment table. 32.6x lets the Axis split a convoy among lanes, and the bombing column depends on the lane; cna has no lane table yet (56.1's origins and destinations: request on `main`), and "full division" needs §19's attachment, which slice 6 builds. Bombing lands with slice 6 or after it. The chart readers (`cna-data::convoy`) and the loss rule (`cna-rules::supply::convoy_losses`) are in ahead of it; the wiring waits on the lanes.
 
 ### Task 4: motorisation losses
 

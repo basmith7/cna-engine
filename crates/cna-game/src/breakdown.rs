@@ -23,6 +23,22 @@ pub struct Wreck {
     pub points: u32,
 }
 
+/// A breakdown check's points: some of a piece's listed models, or a
+/// recce unit's unlisted TOE points under its vehicle class (R-125).
+enum Group {
+    Models(Vec<String>),
+    Unlisted(&'static str),
+}
+
+/// A recce vehicle class's column shift (21.14); none for camels and
+/// motorcycles, which never break down (21.11).
+pub(crate) fn recce_shift(data: &Data, vehicle: cna_data::oa::ReconVehicle) -> Option<i32> {
+    if vehicle == cna_data::oa::ReconVehicle::Exempt {
+        return None;
+    }
+    data.breakdown.adjustment(vehicle.as_str()).map(|a| a.shift)
+}
+
 impl GameState {
     /// The step from `from` to `to` adds its breakdown points to each
     /// motorised piece in `pieces` (21.2x). Supply units' motorisation
@@ -171,9 +187,9 @@ impl GameState {
     /// each over 3 points in a higher column than its last check rolls
     /// once per vehicle weapon system, the column shifted by the model's
     /// BAR and the weather (21.3x): hot, or `storm` (at least half the
-    /// move's CP spent under a sandstorm); the points lost are removed. Tanks,
-    /// SP guns and self-propelled anti-tank guns only: armoured cars,
-    /// recce and trucks are not yet told apart in a unit's TOE.
+    /// move's CP spent under a sandstorm); the points lost are removed.
+    /// Tanks, SP guns and self-propelled anti-tank guns by their models'
+    /// BARs; recce units' points by their vehicle class (R-125).
     pub(crate) fn check_breakdown(
         &mut self,
         data: &Data,
@@ -201,31 +217,50 @@ impl GameState {
             let now = t.band_index(points.ceil() as u32).expect("checked") as u8;
             // One check per BAR (21.2x: per type, and per BAR within it;
             // tanks and SP guns are one type), the losses spread over its
-            // models, the most numerous first (21.34).
-            let mut groups: std::collections::BTreeMap<i32, Vec<String>> = Default::default();
+            // models, the most numerous first (21.34); then a recce unit's
+            // unlisted TOE points by its vehicle class (R-125).
+            let mut bars: std::collections::BTreeMap<i32, Vec<String>> = Default::default();
             for w in p.weapons.iter().filter(|w| w.points > 0) {
                 if let Some(bar) = p
                     .nation
                     .and_then(|n| data.weapons.resolve(n, &w.weapon))
                     .and_then(|r| r.bar)
                 {
-                    groups.entry(bar).or_default().push(w.weapon.clone());
+                    bars.entry(bar).or_default().push(w.weapon.clone());
                 }
+            }
+            let mut groups: Vec<(i32, Group)> = bars
+                .into_iter()
+                .map(|(bar, models)| (bar, Group::Models(models)))
+                .collect();
+            if let Some(vehicle) =
+                p.id.unit()
+                    .and_then(|u| data.oa.unit(&u))
+                    .and_then(|u| u.vehicle)
+                && let Some(shift) = recce_shift(data, vehicle)
+            {
+                groups.push((shift, Group::Unlisted(vehicle.as_str())));
             }
             let side = p.side;
             self.pieces.get_mut(id).expect("listed").breakdown_checked = Some(now);
             let near = self.began_near_the_enemy(data, start, side);
             let mut lost = 0;
-            for (bar, models) in groups {
+            for (bar, group) in groups {
                 let Some(col) = column(t, points, bar + weather_shift(hot, storm)) else {
                     continue;
                 };
-                let count: u32 = self.pieces[id]
-                    .weapons
-                    .iter()
-                    .filter(|w| models.contains(&w.weapon))
-                    .map(|w| w.points)
-                    .sum();
+                let p = &self.pieces[id];
+                let count: u32 = match &group {
+                    Group::Models(models) => p
+                        .weapons
+                        .iter()
+                        .filter(|w| models.contains(&w.weapon))
+                        .map(|w| w.points)
+                        .sum(),
+                    Group::Unlisted(_) => {
+                        p.toe - p.weapons.iter().map(|w| w.points).sum::<u32>().min(p.toe)
+                    }
+                };
                 let reading = self.rng.d6() * 10 + self.rng.d6();
                 let pct = percent(t, col, reading);
                 let n = losses(count, pct);
@@ -234,24 +269,38 @@ impl GameState {
                 let behind = if near { n.div_ceil(2) } else { 0 };
                 events.push(Event::BrokeDown {
                     piece: id.clone(),
-                    weapon: models.join(", "),
+                    weapon: match &group {
+                        Group::Models(models) => models.join(", "),
+                        Group::Unlisted(class) => (*class).to_string(),
+                    },
                     reading,
                     percent: pct,
                     points: n,
                 });
                 for i in 0..n {
-                    let Some(weapon) = self.pieces[id]
-                        .weapons
-                        .iter()
-                        .filter(|w| models.contains(&w.weapon) && w.points > 0)
-                        .max_by_key(|w| w.points)
-                        .map(|w| w.weapon.clone())
-                    else {
-                        break;
+                    let weapon = match &group {
+                        Group::Models(models) => {
+                            let Some(weapon) = self.pieces[id]
+                                .weapons
+                                .iter()
+                                .filter(|w| models.contains(&w.weapon) && w.points > 0)
+                                .max_by_key(|w| w.points)
+                                .map(|w| w.weapon.clone())
+                            else {
+                                break;
+                            };
+                            if !self.take_loss_entry(id, Some(&weapon)) {
+                                break;
+                            }
+                            weapon
+                        }
+                        Group::Unlisted(class) => {
+                            if !self.take_loss_entry(id, None) {
+                                break;
+                            }
+                            (*class).to_string()
+                        }
                     };
-                    if !self.take_loss_entry(id, Some(&weapon)) {
-                        break;
-                    }
                     lost += 1;
                     // They stay where the unit stopped, or where it began
                     // (21.41).
@@ -362,6 +411,67 @@ mod tests {
         };
         assert_eq!(at(&start), lost.div_ceil(2));
         assert_eq!(at(&stop), lost - lost.div_ceil(2));
+    }
+
+    /// `unit` with `halves` breakdown points checks where it stands.
+    fn checked(unit: &str, halves: u32) -> (GameState, Vec<crate::event::Event>) {
+        use crate::piece::PieceId;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = movement(&data, Modules::ALL);
+        let id = PieceId::from(cna_data::oa::UnitId::parse(unit).unwrap());
+        state.pieces.get_mut(&id).unwrap().breakdown_halves = halves;
+        let at = state.pieces[&id].hex().unwrap().clone();
+        let mut events = Vec::new();
+        state.check_breakdown(&data, std::slice::from_ref(&id), false, &at, &mut events);
+        (state, events)
+    }
+
+    #[test]
+    fn armoured_cars_and_recce_check_by_their_vehicle_class_r_125() {
+        use crate::event::Event;
+        // 11th Hussars (armoured cars) and 6th Australian Cavalry
+        // (armoured recce), 6 and 8 unlisted TOE points: 100 breakdown
+        // points is the chart's last column, where every reading loses.
+        for (unit, class, toe) in [
+            ("unit:cw:11-hus", "armoured-car", 6),
+            ("unit:cw:6-auscav", "armoured-recce", 8),
+        ] {
+            let (state, events) = checked(unit, 200);
+            let lost: u32 = events
+                .iter()
+                .filter_map(|e| match e {
+                    Event::BrokeDown { weapon, points, .. } if weapon == class => Some(*points),
+                    _ => None,
+                })
+                .sum();
+            assert!(lost > 0, "{unit}: {events:?}");
+            let id = crate::piece::PieceId::from(cna_data::oa::UnitId::parse(unit).unwrap());
+            let p = &state.pieces[&id];
+            assert_eq!(p.toe + lost, toe, "{unit}");
+            let wrecked: u32 = state.broken_down[p.hex().unwrap()]
+                .iter()
+                .filter(|w| w.weapon == class)
+                .map(|w| w.points)
+                .sum();
+            assert_eq!(wrecked, lost, "{unit}");
+        }
+    }
+
+    #[test]
+    fn camels_and_motorcycles_never_break_down_r_125() {
+        let (_, events) = checked("unit:it:1-sahariano-camel-bn", 200);
+        assert!(events.is_empty(), "{events:?}");
+    }
+
+    #[test]
+    fn a_class_shifts_by_its_adjustment_21_14() {
+        use cna_data::oa::ReconVehicle;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let shift = |v| super::recce_shift(&data, v);
+        assert_eq!(shift(ReconVehicle::Truck), Some(-2));
+        assert_eq!(shift(ReconVehicle::ArmouredCar), Some(-1));
+        assert_eq!(shift(ReconVehicle::ArmouredRecce), Some(0));
+        assert_eq!(shift(ReconVehicle::Exempt), None);
     }
 
     #[test]
