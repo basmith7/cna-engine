@@ -196,7 +196,8 @@ export type BuildItem = "fortification";
 /** A project under way in a hex (24.1x): its builders and the stages counted so far. */
 export interface Project {
   side: Side;
-  item: BuildItem;
+  /** The owner's secret (3.61): absent from the other side's view. */
+  item?: BuildItem;
   builders: PieceId[];
   stages?: number;
 }

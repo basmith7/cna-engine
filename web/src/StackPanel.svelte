@@ -54,7 +54,7 @@
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
     {/each}
     {#if project}
-      <p class="prisoners side-{project.side}" data-testid="project">{sideName(project.side)} {project.item} under way: {project.stages ?? 0} of 3 stages</p>
+      <p class="prisoners side-{project.side}" data-testid="project">{sideName(project.side)} {project.item ?? "construction"} under way{#if project.item}: {project.stages ?? 0} of 3 stages{/if}</p>
     {/if}
     {#if onorder && view.clock?.phase === "organisation" && !project && builders.length >= 2}
       <p class="guarding">

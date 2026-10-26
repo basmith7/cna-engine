@@ -107,8 +107,9 @@ impl Game {
                 }
             }
         }
-        // 3.61: loads, motorisation points (pooled or attached) and
-        // repaired points waiting as replacements are the owner's secret.
+        // 3.61: loads, motorisation points (pooled or attached),
+        // repaired points waiting as replacements and what a project
+        // builds are the owner's secret.
         if let Some(acting) = self.state.to_act() {
             let other = serde_json::to_value(acting.other())?
                 .as_str()
@@ -117,6 +118,14 @@ impl Game {
             for key in ["motorisation", "repaired"] {
                 if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
                     m.remove(&other);
+                }
+            }
+            // What the other side builds (3.61); its projects still show.
+            if let Some(m) = v.get_mut("projects").and_then(Value::as_object_mut) {
+                for project in m.values_mut().filter_map(Value::as_object_mut) {
+                    if project.get("side").and_then(Value::as_str) == Some(other.as_str()) {
+                        project.remove("item");
+                    }
                 }
             }
             if let Some(m) = v
@@ -325,6 +334,29 @@ mod tests {
     // view; the acting side's own are, and the save keeps both.
     // The replacement points waiting from repair (22.5) are a side's own
     // business too, like its motorisation.
+    // 3.61: what a project builds is its owner's secret; that one is
+    // under way, and by whom, is not.
+    #[test]
+    fn the_view_hides_what_the_other_side_is_building() {
+        let mut game = Game::with_modules(7, Modules::ALL).unwrap();
+        for (side, hex) in [(Side::Axis, "C4021"), (Side::Cw, "C3923")] {
+            game.state.projects.insert(
+                cna_data::map::HexId::parse(hex).unwrap(),
+                cna_game::construction::Project {
+                    side,
+                    item: cna_game::construction::Item::Fortification,
+                    builders: vec![],
+                    stages: 1,
+                },
+            );
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["projects"]["C4021"]["item"], "fortification");
+        assert!(view["projects"]["C3923"].get("item").is_none());
+        assert_eq!(view["projects"]["C3923"]["side"], "cw");
+    }
+
     #[test]
     fn the_view_hides_the_other_side_s_repaired_points() {
         use std::collections::BTreeMap;
