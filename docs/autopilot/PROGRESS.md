@@ -69,8 +69,8 @@ report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
 
 PR #12's review follow-ups are all closed: 15.84/14.14 gun losses (#54),
 18.2x's released units (#53 and earlier), 10.36's must-attack Pass (#27),
-the rule tests (15.36, 6.26, 13.1, 12.44 and 12.1x already had them; #71
-adds 15.1x and 13.28).
+the rule tests (15.36, 6.26, 13.1, 12.44 and 12.1x already had them;
+#71, merged, adds 15.1x and 13.28).
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
@@ -91,8 +91,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   `could_exert`. The fix is a hex → pieces index built once per
   search); at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #71 (assignment tests) and #72
-  (reach index; check the browser's shading time) on green CI.
+- Merge #72 (reach index, 3x faster under wasm; local Playwright
+  46/46) on green CI, then time the browser's shading. #71 (assignment
+  tests) is merged. Mission 5 then continues with whichever request
+  cna answers first.
   Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
