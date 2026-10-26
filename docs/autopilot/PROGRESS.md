@@ -37,8 +37,11 @@ Alexandria, Axis convoys to Tripoli (three a lane), monthly motorisation
 losses. Convoy bombing moved out: it needs cna's lane table (request
 below) and §19's full divisions. Three follow-ups cna's answers unblocked
 are open: **the air lift** (32.37, R-124) is PR #38, ready; **recce
-breakdown** (R-125) and **motorised foot units** (R-123) are draft PR #39,
-stacked on #38.
+breakdown** (R-125) and **motorised foot units** (R-123) are PR #39,
+stacked on #38. **R-120's defence side** (defenders out of ammunition sit
+out; an all-out hex surrenders) is draft PR #40: its rule tests pass, but
+the module-on golden game must be re-scripted around the GT1 assault on
+Halfaya Pass, which now ends in surrender.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -90,7 +93,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #38 then #39 when CI is green; then Helwan as an alternative to Cairo and R-120's defence side; then slice 6 (§19 attachment as explicit state, which also gives convoy bombing its full divisions).
+- Mission 5 continues unattended: merge #38 then #39 when CI is green; re-script the module-on golden game for #40; then slice 6 (§19 attachment as explicit state, which also gives convoy bombing its full divisions). Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
