@@ -121,7 +121,7 @@ impl GameState {
             }
         }
         let from = self.moving_stack(player, pieces, false)?;
-        let plan = self.plan(data, pieces, &from, path)?;
+        let plan = self.plan_with(data, pieces, &from, path, crate::reach::Purpose::React)?;
         if let Some((before, _)) = &plan.interrupt {
             return Err(Illegal::new(
                 "8.5x",

@@ -8,6 +8,7 @@ use crate::clock::{Phase, Segment};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
+use crate::reach::Purpose;
 use crate::state::{GameState, Pending, Weather};
 use crate::zoc::Zoc;
 use cna_data::cp::Cp;
@@ -39,6 +40,9 @@ pub(crate) struct Mover {
     /// A combat unit is in it, so it may enter an enemy ZOC (10.29).
     pub(crate) combat: bool,
     pub(crate) break_off: bool,
+    /// Rommel alone, retreating: enemy ZOC neither stops nor holds him
+    /// and he pays no break-off (31.0).
+    pub(crate) free_of_zoc: bool,
     mobilities: Vec<Mobility>,
     pub(crate) pieces: Vec<PieceId>,
 }
@@ -357,23 +361,25 @@ impl GameState {
         from: &HexId,
         path: &[HexId],
     ) -> Result<Plan, Illegal> {
-        self.plan_with(data, pieces, from, path, false)
+        self.plan_with(data, pieces, from, path, Purpose::Move)
     }
 
-    /// `plan`, where `forced` lets a stack leave an enemy ZOC it entered
-    /// this segment: a forced retreat (15.82) is no voluntary move.
+    /// `plan` for a `purpose`: a forced retreat may leave an enemy ZOC it
+    /// entered this segment, being no voluntary move (15.82), and Rommel
+    /// retreating alone ignores enemy ZOC (31.0).
     pub(crate) fn plan_with(
         &self,
         data: &Data,
         pieces: &[PieceId],
         from: &HexId,
         path: &[HexId],
-        forced: bool,
+        purpose: Purpose,
     ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
-        let mover = self.mover(data, pieces);
+        let forced = purpose == Purpose::ForcedRetreat;
+        let mover = self.mover(data, pieces, purpose);
         let mut plan = Plan {
             break_off: mover.break_off,
             ..Plan::default()
@@ -417,8 +423,15 @@ impl GameState {
         Ok(plan)
     }
 
-    /// The fixed facts about a stack a plan prices.
-    pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId]) -> Mover {
+    /// The fixed facts about a stack a plan for `purpose` prices.
+    pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId], purpose: Purpose) -> Mover {
+        let free_of_zoc = matches!(
+            purpose,
+            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat
+        ) && !self.rommel_recalled
+            && pieces
+                .iter()
+                .all(|id| self.pieces[id].kind == PieceKind::Commander);
         Mover {
             side: self.pieces[&pieces[0]].side,
             combat: pieces
@@ -428,9 +441,11 @@ impl GameState {
             // (8.6x). Contact only exists in an enemy ZOC; an engaged
             // unit need not be in one, so this is the pieces' state, not
             // the hex's.
-            break_off: pieces
-                .iter()
-                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            break_off: !free_of_zoc
+                && pieces
+                    .iter()
+                    .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            free_of_zoc,
             mobilities: pieces
                 .iter()
                 .map(|id| self.mobility(data, &self.pieces[id]))
@@ -451,6 +466,9 @@ impl GameState {
         from: &HexId,
         forced: bool,
     ) -> Result<Start, Illegal> {
+        if mover.free_of_zoc {
+            return Ok(Start::In(false));
+        }
         Ok(match self.zoc_at(data, from, mover.side) {
             Zoc::Exerts => {
                 let cancelled = self.friendly_combat_in(from, mover.side, &mover.pieces);
@@ -509,7 +527,7 @@ impl GameState {
                 }
             }
         }
-        let zoc = if self.friendly_combat_in(to, mover.side, &mover.pieces) {
+        let zoc = if mover.free_of_zoc || self.friendly_combat_in(to, mover.side, &mover.pieces) {
             Zoc::Clear
         } else {
             self.zoc_at(data, to, mover.side)

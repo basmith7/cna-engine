@@ -2063,7 +2063,13 @@ mod tests {
                 .is_some_and(|h| h.terrain != cna_data::map::Terrain::Sea)
                 && !state.pieces.values().any(|p| p.hex() == Some(to))
                 && state
-                    .plan_with(data, stack, from, std::slice::from_ref(to), true)
+                    .plan_with(
+                        data,
+                        stack,
+                        from,
+                        std::slice::from_ref(to),
+                        crate::reach::Purpose::ForcedRetreat,
+                    )
                     .is_ok_and(|p| p.interrupt.is_none())
         };
         let mut frontier: Vec<Vec<HexId>> = vec![vec![hex("C4021")]];

@@ -35,7 +35,7 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         let pieces = &self.carried(pieces)?;
         let from = self.retreating_stack(player, pieces)?;
-        let plan = self.plan(data, pieces, &from, path)?;
+        let plan = self.plan_with(data, pieces, &from, path, Purpose::RetreatBeforeAssault)?;
         if let Some((before, _)) = &plan.interrupt {
             return Err(Illegal::new(
                 "13.2x",
@@ -228,7 +228,7 @@ impl GameState {
         let phasing = self.phasing() == Some(side);
         let (end, plan) = match path {
             Some(path) => {
-                let plan = self.plan_with(data, &pieces, &start, path, true)?;
+                let plan = self.plan_with(data, &pieces, &start, path, Purpose::ForcedRetreat)?;
                 if let Some((before, _)) = &plan.interrupt {
                     return Err(match reason {
                         RetreatReason::MustAttack => Illegal::new(

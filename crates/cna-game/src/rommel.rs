@@ -383,4 +383,84 @@ mod tests {
         let offered = state.reactors_next_to(&data, &next, &[enemy], false);
         assert!(!offered.contains(&rommel()), "{offered:?}");
     }
+
+    // 31.0: Rommel retreating alone goes through enemy ZOC freely, where
+    // a move would stop him at the first hex (10.29).
+    #[test]
+    fn rommel_retreats_alone_through_enemy_zoc() {
+        use crate::reach::Purpose;
+        let (data, mut state) = crusader();
+        let clear = |h: &HexId| {
+            data.map
+                .hex(h)
+                .is_some_and(|x| x.terrain.name() == "clear" || x.terrain.name() == "gravel")
+        };
+        let empty = |s: &GameState, h: &HexId| {
+            data.map
+                .within(h, 3)
+                .iter()
+                .all(|n| s.pieces.values().all(|p| p.hex() != Some(n)))
+        };
+        // E holds an enemy unit; A is two hexes from it; B and C are next
+        // to both E and each other, B next to A: A → B → C runs through
+        // E's ZOC.
+        let (e, a, b, c) = data
+            .map
+            .hexes()
+            .map(|h| h.id.clone())
+            .filter(|e| clear(e) && empty(&state, e))
+            .find_map(|e| {
+                let ring = data.map.neighbours(&e);
+                if ring.len() < 6 || !ring.iter().all(&clear) {
+                    return None;
+                }
+                let b = ring[0].clone();
+                let c = ring.iter().find(|c| data.map.adjacent(c, &b))?.clone();
+                let a = data.map.neighbours(&b).into_iter().find(|a| {
+                    clear(a) && !ring.contains(a) && a != &e && !data.map.adjacent(a, &c)
+                })?;
+                Some((e, a, b, c))
+            })
+            .expect("open desert");
+        state.zoc.insert(e.clone(), true);
+        // A Commonwealth stack that exerts a ZOC moves to E whole.
+        let src = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw)
+            .filter_map(|p| p.hex().cloned())
+            .find(|h| state.could_exert(&data, h))
+            .expect("a Commonwealth stack exerting a ZOC");
+        for p in state.pieces.values_mut() {
+            if p.hex() == Some(&src) {
+                p.location = Location::Hex(e.clone());
+            }
+        }
+        for h in [&b, &c] {
+            assert_eq!(
+                state.zoc_at(&data, h, Side::Axis),
+                crate::zoc::Zoc::Exerts,
+                "{h}"
+            );
+        }
+
+        state.pieces.get_mut(&rommel()).unwrap().location = Location::Hex(a.clone());
+        let me = [rommel()];
+        let path = [b.clone(), c.clone()];
+        let refused = state
+            .plan_with(&data, &me, &a, &path, Purpose::Move)
+            .unwrap_err();
+        assert_eq!(refused.case, "10.29");
+        for purpose in [Purpose::RetreatBeforeAssault, Purpose::ForcedRetreat] {
+            let plan = state.plan_with(&data, &me, &a, &path, purpose).unwrap();
+            assert_eq!(plan.steps.len(), 2, "{purpose:?}");
+            assert!(!plan.ends_in_zoc && !plan.break_off, "{purpose:?}");
+        }
+        state.rommel_recalled = true;
+        assert!(
+            state
+                .plan_with(&data, &me, &a, &path, Purpose::RetreatBeforeAssault)
+                .is_err()
+        );
+    }
 }
