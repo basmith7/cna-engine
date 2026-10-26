@@ -79,6 +79,9 @@ impl GameState {
             return (self.modules.abstract_supply && piece.motorised > 0 && !piece.flown)
                 .then_some(15);
         }
+        if let Some(cpa) = self.riding_cpa(piece) {
+            return Some(cpa);
+        }
         let own = piece.cpa.as_ref()?.value?;
         let mut cpa = own;
         if piece.kind == PieceKind::Hq
@@ -90,7 +93,10 @@ impl GameState {
                     if q.parent.as_ref() != Some(&head) {
                         continue;
                     }
-                    if let Some(v) = q.cpa.as_ref().and_then(|r| r.value)
+                    if let Some(v) = self
+                        .riding_cpa(q)
+                        .map(|c| c as i32)
+                        .or_else(|| q.cpa.as_ref().and_then(|r| r.value))
                         && v > 0
                     {
                         cpa = cpa.min(v);
@@ -102,6 +108,21 @@ impl GameState {
             }
         }
         (cpa > 0).then_some(u32::try_from(cpa).unwrap_or(0))
+    }
+
+    /// A foot unit on its motorisation points moves as medium trucks:
+    /// 20 carrying infantry, 15 a gun (R-123).
+    fn riding_cpa(&self, piece: &Piece) -> Option<u32> {
+        if !self.modules.abstract_supply {
+            return None;
+        }
+        crate::organisation::riding(piece).map(|c| {
+            if c == cna_rules::supply::Carrying::Gun {
+                15
+            } else {
+                20
+            }
+        })
     }
 
     /// How a piece moves on the chart: foot at CPA 10 or less (8.1x),
