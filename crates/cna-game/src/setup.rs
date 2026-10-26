@@ -19,7 +19,9 @@ use cna_data::characteristics::{Characteristics, Equivalent, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
-use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
+use cna_data::scenario::{
+    Locator, Placement, Scenario, Side, Subject, SupplyKind, TruckClass, UnitEntry,
+};
 use cna_data::time::GameTime;
 use cna_data::weapons::{WeaponClass, WeaponSystems};
 use std::collections::BTreeSet;
@@ -68,6 +70,15 @@ pub fn expand(
     modules: Modules,
 ) -> Result<Setup> {
     let scenario = scenario.land_only();
+    // 32.5, 59.63: which truck classes give motorisation points, as the
+    // scenario's abstraction types them; none named, none given.
+    let motorising: Vec<TruckClass> = scenario
+        .abstractions
+        .as_ref()
+        .and_then(|a| a.air_and_logistics.as_ref())
+        .and_then(|a| a.motorisation.as_ref())
+        .map(|m| m.from.clone())
+        .unwrap_or_default();
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
@@ -93,14 +104,22 @@ pub fn expand(
                     setup.pieces.push(piece);
                 }
             }
-            // 60.92: each medium truck point becomes a motorisation
-            // point; light and heavy give none.
-            let medium = d.trucks.map_or(0, |t| t.medium);
-            if modules.abstract_supply && medium > 0 {
+            // Each truck point of a motorising class is one point.
+            let points: u32 = d.trucks.map_or(0, |t| {
+                motorising
+                    .iter()
+                    .map(|c| match c {
+                        TruckClass::Light => t.light,
+                        TruckClass::Medium => t.medium,
+                        TruckClass::Heavy => t.heavy,
+                    })
+                    .sum()
+            });
+            if modules.abstract_supply && points > 0 {
                 setup.motorisation.push(Motorisation {
                     side,
                     location: location.clone(),
-                    points: medium,
+                    points,
                     anchor: ids.first().cloned(),
                 });
             }
@@ -116,6 +135,16 @@ pub fn expand(
             };
             let location = resolve(&b.placement, map)
                 .with_context(|| format!("{side} supply block {}", bi + 1))?;
+            // The figures are each supply unit's own unless the block is
+            // pooled (scenario schema, `supplyBlock.count` and `pooled`,
+            // cna f33ac72). A pool is the owner's to share out, which
+            // set-up has no order for yet.
+            if b.pooled && kind == PieceKind::SupplyUnit && modules.abstract_supply {
+                bail!(
+                    "{side} supply block {}: pooled supply-unit loads are not supported",
+                    bi + 1
+                );
+            }
             let mut ids = Vec::new();
             for _ in 0..b.count {
                 let id = if kind == PieceKind::SupplyUnit {
@@ -911,7 +940,7 @@ mod tests {
     }
 
     // 32.1x, 60.92: each real supply unit carries its block's figures
-    // (per unit: every block's figure is within 40/60); Derna's printed
+    // (per unit, as the scenario schema now says unless `pooled`); Derna's printed
     // dash is no ammunition; dummies carry nothing.
     #[test]
     fn supply_units_carry_their_block_loads() {
@@ -967,6 +996,58 @@ mod tests {
                 .pieces
                 .contains(&PieceId::from(uid("unit:cw:6-aus-hq")))
         );
+    }
+
+    // 32.5, 59.63: the truck classes that motorise come from the
+    // scenario's typed `motorisation.from` (cna 277cd31), not a fixed
+    // "medium". The Axis's first deployment has 10/25/10 trucks.
+    #[test]
+    fn motorisation_counts_the_classes_the_scenario_names() {
+        use cna_data::scenario::TruckClass;
+        let mut f = graziani();
+        let first = |s: &Setup| {
+            s.motorisation
+                .iter()
+                .find(|m| m.side == Side::Axis)
+                .map(|m| m.points)
+        };
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        assert_eq!(first(&on), Some(25));
+        f.scenario
+            .abstractions
+            .as_mut()
+            .unwrap()
+            .air_and_logistics
+            .as_mut()
+            .unwrap()
+            .motorisation
+            .as_mut()
+            .unwrap()
+            .from = vec![TruckClass::Medium, TruckClass::Heavy];
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        assert_eq!(first(&on), Some(35));
+    }
+
+    #[test]
+    fn a_pooled_supply_unit_block_is_refused_with_the_module_on() {
+        let mut f = graziani();
+        let abs = f.scenario.abstractions.as_mut().unwrap();
+        let axis = abs.air_and_logistics.as_mut().unwrap();
+        let blocks = axis
+            .replaces
+            .get_mut(&Side::Axis)
+            .unwrap()
+            .supply
+            .as_mut()
+            .unwrap();
+        let b = blocks
+            .iter_mut()
+            .find(|b| b.kind == Some(SupplyKind::SupplyUnit))
+            .unwrap();
+        b.pooled = true;
+        assert!(expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::default()).is_ok());
+        let err = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap_err();
+        assert!(format!("{err:#}").contains("pooled"), "{err:#}");
     }
 
     #[test]
