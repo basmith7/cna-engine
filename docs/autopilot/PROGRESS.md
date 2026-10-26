@@ -76,8 +76,8 @@ tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; the retreat-short 10 % taken
 after rounding rather than folded in (15.83); a must-attack `Pass`
 surrendering a stack that has a path (10.36); attacking forward guns and
 artillery in the anti-armour role (15.84, 14.14); a released unit's later
-combat segments (18.2x); a malformed save with an empty sealed `waiting`
-panics.
+combat segments (18.2x). (The empty sealed `waiting` panic is fixed:
+`log.rs` refuses such a save.)
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
