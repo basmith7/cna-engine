@@ -442,7 +442,7 @@
           {#if purpose}
             <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
           {/if}
-          <StackPanel {view} {hex} {ticked} {ontoggle} />
+          <StackPanel {view} {hex} {ticked} {ontoggle} onorder={(o) => send(o)} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />
         </div>
         <LogPanel entries={log} />

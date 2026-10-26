@@ -2,7 +2,7 @@
 // selected hex are ticked, how a CP figure reads, and the custom path
 // shift-clicks build. Pure functions; the engine prices every step.
 import { NOFILIA } from "./map";
-import type { HexId, OffMapPlace, Piece, PieceId, Reach, Side, View } from "./types";
+import type { HexId, OffMapPlace, Order, Piece, PieceId, Reach, Side, View } from "./types";
 
 /** The 8.89 chart's places, as `move-off-map` names them; the engine says which it can hold a unit at. */
 export const OFF_MAP_PLACES: { place: OffMapPlace; name: string }[] = [
@@ -87,4 +87,21 @@ export function byHex(reaches: Reach[]): Map<HexId, Reach> {
 export function extendPath(path: HexId[], hex: HexId): HexId[] {
   if (path.length > 0 && path[path.length - 1] === hex) return path.slice(0, -1);
   return [...path, hex];
+}
+
+/**
+ * The attachment order the stack panel offers for `p` (19.4x): detach it
+ * from the unit it is attached to, or attach it to the parent it is
+ * assigned to when they stand together. Only for the side to act, in
+ * phase C or a movement segment with nothing pending; the engine checks
+ * the rest (costs, the stop after a detachment).
+ */
+export function attachmentOrder(view: View, p: Piece): Extract<Order, { attach: unknown } | { detach: unknown }> | null {
+  const c = view.clock;
+  const when = c.phase === "organisation" || (c.phase === "movement-combat" && c.segment === "movement");
+  if (!when || view.pending || p.side !== view.to_act) return null;
+  if (p.attached_to) return { detach: { piece: p.id } };
+  const parent = p.parent ? view.pieces[p.parent] : undefined;
+  if (!parent || JSON.stringify(parent.location) !== JSON.stringify(p.location)) return null;
+  return { attach: { piece: p.id, to: parent.id } };
 }

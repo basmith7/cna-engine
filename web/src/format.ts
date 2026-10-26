@@ -116,6 +116,8 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("ammunition-short" in e) return `${name(e["ammunition-short"].piece)} has no ammunition in range and does not defend.`;
   if ("supply-unit-spent" in e) return `${name(e["supply-unit-spent"].piece)} is empty and removed.`;
   if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
+  if ("attached" in e) return `${name(e.attached.piece)} attaches to ${name(e.attached.to)}.`;
+  if ("detached" in e) return `${name(e.detached.piece)} detaches from ${name(e.detached.from)}.`;
   if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
   if ("supply-planned" in e) {
     const d = e["supply-planned"];
