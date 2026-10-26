@@ -2,23 +2,25 @@
 //! and plays its first Game-Turn with both sides passing (Mission 5's
 //! second half).
 
+/// Scenarios that do not set up yet, waiting on cna (Requests for cna
+/// in `PROGRESS.md`); the browser offers every other one.
+pub const WAITING: &[&str] = &[
+    // 21st Panzer's HQ replaces 5th Light's; the OA data says so only
+    // in a note, so its `less` names a unit outside the entry.
+    "the-last-chance",
+    // Axis supply on "any road hex from El Agheila to Nofilia" is
+    // given as those two hexes, too few for the units' stacking.
+    "rommels-arrival",
+    "desert-fox-campaign",
+    "short-campaign-game",
+];
+
 #[cfg(test)]
 mod tests {
+    use super::WAITING;
     use crate::data::Data;
     use crate::state::test_support::{auto_place, pass_stage};
     use crate::state::{GameState, Modules};
-
-    /// Scenarios waiting on cna (Requests for cna in `PROGRESS.md`).
-    const WAITING: &[&str] = &[
-        // 21st Panzer's HQ replaces 5th Light's; the OA data says so only
-        // in a note, so its `less` names a unit outside the entry.
-        "the-last-chance",
-        // Axis supply on "any road hex from El Agheila to Nofilia" is
-        // given as those two hexes, too few for the units' stacking.
-        "rommels-arrival",
-        "desert-fox-campaign",
-        "short-campaign-game",
-    ];
 
     fn slugs() -> Vec<String> {
         let dir = cna_data::repo_root().join("vendor/cna/data/scenarios");

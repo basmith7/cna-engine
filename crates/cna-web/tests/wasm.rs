@@ -15,7 +15,7 @@ fn parse(json: &str) -> serde_json::Value {
 
 #[wasm_bindgen_test]
 fn a_new_game_waits_on_the_axis() {
-    let game = Game::new_game(7).unwrap();
+    let game = Game::new_game("grazianis-offensive", 7).unwrap();
     let view = parse(&game.view().unwrap());
     assert_eq!(view["to_act"], "axis");
     assert_eq!(view["pending"]["set-up"]["side"], "axis");
@@ -24,7 +24,7 @@ fn a_new_game_waits_on_the_axis() {
 
 #[wasm_bindgen_test]
 fn placements_of_a_pending_piece() {
-    let game = Game::new_game(7).unwrap();
+    let game = Game::new_game("grazianis-offensive", 7).unwrap();
     let hexes = parse(&game.placements("supply:axis:16").unwrap());
     assert!(
         hexes
@@ -40,7 +40,7 @@ fn placements_of_a_pending_piece() {
 
 #[wasm_bindgen_test]
 fn legal_and_illegal_orders() {
-    let mut game = Game::new_game(7).unwrap();
+    let mut game = Game::new_game("grazianis-offensive", 7).unwrap();
     let before = game.save().unwrap();
     let r = parse(
         &game
@@ -59,7 +59,7 @@ fn legal_and_illegal_orders() {
 
 #[wasm_bindgen_test]
 fn save_and_load_round_trip() {
-    let mut game = Game::new_game(7).unwrap();
+    let mut game = Game::new_game("grazianis-offensive", 7).unwrap();
     game.apply("axis", PLACE).unwrap();
     let saved = game.save().unwrap();
     let loaded = Game::load(&saved).unwrap();
@@ -72,7 +72,7 @@ fn save_and_load_round_trip() {
 fn a_malformed_save_is_an_error_string_not_a_dead_page() {
     // A sealed step with nobody waiting: `to_act` would have panicked
     // on it before `from_json` checked invariants (slice 6).
-    let game = Game::new_game(7).unwrap();
+    let game = Game::new_game("grazianis-offensive", 7).unwrap();
     let mut save: serde_json::Value = parse(&game.save().unwrap());
     save["pending"] = serde_json::json!({"sealed": {"step": "barrage", "waiting": []}});
     let err = Game::load(&save.to_string()).err().expect("refused");
@@ -87,7 +87,7 @@ fn a_malformed_save_is_an_error_string_not_a_dead_page() {
 
 #[wasm_bindgen_test]
 fn reachable_answers_like_apply() {
-    let game = Game::new_game(7).unwrap();
+    let game = Game::new_game("grazianis-offensive", 7).unwrap();
     // Set-up is pending: no move yet, with the case `apply` would give.
     let r = parse(
         &game

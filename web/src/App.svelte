@@ -359,7 +359,7 @@
       });
   }
 
-  /** Downloads the state JSON as `graziani-gt<N>-os<M>.json`. */
+  /** Downloads the state JSON as `saveName`'s file. */
   function saveFile() {
     if (!engine || !view) return;
     const blob = new Blob([engine.save()], { type: "application/json" });
@@ -418,7 +418,7 @@
     {#if view.over && reportOpen}
       <EndDialog {view} onclose={() => (reportOpen = false)} />
     {/if}
-    <TopBar {view} {hex} />
+    <TopBar {view} {hex} title={Engine.scenarioName(view.scenario)} />
     <div class="body">
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
@@ -474,7 +474,7 @@
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
   {:else if loaded}
-    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} onnew={(seed) => start(Engine.newGame(seed))} onload={loadFile} />
+    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} scenarios={Engine.scenarios()} onnew={(scenario, seed) => start(Engine.newGame(scenario, seed))} onload={loadFile} />
   {:else}
     <p class="status">Loading the engine…</p>
   {/if}

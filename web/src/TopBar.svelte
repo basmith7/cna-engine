@@ -2,14 +2,14 @@
   import { clockLine, sideName, toActLine, weatherName } from "./clock";
   import type { View } from "./types";
 
-  let { view, hex }: { view: View; hex: string | null } = $props();
+  let { view, hex, title }: { view: View; hex: string | null; title: string } = $props();
 
   /** A side, or a dash before the game has set it. */
   const unset = (side: View["initiative"]) => (side ? sideName(side) : "–");
 </script>
 
 <header class="topbar">
-  <span class="title">Graziani's Offensive</span>
+  <span class="title">{title}</span>
   <span class="clock" data-testid="clock">{clockLine(view)}</span>
   <span class="to-act" data-testid="to-act">{toActLine(view)}</span>
   <span class="detail">weather {weatherName(view.weather)}</span>

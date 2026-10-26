@@ -1,13 +1,15 @@
 <script lang="ts">
   // The first screen (spec, *Save and load*): Continue the autosave if
-  // there is one, else a new game with its seed shown, or a save file.
+  // there is one, else a new game of the scenario picked with its seed shown, or a save file.
   // The engine judges the file; its refusal is shown here and nothing
   // starts.
+  import { DEFAULT_SCENARIO, type Scenario } from "./engine";
   import { parseSeed, randomSeed } from "./saves";
 
   let {
     autosave,
     error,
+    scenarios,
     oncontinue,
     onnew,
     onload,
@@ -16,13 +18,16 @@
     autosave: string | null;
     /** The engine's refusal of the last file, or null. */
     error: string | null;
+    /** The scenarios a new game can start. */
+    scenarios: Scenario[];
     oncontinue: () => void;
-    onnew: (seed: number) => void;
+    onnew: (scenario: string, seed: number) => void;
     onload: (file: File) => void;
   } = $props();
 
   let seedText = $state(String(randomSeed()));
   const seed = $derived(parseSeed(seedText));
+  let scenario = $state(DEFAULT_SCENARIO);
 
   function onfile(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
@@ -34,7 +39,7 @@
 
 <div class="start" data-testid="start">
   <section class="card">
-    <h1>Graziani's Offensive</h1>
+    <h1>The Campaign for North Africa</h1>
     <p class="sub">Two players at one screen; the engine enforces the rules.</p>
     {#if autosave}
       <p class="autosave">
@@ -42,8 +47,15 @@
         <span class="where">Autosave at {autosave}</span>
       </p>
     {/if}
+    <p class="scenario">
+      <label>Scenario
+        <select data-testid="scenario" aria-label="Scenario" bind:value={scenario}>
+          {#each scenarios as s (s.slug)}<option value={s.slug}>{s.name}</option>{/each}
+        </select>
+      </label>
+    </p>
     <p class="new">
-      <button type="button" class:primary={!autosave} data-testid="new-game" disabled={seed === null} onclick={() => seed !== null && onnew(seed)}>New game</button>
+      <button type="button" class:primary={!autosave} data-testid="new-game" disabled={seed === null} onclick={() => seed !== null && onnew(scenario, seed)}>New game</button>
       <label>with seed <input type="text" inputmode="numeric" size="12" data-testid="seed" aria-label="Seed" bind:value={seedText} /></label>
       {#if seed === null}<span class="bad">a whole number, please</span>{/if}
     </p>
@@ -68,6 +80,7 @@
   }
   .card {
     width: min(100%, 440px);
+    min-width: 0;
     padding: 1.6rem 1.8rem;
     background: #f4f0e6;
     border: 1px solid #d8d1c0;
@@ -110,6 +123,18 @@
   .where {
     color: #555;
   }
+  .scenario label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  select {
+    min-width: 0;
+    max-width: 100%;
+  }
+  select,
   input[type="text"] {
     font: inherit;
     padding: 0.25rem 0.4rem;

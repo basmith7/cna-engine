@@ -4,6 +4,12 @@
 import init, { Game } from "./pkg/cna_web.js";
 import type { ApplyResult, HexId, Order, PieceId, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
 
+/** A scenario a new game can start (`Game.scenarios()`). */
+export type Scenario = { slug: string; name: string };
+
+/** The scenario the start screen offers first. */
+export const DEFAULT_SCENARIO = "grazianis-offensive";
+
 let ready: Promise<void> | undefined;
 
 /** Loads the wasm once. */
@@ -15,11 +21,22 @@ export function initEngine(): Promise<void> {
 export class Engine {
   private constructor(private readonly game: Game) {}
 
-  static newGame(seed: number): Engine {
-    return new Engine(Game.newGame(BigInt(seed)));
+  /** A new game of `scenario` (a slug from `scenarios()`). */
+  static newGame(scenario: string, seed: number): Engine {
+    return new Engine(Game.newGame(scenario, BigInt(seed)));
   }
 
-  /** Throws (the engine's message) for a save of another scenario or data commit. */
+  /** The scenarios a new game can start. */
+  static scenarios(): Scenario[] {
+    return JSON.parse(Game.scenarios()) as Scenario[];
+  }
+
+  /** The scenario's name, or its slug for one not offered. */
+  static scenarioName(slug: string): string {
+    return Engine.scenarios().find((s) => s.slug === slug)?.name ?? slug;
+  }
+
+  /** Throws (the engine's message) for a save of a scenario not embedded or of another data commit. */
   static load(json: string): Engine {
     return new Engine(Game.load(json));
   }
