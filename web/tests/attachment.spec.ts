@@ -58,3 +58,18 @@ test("a battalion detaches in phase C, attaches back, and moves alone in G", asy
   await expect(page.getByTestId("log-entries").locator("li.illegal")).toHaveCount(0);
   await expectDomMatchesView(page);
 });
+
+test("a battalion in an off-map box detaches from the move panel, and then stops with its HQ", async ({ page }) => {
+  await openFixture(page, "off-map");
+  const box = page.locator('[data-where="box-tripoli"]');
+  const bn = "unit:it:131st-infantry-bn";
+  await box.locator(`[data-unit="${bn}"]`).click();
+  const moves = page.getByTestId("off-map-moves");
+  await moves.locator(`[data-order="detach"][data-unit="${bn}"]`).click();
+  await expect(log(page).filter({ hasText: /detaches from/ })).toHaveCount(1);
+  expect(await attachedTo(page, bn)).toBeNull();
+  // Detached in a movement segment, it goes on only with its HQ (19.4x).
+  await moves.locator('[data-to="tripolitania"]').click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (19.4x)");
+  await expectDomMatchesView(page);
+});

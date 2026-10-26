@@ -4,9 +4,9 @@
   // path shift-clicks build; and the key to the overlay. The engine's
   // refusal is shown as it is when the stack cannot move at all.
   import { label } from "./counters";
-  import { cpLabel, OFF_MAP_PLACES } from "./moves";
+  import { attachmentOrder, cpLabel, OFF_MAP_PLACES } from "./moves";
   import { fuelSummary, sourceLabel } from "./supply";
-  import type { HexId, Illegal, OffMapPlace, PieceId, Purpose, Reach, View } from "./types";
+  import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, View } from "./types";
 
   let {
     view,
@@ -24,6 +24,7 @@
     onsend,
     onclear,
     onoffmap,
+    onorder,
   }: {
     view: View;
     purpose: Purpose;
@@ -45,6 +46,8 @@
     onsend: () => void;
     onclear: () => void;
     onoffmap: (to: OffMapPlace) => void;
+    /** Attach or detach a ticked unit in a box, which has no stack panel (19.4x). */
+    onorder?: (o: Order) => void;
   } = $props();
 
   const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat", rail: "Rail" };
@@ -112,6 +115,16 @@
           <button type="button" data-to={place} onclick={() => onoffmap(place)}>{name}</button>
         {/each}
       </p>
+      {#if onorder}
+        <p class="buttons">
+          {#each ticked as id (id)}
+            {@const order = view.pieces[id] ? attachmentOrder(view, view.pieces[id]) : null}
+            {#if order}
+              <button type="button" data-order={"detach" in order ? "detach" : "attach"} data-unit={id} title="A CP from the unit and its parent (19.4x)" onclick={() => onorder(order)}>{"detach" in order ? "Detach" : "Attach"} {label(view.pieces[id]).short}</button>
+            {/if}
+          {/each}
+        </p>
+      {/if}
     </div>
   {/if}
   <div class="custom" data-testid="custom">
