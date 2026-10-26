@@ -64,6 +64,7 @@ describe("counter glyphs", () => {
     expect(glyphFor("supply-unit", null)).toBe("supply");
     expect(glyphFor("dummy-supply-unit", null)).toBe("supply");
     expect(glyphFor("hq", "Headquarters")).toBe("hq");
+    expect(glyphFor("commander", null)).toBe("commander");
     expect(glyphFor("combat", "Tank Bn-Eq")).toBe("armour");
     expect(glyphFor("combat", "Recce Bn-Eq")).toBe("recce");
     expect(glyphFor("combat", "Reconnaissance Company-Eq")).toBe("recce");

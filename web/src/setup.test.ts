@@ -7,6 +7,7 @@ describe("a placement in words", () => {
       "any hex of sheet C, not within 4 hexes of an enemy unit",
     );
     expect(placementWords({ sheets: ["D", "E"] })).toBe("any hex of sheets D or E");
+    expect(placementWords({ stacked_with: "german-unit" })).toBe("any hex with a German unit");
     expect(placementWords({ sheets: ["A", "B", "C"] })).toBe("any hex of sheets A, B or C");
   });
 

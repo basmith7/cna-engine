@@ -5,11 +5,9 @@
 /// Scenarios that do not set up yet, waiting on cna (Requests for cna
 /// in `PROGRESS.md`); the browser offers every other one.
 pub const WAITING: &[&str] = &[
-    // 21st Panzer's HQ replaces 5th Light's; the OA data says so only
-    // in a note, so its `less` names a unit outside the entry.
-    "the-last-chance",
-    // Axis supply on "any road hex from El Agheila to Nofilia" is
-    // given as those two hexes, too few for the units' stacking.
+    // Two placements are given by their corner hexes only: the four
+    // Italian divisions "between" A2010 and A2703, two hexes apart, and
+    // the Commonwealth's triangle Tocra, Er Regima, Benghazi.
     "rommels-arrival",
     "desert-fox-campaign",
     "short-campaign-game",
