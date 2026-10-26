@@ -9,10 +9,13 @@ panel, prisoners off map by R-132, guards, replacements, construction);
 are in `docs/plans/`. Still open for Graziani's: convoy lanes beyond
 Tripoli, the 19.3 chart as the shell denominator, substitution. The
 mission's second half, other scenarios' land rules (*Non-goals*), has
-begun: #61 smoke-tests every scenario (five of nine set up and play a
-Game-Turn, `cna-game::scenarios`; the other four wait on cna), #63
-scores points victories, #62 lets the browser start any of them. Rommel
-(§31) waits on cna. Mission 4 still comes first the moment its spec
+begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
+scores points victories, #62 lets the browser start any of them. With
+cna 803d5d5 (#65) six of nine set up and play a Game-Turn: Rommel is a
+commander piece (R-135) and replacement counters are made at set-up
+(R-096), so The Last Chance joins; Rommel's Arrival and its two
+campaigns wait on one cna request. #66 builds 31.0's initiative, recall
+and morale; his escort bonus, reactions and the LRDG raid remain. Mission 4 still comes first the moment its spec
 (PR #25) is approved (see *Order against Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every

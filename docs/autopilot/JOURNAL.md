@@ -400,3 +400,9 @@ Done: merged #59 (15.55 formations in the size table), #61 (every scenario smoke
 In flight: #62's CI.
 Next: merge #62 on green CI; refresh the land-turn design Status; then the next scenario land rule cna's data supports.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 07:30 MST — autopilot/m5-cna-bump-3
+Done: #65: vendor/cna 803d5d5 (all three requests answered), stacked_with and Rommel as `PieceKind::Commander` (R-135), replacement counters at set-up (21st Panzer, II/155), The Last Chance sets up and plays; fixtures re-pinned (only rules_commit moved, checked). #66 (stacked): 31.0's initiative 6, recall roll, +1 assault morale, a scheduled Rommel arrives.
+In flight: #65 Playwright/CI, then #66's gates.
+Next: merge #65 then #66 on green CI; Rommel's +5 CPA escort (needs an order naming the unit), his reactions, the LRDG raid (27.9x).
+Blocked: Mission 4 on Brian's review of #25; Rommel's Arrival family on one cna request (Italian divisions' hexes).
