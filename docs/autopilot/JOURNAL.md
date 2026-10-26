@@ -278,5 +278,5 @@ Blocked: Mission 4 on Brian's review of #25.
 ## 2026-10-25 18:00 MST — autopilot/m5-slice-4-arrivals-2
 Done: #36 (cna bump) merged (11c1a5e); PROGRESS on main (fc16e3e): every cna request answered, list cleared. Slice 4 on draft #37: Axis convoys to Tripoli, three a lane (b44a5a0); log lines, NOT_SIMULATED (e2617da); main merged in (3e53608). Playwright 33/33 on b44a5a0.
 In flight: nothing uncommitted.
-Next: on #37, redact the other side's `supply-planned` events from the view (3.61); convoy bombing (32.6x) with R-124's echelons for "westernmost full Commonwealth division" and the Air Bombardment Table; then mark #37 ready. After: Helwan, R-120 defence, R-123, R-125, the air lift; slice 6.
+Next: on #37, convoy bombing (32.6x) with R-124's echelons for "westernmost full Commonwealth division" and the Air Bombardment Table; then mark #37 ready (per-side event redaction, e.g. `supply-planned`, is the Mission 4 server's job: hot-seat shares one log). After: Helwan, R-120 defence, R-123, R-125, the air lift; slice 6.
 Blocked: Mission 4 on Brian's review of #25.
