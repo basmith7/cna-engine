@@ -358,6 +358,13 @@ pub enum Event {
         points: u32,
         cp: Cp,
     },
+    /// `side`'s prisoners left the map for the Tripolitania box, which
+    /// they reach after `stages` more of the captor's phase Hs (R-132).
+    PrisonersLeftMap {
+        side: Side,
+        points: u32,
+        stages: u8,
+    },
     /// `side`'s prisoners left play at a departure hex (28.15).
     PrisonersGone {
         side: Side,

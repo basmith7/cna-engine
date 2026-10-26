@@ -318,6 +318,8 @@ export type Event =
   | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { "prisoners-left-map": { side: Side; points: number; stages: number } }
+  | { "convoy-bombed": { lane: number; bomb_points: number; reading: number; percent: number; units: number; sunk: number } }
   | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
   | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
   | { "fortification-built": { side: Side; hex: HexId; level: number } }
