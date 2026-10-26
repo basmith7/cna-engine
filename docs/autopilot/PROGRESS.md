@@ -268,3 +268,4 @@ Every earlier request was answered by 2026-10-25; `vendor/cna` is at bb0a8d1 (#3
 | 2026-10-25 16:53 | 69 | 27→29 | 0→10 | $16.44 | 3 | All three steps were already done in the last turn, about 20 minutes before the 01:23Z deadline: - **Playwright on #37:** `/tmp/pw-s4.txt` shows 33 passed (8.7m |
 | 2026-10-25 20:53 | 71 | 30→31 | 18→2 | $13.68 | 2 | Both CI runs for #44's last commit have now finished green (test and web in each). That covers the duplicate run that was still pending when I merged, so the me |
 | 2026-10-25 22:53 | 66 | 31→33 | 3→13 | $12.34 | 197 | Two Mission 5 slices merged this run, #45 and #46. The third, slice 8, is planned on draft PR #47 but nothing is built for it yet. - **#45, slice 6b (prisoners, |
+| 2026-10-26 00:53 | 82 | 33→34 | 15→18 | $13.53 | 209 | Four PRs merged this run: slice 8 (prisoner guards and escape) and all three parts of slice 9 (fortifications and minefields). Mission 5 keeps moving while Miss |
