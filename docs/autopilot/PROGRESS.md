@@ -57,12 +57,18 @@ play; the module-on golden marches Halfaya's 12 west. 24.9 dumps wait on
 cna (request below). **Slice 7** (PR #46, merged 2026-10-26):
 repaired points stand in their hex and a unit there absorbs them in
 phase C at a CP per two, up to printed strength (19.61, 20.41).
-**Slice 8** (PR #47, ready 2026-10-26): prisoner guards and escape
+**Slice 8** (PR #47, merged 2026-10-26): prisoner guards and escape
 (28.2x): guard points detailed from infantry, a guard per five on the
 march, unguarded prisoners escape at the end of the captor's phase H,
 an enemy entering frees or recaptures them. **Slice 9a** (PR #48,
-draft, stacked on #47): major cities defend at their fortification
-level, the best single in-hex benefit; level-3 cities ignore pins.
+merged): major cities defend at their fortification level, the best
+single in-hex benefit; level-3 cities ignore pins. **Slice 9b** (PR
+#49, ready): a `construction` module; engineers and a 3+ TOE infantry
+battalion build fortification levels in phase C, three idle stages a
+level; the opponent sees a project but not its item (3.61). **Slice 9c**
+(PR #50, draft): minefields laid (real or dummy, the owner's secret),
+their entry costs and revealing; the mine roll, combat shift, clearing
+and dummy removal remain.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -113,7 +119,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #47 (slice 8) and #48 (9a) on green CI; then slice 9b (the construction segment, building fortifications) and 9c (minefields) from `docs/plans/2026-10-26-m5-slice-9-construction.md`; then the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #49 (9b) on green CI; finish 9c (#50: the mine roll, the combat shift, clearing, dummy removal) from `docs/plans/2026-10-26-m5-slice-9-construction.md`; then the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
