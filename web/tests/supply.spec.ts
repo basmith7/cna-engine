@@ -125,6 +125,31 @@ test("phase C: a supply unit flies from Tobruk to an HQ at El Adem, once a Game-
   await expect(page.getByTestId("toast")).toContainText("this Game-Turn");
 });
 
+test("phase C: a foot battalion takes a motorisation point per TOE point and moves at 20 (32.54, R-123)", async ({ page }) => {
+  // The set-up, with 5 points beside the I Libyan Motorised Battalion (CPA 10+, 5 TOE points) at C3617.
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  save.motorisation.axis.C3617 = 5;
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C3617");
+  const checked = page.locator('[data-testid="stack-panel"] input.tick:checked');
+  while ((await checked.count()) > 0) await checked.first().uncheck();
+  // A tank battalion has its own transport.
+  await page.locator('[data-unit="unit:it:iim-tank-bn"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(page.getByTestId("toast")).toContainText("own transport");
+  await page.locator('[data-unit="unit:it:iim-tank-bn"] input.tick').uncheck();
+  await page.locator('[data-unit="unit:it:i-libyan-mtr-bn"] input.tick').check();
+  await controls.locator('[data-order="attach-motorisation"]').click();
+  await expect(log(page).filter({ hasText: "takes 5 motorisation points." })).toHaveCount(1);
+  const bn = await page.evaluate(() => window.__cna.view().pieces["unit:it:i-libyan-mtr-bn"]);
+  expect(bn.motorised).toBe(5);
+  await expect(controls.locator('[data-order="detach-motorisation"]')).toContainText("Dismount");
+});
+
 test("phase C: two ticked supply units in one hex trade ammunition and fuel within the caps (32.1x)", async ({ page }) => {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");

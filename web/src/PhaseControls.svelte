@@ -48,6 +48,9 @@
   const organise = $derived(c.phase === "organisation");
   const supply = $derived(ticked.find((id) => view.pieces[id]?.kind === "supply-unit" || view.pieces[id]?.kind === "dummy-supply-unit") ?? null);
   const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
+  // With no supply unit ticked, the first ticked combat unit: a foot unit takes a point per TOE point (32.54, R-123); the engine refuses the rest.
+  const unit = $derived(supply === null ? (ticked.find((id) => view.pieces[id]?.kind === "combat") ?? null) : null);
+  const riding = $derived(unit ? (view.pieces[unit].motorised ?? 0) > 0 : false);
   // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
   const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
   // The movement segment: the selected hex holds the side to act's supply units, which it may destroy before moving anything (32.1x).
@@ -80,8 +83,14 @@
       <button type="button" data-order="release-reserve" onclick={() => onorder({ "release-reserve": { pieces: ticked } })}>Release reserve ({n} ticked)</button>
     {/if}
     {#if organise}
-      {#if supply === null}
-        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31).</span>
+      {#if supply === null && unit !== null}
+        {#if riding}
+          <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: unit } })}>Dismount {label(view.pieces[unit]).short}</button>
+        {:else}
+          <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: unit } })}>Motorise {label(view.pieces[unit]).short}</button>
+        {/if}
+      {:else if supply === null}
+        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31), or a foot unit to motorise it (32.54).</span>
       {:else if motorised}
         <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: supply } })}>Detach motorisation</button>
       {:else}
