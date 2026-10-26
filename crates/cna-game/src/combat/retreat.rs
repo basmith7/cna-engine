@@ -337,12 +337,15 @@ impl GameState {
                     .iter()
                     .map(|id| (id.clone(), self.pieces[id].toe))
                     .collect();
+                let prisoners = self.prisoner_points(data, &pieces);
                 for (id, n) in toe {
                     self.take_loss(&id, n, &mut events);
                 }
                 events.push(Event::Surrendered {
                     pieces: pieces.clone(),
                 });
+                // No captor stands by: they wait where they gave up.
+                self.capture_prisoners(data, side.other(), &start, prisoners, &mut events);
             } else {
                 events.push(Event::RetreatBoughtOut {
                     pieces: pieces.clone(),

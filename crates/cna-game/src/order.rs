@@ -124,6 +124,13 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase H: `points` of the player's prisoners in `from` walk `path`
+    /// (28.13).
+    MarchPrisoners {
+        from: HexId,
+        path: Vec<HexId>,
+        points: u32,
+    },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

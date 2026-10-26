@@ -332,6 +332,26 @@ pub enum Event {
         piece: PieceId,
         hex: HexId,
     },
+    /// Prisoner points taken by `side` (the captor), standing in `hex`
+    /// (28.11).
+    PrisonersTaken {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
+    /// `side`'s prisoners marched along `path` (28.13).
+    PrisonersMarched {
+        side: Side,
+        path: Vec<HexId>,
+        points: u32,
+        cp: Cp,
+    },
+    /// `side`'s prisoners left play at a departure hex (28.15).
+    PrisonersGone {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
     /// The scenario's last OpStage is over (60.22): each side's level
     /// and what was checked (60.8).
     GameOver {

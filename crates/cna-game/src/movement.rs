@@ -144,11 +144,13 @@ impl GameState {
         if gone.is_empty() {
             return;
         }
+        let prisoners = self.prisoner_points(data, &gone);
         for id in &gone {
             let toe = self.pieces[id].toe;
             self.take_loss(id, toe, events);
         }
         events.push(Event::Surrendered { pieces: gone });
+        self.capture_prisoners(data, side, at, prisoners, events);
     }
 
     /// A foot unit on its motorisation points moves as medium trucks:
