@@ -346,3 +346,9 @@ Done: #46 merged (slice 7). Plan for slice 8, guards and escape (28.2x): `docs/p
 In flight: nothing built for slice 8.
 Next: Task 1 of the slice 8 plan, test first. Golden indices shift again when the golden details guards: re-pin `cna-web` HASHED/`golden_prefix` indices and `golden.spec.ts` as #45 did.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
+
+## 2026-10-26 01:20 MST — autopilot/m5-slice-8-guards
+Done: slice 8 built: guards, march ratio, escape, liberation (37f14d0), UI + e2e (febca92), docs (plan revised as built: guards don't fight, detailed in C or H), one owner for point maps. Clippy, workspace tests, probe check, Playwright 39/39 green locally. #47 ready.
+In flight: #47's CI.
+Next: merge #47 when CI is green; then the PR #12 combat follow-ups (18.2x released units' later combat, 15.84/14.14 forward guns in anti-armour) as slice 9.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
