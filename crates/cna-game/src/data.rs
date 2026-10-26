@@ -53,6 +53,7 @@ pub struct Data {
     pub prisoners: Prisoners,
     pub calendar: cna_data::calendar::Calendar,
     pub motorisation_losses: cna_data::calendar::MotorisationLosses,
+    pub simplified_supply: cna_data::calendar::SimplifiedSupply,
 }
 
 impl Data {
@@ -86,6 +87,7 @@ impl Data {
             prisoners: Prisoners::load_from(src)?,
             calendar: cna_data::calendar::Calendar::load_from(src)?,
             motorisation_losses: cna_data::calendar::MotorisationLosses::load_from(src)?,
+            simplified_supply: cna_data::calendar::SimplifiedSupply::load_from(src)?,
         })
     }
 

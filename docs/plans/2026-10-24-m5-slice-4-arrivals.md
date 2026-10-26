@@ -38,9 +38,9 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 ### Task 1: the stage and the planning rolls
 
-- [ ] Failing test: a module-on game opens each Game-Turn after the
+- [x] Failing test: a module-on game opens each Game-Turn after the
   first with a planning event per side; module off, nothing changes.
-- [ ] `GameState.planned: Vec<Planned { side, turn, units }>`; events
+- [x] `GameState.planned: Vec<Planned { side, arrives, units }>`; events
   `SupplyPlanned`.
 
 ### Task 2: Commonwealth arrivals
@@ -60,3 +60,10 @@ reads it. Branched from the cna bump (PR #36), which brings it in.
 
 - [ ] The log names planning, arrivals and losses; the stack panel shows
   arrived units; the golden re-pinned; `NOT_SIMULATED.md`.
+
+**As built (Task 1).** Planning runs every Game-Turn, the first included
+(32.4x withholds arrivals, not planning, in a scenario's first turn: what
+GT1 plans arrives in GT3 or GT5). Its dice come from a stream seeded by
+the game, the turn and the side, so planning never shifts the dice of
+play and the scripted golden games keep their orders; only their final
+hashes move.

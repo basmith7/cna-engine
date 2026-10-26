@@ -136,3 +136,132 @@ mod loss_tests {
         assert_eq!(previous_month(&c.week(7).unwrap()), "1940-10");
     }
 }
+
+/// One die row of a Simplified Supply Availability Table: units by
+/// column (tonnage letter or supply period).
+#[derive(Debug, Clone, Deserialize)]
+pub struct SupplyRow {
+    pub die: u8,
+    pub units: Vec<u32>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AxisSupplyTable {
+    pub letters: Vec<String>,
+    pub arrive_turns_later: u32,
+    pub rows: Vec<SupplyRow>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SupplyPeriod {
+    pub period: String,
+    /// `YYYY-MM`, inclusive.
+    pub from: String,
+    #[serde(default)]
+    pub to: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CwSupplyTable {
+    pub periods: Vec<SupplyPeriod>,
+    pub arrive_turns_later: u32,
+    pub rows: Vec<SupplyRow>,
+}
+
+/// The Simplified Supply Availability Tables (`simplified-supply.json`,
+/// SPI 32.46, 32.47) and the Axis Naval Convoy Level Chart
+/// (`axis-convoy-level.json`, SPI 56.4) whose letters the Axis table
+/// reads.
+#[derive(Debug, Clone)]
+pub struct SimplifiedSupply {
+    pub axis: AxisSupplyTable,
+    pub cw: CwSupplyTable,
+    /// Letters by year, January first; none for a dash.
+    pub levels: std::collections::BTreeMap<String, Vec<Option<String>>>,
+}
+
+#[derive(Deserialize)]
+struct SupplyFile {
+    axis: AxisSupplyTable,
+    cw: CwSupplyTable,
+}
+
+#[derive(Deserialize)]
+struct LevelFile {
+    levels: std::collections::BTreeMap<String, Vec<Option<String>>>,
+}
+
+impl SimplifiedSupply {
+    pub fn load() -> Result<Self> {
+        Self::load_from(&crate::source::Fs)
+    }
+
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        let f: SupplyFile =
+            serde_json::from_value(crate::errata::load_table(src, "simplified-supply")?)?;
+        let l: LevelFile =
+            serde_json::from_value(crate::errata::load_table(src, "axis-convoy-level")?)?;
+        Ok(SimplifiedSupply {
+            axis: f.axis,
+            cw: f.cw,
+            levels: l.levels,
+        })
+    }
+
+    /// The tonnage letter of a month (`YYYY-MM`); none before September
+    /// 1940 or after the chart.
+    pub fn letter(&self, month: &str) -> Option<&str> {
+        let (year, m) = month.split_once('-')?;
+        let m: usize = m.parse().ok()?;
+        self.levels.get(year)?.get(m.checked_sub(1)?)?.as_deref()
+    }
+
+    /// Axis units on `die` under the month's letter (32.46); none
+    /// without a letter.
+    pub fn axis_units(&self, month: &str, die: u8) -> Option<u32> {
+        let letter = self.letter(month)?;
+        let col = self.axis.letters.iter().position(|l| l == letter)?;
+        self.axis
+            .rows
+            .iter()
+            .find(|r| r.die == die)?
+            .units
+            .get(col)
+            .copied()
+    }
+
+    /// Commonwealth units on `die` in the period holding the month
+    /// (32.47).
+    pub fn cw_units(&self, month: &str, die: u8) -> Option<u32> {
+        let col =
+            self.cw.periods.iter().position(|p| {
+                p.from.as_str() <= month && p.to.as_deref().is_none_or(|t| month <= t)
+            })?;
+        self.cw
+            .rows
+            .iter()
+            .find(|r| r.die == die)?
+            .units
+            .get(col)
+            .copied()
+    }
+}
+
+#[cfg(test)]
+mod supply_tests {
+    use super::*;
+
+    #[test]
+    fn letters_and_periods_pick_the_columns_32_46_32_47() {
+        let t = SimplifiedSupply::load().unwrap();
+        assert_eq!(t.letter("1940-08"), None);
+        assert_eq!(t.letter("1940-09"), Some("B"));
+        assert_eq!(t.letter("1941-11"), Some("E"));
+        // B: a 1 brings nothing, a 6 at least one.
+        assert_eq!(t.axis_units("1940-09", 1), Some(0));
+        assert_eq!(t.axis_units("1940-08", 6), None);
+        assert_eq!(t.cw_units("1940-10", 1), Some(1));
+        assert_eq!(t.cw_units("1941-05", 6), Some(4));
+        assert_eq!(t.cw_units("1942-06", 6), Some(7));
+    }
+}

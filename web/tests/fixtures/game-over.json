@@ -51,6 +51,53 @@
   },
   "initiative": "cw",
   "player_a": "cw",
+  "planned": [
+    {
+      "side": "axis",
+      "arrives": 3,
+      "units": 2
+    },
+    {
+      "side": "cw",
+      "arrives": 5,
+      "units": 3
+    },
+    {
+      "side": "cw",
+      "arrives": 6,
+      "units": 3
+    },
+    {
+      "side": "axis",
+      "arrives": 5,
+      "units": 1
+    },
+    {
+      "side": "cw",
+      "arrives": 7,
+      "units": 2
+    },
+    {
+      "side": "axis",
+      "arrives": 6,
+      "units": 2
+    },
+    {
+      "side": "cw",
+      "arrives": 8,
+      "units": 3
+    },
+    {
+      "side": "cw",
+      "arrives": 9,
+      "units": 3
+    },
+    {
+      "side": "cw",
+      "arrives": 10,
+      "units": 1
+    }
+  ],
   "weather": "normal",
   "pieces": {
     "supply:axis:1": {

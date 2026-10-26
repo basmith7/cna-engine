@@ -9,13 +9,75 @@ use crate::state::GameState;
 use cna_data::calendar::previous_month;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use serde::{Deserialize, Serialize};
+
+/// Real supply units planned for `side`, due in Game-Turn `arrives`
+/// (32.4x).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Planned {
+    pub side: Side,
+    pub arrives: u8,
+    pub units: u32,
+}
 
 impl GameState {
     pub(crate) fn naval_convoy_stage(&mut self, data: &Data, events: &mut Vec<Event>) {
         if !self.modules.abstract_supply {
             return;
         }
+        self.plan_supply(data, events);
         self.motorisation_losses(data, events);
+    }
+
+    /// Each turn's planning rolls (32.4x): the Axis one die under the
+    /// tonnage letter of the month it plans in, units due two turns on;
+    /// the Commonwealth under the supply period of the arrival month,
+    /// four turns on. The dice come from a stream of their own, seeded by
+    /// the game, the turn and the side, so planning never shifts the
+    /// dice of play. A roll that brings nothing, or a month the charts
+    /// print as a dash, plans nothing.
+    fn plan_supply(&mut self, data: &Data, events: &mut Vec<Event>) {
+        let turn = self.clock.game_turn;
+        for side in [Side::Axis, Side::Cw] {
+            let (later, month_turn) = match side {
+                Side::Axis => (
+                    data.simplified_supply.axis.arrive_turns_later,
+                    u32::from(turn),
+                ),
+                Side::Cw => {
+                    let l = data.simplified_supply.cw.arrive_turns_later;
+                    (l, u32::from(turn) + l)
+                }
+            };
+            let Some(week) = data.calendar.week(month_turn) else {
+                continue;
+            };
+            let salt = (u64::from(turn) << 8) | u64::from(side == Side::Cw);
+            let die = crate::rng::GameRng::new(
+                self.rng.seed() ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15),
+            )
+            .d6();
+            let month = week.month_key();
+            let units = match side {
+                Side::Axis => data.simplified_supply.axis_units(&month, die),
+                Side::Cw => data.simplified_supply.cw_units(&month, die),
+            };
+            let Some(units) = units.filter(|u| *u > 0) else {
+                continue;
+            };
+            let arrives = turn.saturating_add(later as u8);
+            self.planned.push(Planned {
+                side,
+                arrives,
+                units,
+            });
+            events.push(Event::SupplyPlanned {
+                side,
+                die,
+                units,
+                arrives,
+            });
+        }
     }
 
     /// In a month's first naval convoy stage, each side loses the
@@ -120,6 +182,44 @@ mod tests {
         }));
         assert_eq!(state.motorisation[&Side::Cw]["E3613"], 88);
         assert_eq!(state.motorisation[&Side::Cw]["D3714"], 100);
+    }
+
+    #[test]
+    fn each_turn_plans_axis_supply_two_turns_on_and_commonwealth_four_32_4x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 3);
+        let draws = state.rng.draws();
+        let mut events = Vec::new();
+        state.plan_supply(&data, &mut events);
+        assert_eq!(state.rng.draws(), draws, "planning uses its own dice");
+        for e in &events {
+            let Event::SupplyPlanned {
+                side,
+                die,
+                units,
+                arrives,
+            } = e
+            else {
+                panic!("{e:?}");
+            };
+            // October 1940: the Axis letter B; the Commonwealth's period I.
+            let want = match side {
+                Side::Axis => (data.simplified_supply.axis_units("1940-10", *die), 5),
+                Side::Cw => (data.simplified_supply.cw_units("1940-11", *die), 7),
+            };
+            assert_eq!((Some(*units), *arrives), want);
+        }
+        // The Commonwealth always gets at least one in period I.
+        assert!(
+            state
+                .planned
+                .iter()
+                .any(|p| p.side == Side::Cw && p.arrives == 7)
+        );
+        // The same game plans the same way again.
+        let mut again = at_turn(&data, 3);
+        again.plan_supply(&data, &mut Vec::new());
+        assert_eq!(again.planned, state.planned);
     }
 
     #[test]

@@ -126,6 +126,9 @@ pub struct GameState {
     pub initiative: Option<Side>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
+    /// Supply units planned and on their way (32.4x).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub planned: Vec<crate::convoy::Planned>,
     /// Supply units their side tried to destroy this movement segment
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
@@ -226,6 +229,7 @@ impl GameState {
             initiative: None,
             player_a: None,
             organised: false,
+            planned: Vec::new(),
             scuttled: BTreeSet::new(),
             railed: BTreeSet::new(),
             rail_east: None,
