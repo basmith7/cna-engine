@@ -334,3 +334,9 @@ Done: #45 (slice 6b, §28 prisoners): points on surrender and 15.89 (25a4e94), U
 In flight: #45's web CI; slice 7 (replacements from repair) on `autopilot/m5-slice-7-replacements` (worktree /tmp/cna-s7): engine + UI + `replacements.spec.ts` committed, e2e not yet run, no PR yet.
 Next: merge #45 when CI is green; merge main into slice 7, run `npx playwright test tests/replacements.spec.ts` and the full suite, open its PR.
 Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 23:45 MST — autopilot/m5-slice-7-replacements
+Done: #45 merged (slice 6b, prisoners). #46 ready (slice 7): repaired points by hex (c64bbe5), `Order::Absorb` (a582acf), UI + `replacements.spec.ts` (0cb8bf1), review fixes; clippy, workspace tests, probe check, Playwright 39/39 green locally.
+In flight: #46's CI.
+Next: merge #46 when CI is green (`gh pr merge 46 --merge`). Then prisoner guards and escape (28.2x) or the PR #12 combat follow-ups (18.2x released units, 15.84/14.14 guns). Keep /tmp clear: a second worktree's `target/` filled tmpfs and broke a Playwright trace write.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 and 24.9 dumps on cna.
