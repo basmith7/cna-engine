@@ -310,3 +310,9 @@ Done: #40 merged (eb6fb15). On draft #44: Task 2 (d970fd3: Attach/Detach, moves 
 In flight: full Playwright on e7a6d29 (/tmp/pw-44.txt); `attachment.spec.ts` not yet run; a fresh review of the engine diff.
 Next: run `npx playwright test tests/attachment.spec.ts` and the full suite on HEAD; act on the review; then mark #44 ready only with Task 3–4 done or reslice (Tasks 1–2 + UI could merge alone: decide by what the review finds).
 Blocked: Mission 4 on Brian's review of #25; Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 21:40 MST — autopilot/m5-slice-6-organisation
+Done: review fixes (d208e3b: off-map moves carry, eliminations release attachments, arrivals join waiting units); e2e updates for detach-before-moving-alone (f8a3a89); off-map panel Attach/Detach (9ad6731); reslice: #44 = Tasks 1–2 + controls (plan, PR body).
+In flight: full Playwright on f8a3a89 (/tmp/pw-44b.txt); 9ad6731's box test (`attachment.spec.ts`, 2nd test) not yet run.
+Next: run `npx playwright test tests/attachment.spec.ts`; if the full run is green, mark #44 ready and merge on CI. Then Task 4 (24.9 dumps, §28 prisoners) — Task 3 waits on cna.
+Blocked: Mission 4 on Brian's review of #25; Task 3 on cna's HQ organisation types.
