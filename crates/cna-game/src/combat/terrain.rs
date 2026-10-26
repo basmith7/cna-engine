@@ -1,10 +1,10 @@
 //! Terrain column shifts for combat (Terrain Effects Chart): a hex's own
-//! terrain, and a hexside crossed by the fire. Fortifications and
-//! minefields are not simulated, so a major city's "see fortifications"
-//! reads as no shift.
+//! terrain or its fortification, whichever is better, and a hexside
+//! crossed by the fire. Minefields are not simulated.
 
 use super::strength::Kind;
 use crate::data::Data;
+use crate::state::GameState;
 use cna_data::map::{HexId, Hexside, HexsideFeature};
 use cna_data::terrain::{Shift, Shifts};
 
@@ -31,6 +31,63 @@ pub fn hex_shift(data: &Data, hex: &HexId, kind: Kind) -> Option<i32> {
         Some(s) => pick(s, kind),
         None => Some(0),
     }
+}
+
+/// The shift a fortification of `level` gives (TEC); none at level 0.
+fn fortification_shift(data: &Data, level: u8, kind: Kind) -> Option<i32> {
+    if level == 0 {
+        return None;
+    }
+    data.terrain
+        .shifts("fortification", &format!("fortification-{level}"))
+        .and_then(|s| pick(s, kind))
+}
+
+impl GameState {
+    /// A hex's fortification level (25.1x): what bombing, barrage or
+    /// building left it at, else a major city's own, 3 for Alexandria and
+    /// Cairo and 2 for the rest (TEC footnote 4, E-031), else none.
+    pub fn fortification_level(&self, data: &Data, hex: &HexId) -> u8 {
+        if let Some(level) = self.fortifications.get(hex) {
+            return *level;
+        }
+        city_level(data, hex)
+    }
+
+    /// The in-hex shift for fire of `kind` into `hex` (12.33, 14.3x,
+    /// 15.3x): the better of its terrain's and its fortification's, never
+    /// their sum; armour targets take a fortification's only in a major
+    /// city (TEC footnote 12). None where the terrain prohibits the fire.
+    pub fn in_hex_shift(&self, data: &Data, hex: &HexId, kind: Kind, armour: bool) -> Option<i32> {
+        let terrain = hex_shift(data, hex, kind)?;
+        if armour && city_level(data, hex) == 0 {
+            return Some(terrain);
+        }
+        let fort = fortification_shift(data, self.fortification_level(data, hex), kind);
+        Some(fort.map_or(terrain, |f| f.min(terrain)))
+    }
+
+    /// Units in a level-3 city ignore pinned results (25.24).
+    pub fn ignores_pins(&self, data: &Data, hex: &HexId) -> bool {
+        city_level(data, hex) > 0 && self.fortification_level(data, hex) >= 3
+    }
+}
+
+/// A major city's own fortification level: 3 for Alexandria and Cairo,
+/// 2 for the others, 0 elsewhere.
+fn city_level(data: &Data, hex: &HexId) -> u8 {
+    let city = data
+        .map
+        .hex(hex)
+        .is_some_and(|h| h.terrain == cna_data::map::Terrain::MajorCity);
+    if !city {
+        return 0;
+    }
+    let three = ["cairo", "alexandria-east", "alexandria-west"]
+        .iter()
+        .filter_map(|id| data.map.place(id))
+        .any(|p| p.hexes.contains(hex));
+    if three { 3 } else { 2 }
 }
 
 /// 14.34: why no anti-armour fire, by either side, crosses `side` when
@@ -121,6 +178,94 @@ mod tests {
         assert_eq!(
             hexside_shift(&data, &hex("C4121"), &hex("C4020"), Kind::Offence),
             Some(-3)
+        );
+    }
+
+    fn clear_hex(data: &Data) -> HexId {
+        let h = hex("C4020");
+        assert_eq!(
+            data.map.hex(&h).unwrap().terrain,
+            cna_data::map::Terrain::Clear
+        );
+        h
+    }
+
+    #[test]
+    fn a_major_city_defends_at_its_fortification_level_25_11() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = crate::state::test_support::set_up(&data, 3);
+        let tobruk = hex("C4807");
+        assert_eq!(state.fortification_level(&data, &tobruk), 2);
+        assert_eq!(
+            state.in_hex_shift(&data, &tobruk, Kind::Barrage, false),
+            Some(-2)
+        );
+        assert_eq!(
+            state.in_hex_shift(&data, &tobruk, Kind::Defence, false),
+            Some(-3)
+        );
+        // Armour in a city takes the benefit (TEC footnote 12).
+        assert_eq!(
+            state.in_hex_shift(&data, &tobruk, Kind::AntiArmour, true),
+            Some(-2)
+        );
+        let alexandria = hex("E3613");
+        assert_eq!(state.fortification_level(&data, &alexandria), 3);
+        assert_eq!(
+            state.in_hex_shift(&data, &alexandria, Kind::Defence, false),
+            Some(-4)
+        );
+        assert!(state.ignores_pins(&data, &alexandria));
+        assert!(!state.ignores_pins(&data, &tobruk));
+        // Rebuilt or reduced levels are state.
+        let mut reduced = state.clone();
+        reduced.fortifications.insert(tobruk.clone(), 1);
+        assert_eq!(
+            reduced.in_hex_shift(&data, &tobruk, Kind::Defence, false),
+            Some(-2)
+        );
+    }
+
+    #[test]
+    fn a_built_fortification_is_the_best_single_benefit_not_a_sum_12_33() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = crate::state::test_support::set_up(&data, 3);
+        let rough = data
+            .map
+            .hexes()
+            .find(|h| h.terrain == cna_data::map::Terrain::Rough)
+            .unwrap()
+            .id
+            .clone();
+        state.fortifications.insert(rough.clone(), 2);
+        // Rough is L1/L2; fortification 2 is L2/L3: the better, not L3/L5.
+        assert_eq!(
+            state.in_hex_shift(&data, &rough, Kind::Barrage, false),
+            Some(-2)
+        );
+        assert_eq!(
+            state.in_hex_shift(&data, &rough, Kind::Defence, false),
+            Some(-3)
+        );
+        let clear = clear_hex(&data);
+        state.fortifications.insert(clear.clone(), 1);
+        assert_eq!(
+            state.in_hex_shift(&data, &clear, Kind::Defence, false),
+            Some(-2)
+        );
+        // Armour outside a major city gets no fortification benefit
+        // (TEC footnote 12), in barrage or anti-armour fire.
+        assert_eq!(
+            state.in_hex_shift(&data, &clear, Kind::AntiArmour, true),
+            Some(0)
+        );
+        assert_eq!(
+            state.in_hex_shift(&data, &clear, Kind::Barrage, true),
+            Some(0)
+        );
+        assert_eq!(
+            state.in_hex_shift(&data, &clear, Kind::Barrage, false),
+            Some(-1)
         );
     }
 

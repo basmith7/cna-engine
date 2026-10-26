@@ -198,6 +198,10 @@ pub struct GameState {
     /// Prisoner points each captor has sent out of play (28.15).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub prisoners_out: BTreeMap<Side, u32>,
+    /// Fortification levels changed from what the map gives (25.1x):
+    /// built, reduced or rebuilt. A major city absent here is at its own.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fortifications: BTreeMap<HexId, u8>,
     /// Guard points by owner and hex (28.21): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub guards: BTreeMap<Side, BTreeMap<HexId, u32>>,
@@ -320,6 +324,7 @@ impl GameState {
             railed: BTreeSet::new(),
             prisoners: BTreeMap::new(),
             prisoners_out: BTreeMap::new(),
+            fortifications: BTreeMap::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
