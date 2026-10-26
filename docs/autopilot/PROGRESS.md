@@ -24,16 +24,17 @@ phase C attaches motorisation and trades loads; supply units move with
 an escort in G or alone in H; the Commonwealth rails two a stage in
 phase J; a side may destroy its own supply; captured supply goes over
 to the captor. The air lift moved out (cna has no HQ echelons).
-**Slice 5** (breakdown and field repair, PR #35, ready 2026-10-25):
-motorised units collect breakdown points and check where they stop;
-broken-down vehicles stay in the hex (half in the start hex near a big
-enemy unit, 21.41), show on the map, can be captured, and phase K tries
-them in the field (a fuel a point; repaired points wait for §20). Towing
-and facility repair moved to the construction slice (they need
-facilities). **cna answered every request** (calendar, HQ echelons,
-R-120 to R-125, typed set-up constraints): a `vendor/cna` bump is in
-flight on `autopilot/cna-bump`, then **slice 4** (arrivals), no longer
-blocked.
+**Slice 5** (breakdown and field repair) merged as PR #35 on
+2026-10-25: motorised units collect breakdown points and check where
+they stop; broken-down vehicles stay in the hex, show on the map, can be
+captured, and phase K tries them in the field. Towing and facility
+repair moved to the construction slice. **The cna bump** merged as #36:
+typed set-up placements enforced (Helwan still never offered), R-121
+company ammunition, R-122 loss base, motorisation from typed data.
+**Slice 4** (arrivals) is draft PR #37: the calendar, each turn's
+planning rolls, Commonwealth arrivals at Cairo and Alexandria, Axis
+convoys to Tripoli (three a lane), monthly motorisation losses. Convoy
+bombing waits on the HQ echelons now in cna.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -85,7 +86,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #35, the cna bump, then slice 4 (arrivals) on the new calendar.
+- Mission 5 continues unattended: finish slice 4 (#37: convoy bombing with R-124's echelons, redacting the other side's planning rolls), then the follow-ups cna's answers unblock: Helwan as an alternative to Cairo, R-120's defence side, R-123 motorising foot units, R-125 recce breakdown, the air lift (R-124); then slice 6 (organisation, §20).
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -99,84 +100,8 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Typed set-up constraints for Graziani's Offensive.** The scenario's
-  free placements carry `constraint` sentences the engine cannot check
-  and the UI can only show (`cna-game::place`, `web/src/SetupPanel.svelte`):
-  "Libyan part of sheet C only" and "Libyan part of sheet C; all units of
-  the group in one hex" (Axis supply, `sheets: ["C"]`, 59.2); "on sheet C
-  or D" (Commonwealth supply, `region: egypt`); "any one hex of map D that
-  lies west of Mersa Matruh (D3714); all three units in that one hex
-  (60.92)" (Commonwealth supply, `sheets: ["D"]`); and "or Helwan (E1430)"
-  on a fixed placement at Cairo, which the engine never offers. Wanted as
-  data an engine can check: a country filter on an area (`sheets` and
-  `region` together, or a `country` key), "the group in one hex"
-  (`together: true` or a group id), "west of a hex" (a column bound), and
-  an alternative to a fixed place (`place: ["cairo", "helwan"]` or a
-  second locator). Until then the engine trusts the owner, the UI shows
-  the prose as "also: …", and Helwan is never offered. Not blocking:
-  Mission 3 slice 3 ships with the prose.
-- **What a unit may do that cannot pay under abstract supply (32.21,
-  32.22).** Can a fuel-using unit with no fuel in range move at all (by
-  land, by rail, reacting, retreating)? Does a defender with no
-  ammunition fight at full strength, reduced, or not at all? Mission 5
-  slice 2 refuses the land move and the attack and lets the defence
-  stand until this is ruled (a switch if there are options).
-- **Ammunition for company-equivalents (32.21).** 32.22 exempts most
-  company-equivalents from fuel; 32.21 is silent for ammunition. Does a
-  company pay a fraction, one, or nothing? Mission 5 slice 2 charges
-  nothing.
-- **Supply-unit loads per unit or per block?** Graziani's
-  `abstractions.air_and_logistics` supply rows give `count`, `ammo` and
-  `fuel`; the schema does not say whether the figures are each unit's or
-  the block's total. Mission 5 slice 1 reads them per unit (every figure
-  fits 32.1x's 40/60). A schema description would settle it.
-- **Starting motorisation points as data (60.92).** The conversion is
-  prose (`abstractions.air_and_logistics.motorisation`); a typed count
-  per deployment or side would let the engine stop reading `trucks`.
-  Not blocking: Mission 5 slice 1 reads `trucks.medium`.
-- **Motorisation points to motorise a foot unit (32.5x).** The rule says
-  points are medium trucks and any foot infantry may be motorised
-  (historically motorised battalions first), but how many points carry
-  one battalion (or a gun) lives in the Logistics Game's truck rules.
-  Needed: points per unit (or per stacking point / TOE point) as data or
-  a ruling for the abstract game. Blocks motorising infantry in Mission 5
-  slice 3 (PR #34), not the rest of it.
-- **HQ echelons as data, for the air lift (32.3x).** The air lift goes
-  only to a hex holding a friendly *division or brigade HQ (not a battle
-  group)*, and not past the farthest hex row held by a friendly
-  *division, shell or full*. The OA data has no echelon: an HQ is a unit
-  with a parent or without one, and the only clue is its name ("7th
-  Armored Div HQ", "Polish Brigade HQ", "Selby Force/The Matruh
-  Garrison"). Wanted: an `echelon` on each HQ (`division`, `brigade`,
-  `battle-group`, …) and a ruling on what "held by a division, shell or
-  full" means on the map (its HQ's hex? any hex of its units?). Blocks
-  the air lift in Mission 5 (moved out of slice 3); §20 organisation
-  will want the same.
-- **A Game-Turn calendar as data.** The engine cannot tell which month
-  (and week) a Game-Turn falls in: GT1 is September 1940 and GT35 is
-  June I 1941 (`rules/logistics/50-ports-and-shipping.md`), so months do
-  not hold a fixed four turns, and `seasons.json` is keyed by month and
-  week while `weather.json` carries its own turn bands. Wanted: a table
-  of Game-Turn → year, month and week (I–V). Blocks Mission 5 slice 4:
-  the Axis tonnage letter for the planning month
-  (`axis-convoy-level.json`), the Commonwealth supply period of the
-  arrival turn (`simplified-supply.json`), and the monthly motorisation
-  losses (`motorisation-losses.json`, 32.5x) are all read by month.
-- **Which TOE points are armoured cars, armoured recce or trucks
-  (21.1x).** Breakdown hits tanks, SP guns, armoured cars (BAR 1L),
-  armoured recce (0) and trucks (2L). Tanks and SP guns carry a `bar` in
-  `weapon-systems.json`; recce and armoured-car units list no weapons and
-  their characteristics row says only "Recce Bn-Eq" or "Reconnaissance
-  Battalion-Eq", so 11th Hussars' armoured cars and a recce battalion
-  look alike. Wanted: a vehicle class (and BAR) per unit-characteristics
-  row or per weapon entry, and how many of a unit's TOE points are its
-  own trucks where that matters. Not blocking: Mission 5 slice 5 checks
-  tanks and SP guns only (PR #35).
-- **Which loss base governs for withheld defenders?** `rules/60-combat.md`
-  under 15.1x says withheld TOE points count in the defender's loss base;
-  under 15.83 (percentage losses) the defender adds withheld units only in
-  an overrun. The engine follows 15.83 (`cna-game::combat::assault`). Not
-  blocking; Mission 2's follow-ups.
+
+None open. cna answered every request by 2026-10-25 (typed set-up constraints, R-120 to R-125, per-unit loads, motorisation as data, the Game-Turn calendar, HQ echelons); `vendor/cna` is at bb0a8d1 (#36). Engine follow-ups they unblock are under **Next steps**.
 
 ## Runs and quota
 
