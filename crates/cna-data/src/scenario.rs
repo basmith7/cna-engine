@@ -70,6 +70,16 @@ pub enum Locator {
     /// column (a column bound; the same column is not west).
     WestOf(HexId),
     AirFacility,
+    /// A hex holding a unit of this kind once the rest of the side's
+    /// set-up is placed (R-135, Rommel).
+    StackedWith(StackedWith),
+}
+
+/// What a `stacked_with` locator stacks with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StackedWith {
+    GermanUnit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -141,6 +151,8 @@ struct PlacementRaw {
     #[serde(skip_serializing_if = "Option::is_none")]
     air_facility: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    stacked_with: Option<StackedWith>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     not_within: Option<NotWithin>,
     #[serde(skip_serializing_if = "Option::is_none")]
     together: Option<bool>,
@@ -198,6 +210,9 @@ impl TryFrom<PlacementRaw> for Placement {
         if r.air_facility == Some(true) {
             found.push(Locator::AirFacility);
         }
+        if let Some(w) = r.stacked_with {
+            found.push(Locator::StackedWith(w));
+        }
         if found.is_empty() {
             bail!("placement: needs a locator");
         }
@@ -234,6 +249,7 @@ impl From<Placement> for PlacementRaw {
                 Locator::Sheets(s) => r.sheets = Some(s),
                 Locator::WestOf(h) => r.west_of = Some(h),
                 Locator::AirFacility => r.air_facility = Some(true),
+                Locator::StackedWith(w) => r.stacked_with = Some(w),
             }
         }
         r
@@ -888,6 +904,12 @@ mod tests {
         let one = serde_json::from_str::<Placement>(r#"{"place":"a"}"#).unwrap();
         assert_eq!(one, Placement::of(Locator::Place(vec!["a".into()])));
         assert_eq!(serde_json::to_string(&one).unwrap(), r#"{"place":"a"}"#);
+        let rommel =
+            serde_json::from_str::<Placement>(r#"{"stacked_with":"german-unit"}"#).unwrap();
+        assert_eq!(
+            rommel,
+            Placement::of(Locator::StackedWith(StackedWith::GermanUnit))
+        );
         assert!(serde_json::from_str::<Placement>(r#"{"place":["a"]}"#).is_err());
         assert!(serde_json::from_str::<Placement>(r#"{"constraint":"x"}"#).is_err());
     }

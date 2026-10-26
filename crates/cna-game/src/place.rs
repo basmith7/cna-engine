@@ -7,7 +7,8 @@ use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
-use cna_data::scenario::{Locator, Placement, Side};
+use cna_data::oa::Nation;
+use cna_data::scenario::{Locator, Placement, Side, StackedWith};
 
 impl GameState {
     /// The hexes `place` would accept for `piece` now, in id order: its
@@ -94,6 +95,21 @@ impl GameState {
             return Err(Illegal::new(
                 "59.2",
                 format!("{hex} is outside {piece}'s placement area"),
+            ));
+        }
+        if placement
+            .locators
+            .contains(&Locator::StackedWith(StackedWith::GermanUnit))
+            && !self.pieces.values().any(|q| {
+                q.side == player
+                    && q.nation == Some(Nation::De)
+                    && matches!(q.kind, PieceKind::Combat | PieceKind::Hq)
+                    && q.hex() == Some(hex)
+            })
+        {
+            return Err(Illegal::new(
+                "R-135",
+                format!("{piece} starts with a German unit; {hex} holds none"),
             ));
         }
         // `together`: the first of the block placed chooses the hex.
@@ -227,6 +243,8 @@ fn in_locator(data: &Data, locator: &Locator, hex: &HexId) -> bool {
         Locator::WestOf(bound) => {
             hex.sheet() < bound.sheet() || (hex.sheet() == bound.sheet() && hex.row() < bound.row())
         }
+        // Needs the state: `check_place` looks at the hex's units.
+        Locator::StackedWith(_) => true,
         // Resolved at expansion; never pending.
         Locator::Box(_) | Locator::AirFacility => false,
     }
@@ -528,5 +546,55 @@ mod tests {
                 )
                 .is_empty()
         );
+    }
+
+    /// R-135: Rommel starts on a hex holding a German unit, and only
+    /// there; his counter is a commander, not a combat unit.
+    #[test]
+    fn rommel_sets_up_with_a_german_unit() {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut state = GameState::new(&data, 7).unwrap();
+        let rommel = PieceId::from(cna_data::oa::UnitId::parse("unit:de:rommel").unwrap());
+        assert_eq!(state.pieces[&rommel].kind, PieceKind::Commander);
+        assert!(state.pieces[&rommel].is_pending());
+        let german = |s: &GameState, h: &HexId| {
+            s.pieces.values().any(|q| {
+                q.nation == Some(cna_data::oa::Nation::De)
+                    && q.kind != PieceKind::Commander
+                    && q.hex() == Some(h)
+            })
+        };
+        let offered = state.placements(&data, &rommel);
+        assert!(!offered.is_empty());
+        assert!(offered.iter().all(|h| german(&state, h)), "{offered:?}");
+        let italian_only = state
+            .pieces
+            .values()
+            .filter_map(|q| q.hex().cloned())
+            .find(|h| !german(&state, h))
+            .expect("a hex without Germans");
+        let refused = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: rommel.clone(),
+                    hex: italian_only,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(refused.case, "R-135");
+        let hex = offered[0].clone();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: rommel.clone(),
+                    hex: hex.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.pieces[&rommel].hex(), Some(&hex));
     }
 }

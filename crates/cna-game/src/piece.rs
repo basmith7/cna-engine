@@ -60,6 +60,8 @@ impl fmt::Display for PieceId {
 pub enum PieceKind {
     Combat,
     Hq,
+    /// Rommel (31.0, R-135): moves, stacks free, never fights.
+    Commander,
     SupplyUnit,
     DummySupplyUnit,
 }

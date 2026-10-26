@@ -15,7 +15,7 @@
 use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
 use crate::state::Modules;
 use anyhow::{Context, Result, bail};
-use cna_data::characteristics::{Characteristics, Equivalent, Row};
+use cna_data::characteristics::{Characteristics, Equivalent, Rating, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
@@ -377,7 +377,9 @@ fn piece(
     Piece {
         id: PieceId::from(&unit.id),
         side,
-        kind: if equivalent == Some(Equivalent::Hq) {
+        kind: if unit.commander.is_some() {
+            PieceKind::Commander
+        } else if equivalent == Some(Equivalent::Hq) {
             PieceKind::Hq
         } else {
             PieceKind::Combat
@@ -388,7 +390,14 @@ fn piece(
         attached_to: None,
         toe,
         weapons,
-        cpa: row.and_then(|r| r.cpa.clone()),
+        cpa: match &unit.commander {
+            Some(c) => Some(Rating {
+                value: i32::try_from(c.cpa).ok(),
+                mark: None,
+                raw: c.cpa.to_string(),
+            }),
+            None => row.and_then(|r| r.cpa.clone()),
+        },
         morale: oa.morale(&unit.id),
         status: entry.status,
         equivalent,
@@ -507,7 +516,10 @@ fn resolve(p: &Placement, map: &Map) -> Result<Location> {
                     }
                 }
             }
-            Locator::Box(_) | Locator::Region(_) | Locator::AirFacility => {}
+            Locator::Box(_)
+            | Locator::Region(_)
+            | Locator::AirFacility
+            | Locator::StackedWith(_) => {}
         }
     }
     match p.sole() {

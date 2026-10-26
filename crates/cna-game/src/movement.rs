@@ -265,7 +265,7 @@ impl GameState {
     /// Whether a piece may move voluntarily at all.
     pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
-            PieceKind::Combat | PieceKind::Hq => {}
+            PieceKind::Combat | PieceKind::Hq | PieceKind::Commander => {}
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
                 if !self.modules.abstract_supply {
                     return Err(Illegal::new(
