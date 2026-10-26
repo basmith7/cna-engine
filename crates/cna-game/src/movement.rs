@@ -680,6 +680,30 @@ impl GameState {
         }
     }
 
+    /// Breaking off before a stack leaves an enemy ZOC (8.6x): each piece
+    /// pays its own cost, in the enemy's half when `enemy_half`, and is
+    /// out of contact.
+    pub(crate) fn pay_break_off(
+        &mut self,
+        pieces: &[PieceId],
+        enemy_half: bool,
+        events: &mut Vec<Event>,
+    ) {
+        for id in pieces {
+            let cost = Self::break_off_cost(&self.pieces[id]);
+            if cost > Cp::ZERO {
+                events.push(Event::ContactBroken {
+                    piece: id.clone(),
+                    cost,
+                });
+                self.charge(id, cost, enemy_half, events);
+            }
+            let p = self.pieces.get_mut(id).expect("checked");
+            p.contact = false;
+            p.engaged = false;
+        }
+    }
+
     /// `Order::Move`: the stack walks `path` in the phasing player's
     /// movement segment.
     pub(crate) fn move_pieces(
@@ -774,19 +798,7 @@ impl GameState {
         let mut events = Vec::new();
         self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off && !plan.steps.is_empty() {
-            for id in pieces {
-                let cost = break_off(&self.pieces[id]);
-                if cost > Cp::ZERO {
-                    events.push(Event::ContactBroken {
-                        piece: id.clone(),
-                        cost,
-                    });
-                    self.charge(id, cost, false, &mut events);
-                }
-                let p = self.pieces.get_mut(id).expect("checked");
-                p.contact = false;
-                p.engaged = false;
-            }
+            self.pay_break_off(pieces, false, &mut events);
         }
         let combat = pieces
             .iter()

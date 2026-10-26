@@ -147,9 +147,7 @@ impl GameState {
             }
         }
     }
-}
 
-impl GameState {
     /// R-138: a commanding Rommel alone in an enemy ZOC in the enemy's
     /// phase, with no reaction left to him (`offered` lists those still
     /// offered one), is captured (10.29): removed for good, and with no

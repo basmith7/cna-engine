@@ -1,8 +1,9 @@
 //! Reaction (SPI 8.5x, R-006, R-007, R-008): when a phasing combat unit
 //! moves next to motorised non-phasing combat units (or Rommel, 31.0)
-//! that are not in an enemy ZOC (Rommel: but the mover's, R-138), in contact, engaged or pinned, the
+//! that are not in an enemy ZOC, in contact, engaged or pinned, the
 //! non-phasing player may move them, never into an enemy ZOC and never
-//! paying to break off.
+//! paying to break off. Rommel alone may react out of the mover's own
+//! ZOC, and pays to break off from it (R-138).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
@@ -168,19 +169,7 @@ impl GameState {
         // Only Rommel reacts from an enemy ZOC, paying to break off
         // (R-138).
         if plan.break_off {
-            for id in pieces {
-                let cost = Self::break_off_cost(&self.pieces[id]);
-                if cost > cna_data::cp::Cp::ZERO {
-                    events.push(Event::ContactBroken {
-                        piece: id.clone(),
-                        cost,
-                    });
-                    self.charge(id, cost, true, &mut events);
-                }
-                let p = self.pieces.get_mut(id).expect("checked");
-                p.contact = false;
-                p.engaged = false;
-            }
+            self.pay_break_off(pieces, true, &mut events);
         }
         let mut at = from.clone();
         let storm =
