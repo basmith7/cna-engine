@@ -191,7 +191,7 @@ export type Order =
   | "pass";
 
 /** What a construction project builds (24.1x). */
-export type BuildItem = "fortification";
+export type BuildItem = "fortification" | "real-minefield" | "dummy-minefield";
 
 /** A project under way in a hex (24.1x): its builders and the stages counted so far. */
 export interface Project {
@@ -321,6 +321,7 @@ export type Event =
   | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
   | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
   | { "fortification-built": { side: Side; hex: HexId; level: number } }
+  | { "minefield-laid": { side: Side; hex: HexId } }
   | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
   | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
@@ -439,6 +440,8 @@ export interface View {
   prisoners_out?: Partial<Record<Side, number>>;
   /** Fortification levels changed from the map's (25.1x); a major city absent here is at its own. */
   fortifications?: Record<HexId, number>;
+  /** Minefields by hex (26.1x); `real` is absent from the other side's until revealed. */
+  minefields?: Record<HexId, { side: Side; real?: boolean; revealed?: boolean }>;
   /** Projects under way by hex (24.1x): open. */
   projects?: Record<HexId, Project>;
   /** Guard points by owner and hex (28.21): open. */
