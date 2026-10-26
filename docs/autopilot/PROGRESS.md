@@ -31,10 +31,14 @@ captured, and phase K tries them in the field. Towing and facility
 repair moved to the construction slice. **The cna bump** merged as #36:
 typed set-up placements enforced (Helwan still never offered), R-121
 company ammunition, R-122 loss base, motorisation from typed data.
-**Slice 4** (arrivals) is draft PR #37: the calendar, each turn's
-planning rolls, Commonwealth arrivals at Cairo and Alexandria, Axis
-convoys to Tripoli (three a lane), monthly motorisation losses. Convoy
-bombing waits on the HQ echelons now in cna.
+**Slice 4** (arrivals) merged as PR #37 on 2026-10-26: the calendar,
+each turn's planning rolls, Commonwealth arrivals at Cairo and
+Alexandria, Axis convoys to Tripoli (three a lane), monthly motorisation
+losses. Convoy bombing moved out: it needs cna's lane table (request
+below) and §19's full divisions. Three follow-ups cna's answers unblocked
+are open: **the air lift** (32.37, R-124) is PR #38, ready; **recce
+breakdown** (R-125) and **motorised foot units** (R-123) are draft PR #39,
+stacked on #38.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -86,7 +90,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: finish slice 4 (#37: convoy bombing with R-124's echelons, redacting the other side's planning rolls), then the follow-ups cna's answers unblock: Helwan as an alternative to Cairo, R-120's defence side, R-123 motorising foot units, R-125 recce breakdown, the air lift (R-124); then slice 6 (organisation, §20).
+- Mission 5 continues unattended: merge #38 then #39 when CI is green; then Helwan as an alternative to Cairo and R-120's defence side; then slice 6 (§19 attachment as explicit state, which also gives convoy bombing its full divisions).
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
