@@ -50,7 +50,13 @@ movement segment (hexes and boxes), and moves, reactions, retreats and
 off-map moves carry attached units, refuse a lone attached one, and stop
 a unit detached while moving with its parent. The stack panel and the
 off-map panel have Attach/Detach. Slice 6's limits and shells (Task 3)
-wait on cna; dumps and prisoners (Task 4) are next.
+wait on cna. **Slice 6b** (PR #45, 2026-10-26, ready): §28 prisoner
+points from every surrender and 15.89 roll, marched by the captor in
+phase H to Alexandria/Cairo (or A2802 for the Axis) where they leave
+play; the module-on golden marches Halfaya's 12 west. 24.9 dumps wait on
+cna (request below). **Slice 7** (PR #46, draft, on top of #45):
+repaired points stand in their hex and a unit there absorbs them in
+phase C (19.61, 20.41).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -101,7 +107,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: slice 6 Task 4 (24.9 dumps, §28 prisoners) on its own PR; Task 3 waits on cna's HQ organisation types. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #45 then #46 on green CI; next, prisoner guards and escape (28.2x) or the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -116,6 +122,8 @@ blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
 
+- **24.9 supply dumps under abstract supply (§32).** With the Logistics Game off, a supply unit *is* a dump counter (32.11) with its own load, and dummies are capped at one per three real units received (32.18). Please rule whether 24.9 applies there at all, and if so: does a real dump made for 3 CP become a new supply unit (empty? split from a load in the hex?), and may 2-CP dummy dumps exceed 32.18's cap? Blocks Mission 5 slice 6's dumps (cna-engine builds none meanwhile; `NOT_SIMULATED.md`).
+- **28.15's Axis departure point, the Sirte box.** cna's map and off-map data have no Sirte box (the 8.8x boxes are Tripolitania, Tripoli, Gabes, Tunis). Please say where Axis prisoners leave play: a box from the off-map data, or a map hex. cna-engine uses A2802 (the hex units leave by for the Tripolitania box) until then. Blocks nothing; the engine's choice is reversible.
 - **The Axis Naval Convoy Air Distance Chart's lanes (56.1) as data, and a ruling on reading 32.66.** Simplified Axis convoys (32.6x) split among lanes, and `axis-convoy-bombing.json` picks the bombing column by lane number, but cna has no table saying where each of the six lanes ends (destination port, or off-map box for Tripoli) or which a scenario may use (Graziani's says lanes 2, 3 and 6, 60.37). Please add the lanes (number, origin, destination; opening rules such as 56.11's Greek lanes) and decide: (a) when the westernmost full Commonwealth division is east of a lane's first threshold, is the convoy not attacked or attacked on the 1–20 column; (b) do 5 % results, like 10 %, hit only motorisation and replacement points; (c) are dummy supply units counted before or after bombing (32.1x's one per three received). Blocks Mission 5's convoy bombing (cna-engine #37 moved it out).
 
 - **R-120's surrender with HQs in the hex.** R-120 makes an assaulted hex surrender when every defender is out of ammunition, but HQs (and anything else that owes no ammunition under 32.21) are never "out". Does a hex whose only defenders still in ammunition are HQs surrender? cna-engine #40 says yes (an all-out hex surrenders when every committed defender that *owes* ammunition is out, HQs included); please confirm or correct. Blocks nothing; #40 is built on that reading.
