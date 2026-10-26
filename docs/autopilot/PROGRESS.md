@@ -114,6 +114,16 @@ the bullet once it lands and `vendor/cna` is bumped.
   Tocra, Er Regima, Benghazi) is the same shape and fits as given, but
   offers only its corners; its inside hexes listed would be truer.
 
+- **Rommel's +5 CPA escort (31.0), as a ruling** (Mission 5, second
+  half: the last of 31.0 the engine can build without the LRDG raid).
+  The restatement gives "+5 CPA" to "a unit he stays with for a whole
+  stage, from its start". An engine needs: one unit or every unit in his
+  hex; whether the Axis names it at the stage's start (and when: phase A,
+  or before its first move) or it follows from where he ends; what
+  happens if they part mid-stage (the bonus lost, CP already spent past
+  the CPA charged how); and whether an attached unit or a whole formation
+  counts as "a unit". `commander.escort_cpa_bonus` is already data.
+
 ## Runs and quota
 
 | Started | Minutes | Weekly before→after | 5h before→after | Cost | Turns | Result |
