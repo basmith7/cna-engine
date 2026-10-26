@@ -32,10 +32,13 @@ up and play a Game-Turn, and the browser offers every one. #68 builds
 the rest of 31.0 bar the LRDG raid: the +5 CPA escort (R-137), his
 reactions, and his free retreat through enemy ZOC (merged). #69
 (merged) lets a side take back a piece during its set-up. **Fifth
-run:** cna answered the lone-Rommel request (R-138); #70 bumps
+run:** cna answered the lone-Rommel request (R-138); #70 (merged) bumps
 `vendor/cna` to fcf8ea7 and builds it: the mover's own ZOC no longer
 bars his reaction, and alone in an enemy ZOC with no escape left he is
-captured. A new request asks whose ZOC 8.53 means for every unit.
+captured. New requests: whose ZOC 8.53 means for every unit, which
+19.3 chart components count toward a shell, and Rommel after his stack
+is destroyed. #72 makes the reach search 3.4x faster (Mission 3's slow
+shading).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -88,7 +91,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   `could_exert`. The fix is a hex → pieces index built once per
   search); at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: #70 (R-138) merges on green CI.
+- Mission 5 continues unattended: merge #71 (assignment tests) and #72
+  (reach index; check the browser's shading time) on green CI.
   Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
@@ -99,7 +103,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna fc78330 on main, fcf8ea7 in #70.
+  cna fcf8ea7.
 
 ## Requests for cna
 
