@@ -16,6 +16,7 @@ const cases: [Event, string][] = [
   [{ "weather-set": { weather: { sandstorm: { sheets: ["C", "D"] } } } }, "Weather: sandstorm on C, D."],
   [{ placed: { piece: "u:a", hex: "C0101" } }, "A placed at C0101."],
   ["set-up-complete", "Set-up complete; play begins."],
+  ["rommel-recalled", "Rommel is recalled to Germany for this Game-Turn."],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
@@ -91,9 +92,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 67 variants", () => {
+  it("covers all 68 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(67);
+    expect(tags.size).toBe(68);
   });
 
   it.each(cases)("%j", (event, line) => {

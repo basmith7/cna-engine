@@ -480,7 +480,8 @@ impl GameState {
     }
 
     /// Adjusted morale for a side (15.6x): the largest unit's basic
-    /// morale plus the Morale Modifier Table roll at its cohesion.
+    /// morale plus the Morale Modifier Table roll at its cohesion, and
+    /// Rommel's bonus where he shares the hex (17.28).
     fn adjusted_morale(&mut self, data: &Data, ids: &[PieceId], events: &mut Vec<Event>) -> i32 {
         let Some(lead) = ids
             .iter()
@@ -510,7 +511,7 @@ impl GameState {
             MoraleLookup::Gap if level.clamp(-17, 8) == -4 && reading == 56 => -2,
             MoraleLookup::Gap | MoraleLookup::Overlap(_) => 0,
         };
-        basic + modifier
+        basic + modifier + self.rommel_morale_bonus(data, ids)
     }
 
     /// The 50 % rule (15.9x), applied as the assignments are revealed and

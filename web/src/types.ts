@@ -266,6 +266,7 @@ export type Event =
   | { "weather-set": { weather: Weather } }
   | { placed: { piece: PieceId; hex: HexId } }
   | "set-up-complete"
+  | "rommel-recalled"
   | { arrived: { pieces: PieceId[]; at: Location } }
   | { "moved-off-map": { piece: PieceId; location: Location } }
   | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost: number } }
