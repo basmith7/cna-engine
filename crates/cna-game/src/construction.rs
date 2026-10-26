@@ -124,6 +124,7 @@ impl GameState {
                 format!("a project is already under way in {hex}"),
             ));
         }
+        // The only item yet: a new one must say what it needs here.
         let Item::Fortification = item;
         let pieces: Vec<&Piece> = builders.iter().map(|id| &self.pieces[id]).collect();
         let engineer = pieces.iter().position(|p| self.engineer_capable(data, p));
