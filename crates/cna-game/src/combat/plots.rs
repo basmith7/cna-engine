@@ -278,14 +278,23 @@ impl GameState {
                     self.assault_target(data, p, &from, h)?;
                 }
             }
-            // A unit released from reserve makes one assault at most
-            // (18.2x).
+            // A unit released from reserve makes one assault at most for
+            // the rest of the stage (18.23, 18.24).
             if let Some(released) = p.released {
                 let targets: BTreeSet<&HexId> = a
                     .close_assault
                     .iter()
                     .filter_map(|al| al.target.as_ref())
                     .collect();
+                if p.released_assaulted && !targets.is_empty() {
+                    return Err(Illegal::new(
+                        "18.2x",
+                        format!(
+                            "{} was released from Reserve {} and has made its one close assault this stage",
+                            a.piece, released
+                        ),
+                    ));
+                }
                 if targets.len() > 1 {
                     return Err(Illegal::new(
                         "18.2x",
