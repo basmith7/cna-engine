@@ -74,6 +74,11 @@
       }
     ]
   },
+  "prisoners": {
+    "axis": {
+      "C4120": 12
+    }
+  },
   "attachment_tracked": true,
   "weather": "hot",
   "pieces": {
@@ -9610,6 +9615,23 @@
     {
       "player": "axis",
       "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "march-prisoners": {
+          "from": "C4021",
+          "path": [
+            "C4020",
+            "C4120"
+          ],
+          "points": 12
+        }
+      }
     },
     {
       "player": "axis",

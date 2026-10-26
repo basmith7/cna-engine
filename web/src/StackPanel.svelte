@@ -5,6 +5,7 @@
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
+  import { prisonersAt } from "./prisoners";
   import { loadLabel, motorisationAt } from "./supply";
   import type { Order, PieceId, View } from "./types";
 
@@ -20,6 +21,7 @@
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
   const points = $derived(hex ? motorisationAt(view, hex) : null);
   const wrecks = $derived(hex ? (view.broken_down?.[hex] ?? []) : []);
+  const prisoners = $derived(hex ? prisonersAt(view, hex) : []);
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -34,6 +36,9 @@
     {/if}
     {#each wrecks as w, i (i)}
       <p class="wreck side-{w.side}" data-testid="wreck">Broken down: {w.points} {w.weapon} ({sideName(w.side)})</p>
+    {/each}
+    {#each prisoners as g (g.side)}
+      <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
     {/each}
     {#if pieces.length === 0}
       <p class="empty">Nothing here.</p>
@@ -106,6 +111,11 @@
     margin: 0 0 0.3rem;
     font-size: 12px;
     color: #555;
+  }
+  .prisoners {
+    margin: 0 0 0.3rem;
+    font-size: 12px;
+    color: #5b3f80;
   }
   .wreck {
     margin: 0 0 0.3rem;

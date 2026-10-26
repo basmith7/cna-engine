@@ -13,14 +13,14 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 type Logged = { player: Side; order: Order };
 type GoldenLog = { seed: number; orders: Logged[] };
 
-/** M5's golden game (abstract supply on): 439 orders, seed 7, ending at the start of GT7 with neither side at a level. */
+/** M5's golden game (abstract supply on): 458 orders, seed 7, ending at the start of GT7 with neither side at a level. */
 const golden: GoldenLog = JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as GoldenLog;
 /** `cna-play replay` of the whole log, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current` and `cna-game::golden`). */
 const goldenDone = readFileSync(here("fixtures/golden-done.sha256"), "utf8").trim();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 /** The orders after which the game is saved, the page reloaded and the file loaded: the scripted fighting is done (plan, task 5). */
-const SAVE_AFTER = 82;
+const SAVE_AFTER = 84;
 
 const sideName = (s: Side) => (s === "axis" ? "Axis" : "Commonwealth");
 
@@ -171,6 +171,15 @@ async function perform(page: Page, i: number, { order }: Logged) {
     await clickHex(page, order.assault.target);
     return;
   }
+  if ("march-prisoners" in order) {
+    const { from, path, points } = order["march-prisoners"];
+    const panel = page.getByTestId("march-panel");
+    await panel.getByLabel(`Points to march from ${from}`).fill(String(points));
+    await panel.getByLabel(`Points to march from ${from}`).locator("xpath=ancestor::li").locator('[data-testid="march-arm"]').click();
+    for (const h of path) await clickHex(page, h);
+    await panel.getByTestId("march-send").click();
+    return;
+  }
   // declare-zoc, move-off-map, retreat-before-assault, retreat,
   // designate-reserve, release-reserve: not in the golden game (spec,
   // *Scripted games*); each has its own fixture e2e. Reaching one here
@@ -178,12 +187,12 @@ async function perform(page: Page, i: number, { order }: Logged) {
   throw new Error(`order ${i} cannot be expressed by clicks by this driver: ${JSON.stringify(order)}`);
 }
 
-test("the golden game, all 439 orders by clicks, with a save, reload and load in the middle, ends with replay's state and the report open", async ({ page }) => {
+test("the golden game, all 458 orders by clicks, with a save, reload and load in the middle, ends with replay's state and the report open", async ({ page }) => {
   test.setTimeout(900_000);
   // A stuck click (a counter over the hex, a curtain over a button) fails
   // in seconds with the order named, not at the test's timeout.
   page.setDefaultTimeout(15_000);
-  expect(golden.orders).toHaveLength(439);
+  expect(golden.orders).toHaveLength(458);
   await openStart(page);
   await page.getByTestId("seed").fill(String(golden.seed));
   await page.getByTestId("new-game").click();
@@ -201,7 +210,7 @@ test("the golden game, all 439 orders by clicks, with a save, reload and load in
     }
     if (i === SAVE_AFTER) {
       // Save, reload the page, load the file, play on. This comes after
-      // the curtain is lifted: order 82 hands over, and the curtain would
+      // the curtain is lifted: order 84 hands over, and the curtain would
       // intercept the Save click.
       const download = page.waitForEvent("download");
       await page.getByTestId("save").click();
