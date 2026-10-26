@@ -90,6 +90,8 @@ export interface Piece {
   parent: string | null;
   /** The unit this one is merged into (19.1x); absent when it stands alone. */
   attached_to?: string;
+  /** A formation too depleted to count whole: it stacks one level smaller (9.26). */
+  shell?: true;
   toe: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */

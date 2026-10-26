@@ -190,7 +190,7 @@ impl GameState {
     /// brigade with both attached, one not a shell, is not), a battalion
     /// under half its printed TOE (artillery a quarter). Attached shells
     /// do not count toward the parent's share.
-    pub(crate) fn is_shell(&self, data: &Data, id: &PieceId) -> bool {
+    pub fn is_shell(&self, data: &Data, id: &PieceId) -> bool {
         self.shell_at_depth(data, id, 0)
     }
 
