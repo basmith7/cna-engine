@@ -107,7 +107,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: next, prisoner guards and escape (28.2x) or the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
+- Mission 5 continues unattended: slice 8, prisoner guards and escape (28.2x), is planned on draft PR #47; then the combat follow-ups below. Slice 6 Task 3 and 24.9 dumps wait on cna. Helwan as an alternative to Cairo waits for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
