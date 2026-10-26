@@ -4,7 +4,8 @@
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
 **Status:** spec. Written while Mission 4's spec (PR #25) waits on
 Brian's review; Mission 4 still comes first the moment it is approved
-(see *Order against Mission 4*).
+(see *Order against Mission 4*). Axis convoy bombing on the Tripoli lane
+(32.6x) is built (`docs/plans/2026-10-26-m5-convoy-bombing.md`).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with
@@ -141,8 +142,9 @@ One PR each, in order; each has a plan in `docs/plans/`.
    destroying one's own supply, dummies.
 4. **Arrivals** (`…-slice-4-arrivals.md`): the naval convoy stage,
    simplified supply planning, Axis convoys, monthly motorisation
-   losses. Convoy bombing moved after slice 6: it needs the convoy lanes
-   (56.1) from cna and §19's full divisions.
+   losses. Convoy bombing followed once cna had the lanes (56.1):
+   `…-convoy-bombing.md` bombs the Tripoli lane (lane 2) from the
+   westernmost Commonwealth division HQ; lanes beyond Tripoli wait.
 5. **Breakdown and repair** (`…-slice-5-breakdown.md`): the breakdown
    segment, markers, towing, phase K repair.
 6. **Organisation, dumps and prisoners** (`…-slice-6-organisation.md`):

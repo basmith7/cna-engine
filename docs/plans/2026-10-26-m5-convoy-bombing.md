@@ -33,20 +33,20 @@ sinks nothing); tank and gun losses.
 
 ### Task 1: lanes as data
 
-- [ ] Failing test: `ConvoyLanes` loads six lanes; lane 2 ends in the
+- [x] Failing test: `ConvoyLanes` loads six lanes; lane 2 ends in the
   Tripoli box and is open from the start.
 
 ### Task 2: bombing at the convoy stage
 
-- [ ] Failing tests: no division west of the first threshold, no attack and
+- [x] Failing tests: no division west of the first threshold, no attack and
   no event; a division far west, a 20 %+ result sinks at least one; dummies
   are counted from survivors; the event records lane, bomb points, reading
   and losses.
-- [ ] Implement in `cna-game::convoy::supply_arrivals`.
+- [x] Implement in `cna-game::convoy::supply_arrivals`.
 
 ### Task 3: docs and gates
 
-- [ ] `NOT_SIMULATED.md`, design Status; goldens re-pinned if they move.
+- [x] `NOT_SIMULATED.md`, design Status; goldens re-pinned if they move.
 
 ## Testing
 

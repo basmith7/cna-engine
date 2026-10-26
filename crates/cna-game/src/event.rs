@@ -278,6 +278,18 @@ pub enum Event {
         points: u32,
     },
     /// A supply unit's motorisation points back in its hex's pool.
+    /// The Commonwealth bombed an Axis convoy on `lane` (32.6x): the
+    /// lowest `bomb_points` of the chart's band for its westernmost
+    /// division HQ, the two dice read in order, the percentage lost and
+    /// the supply units `sunk` of the `units` aboard.
+    ConvoyBombed {
+        lane: u8,
+        bomb_points: u32,
+        reading: u8,
+        percent: u32,
+        units: u32,
+        sunk: u32,
+    },
     /// A planning roll (32.4x): `units` real supply units for `side`
     /// arriving in Game-Turn `arrives`.
     SupplyPlanned {
