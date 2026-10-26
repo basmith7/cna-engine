@@ -80,6 +80,7 @@
   }
   .card {
     width: min(100%, 440px);
+    min-width: 0;
     padding: 1.6rem 1.8rem;
     background: #f4f0e6;
     border: 1px solid #d8d1c0;
@@ -121,6 +122,17 @@
   }
   .where {
     color: #555;
+  }
+  .scenario label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  select {
+    min-width: 0;
+    max-width: 100%;
   }
   select,
   input[type="text"] {

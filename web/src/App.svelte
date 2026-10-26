@@ -359,7 +359,7 @@
       });
   }
 
-  /** Downloads the state JSON as `graziani-gt<N>-os<M>.json`. */
+  /** Downloads the state JSON as `saveName`'s file. */
   function saveFile() {
     if (!engine || !view) return;
     const blob = new Blob([engine.save()], { type: "application/json" });
