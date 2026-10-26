@@ -13,6 +13,7 @@ use crate::state::GameState;
 use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
+use cna_data::off_map::OffMapPlace;
 use cna_data::scenario::Side;
 use cna_rules::movement::Mobility;
 use std::collections::BTreeMap;
@@ -24,8 +25,8 @@ pub const MAX_PER_HEX: u32 = 40;
 
 /// Where `captor`'s prisoners leave play (28.15): Alexandria and Cairo
 /// for the Commonwealth; for the Axis, A2802, the hex units leave by for
-/// the Tripolitania box. R-132 makes that box the departure point; the
-/// three off-map stages to it are skipped (`NOT_SIMULATED.md`).
+/// the Tripolitania box, R-132's departure point, which they reach after
+/// the off-map chart's stages at their CPA (8.89).
 pub fn departure_hexes(data: &Data, captor: Side) -> Vec<HexId> {
     match captor {
         Side::Cw => ["cairo", "alexandria-east", "alexandria-west"]
@@ -136,7 +137,25 @@ impl GameState {
         points: u32,
         events: &mut Vec<Event>,
     ) {
-        if departure_hexes(data, captor).contains(hex) {
+        if captor == Side::Axis && departure_hexes(data, captor).contains(hex) {
+            let stages = data
+                .off_map
+                .stages(
+                    OffMapPlace::Nofilia,
+                    OffMapPlace::Tripolitania,
+                    PRISONER_CPA,
+                )
+                .expect("the off-map chart has Nofilia to Tripolitania");
+            self.prisoners_off_map
+                .entry(captor)
+                .or_default()
+                .push((points, stages));
+            events.push(Event::PrisonersLeftMap {
+                side: captor,
+                points,
+                stages,
+            });
+        } else if departure_hexes(data, captor).contains(hex) {
             *self.prisoners_out.entry(captor).or_default() += points;
             events.push(Event::PrisonersGone {
                 side: captor,
@@ -145,6 +164,38 @@ impl GameState {
             });
         } else {
             add(&mut self.prisoners, captor, hex, points);
+        }
+    }
+
+    /// At the start of `side`'s phase H its prisoners off map go one
+    /// stage on; those that reach the Tripolitania box leave play (R-132).
+    pub(crate) fn prisoners_off_map_on(
+        &mut self,
+        data: &Data,
+        side: Side,
+        events: &mut Vec<Event>,
+    ) {
+        let Some(going) = self.prisoners_off_map.get_mut(&side) else {
+            return;
+        };
+        let mut arrived = 0;
+        going.retain_mut(|(points, stages)| {
+            *stages = stages.saturating_sub(1);
+            if *stages == 0 {
+                arrived += *points;
+            }
+            *stages > 0
+        });
+        if going.is_empty() {
+            self.prisoners_off_map.remove(&side);
+        }
+        if arrived > 0 {
+            *self.prisoners_out.entry(side).or_default() += arrived;
+            events.push(Event::PrisonersGone {
+                side,
+                hex: departure_hexes(data, side)[0].clone(),
+                points: arrived,
+            });
         }
     }
 
@@ -344,6 +395,34 @@ mod tests {
                         .is_some()
             })
             .unwrap()
+    }
+
+    #[test]
+    fn axis_prisoners_reach_the_tripolitania_box_three_phase_hs_after_a2802_r132() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let mut events = Vec::new();
+        state.capture_prisoners(&data, Side::Axis, &hex("A2802"), 4, &mut events);
+        assert!(events.contains(&Event::PrisonersLeftMap {
+            side: Side::Axis,
+            points: 4,
+            stages: 3,
+        }));
+        assert!(state.prisoners.is_empty() && state.prisoners_out.is_empty());
+        for _ in 0..2 {
+            let mut events = Vec::new();
+            state.prisoners_off_map_on(&data, Side::Cw, &mut events);
+            state.prisoners_off_map_on(&data, Side::Axis, &mut events);
+            assert!(events.is_empty());
+        }
+        let mut events = Vec::new();
+        state.prisoners_off_map_on(&data, Side::Axis, &mut events);
+        assert_eq!(state.prisoners_out[&Side::Axis], 4);
+        assert!(state.prisoners_off_map.is_empty());
+        assert!(matches!(
+            events[..],
+            [Event::PrisonersGone { points: 4, .. }]
+        ));
     }
 
     #[test]
