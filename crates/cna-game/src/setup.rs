@@ -169,6 +169,7 @@ pub fn expand(
                     status: None,
                     equivalent: None,
                     garrison_of: None,
+                    group: None,
                     location: location.clone(),
                     load: (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| {
                         Load {
@@ -355,6 +356,7 @@ fn piece(
         status: entry.status,
         equivalent,
         garrison_of: oa.formation_of(&unit.id).garrison_hex(),
+        group: None,
         location,
         load: None,
         cp_spent: Cp::ZERO,
@@ -541,6 +543,17 @@ pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<P
 }
 
 fn log_constraint(setup: &mut Setup, side: Side, p: &Placement, pieces: Vec<PieceId>) {
+    if p.together && pieces.len() > 1 {
+        let g = setup
+            .pieces
+            .iter()
+            .filter_map(|q| q.group)
+            .max()
+            .map_or(1, |g| g + 1);
+        for q in setup.pieces.iter_mut().filter(|q| pieces.contains(&q.id)) {
+            q.group = Some(g);
+        }
+    }
     if let Some(Locator::Place(ids)) = p.sole()
         && ids.len() > 1
     {

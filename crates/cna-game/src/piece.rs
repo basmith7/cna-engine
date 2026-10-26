@@ -158,6 +158,10 @@ pub struct Piece {
     /// The hex this garrison unit takes no stacking space in (9.16).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub garrison_of: Option<HexId>,
+    /// A set-up block that goes into one hex (`together` in cna's
+    /// placement): every piece of the block has the same group.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<u32>,
     pub location: Location,
     /// A real supply unit's ammunition and fuel, with the abstract
     /// supply module on (32.1x); none for everything else.

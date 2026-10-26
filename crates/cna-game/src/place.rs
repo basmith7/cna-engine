@@ -93,6 +93,23 @@ impl GameState {
                 format!("{hex} is outside {piece}'s placement area"),
             ));
         }
+        // `together`: the first of the block placed chooses the hex.
+        if let Some(g) = p.group
+            && let Some(mate) = self
+                .pieces
+                .values()
+                .find(|q| q.group == Some(g) && q.id != p.id && q.hex().is_some())
+            && mate.hex() != Some(hex)
+        {
+            return Err(Illegal::new(
+                "59.2",
+                format!(
+                    "{piece}'s block goes into one hex: {} is at {}",
+                    mate.id,
+                    mate.hex().expect("placed")
+                ),
+            ));
+        }
         if let Some(nw) = &placement.not_within {
             let area = data.map.within(hex, nw.hexes);
             if let Some(enemy) = self
@@ -311,6 +328,62 @@ mod tests {
                 );
             }
         }
+    }
+
+    // 60.92 via cna's `together`: a block's supply units share one hex,
+    // the first one placed choosing it.
+    #[test]
+    fn a_together_block_goes_into_one_hex() {
+        let data = data();
+        let mut state = supply_game(&data);
+        let g = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.group.is_some())
+            .and_then(|p| p.group)
+            .expect("an Axis group");
+        let group: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.group == Some(g))
+            .map(|p| p.id.clone())
+            .collect();
+        assert_eq!(group.len(), 3);
+        let offered = state.placements(&data, &group[0]);
+        let (first, other) = (offered[0].clone(), offered[1].clone());
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: group[0].clone(),
+                    hex: first.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.placements(&data, &group[1]), vec![first.clone()]);
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: group[1].clone(),
+                    hex: other,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "59.2");
+        assert!(err.reason.contains("one hex"), "{}", err.reason);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: group[1].clone(),
+                    hex: first,
+                },
+            )
+            .unwrap();
     }
 
     fn supply_game(data: &Data) -> GameState {

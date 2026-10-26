@@ -261,6 +261,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -289,6 +290,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -317,6 +319,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
       },
@@ -345,6 +348,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -401,6 +405,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -429,6 +434,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
         "hex": "C0102"
       },
@@ -681,6 +687,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -705,6 +712,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -729,6 +737,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
         "hex": "C0103"
       },
@@ -753,6 +762,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -777,6 +787,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -801,6 +812,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
         "hex": "C0104"
       },
@@ -1161,6 +1173,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1189,6 +1202,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1217,6 +1231,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
       },
@@ -1245,6 +1260,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },
@@ -1269,6 +1285,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },
@@ -1293,6 +1310,7 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
         "hex": "D3614"
       },

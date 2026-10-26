@@ -24,11 +24,11 @@ mod tests {
 
     /// SHA-256 of the final state's JSON (`GameState::to_json`).
     const FINAL_STATE_SHA256: &str =
-        "798d937729752c7a8a8c188f041bd2f4745a7f9929d5bb1bd80498c6beb7590f";
+        "5d686c71da8996e741410f72d1999f546551826b48df6c3fda5358697be00407";
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "3113fcac0b89808fb0f8fda3f9c77e33947f06ace0b9bf01da952c2fa7a75b98";
+        "5319c22628be3c0339a517f8d26d442d4350515ba634bebe8c9c8b6473d27dde";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
