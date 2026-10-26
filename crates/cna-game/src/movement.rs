@@ -690,10 +690,13 @@ impl GameState {
             .any(|id| self.pieces[id].kind == PieceKind::Combat);
         let mut at = from.clone();
         let mut reaction = None;
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
+            self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at,
@@ -703,6 +706,7 @@ impl GameState {
             for id in pieces {
                 self.charge(id, cost, false, &mut events);
             }
+            self.capture_wrecks(data, pieces, &to, &mut events);
             at = to;
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.
@@ -714,6 +718,9 @@ impl GameState {
                 }
             }
         }
+        // The stack stops, for good or for an answer: a breakdown check
+        // (21.2x).
+        self.check_breakdown(data, pieces, storm, &from, &mut events);
         if at != from {
             self.moved.extend(pieces.iter().cloned());
             self.release_contact_around(data, &from, player);
@@ -745,6 +752,8 @@ impl GameState {
                     in_g && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
             }
         }
+        // A stack its own breakdown check destroyed draws no reaction.
+        let reaction = reaction.filter(|_| pieces.iter().any(|id| self.pieces[id].hex().is_some()));
         if let Some(eligible) = reaction {
             events.push(Event::ReactionOffered {
                 pieces: eligible.clone(),

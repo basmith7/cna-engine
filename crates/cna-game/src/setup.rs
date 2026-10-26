@@ -159,6 +159,8 @@ pub fn expand(
                     fuelled_over: false,
                     motorised: 0,
                     escorted: false,
+                    breakdown_halves: 0,
+                    breakdown_checked: None,
                 });
             }
             log_constraint(&mut setup, side, &b.placement, ids);
@@ -340,6 +342,8 @@ fn piece(
         fuelled_over: false,
         motorised: 0,
         escorted: false,
+        breakdown_halves: 0,
+        breakdown_checked: None,
     }
 }
 

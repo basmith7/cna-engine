@@ -82,13 +82,13 @@ fn no(case: &'static str, reason: impl Into<String>) -> Prohibited {
 /// the prohibitions that ask (swamp, delta, wadis and rivers in rain)
 /// is a fact of the hexside the weather does not change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Along {
+pub(crate) enum Along {
     Road,
     Track,
     Country,
 }
 
-fn along(hexside: Option<&Hexside>, weather: Weather) -> Along {
+pub(crate) fn along(hexside: Option<&Hexside>, weather: Weather) -> Along {
     let Some(hs) = hexside else {
         return Along::Country;
     };
