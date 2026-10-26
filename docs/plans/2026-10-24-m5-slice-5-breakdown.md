@@ -43,7 +43,7 @@ broken-down vehicles.
 - [x] At each stop a check per vehicle weapon system in a higher column
   (`Piece.breakdown_checked`), BAR by model from `weapon-systems.json`,
   hot weather one right; losses leave the TOE.
-- [ ] Moved out: armoured cars, recce and trucks inside a unit's TOE (cna R-125 types recce; take it with the bump). The sandstorm
+- [x] Moved out, then landed on its own PR after the bump: recce units check and repair by R-125's vehicle class. The sandstorm
   shift is done, read per order rather than per phase.
 
 ### Task 3: markers, capture, towing, repair
