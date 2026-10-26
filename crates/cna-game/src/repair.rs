@@ -25,7 +25,7 @@ impl GameState {
         if !self
             .pieces
             .values()
-            .any(|p| p.side == side && p.hex() == Some(hex))
+            .any(|p| p.side == side && p.hex() == Some(hex) && p.kind != PieceKind::DummySupplyUnit)
         {
             return Some(Illegal::new(
                 "22.21",
@@ -155,29 +155,40 @@ impl GameState {
             ));
         }
         let (attempted, paid_by) = if self.modules.abstract_supply {
-            let sources = self.repair_fuel(data, player, hex);
-            let source = match fuel_from {
-                Some(f) if sources.contains(f) => f.clone(),
-                Some(f) => {
+            let mut sources = self.repair_fuel(data, player, hex);
+            if let Some(f) = fuel_from {
+                let Some(i) = sources.iter().position(|q| q == f) else {
                     return Err(Illegal::new(
                         "22.24",
                         format!("{f} cannot pay fuel for repairs at {hex}"),
                     ));
-                }
-                None => sources.first().cloned().ok_or_else(|| {
-                    Illegal::new("22.24", format!("no fuel in range of {hex} for repairs"))
-                })?,
+                };
+                let first = sources.remove(i);
+                sources.insert(0, first);
+            }
+            let Some(first) = sources.first().cloned() else {
+                return Err(Illegal::new(
+                    "22.24",
+                    format!("no fuel in range of {hex} for repairs"),
+                ));
             };
-            let load = self.pieces[&source].load.expect("has fuel");
-            let n = points.min(load.fuel);
-            self.pieces
-                .get_mut(&source)
-                .expect("listed")
-                .load
-                .as_mut()
-                .expect("has fuel")
-                .fuel -= n;
-            (n, Some(source))
+            let mut paid = 0;
+            for q in &sources {
+                let load = self
+                    .pieces
+                    .get_mut(q)
+                    .expect("listed")
+                    .load
+                    .as_mut()
+                    .expect("has fuel");
+                let n = (points - paid).min(load.fuel);
+                load.fuel -= n;
+                paid += n;
+                if paid == points {
+                    break;
+                }
+            }
+            (paid, Some(first))
         } else {
             (points, None)
         };
@@ -187,7 +198,7 @@ impl GameState {
             .vehicle_repair
             .row(die)
             .and_then(|r| r.field_tank_percent)
-            .unwrap_or(0);
+            .expect("vehicle-repair.json has a field tank percent for every d6 roll");
         let repaired = cna_rules::breakdown::losses(attempted, percent);
         self.take_wrecks(hex, player, weapon, repaired);
         if repaired > 0 {
@@ -318,6 +329,53 @@ mod tests {
             .and_then(|m| m.get("M13/40"))
             .copied();
         assert_eq!(pooled.unwrap_or(0), repaired);
+    }
+
+    #[test]
+    fn fuel_is_taken_across_the_sources_in_range_22_24() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_repair(&data, Modules::ALL);
+        let sources = state.repair_fuel(&data, Side::Axis, &hex);
+        assert!(sources.len() >= 2, "{sources:?}");
+        // One fuel each in the first two sources, none in the rest.
+        for (i, q) in sources.iter().enumerate() {
+            state.pieces.get_mut(q).unwrap().load.as_mut().unwrap().fuel = u32::from(i < 2);
+        }
+        let events = state.apply(&data, Side::Axis, repair(&hex)).unwrap();
+        let Event::FieldRepaired { attempted, .. } = events[0] else {
+            panic!("{events:?}");
+        };
+        assert_eq!(attempted, 2);
+    }
+
+    #[test]
+    fn a_dummy_alone_with_the_vehicles_opens_nothing_22_21() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_repair(
+            &data,
+            Modules {
+                abstract_supply: false,
+                breakdown: true,
+            },
+        );
+        let away = HexId::parse("A0101").unwrap();
+        let here: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.hex() == Some(&hex))
+            .map(|p| p.id.clone())
+            .collect();
+        for id in here {
+            state.pieces.get_mut(&id).unwrap().location = crate::piece::Location::Hex(away.clone());
+        }
+        let dummy = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::DummySupplyUnit)
+            .map(|p| p.id.clone())
+            .expect("an Axis dummy");
+        state.pieces.get_mut(&dummy).unwrap().location = crate::piece::Location::Hex(hex.clone());
+        assert!(state.field_repairs(&data).is_empty());
     }
 
     #[test]
