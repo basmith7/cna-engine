@@ -3,16 +3,17 @@
 **Date:** 2026-10-13
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
 **Status:** built for Graziani's Offensive, bar the items below (2026-10-26).
-Slices 1–5, 6a/6b and 6's limits, 7 (replacements), 8 (guards) and 9
-(construction) merged as PRs #31–#55; their plans are in `docs/plans/`.
-Still open: slice 6's organisation in the stack panel and its close-assault
-shell rule (`2026-10-26-m5-slice-6-organisation.md`), R-132's off-map
-prisoner stages, convoy lanes beyond Tripoli. Then the mission's second
-half: other scenarios' land rules (*Non-goals*). Its first step (#61):
-five of the nine scenarios set up and play a Game-Turn
-(`cna-game::scenarios`); the other four wait on cna. Mission 4 still comes
-first the moment its spec (PR #25) is approved (see *Order against
-Mission 4*).
+Slices 1–9 merged as PRs #31–#60 (organisation, shells and the stack
+panel, prisoners off map by R-132, guards, replacements, construction);
+#59 adds formations to close assault's size table (15.55). Their plans
+are in `docs/plans/`. Still open for Graziani's: convoy lanes beyond
+Tripoli, the 19.3 chart as the shell denominator, substitution. The
+mission's second half, other scenarios' land rules (*Non-goals*), has
+begun: #61 smoke-tests every scenario (five of nine set up and play a
+Game-Turn, `cna-game::scenarios`; the other four wait on cna), #63
+scores points victories, #62 lets the browser start any of them. Rommel
+(§31) waits on cna. Mission 4 still comes first the moment its spec
+(PR #25) is approved (see *Order against Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with
