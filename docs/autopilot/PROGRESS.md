@@ -29,10 +29,11 @@ Tripoli lane (#52, R-126–R-128); a released reserve unit assaults once per
 stage (#53, 18.23); attachment limits and shells (#55, 19.5, 9.26, R-130).
 Also merged: 15.84/14.14 gun losses (#54), R-132's Axis prisoners
 travelling off map plus a browser log line for `ConvoyBombed` (#58).
-Open at handoff, each green locally: #56 (design Status, README modules),
-#57 (shells one size smaller in 15.5x; fixes #55's battalion shells),
-#60 (organisation in the stack panel: nesting, shell badge), and draft
-#59 (formations in 15.5x's size table; its goldens need re-playing).
+Also merged: shells one size smaller in 15.5x, fixing #55's battalion
+shells (#57), and organisation in the stack panel: nesting and a shell
+badge (#60). Open at handoff: #56 (design Status, README modules; CI
+running) and draft #59 (formations in 15.5x's size table; its goldens
+need re-playing).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -83,7 +84,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge #56, #57 and #60 as CI passes;
+- Mission 5 continues unattended: merge #56 once CI passes;
   then finish draft #59 (division-sized formations in 15.5x: the short
   golden now diverges at GT1 stage 1's assault and needs its script
   re-played), convoy lanes beyond Tripoli, and the mission's second half
