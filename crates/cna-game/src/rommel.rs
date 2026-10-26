@@ -135,7 +135,8 @@ impl GameState {
             let dp = over(self.base_cpa(p)) - over(self.cpa(p));
             let p = self.pieces.get_mut(&id).expect("listed");
             p.rommel_cpa = 0;
-            if dp > 0 {
+            // A unit gone from the map has no cohesion left to charge.
+            if dp > 0 && p.hex().is_some() {
                 p.cohesion.earn_dp(dp);
                 events.push(Event::Disorganised {
                     piece: id,
@@ -333,6 +334,17 @@ mod tests {
             dp: 3,
             level: level - 3,
         }));
+        // Eliminated with him, a unit just loses the bonus.
+        let other = with_him(&state)
+            .into_iter()
+            .find(|q| state.pieces[q].rommel_cpa > 0)
+            .unwrap();
+        state.charge(&other, Cp::whole(30), false, &mut Vec::new());
+        state.pieces.get_mut(&other).unwrap().location = Location::Eliminated;
+        let mut events = Vec::new();
+        state.part_from_rommel(&mut events);
+        assert_eq!(state.pieces[&other].rommel_cpa, 0);
+        assert!(events.is_empty(), "{events:?}");
     }
 
     // R-137: 8.17's cap and whether a unit is motorised go by its own CPA.
