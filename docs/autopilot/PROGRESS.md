@@ -37,8 +37,8 @@ run:** cna answered the lone-Rommel request (R-138); #70 (merged) bumps
 bars his reaction, and alone in an enemy ZOC with no escape left he is
 captured. New requests: whose ZOC 8.53 means for every unit, which
 19.3 chart components count toward a shell, and Rommel after his stack
-is destroyed. #72 makes the reach search 3.4x faster (Mission 3's slow
-shading).
+is destroyed. #71 (merged) adds the last assignment tests; #72 (merged)
+makes the reach search 3x faster under wasm (Mission 3's slow shading).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -84,17 +84,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
   non-goal); ticks are offered in a sealed step though nothing moves;
-  selecting an uncapped motorised stack takes ~0.6 s to shade (measured
-  2026-10-26: `reachable` for 11 Hussars in Graziani's takes 310 ms
-  native release, 84 ms with every other piece removed, so about 75% is
-  linear piece scans per hex in `holder`, `friendly_combat_in` and
-  `could_exert`. The fix is a hex → pieces index built once per
-  search); at 390 px
+  selecting an uncapped motorised stack took ~0.6 s to shade (#72 cut
+  the engine's share 3x; not yet re-timed in a browser); at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Merge #72 (reach index, 3x faster under wasm; local Playwright
-  46/46) on green CI, then time the browser's shading. #71 (assignment
-  tests) is merged. Mission 5 then continues with whichever request
-  cna answers first.
+- Mission 5 continues with whichever cna request lands first (below).
+  Meanwhile: time the browser's shading after #72 (the engine call went
+  from 424 to 141 ms under wasm), then Axis convoy lanes beyond Tripoli
+  (56.15, 55.17) or the desert raiders (§27), which need hidden movement
+  and so wait for Mission 4's per-side views.
   Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
