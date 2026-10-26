@@ -2,10 +2,15 @@
 
 **Date:** 2026-10-13
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** spec. Written while Mission 4's spec (PR #25) waits on
-Brian's review; Mission 4 still comes first the moment it is approved
-(see *Order against Mission 4*). Axis convoy bombing on the Tripoli lane
-(32.6x) is built (`docs/plans/2026-10-26-m5-convoy-bombing.md`).
+**Status:** built for Graziani's Offensive, bar the items below (2026-10-26).
+Slices 1–5, 6a/6b and 6's limits, 7 (replacements), 8 (guards) and 9
+(construction) merged as PRs #31–#55; their plans are in `docs/plans/`.
+Still open: slice 6's organisation in the stack panel and its close-assault
+shell rule (`2026-10-26-m5-slice-6-organisation.md`), R-132's off-map
+prisoner stages, convoy lanes beyond Tripoli. Then the mission's second
+half: other scenarios' land rules (*Non-goals*). Mission 4 still comes
+first the moment its spec (PR #25) is approved (see *Order against
+Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with

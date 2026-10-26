@@ -79,6 +79,17 @@ cargo run -p cna-play -- log state.json -o log.json
 cargo run -p cna-play -- replay log.json -o replayed.json
 ```
 
+The rest of the Land Game turn (Mission 5) comes as three modules, on in
+every new game and each switched off by a `cna-play new` flag
+(`--no-abstract-supply`, `--no-breakdown`, `--no-construction`): §32's
+abstract supply (supply units with loads and motorisation points, fuel
+and ammunition spent from them, arrivals by the planning tables and Axis
+convoys that can be bombed, rail, the air lift, capture), §21's breakdown
+and field repair, and §24–26's fortifications and minefields. Attachment
+and detachment (§19, with 19.5's limits and 9.26's shells) and prisoners
+with their guards (§28) need no module.
+Older saves load with the modules off and play as they did.
+
 A log is the scenario, the ruleset, the seed, the `vendor/cna` commit and
 the accepted orders; it replays to the same state byte for byte on the same
 commit. `tests/games/` holds scripted games the tests replay:
