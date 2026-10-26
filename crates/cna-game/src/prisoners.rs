@@ -166,6 +166,12 @@ impl GameState {
         let mut cp = Cp::ZERO;
         let mut at = from;
         for (i, step) in path.iter().enumerate() {
+            if step == from {
+                return Err(Illegal::new(
+                    "28.13",
+                    format!("the march comes back to {from}, where it started"),
+                ));
+            }
             if !data.map.adjacent(at, step) {
                 return Err(Illegal::new(
                     "8.1x",
@@ -458,6 +464,27 @@ mod tests {
             .unwrap();
         let err = state
             .apply(&data, Side::Cw, march(start.as_str(), &["E3613"], 5))
+            .unwrap_err();
+        assert_eq!(err.case, "28.13");
+    }
+
+    #[test]
+    fn a_march_does_not_come_back_to_its_start_28_13() {
+        let data = graziani();
+        let start = by_alexandria(&data, &set_up(&data, 3));
+        let next = data
+            .map
+            .neighbours(&start)
+            .into_iter()
+            .find(|n| !departure_hexes(&data, Side::Cw).contains(n))
+            .unwrap();
+        let mut state = marching(&data, start.as_str(), 25);
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                march(start.as_str(), &[next.as_str(), start.as_str()], 25),
+            )
             .unwrap_err();
         assert_eq!(err.case, "28.13");
     }

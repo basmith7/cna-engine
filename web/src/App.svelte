@@ -23,6 +23,7 @@
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
+  import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
@@ -54,6 +55,11 @@
   let flying: PieceId | null = $state(null);
   /** Prisoners armed to march (28.13): map clicks extend the path until it is sent. */
   let march: March | null = $state(null);
+  // An armed march lapses when its hex can no longer march: phase H
+  // ended, the other side is to act, or its points have gone.
+  $effect(() => {
+    if (march && (!view || !marchable(view).some((g) => g.hex === march!.from))) march = null;
+  });
   /** The assault toggle for the next move. */
   let assault = $state(false);
   /** The custom path shift-clicks build; Enter sends it. */
@@ -227,7 +233,6 @@
       return;
     }
     // An armed prisoner march: each click is the path's next hex.
-    if (march && view.clock.phase !== "truck-convoy") march = null;
     if (march) {
       march = { ...march, path: [...march.path, h] };
       return;

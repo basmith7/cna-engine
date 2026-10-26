@@ -344,7 +344,8 @@ impl GameState {
                 events.push(Event::Surrendered {
                     pieces: pieces.clone(),
                 });
-                // No captor stands by: they wait where they gave up.
+                // No captor stands by: they wait where they stood (a
+                // must-attack stack short of its retreat never moved).
                 self.capture_prisoners(data, side.other(), &start, prisoners, &mut events);
             } else {
                 events.push(Event::RetreatBoughtOut {
