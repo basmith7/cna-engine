@@ -774,6 +774,7 @@ impl GameState {
             }
             self.capture_wrecks(data, pieces, &to, &mut events);
             self.surrender_collapsed(data, pieces, &to, &mut events);
+            self.free_prisoners(data, pieces, &to, &mut events);
             at = to;
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.

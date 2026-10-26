@@ -999,7 +999,7 @@ mod tests {
 
         // Phase J of GT1 OpStage 1: the Commonwealth's supply at Mersa
         // Matruh may ride the railway east (golden order 86 passes).
-        let rail = golden_prefix(85);
+        let rail = golden_prefix(86);
         assert_eq!(rail.clock.phase, cna_game::clock::Phase::Rail);
         assert_eq!(rail.to_act(), Some(Side::Cw));
 
@@ -1047,8 +1047,8 @@ mod tests {
     const HASHED: [(&str, usize); 4] = [
         ("set-up-done", 56),
         ("movement-done", 65),
-        ("combat-done", 78),
-        ("golden-done", 458),
+        ("combat-done", 79),
+        ("golden-done", 459),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`

@@ -15,6 +15,7 @@ mod determinism;
 pub mod event;
 mod fuel;
 mod golden;
+mod guards;
 pub mod log;
 pub mod movement;
 mod off_map;

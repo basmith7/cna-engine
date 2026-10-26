@@ -741,6 +741,15 @@
     {
       "player": "axis",
       "order": {
+        "detail-guards": {
+          "piece": "unit:it:ix-libyan-bn",
+          "points": 3
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
         "march-prisoners": {
           "from": "C4021",
           "path": [

@@ -80,6 +80,9 @@ impl GameState {
         }
         let mut events = Vec::new();
         self.before_leaving_g(data, &mut events)?;
+        if self.clock.phase == Phase::TruckConvoy {
+            self.escape_unguarded(data, &mut events);
+        }
         self.cycle = 0;
         self.continuing.clear();
         self.clock = self.clock.end_phase();
@@ -134,7 +137,7 @@ impl GameState {
                 Phase::TruckConvoy
                     if {
                         self.marched.clear();
-                        self.trucks_to_move() || self.prisoners_to_move()
+                        self.trucks_to_move() || self.prisoners_to_handle()
                     } =>
                 {
                     events.push(Event::PhaseStarted { clock });

@@ -198,6 +198,17 @@ pub struct GameState {
     /// Prisoner points each captor has sent out of play (28.15).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub prisoners_out: BTreeMap<Side, u32>,
+    /// Guard points by owner and hex (28.21): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub guards: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Escapees by their own side and hex (28.25): too far from friends
+    /// to rejoin, waiting to be recaptured.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escapees: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Prisoner points each side has had back by escape or liberation
+    /// (28.24).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escaped: BTreeMap<Side, u32>,
     /// Hexes prisoners marched into this phase H: they go no further
     /// (28.13).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
@@ -309,6 +320,9 @@ impl GameState {
             railed: BTreeSet::new(),
             prisoners: BTreeMap::new(),
             prisoners_out: BTreeMap::new(),
+            guards: BTreeMap::new(),
+            escapees: BTreeMap::new(),
+            escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
             air_lifted: BTreeMap::new(),
             rail_east: None,
@@ -521,6 +535,12 @@ impl GameState {
             ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
             (None, Order::MarchPrisoners { from, path, points }) => {
                 self.march_prisoners(data, player, from, path, *points)
+            }
+            (None, Order::DetailGuards { piece, points }) => {
+                self.detail_guards(data, player, piece, *points)
+            }
+            (None, Order::ReleaseGuards { piece, points }) => {
+                self.release_guards(data, player, piece, *points)
             }
             (
                 None,

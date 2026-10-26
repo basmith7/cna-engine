@@ -5,7 +5,7 @@
   import { glyphFor, label, markers, nameParts, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
-  import { prisonersAt } from "./prisoners";
+  import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
   import { loadLabel, motorisationAt } from "./supply";
   import type { Order, PieceId, View } from "./types";
@@ -24,6 +24,11 @@
   const wrecks = $derived(hex ? (view.broken_down?.[hex] ?? []) : []);
   const prisoners = $derived(hex ? prisonersAt(view, hex) : []);
   const repaired = $derived(hex ? repairedAt(view, hex) : []);
+  const guards = $derived(hex ? guardsAt(view, hex) : []);
+  const escapees = $derived(hex ? escapeesAt(view, hex) : []);
+  /** The side to act's combat units in the hex, which detail guards or take them back (28.21, 28.22). */
+  const guarders = $derived(pieces.filter((p) => p.side === view.to_act && p.kind === "combat"));
+  let guarding: { piece: PieceId | null; points: number } = $state({ piece: null, points: 1 });
   /** The side to act's units in the hex, which may absorb repaired points in phase C (20.41). */
   const absorbers = $derived(pieces.filter((p) => p.side === view.to_act && (p.kind === "combat" || p.kind === "hq")));
   let absorbing: Record<string, { piece: PieceId | null; points: number }> = $state({});
@@ -45,6 +50,26 @@
     {#each prisoners as g (g.side)}
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>
     {/each}
+    {#each guards as g (g.side)}
+      <p class="prisoners side-{g.side}" data-testid="guards">{g.points} guard point{g.points === 1 ? "" : "s"} of the {sideName(g.side)}</p>
+    {/each}
+    {#each escapees as g (g.side)}
+      <p class="prisoners side-{g.side}" data-testid="escapees">{g.points} {sideName(g.side)} escapee point{g.points === 1 ? "" : "s"}</p>
+    {/each}
+    {#if onorder && guardPhase(view) && guarders.length > 0}
+      {@const pick = { piece: guarding.piece && guarders.some((p) => p.id === guarding.piece) ? guarding.piece : guarders[0].id, points: guarding.points }}
+      <p class="guarding" data-testid="guard-controls">
+        Guards:
+        <select aria-label="Unit for guards" value={pick.piece} onchange={(e) => (guarding = { ...pick, piece: (e.target as HTMLSelectElement).value })}>
+          {#each guarders as a (a.id)}
+            <option value={a.id}>{label(a).short}</option>
+          {/each}
+        </select>
+        <input type="number" min="1" value={pick.points} aria-label="Guard points" oninput={(e) => (guarding = { ...pick, points: Number((e.target as HTMLInputElement).value) })} />
+        <button type="button" data-order="detail-guards" title="Infantry TOE points become guards, one per five prisoners on the march (28.17, 28.21)" onclick={() => onorder({ "detail-guards": { piece: pick.piece, points: pick.points } })}>Detail</button>
+        <button type="button" data-order="release-guards" title="Guards here rejoin the unit (28.22)" onclick={() => onorder({ "release-guards": { piece: pick.piece, points: pick.points } })}>Release</button>
+      </p>
+    {/if}
     {#each repaired as r (r.weapon)}
       {@const pick = absorbing[r.weapon] ?? { piece: absorbers[0]?.id ?? null, points: r.points }}
       <p class="repaired" data-testid="repaired" data-weapon={r.weapon}>
@@ -137,8 +162,13 @@
     font-size: 12px;
     color: #1f4d3a;
   }
-  .repaired input {
+  .repaired input,
+  .guarding input {
     width: 3rem;
+  }
+  .guarding {
+    margin: 0 0 0.3rem;
+    font-size: 12px;
   }
   .prisoners {
     margin: 0 0 0.3rem;

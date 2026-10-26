@@ -131,6 +131,12 @@ pub enum Order {
         path: Vec<HexId>,
         points: u32,
     },
+    /// Phase C or the player's phase H: `points` of `piece`'s infantry
+    /// TOE points become guard points in its hex (28.21).
+    DetailGuards { piece: PieceId, points: u32 },
+    /// Phase C or the player's phase H: `points` of the guard points in
+    /// `piece`'s hex rejoin it as infantry TOE points (28.22).
+    ReleaseGuards { piece: PieceId, points: u32 },
     /// Phase C: `piece` absorbs `points` of the player's repaired
     /// `weapon` points waiting in its hex (19.61, 20.41).
     Absorb {
