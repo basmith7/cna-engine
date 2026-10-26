@@ -67,9 +67,11 @@ needs the Air Bombardment Table); the Logistics Game's stores and water
 - [x] Laying: `Item::RealMinefield`/`DummyMinefield` on `Order::Build`,
   `GameState.minefields`, 24.33's ammunition, the view's secret, the
   stack panel's Lay controls (`construction.spec.ts`).
-- [ ] Write the failing tests for entry: TEC costs (friendly 1/4, enemy
-  4/CPA; +4 and 0 with an engineer battalion or CW E-HQ in the stack),
-  revealing on enemy entry, dummy removal at the end of the movement
-  phase, the 5–6 roll per unescorted vehicle unit.
-- [ ] Entry costs in `movement.rs` and `reach.rs`, the roll, the combat
-  shift (26.26), clearing (26.11).
+- [x] Entry: TEC costs with engineer escorts, revealing on enemy entry,
+  dummy removal at the end of the movement phase, the 5–6 roll per
+  unescorted motorised combat unit, the combat shift (26.26).
+- [ ] Clearing (26.11) as an order: an engineer that starts the stage in
+  the hex and spends no movement CP clears a real field at the stage's
+  end (a choice, so `Order::ClearMinefield` in phase C, counted like a
+  project). Then the trucks' roll, and mine costs on a step into enemy
+  ZOC.
