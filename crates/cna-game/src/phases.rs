@@ -6,11 +6,9 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceKind};
+
 use crate::state::{GameState, Weather};
 use cna_data::cp::Cp;
-use cna_data::initiative::AxisSituation;
-use cna_data::oa::Nation;
 use cna_data::scenario::Side;
 use cna_data::time::GameTime;
 use cna_data::weather::WeatherKind;
@@ -109,6 +107,7 @@ impl GameState {
                     self.count_construction(data, events);
                     self.start_stage();
                     if clock.stage == 1 {
+                        self.roll_rommel_recall(data, events);
                         self.naval_convoy_stage(data, events);
                     }
                     self.determine_initiative(data, events);
@@ -225,10 +224,7 @@ impl GameState {
         if now.opstage != 1 && !grant_just_ended && self.initiative.is_some() {
             return;
         }
-        let axis_rating = data
-            .initiative
-            .axis(self.axis_situation())
-            .expect("initiative-ratings.json has every situation");
+        let axis_rating = self.axis_initiative_rating(data);
         let cw_rating = data
             .initiative
             .commonwealth(now.game_turn)
@@ -255,22 +251,6 @@ impl GameState {
             holder,
             rolled: true,
         });
-    }
-
-    /// German land combat units on the map, holding boxes excepted
-    /// (7.1x). Rommel is not on any OA sheet yet, so his row is never
-    /// reached.
-    fn axis_situation(&self) -> AxisSituation {
-        let germans = self.pieces.values().any(|p| {
-            p.nation == Some(Nation::De)
-                && p.kind == PieceKind::Combat
-                && matches!(p.location, Location::Hex(_))
-        });
-        if germans {
-            AxisSituation::GermanLandCombatUnitsNoRommel
-        } else {
-            AxisSituation::NoGermanCombatUnits
-        }
     }
 
     /// Phase B (29.6): two dice read sequentially on the season's row;

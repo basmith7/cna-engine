@@ -36,6 +36,8 @@ pub enum Event {
         holder: Side,
         rolled: bool,
     },
+    /// A 12 on 31.0's roll: Rommel is in Germany this Game-Turn.
+    RommelRecalled,
     /// Who is Player A this OpStage.
     InitiativeDeclared {
         player_a: Side,

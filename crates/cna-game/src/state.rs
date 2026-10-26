@@ -161,6 +161,9 @@ pub struct GameState {
     pub pending_motorisation: BTreeMap<PieceId, u32>,
     /// Who holds initiative this Game-Turn (7.1x).
     pub initiative: Option<Side>,
+    /// Rommel recalled to Germany for this Game-Turn (31.0).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rommel_recalled: bool,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
     /// Supply units planned and on their way (32.4x).
@@ -327,6 +330,7 @@ impl GameState {
             motorisation,
             pending_motorisation,
             initiative: None,
+            rommel_recalled: false,
             player_a: None,
             organised: false,
             attachment_tracked: false,

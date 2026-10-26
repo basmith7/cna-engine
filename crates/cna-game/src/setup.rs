@@ -567,7 +567,8 @@ pub fn reinforcement(
         .into_iter()
         .filter_map(|m| {
             let unit = oa.unit(&m.id)?;
-            if unit.id_code.is_none() && unit.toe.is_empty() {
+            // A heading with no counter; Rommel's has none but is one.
+            if unit.id_code.is_none() && unit.toe.is_empty() && unit.commander.is_none() {
                 return None;
             }
             Some(piece(
@@ -862,6 +863,25 @@ mod tests {
         assert_eq!(rtr.len(), 1);
         assert_eq!(rtr[0].parent, Some(uid("unit:cw:3-armd-bde-hq")));
         assert_eq!(rtr[0].location, Location::Hex(hex("A2022")));
+    }
+
+    #[test]
+    fn rommel_arrives_as_a_commander() {
+        let oa = Oa::load_all().unwrap();
+        let chars = Characteristics::load().unwrap();
+        let at = cna_data::time::GameTime::new(20, 2);
+        let pieces = reinforcement(
+            Side::Axis,
+            &uid("unit:de:rommel"),
+            &oa,
+            &chars,
+            at,
+            Location::Box(OffMapBox::Tripoli),
+        )
+        .unwrap();
+        assert_eq!(pieces.len(), 1);
+        assert_eq!(pieces[0].kind, PieceKind::Commander);
+        assert_eq!(pieces[0].cpa.as_ref().and_then(|r| r.value), Some(60));
     }
 
     #[test]

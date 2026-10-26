@@ -43,6 +43,7 @@ const STEP = { "gun-positions": "gun positions", barrage: "barrage", "assign-for
 
 export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
+  if (e === "rommel-recalled") return "Rommel is recalled to Germany for this Game-Turn.";
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;
     return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${PHASE_NAMES[c.phase]}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${SEGMENT_NAMES[c.segment]}` : ""} begins.`;
