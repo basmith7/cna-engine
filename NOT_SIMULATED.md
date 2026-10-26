@@ -66,7 +66,6 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
 | R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a defender out of ammunition still defends and no hex surrenders yet (a later Mission 5 slice) |
-| R-121 | abstract supply: company-equivalents still pay no ammunition (`cna-game::ammo`); half a battalion-equivalent's rate is next |
 | R-122 | loss base of a committed defender: not yet checked against `cna-game::combat::assault` |
 | R-123 | motorising foot units with motorisation points: a later Mission 5 slice |
 | R-124 | HQ echelons for air lift: the Air Game is not in the engine yet |
@@ -92,6 +91,7 @@ rulings*). Each names where it is enforced.
 | R-110 | Land-only victory supply is a route a medium truck could follow from the holding unit to the level's source, through no enemy hex and no enemy-ZOC hex without a friendly piece (`cna-game::victory`); every enemy hex able to exert a ZOC does, since 10.16's declarations belong to a movement segment |
 | R-117 | a swamp hex entered from a railroad hex across a constructed railroad hexside costs the road rate: 1 CP non-motorised, ½ motorised, breakdown ½; an unconstructed railroad opens nothing, and hexside features on the step are charged as off a road (`cna_rules::movement::step_cost`) |
 | R-118 | a must-attack retreat (10.36) is paid as ordinary movement from the CP the unit has left; `cp_spent` then rises to the CPA with no DP for the difference, and 3 DP follow; only a retreat costing more than was left overspends (`cna-game::combat::retreat::forced_retreat`); the breakdown segment is not simulated, so no vehicle check arises yet |
+| R-121 | a company-equivalent pays half a battalion-equivalent's ammunition; a side's companies in one barrage or assault pay `ceil(n * rate / 2)` together, the first company taking the rounded-up half (`cna_rules::supply::company_ammo_share`, `cna-game::ammo`) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)
