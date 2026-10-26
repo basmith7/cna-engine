@@ -197,6 +197,10 @@ pub struct Piece {
     /// rest of the stage, and the combat limits slice 5 reads.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub released: Option<Reserve>,
+    /// Released and has since made its one offensive close assault (or
+    /// probe) this OpStage (18.23, 18.24).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub released_assaulted: bool,
     /// Arrived as a reinforcement this OpStage (20.1x): its first hex is
     /// free, and it may not leave the box it landed in (8.8x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
