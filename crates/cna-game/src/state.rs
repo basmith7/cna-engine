@@ -299,7 +299,7 @@ impl GameState {
         let mut motorisation: BTreeMap<Side, BTreeMap<String, u32>> = BTreeMap::new();
         let mut pending_motorisation = BTreeMap::new();
         for m in setup.motorisation {
-            match (m.location.key(), m.anchor) {
+            match (m.location.key(), m.pieces.into_iter().next()) {
                 (Some(key), _) => {
                     *motorisation
                         .entry(m.side)
