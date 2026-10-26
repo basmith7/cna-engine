@@ -43,11 +43,11 @@ replacements (60.31; they start attached).
 
 ### Task 2: Absorb
 
-- [ ] Write the failing tests: absorb in phase C at 1 CP per two; refused
+- [x] Write the failing tests: absorb in phase C at 1 CP per two; refused
   outside phase C, in another hex, over the OA ceiling, for a non-tank
   unit taking tank points, for a unit at zero. Then `Order::Absorb`.
 
 ### Task 3: UI, docs
 
-- [ ] Stack panel lines and the Absorb button; an e2e from a fixture;
-  `NOT_SIMULATED.md`.
+- [x] Stack panel lines and the Absorb button; `replacements.spec.ts`
+  from the set-up fixture; `NOT_SIMULATED.md`.

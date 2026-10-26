@@ -44,6 +44,7 @@ const cases: [Event, string][] = [
   [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
   [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
   [{ "prisoners-gone": { side: "cw", hex: "E3613", points: 5 } }, "5 Commonwealth prisoner points leave play at E3613."],
+  [{ absorbed: { piece: "unit:it:iim-tank-bn", weapon: "M11/39", points: 3, cp: 2 } }, "unit:it:iim-tank-bn absorbs 3 repaired M11/39 points for 2 CP."],
   [{ surrendered: { pieces: ["u:b"] } }, "B surrender."],
   [{ engaged: { pieces: ["u:a", "u:b"] } }, "A, B are engaged."],
   [{ "retreat-ordered": { pieces: ["u:b"], hexes: 1, reason: "must-attack" } }, "B must retreat 1 hex (must attack or retreat)."],
@@ -77,9 +78,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 54 variants", () => {
+  it("covers all 55 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(54);
+    expect(tags.size).toBe(55);
   });
 
   it.each(cases)("%j", (event, line) => {
