@@ -412,3 +412,9 @@ Done: #66 (stacked on #65): `cna-game::rommel`: Axis initiative 6 with Rommel on
 In flight: #65's CI, then #66's (local Playwright /tmp/pw-66.log).
 Next: merge #65, then main into #66 and merge it on green CI. Then convoy lanes beyond Tripoli or the 19.3 chart as the shell denominator.
 Blocked: Mission 4 on Brian's review of #25; Rommel's Arrival family and the escort bonus on cna.
+
+## 2026-10-26 10:10 MST — autopilot/m5-rommel-escort
+Done: #67 (autopilot/m5-cna-bump-4): vendor/cna fc78330 (R-136, R-137 answered both requests), `apart` placements; Rommel's Arrival and both campaigns set up, all nine scenarios smoke-tested, WAITING list removed (c50ec7c, eebaaec). #68 (stacked): R-137 escort, `Piece.rommel_cpa`, `base_cpa` for 8.17 and the motorised test, parting charges spared DP (41cc785, b829050). Rust gates and wasm-pack test green locally.
+In flight: #67 local Playwright (/tmp/pw-67.log) and CI; #68 CI.
+Next: merge #67 then #68 (retarget to main) on green CI. Then Rommel's reactions/retreats through ZOC or the LRDG raid (27.9x).
+Blocked: Mission 4 on Brian's review of #25.
