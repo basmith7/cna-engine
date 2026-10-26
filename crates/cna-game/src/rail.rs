@@ -93,6 +93,12 @@ impl GameState {
                 format!("{id} has spent CP this stage: it may not ride the railway"),
             ));
         }
+        if p.flown {
+            return Err(Illegal::new(
+                "32.37",
+                format!("{id} was flown this stage: it stays put"),
+            ));
+        }
         if self.railed.contains(id) {
             return Err(Illegal::new(
                 "32.3x",

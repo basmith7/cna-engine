@@ -151,6 +151,9 @@ pub struct GameState {
     /// Supply units that rode the railway this OpStage (32.3x: two).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub railed: BTreeSet<PieceId>,
+    /// The Game-Turn each side last flew a supply unit (32.37).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub air_lifted: BTreeMap<Side, u8>,
     /// Which way this OpStage's rail runs went: east or not (32.3x).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rail_east: Option<bool>,
@@ -250,6 +253,7 @@ impl GameState {
             field_rolled: BTreeSet::new(),
             repaired: BTreeMap::new(),
             railed: BTreeSet::new(),
+            air_lifted: BTreeMap::new(),
             rail_east: None,
             weather: Weather::Normal,
             pieces,
@@ -437,6 +441,14 @@ impl GameState {
                     fuel,
                 },
             ) => self.transfer_load(player, from, to, *ammo, *fuel),
+            (
+                None,
+                Order::AirLift {
+                    piece,
+                    to,
+                    fuel_from,
+                },
+            ) => self.air_lift(data, player, piece, to, fuel_from.as_ref()),
             (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
             (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
             (

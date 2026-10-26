@@ -166,6 +166,7 @@ impl GameState {
             p.reserve = None;
             p.released = None;
             p.landed = false;
+            p.flown = false;
             p.fuelled = false;
             p.escorted = false;
             p.breakdown_halves = 0;

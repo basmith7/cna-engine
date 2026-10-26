@@ -1,6 +1,7 @@
 //! The game state for one scenario, headless: pieces, the clock, orders,
 //! events and the log, with movement; combat follows in slice 5.
 
+mod air_lift;
 mod ammo;
 mod arrival;
 pub mod breakdown;
