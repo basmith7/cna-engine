@@ -352,6 +352,35 @@ pub enum Event {
         hex: HexId,
         points: u32,
     },
+    /// `piece` turned `points` infantry TOE points into guards in `hex`
+    /// (28.21).
+    GuardsDetailed {
+        piece: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// `points` guards in `hex` rejoined `piece` (28.22).
+    GuardsReleased {
+        piece: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// `side`'s men held prisoner in `hex` got away (28.23): `rejoined`
+    /// left play to come back to their side (28.24); the rest wait there
+    /// as escapees (28.25).
+    PrisonersEscaped {
+        side: Side,
+        hex: HexId,
+        rejoined: u32,
+        escapees: u32,
+    },
+    /// `side`'s units entered `hex` and freed `points` of their own men
+    /// held prisoner there (28.24, 28.26).
+    PrisonersFreed {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
     /// `piece` absorbed `points` repaired `weapon` points for `cp` CP
     /// (19.61, 20.41).
     Absorbed {

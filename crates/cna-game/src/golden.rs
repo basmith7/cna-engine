@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "c341b894416113a8c13d2f45689d2d01afef85ed7b1b12acb5a65dd620bf0813";
+        "7e1efd40eea2cde33a567a74ad31300fea3387cf76fdd8d057d7bcf6ce610369";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -195,11 +195,19 @@ mod tests {
         );
         if modules.abstract_supply {
             // Phase H: Halfaya's 12 infantry points are the Axis's
-            // prisoners at C4021; they start west (28.13).
+            // prisoners at C4021; three guards take them west (28.13).
             play(
                 data,
                 &mut state,
                 vec![
+                    // Three guards for the twelve (28.17, E-029).
+                    (
+                        Axis,
+                        Order::DetailGuards {
+                            piece: pid("unit:it:ix-libyan-bn"),
+                            points: 3,
+                        },
+                    ),
                     (
                         Axis,
                         Order::MarchPrisoners {
@@ -388,8 +396,11 @@ mod tests {
         for unit in ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"] {
             assert_eq!(replayed.pieces[&pid(unit)].hex(), None, "{unit}");
         }
-        // Their infantry are the Axis's prisoners, marched west (28.1x).
+        // Their infantry are the Axis's prisoners, marched west under
+        // three guards, who keep them from escaping (28.1x, 28.2x).
         assert_eq!(replayed.prisoners[&Side::Axis][&hex("C4120")], 12);
+        assert_eq!(replayed.guards[&Side::Axis][&hex("C4120")], 3);
+        assert!(replayed.escapees.is_empty() && replayed.escaped.is_empty());
         let report = replayed.over.as_ref().unwrap();
         assert_eq!((report.axis, report.cw), (None, None));
         let halfaya = report

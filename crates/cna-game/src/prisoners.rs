@@ -1,8 +1,8 @@
 //! Prisoners (§28): the infantry a surrender or a close assault's
 //! capture roll takes become the captor's prisoner points, standing with
 //! the captor; the captor marches them in its truck convoy phase to a
-//! departure hex, where they leave play. Guards and escape (28.2x) are
-//! not simulated yet (`NOT_SIMULATED.md`).
+//! departure hex, where they leave play, a guard to every five on the
+//! march (`guards.rs`).
 
 use crate::clock::Phase;
 use crate::combat::strength::Class;
@@ -109,12 +109,15 @@ impl GameState {
         }
     }
 
-    /// Whether the phasing side holds prisoners that may march (28.13).
+    /// Whether the phasing side holds prisoners that may march (28.13),
+    /// or guards it may release (28.22).
     pub(crate) fn prisoners_to_move(&self) -> bool {
         self.phasing().is_some_and(|side| {
-            self.prisoners
-                .get(&side)
-                .is_some_and(|m| m.keys().any(|h| !self.marched.contains(h)))
+            self.guards.contains_key(&side)
+                || self
+                    .prisoners
+                    .get(&side)
+                    .is_some_and(|m| m.keys().any(|h| !self.marched.contains(h)))
         })
     }
 
@@ -161,6 +164,16 @@ impl GameState {
         let Some(to) = path.last() else {
             return Err(Illegal::new("28.13", "a march needs a path"));
         };
+        let guards = crate::guards::guards_needed(points);
+        let guarding = crate::guards::held(&self.guards, player, from);
+        if guarding < guards {
+            return Err(Illegal::new(
+                "28.17",
+                format!(
+                    "{points} prisoner points march with {guards} guards: {from} has {guarding} (E-029)"
+                ),
+            ));
+        }
         let departures = departure_hexes(data, player);
         let none = Default::default();
         let mut cp = Cp::ZERO;
@@ -241,6 +254,8 @@ impl GameState {
         if mine.is_empty() {
             self.prisoners.remove(&player);
         }
+        crate::guards::take(&mut self.guards, player, from, guards);
+        crate::guards::add(&mut self.guards, player, to, guards);
         let mut events = vec![Event::PrisonersMarched {
             side: player,
             path: std::iter::once(from.clone())
@@ -278,6 +293,11 @@ mod tests {
             .entry(Side::Cw)
             .or_default()
             .insert(hex(at), points);
+        state
+            .guards
+            .entry(Side::Cw)
+            .or_default()
+            .insert(hex(at), crate::guards::guards_needed(points));
         state
     }
 
@@ -455,6 +475,11 @@ mod tests {
             .get_mut(&Side::Cw)
             .unwrap()
             .insert(next.clone(), 15);
+        state
+            .guards
+            .get_mut(&Side::Cw)
+            .unwrap()
+            .insert(next.clone(), 3);
         let err = state
             .apply(&data, Side::Cw, march(next.as_str(), &[start.as_str()], 15))
             .unwrap_err();

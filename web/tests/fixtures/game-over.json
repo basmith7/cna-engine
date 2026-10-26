@@ -89,6 +89,11 @@
       "C4120": 12
     }
   },
+  "guards": {
+    "axis": {
+      "C4120": 3
+    }
+  },
   "attachment_tracked": true,
   "weather": "hot",
   "pieces": {
@@ -8450,7 +8455,7 @@
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
       "attached_to": "unit:it:1st-libyan-regt-hq",
-      "toe": 5,
+      "toe": 2,
       "cpa": "10",
       "morale": -2,
       "status": null,
@@ -10749,6 +10754,15 @@
     {
       "player": "axis",
       "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "detail-guards": {
+          "piece": "unit:it:ix-libyan-bn",
+          "points": 3
+        }
+      }
     },
     {
       "player": "axis",
