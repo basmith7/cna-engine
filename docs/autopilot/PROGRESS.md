@@ -27,12 +27,13 @@ which answered every open request (#51: minefields spend no supplies under
 §32, R-133; rough not salt marsh, R-134); Axis convoy bombing on the
 Tripoli lane (#52, R-126–R-128); a released reserve unit assaults once per
 stage (#53, 18.23); attachment limits and shells (#55, 19.5, 9.26, R-130).
-Open PRs at handoff: #54 (15.84/14.14 gun losses), #56 (docs), #57
-(shells one size smaller in 15.5x, and a fix for #55's battalion shells),
-#58 (R-132 prisoners off map; a log line for #52's `ConvoyBombed`, whose
-absence throws in the browser), and slice 6 Task 5's stack-panel UI if
-its implementer finished. Mission 4 resumes first the moment **Feedback**
-approves #25.
+Also merged: 15.84/14.14 gun losses (#54), R-132's Axis prisoners
+travelling off map plus a browser log line for `ConvoyBombed` (#58).
+Open at handoff, each green locally: #56 (design Status, README modules),
+#57 (shells one size smaller in 15.5x; fixes #55's battalion shells),
+#60 (organisation in the stack panel: nesting, shell badge), and draft
+#59 (formations in 15.5x's size table; its goldens need re-playing).
+Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
 slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
@@ -82,12 +83,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended: merge the open PRs above as CI passes
-  (#58 first: without it a bombed convoy breaks the browser log). Then
-  division-sized formations in 15.5x's size table, convoy lanes beyond
-  Tripoli, and the mission's second half (other scenarios' land rules).
-  Helwan as an alternative to Cairo waits for a set-up change that
-  re-indexes the golden games anyway.
+- Mission 5 continues unattended: merge #56, #57 and #60 as CI passes;
+  then finish draft #59 (division-sized formations in 15.5x: the short
+  golden now diverges at GT1 stage 1's assault and needs its script
+  re-played), convoy lanes beyond Tripoli, and the mission's second half
+  (other scenarios' land rules). Helwan as an alternative to Cairo waits
+  for a set-up change that re-indexes the golden games anyway.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
