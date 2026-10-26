@@ -7,6 +7,7 @@ use crate::data::Data;
 use crate::event::Event;
 use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::cp::Cp;
 use cna_data::initiative::AxisSituation;
 use cna_data::map::HexId;
 use cna_data::oa::{Commander, Nation};
@@ -84,6 +85,64 @@ impl GameState {
         if u32::from(a + b) == target {
             self.rommel_recalled = true;
             events.push(Event::RommelRecalled);
+        }
+    }
+
+    /// R-137: as an OpStage begins, every Axis unit in the hex of a
+    /// commanding Rommel borrows his `escort_cpa_bonus`; everyone else
+    /// has none.
+    pub(crate) fn mark_rommel_escort(&mut self, data: &Data) {
+        let bonus = self
+            .rommel_on_map()
+            .filter(|_| !self.rommel_recalled)
+            .and_then(|r| Some((r.hex()?.clone(), commander(data, r)?.escort_cpa_bonus)));
+        for p in self.pieces.values_mut() {
+            p.rommel_cpa = match &bonus {
+                Some((hex, n))
+                    if p.side == Side::Axis
+                        && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                        && p.hex() == Some(hex) =>
+                {
+                    u32::try_from(*n).unwrap_or(0)
+                }
+                _ => 0,
+            };
+        }
+    }
+
+    /// R-137: a unit no longer in a commanding Rommel's hex loses his
+    /// bonus at once and earns the DP it spared: those for CP spent past
+    /// its own CPA but inside the raised one (6.21).
+    pub(crate) fn part_from_rommel(&mut self, events: &mut Vec<Event>) {
+        let hex = self
+            .rommel_on_map()
+            .filter(|_| !self.rommel_recalled)
+            .and_then(Piece::hex)
+            .cloned();
+        let parted: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(|p| p.rommel_cpa > 0 && (hex.is_none() || p.hex() != hex.as_ref()))
+            .map(|p| p.id.clone())
+            .collect();
+        for id in parted {
+            let p = &self.pieces[&id];
+            let over = |cpa: Option<u32>| {
+                p.cp_spent
+                    .saturating_sub(Cp::whole(cpa.unwrap_or(0)))
+                    .floor()
+            };
+            let dp = over(self.base_cpa(p)) - over(self.cpa(p));
+            let p = self.pieces.get_mut(&id).expect("listed");
+            p.rommel_cpa = 0;
+            if dp > 0 {
+                p.cohesion.earn_dp(dp);
+                events.push(Event::Disorganised {
+                    piece: id,
+                    dp,
+                    level: p.cohesion.level,
+                });
+            }
         }
     }
 }
@@ -192,5 +251,109 @@ mod tests {
         assert_eq!(state.able_to_move(&p).unwrap_err().case, "31.0");
         state.rommel_recalled = false;
         assert!(state.able_to_move(&p).is_ok());
+    }
+
+    /// The Axis units in Rommel's hex, him excepted.
+    fn with_him(state: &GameState) -> Vec<PieceId> {
+        let hex = state.pieces[&rommel()].hex().unwrap().clone();
+        state
+            .pieces
+            .values()
+            .filter(|p| p.hex() == Some(&hex) && p.kind != PieceKind::Commander)
+            .map(|p| p.id.clone())
+            .collect()
+    }
+
+    // R-137: every unit in his hex as an OpStage begins moves on CPA +5;
+    // nobody else, and not Rommel himself.
+    #[test]
+    fn units_with_rommel_at_a_stages_start_move_five_further() {
+        let (_, state) = crusader();
+        let with = with_him(&state);
+        assert!(!with.is_empty());
+        for id in &with {
+            let p = &state.pieces[id];
+            assert_eq!(p.rommel_cpa, 5, "{id}");
+            assert_eq!(state.cpa(p), state.base_cpa(p).map(|c| c + 5), "{id}");
+        }
+        let away = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.hex().is_some() && !with.contains(&p.id))
+            .unwrap();
+        assert_eq!(away.rommel_cpa, 0);
+        assert_eq!(state.cpa(away), state.base_cpa(away));
+        assert_eq!(state.pieces[&rommel()].rommel_cpa, 0);
+    }
+
+    // R-137: a recalled Rommel gives nobody the bonus.
+    #[test]
+    fn a_recalled_rommel_gives_no_bonus() {
+        let (data, mut state) = crusader();
+        state.rommel_recalled = true;
+        state.mark_rommel_escort(&data);
+        assert!(state.pieces.values().all(|p| p.rommel_cpa == 0));
+    }
+
+    // R-137: parting loses the bonus at once and charges the DP it had
+    // spared, one per CP spent past the unit's own CPA, at most five.
+    #[test]
+    fn parting_from_rommel_charges_the_spared_dp() {
+        let (_, mut state) = crusader();
+        let id = with_him(&state)
+            .into_iter()
+            .find(|id| state.base_cpa(&state.pieces[id]).is_some())
+            .unwrap();
+        let base = state.base_cpa(&state.pieces[&id]).unwrap();
+        let elsewhere = state
+            .pieces
+            .values()
+            .find_map(|p| {
+                p.hex()
+                    .filter(|h| *h != state.pieces[&rommel()].hex().unwrap())
+            })
+            .unwrap()
+            .clone();
+        let mut events = Vec::new();
+        // Spent three past its own CPA, inside the raised one: no DP yet.
+        state.charge(&id, Cp::whole(base + 3), false, &mut events);
+        assert!(events.is_empty(), "{events:?}");
+        let level = state.pieces[&id].cohesion.level;
+        // Still together: nothing happens.
+        state.part_from_rommel(&mut events);
+        assert_eq!(state.pieces[&id].rommel_cpa, 5);
+        state.pieces.get_mut(&id).unwrap().location = Location::Hex(elsewhere);
+        state.part_from_rommel(&mut events);
+        let p = &state.pieces[&id];
+        assert_eq!(p.rommel_cpa, 0);
+        assert_eq!(state.cpa(p), Some(base));
+        assert_eq!(p.cohesion.level, level - 3);
+        assert!(events.contains(&Event::Disorganised {
+            piece: id.clone(),
+            dp: 3,
+            level: level - 3,
+        }));
+    }
+
+    // R-137: 8.17's cap and whether a unit is motorised go by its own CPA.
+    #[test]
+    fn the_foot_cap_and_mobility_ignore_the_bonus() {
+        let (data, mut state) = crusader();
+        let foot = state
+            .pieces
+            .values()
+            .find(|p| p.kind == PieceKind::Combat && state.base_cpa(p) == Some(10))
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&foot).unwrap().rommel_cpa = 5;
+        let p = &state.pieces[&foot];
+        assert_eq!(state.cpa(p), Some(15));
+        assert_eq!(
+            state.mobility(&data, p),
+            cna_rules::movement::Mobility::Foot
+        );
+        let (cap, case, _) = state.voluntary_cap(&foot).unwrap();
+        assert_eq!((cap, case), (Cp::whole(15), "8.1x"));
     }
 }

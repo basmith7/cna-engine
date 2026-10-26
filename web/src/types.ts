@@ -102,6 +102,8 @@ export interface Piece {
   status: "in-training" | "broken-down" | null;
   equivalent: Equivalent | null;
   garrison_of?: HexId;
+  /** CPA Rommel lends it this OpStage (31.0, R-137); absent when none. */
+  rommel_cpa?: number;
   location: Location;
   cp_spent: number;
   cp_enemy_half: number;

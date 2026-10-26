@@ -66,12 +66,19 @@ impl GameState {
         }
     }
 
-    /// The CPA a piece moves on (6.1x): its printed allowance, or for an
-    /// HQ the slowest unit attached to it, nested attachments included
-    /// (6.15); none for a
-    /// printed 0, which cannot move on its own. A supply unit moves on 15
-    /// with its motorisation points, else not at all (32.5x).
+    /// The CPA a piece moves on this stage: its `base_cpa` and what
+    /// Rommel lends it (R-137).
     pub(crate) fn cpa(&self, piece: &Piece) -> Option<u32> {
+        self.base_cpa(piece).map(|c| c + piece.rommel_cpa)
+    }
+
+    /// The CPA a piece has of its own (6.1x): its printed allowance, or
+    /// for an HQ the slowest unit attached to it, nested attachments
+    /// included (6.15); none for a printed 0, which cannot move on its
+    /// own. A supply unit moves on 15 with its motorisation points, else
+    /// not at all (32.5x). Whether a unit is motorised and 8.17's cap go
+    /// by this, not by Rommel's bonus (R-137).
+    pub(crate) fn base_cpa(&self, piece: &Piece) -> Option<u32> {
         // The points carrying a supply unit move it at CPA 15 (32.5x).
         if matches!(
             piece.kind,
@@ -171,7 +178,7 @@ impl GameState {
     /// How a piece moves on the chart: foot at CPA 10 or less (8.1x),
     /// recce by its characteristics row, any other vehicle.
     pub(crate) fn mobility(&self, data: &Data, piece: &Piece) -> Mobility {
-        if self.cpa(piece).is_none_or(|c| c <= 10) {
+        if self.base_cpa(piece).is_none_or(|c| c <= 10) {
             return Mobility::Foot;
         }
         let recce = piece
