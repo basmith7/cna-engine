@@ -284,6 +284,7 @@ export type Event =
   | { "supply-destroyed": { piece: PieceId } }
   | { "motorisation-attached": { piece: PieceId; points: number } }
   | { "motorisation-detached": { piece: PieceId; points: number } }
+  | { "supply-planned": { side: Side; die: number; units: number; arrives: number } }
   | { "motorisation-lost": { side: Side; percent: number; of: number; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
