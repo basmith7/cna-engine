@@ -41,6 +41,8 @@
   let loadError: string | null = $state(null);
   /** The tray piece picked to place; UI-only state (spec, *State sync*). */
   let picked: PieceId | null = $state(null);
+  /** Pieces placed in this sitting of the set-up, which may be taken back (59.2). */
+  let placedNow: PieceId[] = $state([]);
   /** The engine's last refusal, until the toast goes or the next order. */
   let illegal: string | null = $state(null);
   /** Counts refusals so a repeat of the same text is still a new toast. */
@@ -218,7 +220,9 @@
     if (picked && view.pending && "set-up" in view.pending) {
       hex = h;
       const side = view.to_act;
-      if (send({ place: { piece: picked, hex: h } })) {
+      const piece = picked;
+      if (send({ place: { piece, hex: h } })) {
+        placedNow = view!.pending && "set-up" in view!.pending && view!.to_act === side ? [...placedNow, piece] : [];
         picked = view!.to_act === side && side ? nextToPlace(view!, side) : null;
       }
       return;
@@ -465,7 +469,14 @@
           {#if purpose}
             <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} />
           {/if}
-          <StackPanel {view} {hex} {ticked} {ontoggle} onorder={(o) => send(o)} />
+          <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={(o) => {
+            const ok = send(o);
+            if (ok && typeof o === "object" && "unplace" in o) {
+              placedNow = placedNow.filter((id) => id !== o.unplace.piece);
+              picked = o.unplace.piece;
+            }
+            return ok;
+          }} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />
         </div>
         <LogPanel entries={log} />
