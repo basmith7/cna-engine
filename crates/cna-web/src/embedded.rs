@@ -70,8 +70,11 @@ pub fn scenarios() -> Result<Vec<(String, String)>> {
         if cna_game::scenarios::WAITING.contains(&slug) {
             continue;
         }
-        let v: serde_json::Value = serde_json::from_str(&Embedded.read(&format!("scenarios/{file}"))?)?;
-        let name = v["name"].as_str().with_context(|| format!("{file} has no name"))?;
+        let v: serde_json::Value =
+            serde_json::from_str(&Embedded.read(&format!("scenarios/{file}"))?)?;
+        let name = v["name"]
+            .as_str()
+            .with_context(|| format!("{file} has no name"))?;
         out.push((slug.to_owned(), name.to_owned()));
     }
     Ok(out)
@@ -103,7 +106,11 @@ mod tests {
         for (slug, _) in scenarios().unwrap() {
             let native = Data::load(&slug).unwrap();
             assert_eq!(native.rules_commit, RULES_COMMIT);
-            assert_eq!(format!("{:?}", data(&slug).unwrap()), format!("{native:?}"), "{slug}");
+            assert_eq!(
+                format!("{:?}", data(&slug).unwrap()),
+                format!("{native:?}"),
+                "{slug}"
+            );
         }
     }
 
@@ -113,7 +120,10 @@ mod tests {
         let slugs: Vec<&str> = all.iter().map(|(s, _)| s.as_str()).collect();
         assert!(slugs.contains(&DEFAULT_SCENARIO));
         assert!(all.contains(&("operation-crusader".into(), "Operation Crusader".into())));
-        assert_eq!(all.len() + cna_game::scenarios::WAITING.len(), Embedded.list("scenarios").unwrap().len());
+        assert_eq!(
+            all.len() + cna_game::scenarios::WAITING.len(),
+            Embedded.list("scenarios").unwrap().len()
+        );
         for w in cna_game::scenarios::WAITING {
             assert!(!slugs.contains(w), "{w}");
         }
