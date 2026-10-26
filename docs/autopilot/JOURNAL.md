@@ -316,3 +316,9 @@ Done: review fixes (d208e3b: off-map moves carry, eliminations release attachmen
 In flight: full Playwright on f8a3a89 (/tmp/pw-44b.txt); 9ad6731's box test (`attachment.spec.ts`, 2nd test) not yet run.
 Next: run `npx playwright test tests/attachment.spec.ts`; if the full run is green, mark #44 ready and merge on CI. Then Task 4 (24.9 dumps, §28 prisoners) — Task 3 waits on cna.
 Blocked: Mission 4 on Brian's review of #25; Task 3 on cna's HQ organisation types.
+
+## 2026-10-25 21:52 MST — autopilot/m5-slice-6-organisation
+Done: box attach/detach (26a1754); full Playwright 37/37 on f8a3a89, targeted specs 19/19 on HEAD; #44 marked ready. PROGRESS on main (ef59195).
+In flight: #44's CI at handoff.
+Next: merge #44 when CI is green (`gh pr merge 44 --merge`); then slice 6 Task 4 (24.9 dumps under R-018 via `cna_rules::construction::dump_cost`; §28 prisoners) on a new branch.
+Blocked: Mission 4 on Brian's review of #25; slice 6 Task 3 on cna's HQ organisation types.
