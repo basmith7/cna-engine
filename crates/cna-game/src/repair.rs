@@ -304,6 +304,10 @@ mod tests {
         v["repaired"] = serde_json::json!({ "axis": { "M13/40": 2 } });
         let loaded: GameState = serde_json::from_value(v).unwrap();
         assert!(loaded.repaired.is_empty());
+        let mut v = serde_json::to_value(&state).unwrap();
+        v["repaired"] = serde_json::json!({ "axis": { "C4021": {} } });
+        let loaded: GameState = serde_json::from_value(v).unwrap();
+        assert!(loaded.repaired.is_empty());
     }
 
     #[test]

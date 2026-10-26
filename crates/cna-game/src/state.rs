@@ -123,7 +123,17 @@ fn repaired_by_hex<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Repaired, D
         Pooled(#[allow(dead_code)] serde::de::IgnoredAny),
     }
     Ok(match Shape::deserialize(d)? {
-        Shape::ByHex(r) => r,
+        Shape::ByHex(mut r) => {
+            // Empty entries would open phase C for nothing.
+            for hexes in r.values_mut() {
+                hexes.retain(|_, weapons| {
+                    weapons.retain(|_, n| *n > 0);
+                    !weapons.is_empty()
+                });
+            }
+            r.retain(|_, hexes| !hexes.is_empty());
+            r
+        }
         Shape::Pooled(_) => Repaired::new(),
     })
 }

@@ -121,9 +121,10 @@ impl GameState {
             .filter(|id| self.pieces.get(id).is_some_and(|q| q.hex() == Some(&hex)));
         // A model joins the unit's weapon list; a recce class's points
         // are unlisted, rated by the unit's ID code.
-        let listed = p
-            .nation
-            .is_some_and(|n| data.weapons.resolve(n, weapon).is_some());
+        let listed = p.weapons.iter().any(|w| w.weapon == weapon)
+            || p.nation.is_some_and(|n| {
+                data.weapons.resolve(n, weapon).is_some() || data.chars.row(n, weapon).is_some()
+            });
         let cp = Cp::whole(points.div_ceil(2));
         let mut events = vec![Event::Absorbed {
             piece: piece.clone(),
