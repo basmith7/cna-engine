@@ -41,7 +41,9 @@ impl GameState {
 
     /// The pieces a move of `listed` takes: those listed, then everything
     /// attached to them, nested attachments included, in id order. A
-    /// listed unit attached to a parent left behind is refused (19.4x).
+    /// listed unit attached to a parent left behind is refused, and so is
+    /// a unit detached this movement segment moving without its parent,
+    /// or the parent without it (19.4x).
     pub(crate) fn carried(&self, listed: &[PieceId]) -> Result<Vec<PieceId>, Illegal> {
         let mut taken: BTreeSet<PieceId> = listed.iter().cloned().collect();
         let mut heads: Vec<PieceId> = listed.to_vec();
@@ -55,6 +57,17 @@ impl GameState {
                     added.insert(q.id.clone());
                     heads.push(q.id.clone());
                 }
+            }
+        }
+        for (unit, parent) in &self.split {
+            if taken.contains(unit) != taken.contains(parent) {
+                return Err(Illegal::new(
+                    "19.4x",
+                    format!(
+                        "{unit} detached from {parent} this movement segment: \
+                         both stop unless they go on together"
+                    ),
+                ));
             }
         }
         for id in listed {
@@ -160,6 +173,9 @@ impl GameState {
         let from = PieceId::from(&on);
         self.charge_attachment(piece, &from);
         self.pieces.get_mut(piece).expect("checked").attached_to = None;
+        if self.clock.phase == Phase::MovementCombat {
+            self.split.insert(piece.clone(), from.clone());
+        }
         Ok(vec![Event::Detached {
             piece: piece.clone(),
             from,
@@ -389,10 +405,8 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "19.4x");
         // Another hex.
-        let near = data.map.neighbours(&hex("C3617"))[0].to_string();
-        state
-            .apply(&data, Side::Axis, mv(&[TANKS], &[&near]))
-            .unwrap();
+        let near = data.map.neighbours(&hex("C3617"))[0].clone();
+        state.put(&tanks, Location::Hex(near));
         assert_eq!(
             state
                 .apply(&data, Side::Axis, attach(MALETTI))
@@ -433,5 +447,34 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "5.2");
+    }
+
+    #[test]
+    fn a_unit_detached_while_moving_stops_with_its_parent_unless_they_go_on_together() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        let tanks = pid(TANKS);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Detach {
+                    piece: tanks.clone(),
+                },
+            )
+            .unwrap();
+        let near = data.map.neighbours(&hex("C3617"))[0].to_string();
+        for alone in [TANKS, MALETTI] {
+            let err = state
+                .clone()
+                .apply(&data, Side::Axis, mv(&[alone], &[&near]))
+                .unwrap_err();
+            assert_eq!(err.case, "19.4x", "{alone}");
+            assert!(err.reason.contains("together"), "{}", err.reason);
+        }
+        state
+            .apply(&data, Side::Axis, mv(&[MALETTI, TANKS], &[&near]))
+            .unwrap();
+        assert_eq!(state.pieces[&tanks].hex(), Some(&hex(&near)));
     }
 }

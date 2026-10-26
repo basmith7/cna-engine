@@ -137,6 +137,10 @@ pub struct GameState {
     /// (32.1x: one attempt each).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub scuttled: BTreeSet<PieceId>,
+    /// Units detached this movement segment, with the parent they left:
+    /// both stop unless they go on together (19.4x).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub split: BTreeMap<PieceId, PieceId>,
     /// Broken-down vehicles by hex (21.4x): what each marker stands for.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
@@ -254,6 +258,7 @@ impl GameState {
             attachment_tracked: false,
             planned: Vec::new(),
             scuttled: BTreeSet::new(),
+            split: BTreeMap::new(),
             broken_down: BTreeMap::new(),
             field_rolled: BTreeSet::new(),
             repaired: BTreeMap::new(),

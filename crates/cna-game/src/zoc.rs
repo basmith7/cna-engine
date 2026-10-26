@@ -163,6 +163,7 @@ impl GameState {
         self.moved.clear();
         self.escorts.clear();
         self.scuttled.clear();
+        self.split.clear();
         self.shifted.clear();
         let Some(phasing) = self.phasing() else {
             return;

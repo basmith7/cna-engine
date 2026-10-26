@@ -131,6 +131,9 @@ impl GameState {
                 (None, true) => bail!("the supply unit {key} has no load"),
             }
         }
+        for (unit, parent) in &self.split {
+            ids.pieces("a detachment this segment", [unit, parent])?;
+        }
         // 32.5x: points stand in a hex or a box, with the module on.
         if !self.modules.abstract_supply
             && !(self.motorisation.is_empty() && self.pending_motorisation.is_empty())
