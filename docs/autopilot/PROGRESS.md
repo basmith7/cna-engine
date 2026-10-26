@@ -31,7 +31,11 @@ Rommel's Arrival and both campaigns set up: all nine scenarios now set
 up and play a Game-Turn, and the browser offers every one. #68 builds
 the rest of 31.0 bar the LRDG raid: the +5 CPA escort (R-137), his
 reactions, and his free retreat through enemy ZOC (merged). #69
-(merged) lets a side take back a piece during its set-up.
+(merged) lets a side take back a piece during its set-up. **Fifth
+run:** cna answered the lone-Rommel request (R-138); #70 bumps
+`vendor/cna` to fcf8ea7 and builds it: the mover's own ZOC no longer
+bars his reaction, and alone in an enemy ZOC with no escape left he is
+captured. A new request asks whose ZOC 8.53 means for every unit.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -82,9 +86,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues unattended (#68 merged; its audit ledger is a
-  comment there). #69 (merged) closed the
-  ledger's U1: `Order::Unplace` and a Take back button during set-up.
+- Mission 5 continues unattended: #70 (R-138) merges on green CI.
   Then: Axis convoy lanes
   beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
   as the shell denominator, or the desert raiders (§27) that the raid
@@ -95,7 +97,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna fc78330.
+  cna fc78330 on main, fcf8ea7 in #70.
 
 ## Requests for cna
 
@@ -103,16 +105,18 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **A lone Rommel in an enemy ZOC (31.0 against 10.29), as a ruling**
-  (Mission 5, second half). 31.0 lets Rommel react, retreat before
-  assault and retreat through enemy ZOC freely, but says nothing of a
-  Rommel standing alone where an enemy ZOC reaches him. The engine reads
-  10.29 today: a non-combat piece alone in an enemy ZOC in the enemy's
-  phase is captured, so a lone Rommel next to any enemy unit is lost
-  (#68). Needed: captured, untouched (he simply may leave freely), or
-  something else (a roll, a forced move to the nearest friendly unit);
-  and whether a lone Rommel may *enter* an unoccupied enemy-controlled
-  hex on a move, which 10.29 forbids a non-combat unit.
+- **Whose ZOC "already in an enemy ZOC" means in 8.53, as a ruling**
+  (Mission 5). cna's restatement bars a reaction by a unit "already in
+  an enemy ZOC — this is how faster units pin slower ones". The engine
+  reads it as including the ZOC of the stack that just moved next to it
+  (`reaction.rs`, test `a_unit_under_the_mover_s_zoc_cannot_react`), so
+  only a mover that exerts no ZOC (under 10.1x's minimum) ever draws a
+  reaction, and the 6-CPA assault pin rarely matters. R-138's rationale
+  reads the other way for Rommel ("the approach is exactly what puts him
+  in its ZOC"), and #70 exempts him alone. Needed: does the mover's own
+  ZOC bar a reaction, or only an enemy ZOC the unit stood in before the
+  mover arrived? If the latter, the engine changes for every unit and
+  the goldens get re-recorded.
 
 ## Runs and quota
 
