@@ -111,9 +111,11 @@ the bullet once it lands and `vendor/cna` is bumped.
   Nofilia; no division within two hexes of another"): two hexes cannot
   hold four divisions two hexes apart. Needed: the hexes "between" means
   listed (or a locator the map resolves), the spacing as a field if it
-  can be. The Commonwealth's block `hexes: ["B5501", "A4830", "A4827"]`
-  ("any hex inside the triangle" Tocra, Er Regima, Benghazi) is the same
-  shape and likely next; its inside hexes listed too.
+  can be. That block is the only blocker: with it widened by hand the
+  scenario sets up and plays a turn. The Commonwealth's block
+  `hexes: ["B5501", "A4830", "A4827"]` ("any hex inside the triangle"
+  Tocra, Er Regima, Benghazi) is the same shape and fits as given, but
+  offers only its corners; its inside hexes listed would be truer.
 
 ## Runs and quota
 
