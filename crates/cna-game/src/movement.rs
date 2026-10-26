@@ -110,6 +110,46 @@ impl GameState {
         (cpa > 0).then_some(u32::try_from(cpa).unwrap_or(0))
     }
 
+    /// Enemy units at cohesion −26 or worse next to `at` surrender when
+    /// a combat piece of `pieces` comes alongside, whatever its size
+    /// (6.26, R-001).
+    pub(crate) fn surrender_collapsed(
+        &mut self,
+        data: &Data,
+        pieces: &[PieceId],
+        at: &HexId,
+        events: &mut Vec<Event>,
+    ) {
+        let Some(side) = pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .find(|p| p.kind == PieceKind::Combat)
+            .map(|p| p.side)
+        else {
+            return;
+        };
+        let near = data.map.neighbours(at);
+        let gone: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side != side
+                    && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                    && p.cohesion.collapsed(&self.ruleset)
+                    && p.hex().is_some_and(|h| near.contains(h))
+            })
+            .map(|p| p.id.clone())
+            .collect();
+        if gone.is_empty() {
+            return;
+        }
+        for id in &gone {
+            let toe = self.pieces[id].toe;
+            self.take_loss(id, toe, events);
+        }
+        events.push(Event::Surrendered { pieces: gone });
+    }
+
     /// A foot unit on its motorisation points moves as medium trucks:
     /// 20 carrying infantry, 15 a gun (R-123).
     fn riding_cpa(&self, piece: &Piece) -> Option<u32> {
@@ -729,6 +769,7 @@ impl GameState {
                 self.charge(id, cost, false, &mut events);
             }
             self.capture_wrecks(data, pieces, &to, &mut events);
+            self.surrender_collapsed(data, pieces, &to, &mut events);
             at = to;
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.
@@ -896,6 +937,64 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "6.26");
         assert_eq!(snapshot(&state), before);
+    }
+
+    /// A Libyan battalion moved next to C3924 and away from C3922 and
+    /// C3923, at cohesion `level`; 1 KRRC then walks C3923, C3924.
+    fn krrc_comes_alongside(
+        level: i32,
+    ) -> (
+        GameState,
+        PieceId,
+        Result<Vec<Event>, crate::event::Illegal>,
+    ) {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let near = |h: &str| data.map.neighbours(&hex(h));
+        let spot = near("C3924")
+            .into_iter()
+            .find(|h| {
+                !near("C3923").contains(h)
+                    && !near("C3922").contains(h)
+                    && *h != hex("C3922")
+                    && *h != hex("C3923")
+                    && state.holder(h).is_none()
+            })
+            .unwrap();
+        let bn = pid("unit:it:viii-libyan-bn");
+        let p = state.pieces.get_mut(&bn).unwrap();
+        p.location = Location::Hex(spot);
+        p.cohesion.level = level;
+        let r = state.apply(
+            &data,
+            Side::Cw,
+            mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]),
+        );
+        (state, bn, r)
+    }
+
+    #[test]
+    fn a_collapsed_unit_surrenders_to_any_enemy_coming_alongside_6_26() {
+        let (state, bn, r) = krrc_comes_alongside(-26);
+        let events = r.unwrap();
+        assert!(
+            events.contains(&Event::Surrendered {
+                pieces: vec![bn.clone()]
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&bn].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn a_unit_above_minus_26_does_not_6_26() {
+        let (state, bn, r) = krrc_comes_alongside(-25);
+        let surrendered = r
+            .iter()
+            .flatten()
+            .any(|e| matches!(e, Event::Surrendered { .. }));
+        assert!(!surrendered);
+        assert_ne!(state.pieces[&bn].location, Location::Eliminated);
     }
 
     #[test]
