@@ -73,3 +73,34 @@ test("a battalion in an off-map box detaches from the move panel, and then stops
   await expect(page.getByTestId("toast")).toContainText("Illegal (19.4x)");
   await expectDomMatchesView(page);
 });
+
+test("the stack panel nests attached units under their parent and marks a shell (9.26)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  await page.getByTestId("phase-controls").locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await clickHex(page, "C3617");
+  const parent = (await attachedTo(page, TANKS))!;
+  const rows = page.getByTestId("stack-panel").locator("li[data-unit]");
+  const order = async () => rows.evaluateAll((lis) => lis.map((li) => li.getAttribute("data-unit")));
+  // The tanks sit one level under Gruppo Maletti, right after it or its other units.
+  const parentDepth = Number(await row(page, parent).getAttribute("data-depth"));
+  await expect(row(page, TANKS)).toHaveAttribute("data-depth", String(parentDepth + 1));
+  const ids = await order();
+  expect(ids.indexOf(TANKS)).toBeGreaterThan(ids.indexOf(parent));
+  await expect(row(page, parent).getByTestId("shell")).toHaveCount(0);
+
+  // Detached, the tanks stand at the top level; every badge matches the view.
+  await row(page, TANKS).locator('[data-order="detach"]').click();
+  await expect(row(page, TANKS)).toHaveAttribute("data-depth", "0");
+  const shells = await page.evaluate(() => Object.values(window.__cna.view().pieces).filter((p) => p.shell).map((p) => p.id));
+  for (const id of await order()) {
+    await expect(row(page, id!).getByTestId("shell")).toHaveCount(shells.includes(id!) ? 1 : 0);
+  }
+  expect(shells).not.toContain(parent);
+
+  // The Libyan Tank Command sets up a shell: its hex shows the badge.
+  const LTC = "unit:it:libyan-tank-command-hq";
+  expect(shells).toContain(LTC);
+  const hex = await page.evaluate((id) => (window.__cna.view().pieces[id].location as { hex: string }).hex, LTC);
+  await clickHex(page, hex);
+  await expect(row(page, LTC).getByTestId("shell")).toHaveAttribute("title", /9\.26/);
+});

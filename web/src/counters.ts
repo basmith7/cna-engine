@@ -109,6 +109,24 @@ export function stacks(view: View): Map<HexId, Piece[]> {
   );
 }
 
+/**
+ * A stack's pieces for the stack panel: each unit followed by the units
+ * attached to it (19.1x), depth-first, with how deep each sits. A unit
+ * whose parent is not in the list stands at the top level; the order
+ * among siblings is the input order.
+ */
+export function nested(pieces: Piece[]): { piece: Piece; depth: number }[] {
+  const here = new Set(pieces.map((p) => p.id));
+  const out: { piece: Piece; depth: number }[] = [];
+  const walk = (p: Piece, depth: number) => {
+    out.push({ piece: p, depth });
+    if (depth > 4) return;
+    for (const q of pieces) if (q.attached_to === p.id && q.id !== p.id) walk(q, depth + 1);
+  };
+  for (const p of pieces) if (!p.attached_to || !here.has(p.attached_to)) walk(p, 0);
+  return out;
+}
+
 export const OFF_MAP_BOXES: OffMapBox[] = ["tripoli", "tunisia", "tripolitania", "malta", "italy-sicily", "crete"];
 
 export const BOX_NAMES: Record<OffMapBox, string> = {
