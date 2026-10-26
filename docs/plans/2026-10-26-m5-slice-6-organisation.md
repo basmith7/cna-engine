@@ -61,13 +61,14 @@ what the repaired-points pool already holds.
 
 ### Task 1: attachment as state
 
-- [ ] `Piece.attached_to`, set at set-up (4.25) and filled on load for
+- [x] `Piece.attached_to`, set at set-up (4.25) and filled on load for
   older saves; stacking (9.1x) and the HQ's CPA read it instead of
-  "stacked with its parent". Golden games unchanged.
+  "stacked with its parent". Golden games unchanged (logs replay; the
+  state hashes re-pin for the new fields).
 
 ### Task 2: orders and costs
 
-- [ ] `Order::Attach` and `Order::Detach` with 19.4x's costs and
+- [x] `Order::Attach` and `Order::Detach` with 19.4x's costs and
   segments; moves carry attached units and refuse a lone attached one.
 
 ### Task 3: limits and shells
