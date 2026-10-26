@@ -110,7 +110,8 @@ impl GameState {
     }
 
     /// Chooses the supply unit that pays each fuel-using mover, or
-    /// refuses with 32.22 when something owed cannot be paid. Nothing is
+    /// refuses with 32.22 when something owed cannot be paid: a unit
+    /// without the fuel it owes makes no move that costs fuel (R-120). Nothing is
     /// changed. `source` is the player's choice for every payer, else the
     /// nearest in range with the fuel, ties by id.
     pub(crate) fn plan_fuel(

@@ -45,6 +45,8 @@ impl GameState {
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect();
+            // R-120: a firer out of ammunition cannot barrage; sealing
+            // refused any plot that could not be paid.
             let plan = self.plan_ammo(data, &firers, Role::Barrage, side == phasing);
             self.spend_ammo(plan.payments, events);
             let mut pools: BTreeMap<(PieceId, Option<HexId>), Pool> = BTreeMap::new();

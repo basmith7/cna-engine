@@ -540,7 +540,8 @@ impl GameState {
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
         // Ammunition (32.21): each attacker pays double as phasing; an
-        // assault the attacker cannot pay for is refused unchanged.
+        // assault the attacker cannot pay for is refused unchanged
+        // (R-120: a unit out of ammunition cannot assault).
         let payers: Vec<PieceId> = attacker_ids
             .iter()
             .cloned()
@@ -577,8 +578,10 @@ impl GameState {
         }
 
         let defenders = self.defending_commits(data, other, target, true);
-        // Committed defenders pay one each if they can; one that cannot
-        // still defends at full strength (32.21).
+        // Committed defenders pay one each if they can (32.21). One that
+        // cannot still defends at full strength: R-120 says it cannot
+        // defend and an all-out hex surrenders, which is not built yet
+        // (NOT_SIMULATED.md).
         let payers: Vec<PieceId> = defenders.iter().map(|c| c.piece.clone()).collect();
         let plan = self.plan_ammo(data, &payers, Role::Assault, false);
         self.spend_ammo(plan.payments, &mut events);
