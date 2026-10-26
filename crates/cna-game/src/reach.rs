@@ -169,6 +169,7 @@ impl GameState {
             }
         };
         let pieces = &owned[..];
+        let _indexed = self.index_hexes();
         let mover = self.mover(data, pieces, purpose);
         let (start_in_zoc, start_flagged) = match self.start(
             data,

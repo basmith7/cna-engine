@@ -20,6 +20,7 @@ mod guards;
 mod limits;
 pub mod log;
 pub mod movement;
+mod occupancy;
 mod off_map;
 pub mod order;
 mod organisation;

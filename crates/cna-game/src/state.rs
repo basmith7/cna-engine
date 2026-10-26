@@ -248,6 +248,9 @@ pub struct GameState {
     pub attachment_tracked: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
+    /// A search's index of `pieces` by hex (`occupancy`); never saved.
+    #[serde(skip)]
+    pub(crate) hex_index: crate::occupancy::HexIndex,
     pub pending: Option<Pending>,
     /// Movement segments completed in the current phase G (8.2x).
     #[serde(default)]
@@ -355,6 +358,7 @@ impl GameState {
             rail_east: None,
             weather: Weather::Normal,
             pieces,
+            hex_index: Default::default(),
             pending: None,
             cycle: 0,
             moved: BTreeSet::new(),

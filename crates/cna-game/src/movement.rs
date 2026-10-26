@@ -570,11 +570,7 @@ impl GameState {
                 format!("{to} is not adjacent to {at}"),
             ));
         }
-        if let Some(enemy) = self
-            .pieces
-            .values()
-            .find(|q| q.side != side && q.hex() == Some(to))
-        {
+        if let Some(enemy) = self.pieces_at(to).into_iter().find(|q| q.side != side) {
             return Err(Illegal::new(
                 "8.1x",
                 format!("{to} holds the enemy unit {}", enemy.id),
