@@ -158,6 +158,16 @@ pub struct GameState {
     /// The Game-Turn each side last flew a supply unit (32.37).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub air_lifted: BTreeMap<Side, u8>,
+    /// Prisoner points by captor and hex (28.1x): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Prisoner points each captor has sent out of play (28.15).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners_out: BTreeMap<Side, u32>,
+    /// Hexes prisoners marched into this phase H: they go no further
+    /// (28.13).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub marched: BTreeSet<HexId>,
     /// Which way this OpStage's rail runs went: east or not (32.3x).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rail_east: Option<bool>,
@@ -263,6 +273,9 @@ impl GameState {
             field_rolled: BTreeSet::new(),
             repaired: BTreeMap::new(),
             railed: BTreeSet::new(),
+            prisoners: BTreeMap::new(),
+            prisoners_out: BTreeMap::new(),
+            marched: BTreeSet::new(),
             air_lifted: BTreeMap::new(),
             rail_east: None,
             weather: Weather::Normal,
@@ -472,6 +485,9 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (None, Order::MarchPrisoners { from, path, points }) => {
+                self.march_prisoners(data, player, from, path, *points)
+            }
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

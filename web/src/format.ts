@@ -99,7 +99,13 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
     return `${d.probe ? "Probe" : "Assault"} on ${d.target} by ${list(d.attackers, name)}: ${d.attacker_raw} v ${d.defender_raw} raw, differential ${sign(d.basic)}, ${sign(d.shifts)} shifts, column ${d.column}; attacker rolls ${d.attacker.reading} and loses ${d.attacker.pct}% (${d.attacker.toe_lost} TOE), defender rolls ${d.defender.reading} and loses ${d.defender.pct}% (${d.defender.toe_lost} TOE)${d.defender.retreat ? `, retreats ${d.defender.retreat}` : ""}${d.defender.engaged ? ", engaged" : ""}${d.defender.captured ? ", captured" : ""}.`;
   }
-  if ("prisoners" in e) return `${sideName(e.prisoners.side)} takes ${e.prisoners.points} prisoner points.`;
+  if ("prisoners" in e) return `${e.prisoners.points} points of the ${sideName(e.prisoners.side)} losses are prisoners.`;
+  if ("prisoners-taken" in e) return `${sideName(e["prisoners-taken"].side)} takes ${e["prisoners-taken"].points} prisoner points in ${e["prisoners-taken"].hex}.`;
+  if ("prisoners-marched" in e) {
+    const d = e["prisoners-marched"];
+    return `${sideName(d.side)} marches ${d.points} prisoner points ${d.path[0]} → ${d.path[d.path.length - 1]} (${d.cp} CP).`;
+  }
+  if ("prisoners-gone" in e) return `${e["prisoners-gone"].points} ${sideName(e["prisoners-gone"].side)} prisoner points leave play at ${e["prisoners-gone"].hex}.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
   if ("engaged" in e) return `${list(e.engaged.pieces, name)} are engaged.`;
   if ("retreat-ordered" in e) {

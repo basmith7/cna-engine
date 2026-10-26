@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "2c97cd00d7ec3c6fe213e888dc2bc3bfe7a190d1199f131325ea59cf938f5f8b";
+        "c341b894416113a8c13d2f45689d2d01afef85ed7b1b12acb5a65dd620bf0813";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -193,6 +193,25 @@ mod tests {
                 (Axis, Order::Pass),
             ],
         );
+        if modules.abstract_supply {
+            // Phase H: Halfaya's 12 infantry points are the Axis's
+            // prisoners at C4021; they start west (28.13).
+            play(
+                data,
+                &mut state,
+                vec![
+                    (
+                        Axis,
+                        Order::MarchPrisoners {
+                            from: hex("C4021"),
+                            path: vec![hex("C4020"), hex("C4120")],
+                            points: 12,
+                        },
+                    ),
+                    (Axis, Order::Pass),
+                ],
+            );
+        }
         // GT1 OpStage 1, Commonwealth half. With the supply module on 4 RHA
         // (gun-class) owes fuel for the return and no supply unit is in
         // range (32.22), so the module-on script leaves it at C3923.
@@ -369,6 +388,8 @@ mod tests {
         for unit in ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"] {
             assert_eq!(replayed.pieces[&pid(unit)].hex(), None, "{unit}");
         }
+        // Their infantry are the Axis's prisoners, marched west (28.1x).
+        assert_eq!(replayed.prisoners[&Side::Axis][&hex("C4120")], 12);
         let report = replayed.over.as_ref().unwrap();
         assert_eq!((report.axis, report.cw), (None, None));
         let halfaya = report

@@ -23,6 +23,7 @@ mod organisation;
 mod phases;
 pub mod piece;
 mod place;
+mod prisoners;
 mod rail;
 pub mod reach;
 mod reaction;

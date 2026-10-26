@@ -84,7 +84,7 @@ on cna's HQ organisation types.
 
 ### Task 4: dumps and prisoners
 
-- [ ] 24.9 dumps; §28 prisoners and guards.
+- [ ] 24.9 dumps (waits on cna: under abstract supply the supply unit is the dump). §28 prisoner points and the march: slice 6b, `2026-10-26-m5-slice-6b-prisoners.md`; guards and escape after it.
 
 ### Task 5: UI, docs
 

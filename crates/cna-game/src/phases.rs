@@ -127,7 +127,12 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
-                Phase::TruckConvoy if self.trucks_to_move() => {
+                Phase::TruckConvoy
+                    if {
+                        self.marched.clear();
+                        self.trucks_to_move() || self.prisoners_to_move()
+                    } =>
+                {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }

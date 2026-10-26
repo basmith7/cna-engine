@@ -567,7 +567,15 @@ impl GameState {
             })
             .map(|p| p.id.clone())
             .collect();
+        // Prisoners stand with the assaulting stack (28.12).
+        let captor_hex = attacker_ids
+            .iter()
+            .filter_map(|id| self.pieces[id].hex())
+            .min()
+            .cloned()
+            .unwrap_or_else(|| target.clone());
         if !surrendering.is_empty() {
+            let prisoners = self.prisoner_points(data, &surrendering);
             for id in &surrendering {
                 let toe = self.pieces[id].toe;
                 self.take_loss(id, toe, &mut events);
@@ -575,6 +583,7 @@ impl GameState {
             events.push(Event::Surrendered {
                 pieces: surrendering,
             });
+            self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
         }
 
         let mut defenders = self.defending_commits(data, other, target, true);
@@ -601,11 +610,13 @@ impl GameState {
                 })
                 .map(|p| p.id.clone())
                 .collect();
+            let prisoners = self.prisoner_points(data, &all);
             for id in &all {
                 let toe = self.pieces[id].toe;
                 self.take_loss(id, toe, &mut events);
             }
             events.push(Event::Surrendered { pieces: all });
+            self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
             defenders.clear();
         } else {
             defenders.retain(|c| !out.contains(&c.piece));
@@ -818,9 +829,11 @@ impl GameState {
         let d_toe = d_toe + d_gun;
 
         // Prisoners (15.89).
-        for (side, hit, toe) in [
-            (phasing, a_roll.captured, a_toe),
-            (other, d_roll.captured, d_toe),
+        // The captor holds them: the defender in the assaulted hex, the
+        // attacker with its stack (28.12).
+        for (side, hit, toe, held_in) in [
+            (phasing, a_roll.captured, a_toe, target.clone()),
+            (other, d_roll.captured, d_toe, captor_hex.clone()),
         ] {
             if hit && toe > 0 {
                 let die = self.rng.d6();
@@ -831,6 +844,7 @@ impl GameState {
                 let pct = data.prisoners.percent(die).unwrap_or(0);
                 let points = (pct * toe).div_ceil(100);
                 events.push(Event::Prisoners { side, points });
+                self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
             }
         }
         // Disorganisation (15.86).

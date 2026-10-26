@@ -22,6 +22,8 @@
   import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
+  import MarchPanel, { type March } from "./MarchPanel.svelte";
+  import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
@@ -51,6 +53,13 @@
   let ticked: PieceId[] = $state([]);
   /** A supply unit armed to fly in phase C: the next hex clicked is where (32.37). */
   let flying: PieceId | null = $state(null);
+  /** Prisoners armed to march (28.13): map clicks extend the path until it is sent. */
+  let march: March | null = $state(null);
+  // An armed march lapses when its hex can no longer march: phase H
+  // ended, the other side is to act, or its points have gone.
+  $effect(() => {
+    if (march && (!view || !marchable(view).some((g) => g.hex === march!.from))) march = null;
+  });
   /** The assault toggle for the next move. */
   let assault = $state(false);
   /** The custom path shift-clicks build; Enter sends it. */
@@ -221,6 +230,11 @@
       const piece = flying;
       flying = null;
       send({ "air-lift": { piece, to: { hex: h } } });
+      return;
+    }
+    // An armed prisoner march: each click is the path's next hex.
+    if (march) {
+      march = { ...march, path: [...march.path, h] };
       return;
     }
     // The close assault step: a click on a hex still to assault resolves it.
@@ -435,6 +449,15 @@
             </section>
           {/if}
           <PhaseControls {view} {ticked} {hex} {flying} onfly={(p) => (flying = p)} onorder={(o) => send(o)} />
+          <MarchPanel
+            {view}
+            {march}
+            onarm={(m) => (march = m)}
+            onsend={() => {
+              if (march && send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } })) march = null;
+            }}
+            oncancel={() => (march = null)}
+          />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />

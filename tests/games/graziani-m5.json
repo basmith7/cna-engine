@@ -739,6 +739,23 @@
       "order": "pass"
     },
     {
+      "player": "axis",
+      "order": {
+        "march-prisoners": {
+          "from": "C4021",
+          "path": [
+            "C4020",
+            "C4120"
+          ],
+          "points": 12
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "cw",
       "order": "pass"
     },
@@ -887,6 +904,10 @@
       "order": "pass"
     },
     {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "cw",
       "order": "pass"
     },
@@ -936,6 +957,1610 @@
     },
     {
       "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
       "order": "pass"
     },
     {
@@ -1127,122 +2752,6 @@
       "order": "pass"
     },
     {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
       "player": "axis",
       "order": "pass"
     },
@@ -1361,1430 +2870,6 @@
     {
       "player": "axis",
       "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
     },
     {
       "player": "axis",

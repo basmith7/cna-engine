@@ -40,7 +40,10 @@ const cases: [Event, string][] = [
     { assault: { target: "C4130", attackers: ["u:a"], probe: false, attacker_raw: 12, defender_raw: 6, basic: 2, shifts: 1, column: "2:1", attacker: roll, defender: { ...roll, retreat: 2 } } },
     "Assault on C4130 by A: 12 v 6 raw, differential +2, +1 shifts, column 2:1; attacker rolls 4 and loses 10% (1 TOE), defender rolls 4 and loses 10% (1 TOE), retreats 2.",
   ],
-  [{ prisoners: { side: "axis", points: 3 } }, "Axis takes 3 prisoner points."],
+  [{ prisoners: { side: "axis", points: 3 } }, "3 points of the Axis losses are prisoners."],
+  [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
+  [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
+  [{ "prisoners-gone": { side: "cw", hex: "E3613", points: 5 } }, "5 Commonwealth prisoner points leave play at E3613."],
   [{ surrendered: { pieces: ["u:b"] } }, "B surrender."],
   [{ engaged: { pieces: ["u:a", "u:b"] } }, "A, B are engaged."],
   [{ "retreat-ordered": { pieces: ["u:b"], hexes: 1, reason: "must-attack" } }, "B must retreat 1 hex (must attack or retreat)."],
@@ -74,9 +77,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 51 variants", () => {
+  it("covers all 54 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(51);
+    expect(tags.size).toBe(54);
   });
 
   it.each(cases)("%j", (event, line) => {

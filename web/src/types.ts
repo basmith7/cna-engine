@@ -183,6 +183,7 @@ export type Order =
   | { rail: { pieces: PieceId[]; path: HexId[] } }
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
+  | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | "pass";
 
 /** Broken-down TOE points of one weapon system in a hex (21.4x). */
@@ -298,6 +299,9 @@ export type Event =
   | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
+  | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
+  | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
+  | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
@@ -405,6 +409,12 @@ export interface View {
   motorisation?: Partial<Record<Side, Record<string, number>>>;
   /** Breakdown: broken-down vehicles by hex (21.4x), both sides', in the open. */
   broken_down?: Record<HexId, Wreck[]>;
+  /** Prisoner points by captor and hex (28.1x): open to both sides. */
+  prisoners?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Prisoner points each captor has sent out of play (28.15). */
+  prisoners_out?: Partial<Record<Side, number>>;
+  /** Hexes prisoners marched into this phase H: they go no further (28.13). */
+  marched?: HexId[];
   /** Repaired points by weapon system waiting as replacements (22.5), the side to act's own only. */
   repaired?: Partial<Record<Side, Record<string, number>>>;
   to_act: Side | null;
