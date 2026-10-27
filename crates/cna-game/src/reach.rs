@@ -175,7 +175,7 @@ impl GameState {
             data,
             &mover,
             &from,
-            purpose == Purpose::ForcedRetreat,
+            matches!(purpose, Purpose::ForcedRetreat | Purpose::React),
         )? {
             Start::In(in_zoc) => (in_zoc, false),
             Start::Undeclared(hexes) => match purpose {
@@ -335,7 +335,9 @@ impl GameState {
                             flagged,
                             reaction: purpose == Purpose::Move
                                 && mover.combat
-                                && !self.reactors_next_to(data, &to, pieces, false).is_empty(),
+                                && !self
+                                    .reactors_next_to(data, &to, &at, pieces, false)
+                                    .is_empty(),
                             zoc: in_zoc,
                         },
                     );

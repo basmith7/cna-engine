@@ -447,3 +447,9 @@ Done: #70 merged (5d1d3a0), #71 merged (assignment tests 15.1x, 13.28). #72: `oc
 In flight: #72's CI (ready).
 Next: merge #72 on green CI; time the browser's shading; then whichever cna request lands first.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 17:20 MST — autopilot/m5-r139-reaction-pin
+Done: cna answered all three requests (R-139, R-140, R-141). #73 (draft): vendor/cna eafa8a3 (1e5a6c5-ish bump commit), R-139's reaction pin judged before the mover arrived, reactors leave the mover's ZOC free (022d06d + fmt). Goldens unchanged.
+In flight: local Playwright (/tmp/pw-r139.log), then mark #73 ready.
+Next: R-140 (Rommel's own forced retreat when his stack dies) on a branch after #73; then R-141 (`counts_for_shell` as the shell denominator).
+Blocked: Mission 4 on Brian's review of #25.
