@@ -310,9 +310,11 @@ mod tests {
         assert_eq!(state.stacked(&data, &hex("E1829")), 2);
         // Four independent battalions at C3922: 4.
         assert_eq!(state.stacked(&data, &hex("C3922")), 4);
-        // Bardia (major city, ceiling 8): the Trivioli regiment (2); its
-        // garrison sheet and the AA group take no space there (9.16).
-        assert_eq!(state.stacked(&data, &hex("C4321")), 2);
+        // Bardia (major city, ceiling 8): the Trivioli regiment, one of
+        // its chart row's five tank battalions attached, is a shell and
+        // stacks as a battalion (9.28, R-141): 1; its garrison sheet and
+        // the AA group take no space there (9.16).
+        assert_eq!(state.stacked(&data, &hex("C4321")), 1);
         // The Fort Maddalena garrison battalion is from the minor-garrison
         // sheet, which names no hex: 1 SP like any battalion.
         assert_eq!(state.stacked(&data, &hex("C3019")), 1);

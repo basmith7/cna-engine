@@ -1419,6 +1419,14 @@ mod tests {
                     && p.id.unit().and_then(|u| data.oa.unit(&u)?.echelon)
                         == Some(cna_data::oa::Echelon::Division)
                     && p.hex().is_some()
+                    // Two of the chart's three brigades assigned, so all
+                    // of them attached make it whole (R-141).
+                    && state
+                        .pieces
+                        .values()
+                        .filter(|q| q.parent == p.id.unit() && q.kind == PieceKind::Hq)
+                        .count()
+                        >= 2
             })
             .unwrap()
             .id

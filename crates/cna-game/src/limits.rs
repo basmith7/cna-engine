@@ -185,11 +185,18 @@ impl GameState {
     }
 
     /// Whether a formation is a shell (9.26–9.28): a division with half
-    /// or fewer of its assigned brigade equivalents attached, a brigade
-    /// with under two-thirds of its assigned battalions (a two-battalion
-    /// brigade with both attached, one not a shell, is not), a battalion
-    /// under half its printed TOE (artillery a quarter). Attached shells
-    /// do not count toward the parent's share.
+    /// or fewer of its brigade equivalents attached, a brigade with under
+    /// two-thirds of its battalions (a two-battalion brigade with both
+    /// attached, one not a shell, is not), a battalion under half its
+    /// printed TOE (artillery a quarter). Attached shells do not count
+    /// toward the parent's share.
+    ///
+    /// The whole is the HQ's Formation Organisation Chart row (19.3): the
+    /// row its OA `organisation` names for this nation and game-turn,
+    /// counting the components R-141 marks `counts_for_shell`. An HQ the
+    /// chart has no row for (the O/A notes govern, or none covers the
+    /// turn) falls back to the units the OA assigns it. What counts
+    /// toward the share is still the assigned units attached to it.
     pub fn is_shell(&self, data: &Data, id: &PieceId) -> bool {
         self.shell_at_depth(data, id, 0)
     }
@@ -205,6 +212,13 @@ impl GameState {
             return false;
         }
         let sheet = data.oa.unit(&unit);
+        let chart = sheet
+            .and_then(|u| u.organisation.as_deref())
+            .and_then(|key| {
+                let turn = u32::from(self.clock.game_turn);
+                data.organisation.row(unit.nation(), key, turn)
+            })
+            .map(|row| row.shell_count());
         let assigned = |pred: &dyn Fn(&Piece) -> bool| -> (u32, u32, u32) {
             let (mut total, mut whole, mut shells) = (0, 0, 0);
             for q in self.pieces.values() {
@@ -226,12 +240,17 @@ impl GameState {
                 let (total, whole, _) = assigned(&|q| {
                     q.kind == PieceKind::Hq || q.equivalent == Some(Equivalent::Brigade)
                 });
+                let total = chart.unwrap_or(total);
                 total > 0 && 2 * whole <= total
             }
             (PieceKind::Hq, Some(Echelon::Brigade)) => {
+                // A chart row may build a brigade of regiments (the
+                // German 15th Infantry Brigade, R-141): their HQs count.
                 let (total, whole, shells) = assigned(&|q| {
-                    q.kind == PieceKind::Combat && q.equivalent == Some(Equivalent::Battalion)
+                    (q.kind == PieceKind::Combat && q.equivalent == Some(Equivalent::Battalion))
+                        || (chart.is_some() && q.kind == PieceKind::Hq)
                 });
+                let total = chart.unwrap_or(total);
                 if total == 2 && whole + shells == 2 && whole >= 1 {
                     return false;
                 }

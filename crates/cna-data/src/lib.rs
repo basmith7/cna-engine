@@ -17,6 +17,7 @@ pub mod max_attachments;
 pub mod morale;
 pub mod oa;
 pub mod off_map;
+pub mod organisation;
 pub mod prisoners;
 pub mod repair;
 pub mod scenario;
