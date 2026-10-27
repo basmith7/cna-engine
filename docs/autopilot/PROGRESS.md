@@ -104,15 +104,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   (198–227 ms, timed in the page in a Playwright test build; the engine
   is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
   wait reads ~0.5 s because of its selector polling, not the app.
-- #75's choices ledger (PR comment), item 1: the shell share is still
-  matched by unit kind, not by the chart slot it fills. A division's
-  share counts HQs and brigade-equivalents, a brigade's battalion-
-  equivalent combat units; but counted chart components include German
-  `artillery-group` (division rows) and artillery, anti-tank, AA and
-  armoured-car units (brigade rows), none of them HQs. If their
-  counters are not of the counted equivalent, the whole holds slots
-  the share can never fill. Check, and if so match attached units to
-  the row's components by kind.
+- #75's ledger item 1 checked (2026-10-27): real. The shell share is
+  matched by stacking equivalent, not chart slot, and some counted
+  slots are not one counter of that equivalent (15th Panzer's
+  `artillery-group`, the Polish brigade's MG slot). Fix waits on the
+  cna request below (counter to chart slot), which substitution needs
+  too.
 - Look at #75's two new starting shells (2nd NZ Division, the Trivioli
   tank regiment at Bardia): they follow the OA and the 19.3 chart, but
   change Graziani's opening.
@@ -129,7 +126,23 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-None open.
+- **Which 19.3 chart slot each counter fills** (Mission 5: 9.26 shells
+  by slot, and 19.x substitution). `formation-organisation.json` names
+  its components by slugs (`infantry-battalion`, `artillery-group`,
+  `anti-tank-regiment`, ...) but nothing maps an OA unit or a
+  characteristics row to those slugs, so the engine counts a shell's
+  share by stacking equivalent instead, and gets it wrong where a slot
+  is not one counter of that equivalent: the 15th Panzer Division's
+  counted `artillery-group` is "any three 1 SP artillery units" (its
+  33 and 140 artillery regiments are battalion-equivalent counters the
+  division share never counts); the Polish brigade's counted
+  `light-aa-unit|machinegun-battalion` slot is held by a company-
+  equivalent counter (kopanski-mg); the 1st Free French brigade has 8
+  battalion-equivalents assigned against 5 counted slots, so its share
+  can pass with the wrong units. Wanted: for each OA unit (or each
+  characteristics row, if that is exact), the `units` slug(s) it can
+  fill, and how many counters fill a slot where it is more than one
+  (`artillery-group`, `artillery-regiment`'s "up to three battalions").
 
 ## Runs and quota
 
