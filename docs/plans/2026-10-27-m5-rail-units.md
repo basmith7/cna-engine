@@ -47,6 +47,11 @@ replay unchanged. Bombing and repairing the line (the Air Game).
 ### Task 3: UI, docs
 
 - [ ] `rail_to_move` opens phase J for a rail-eligible combat unit; a
-  Playwright test rails a unit from the `rail` fixture by clicks.
+  Playwright test rails a unit from the `rail` fixture by clicks. This
+  opens phase J in module-on golden stages it skipped (Commonwealth units
+  at Matruh with no CP spent), adding Passes: re-script and re-pin as #78
+  did (`golden.rs` hash, `graziani-m5.json`, `cna-web` order indices and
+  `HASHED`, e2e fixtures, `golden.spec.ts`'s order count and
+  `SAVE_AFTER`).
 - [ ] `NOT_SIMULATED.md`: combat units by rail built; en-route pick-ups
   not. Design Status.
