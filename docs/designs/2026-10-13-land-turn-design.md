@@ -2,12 +2,13 @@
 
 **Date:** 2026-10-13
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** built for Graziani's Offensive, bar the items below (2026-10-26).
+**Status:** built for Graziani's Offensive, bar the items below (2026-10-27).
 Slices 1–9 merged as PRs #31–#60 (organisation, shells and the stack
 panel, prisoners off map by R-132, guards, replacements, construction);
 #59 adds formations to close assault's size table (15.55). Their plans
-are in `docs/plans/`. Still open for Graziani's: convoy lanes beyond
-Tripoli, the 19.3 chart as the shell denominator, substitution. The
+are in `docs/plans/`. #75 judges shells against the 19.3 chart's
+counted components (R-141). Still open for Graziani's: convoy lanes
+beyond Tripoli, substitution. The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With
@@ -16,7 +17,7 @@ counters are made at set-up (R-096), so The Last Chance joins; with cna
 fc78330 (#67) the Italian divisions' hexes are listed and set up two
 apart (R-136), so all nine set up and play a Game-Turn. #66 builds 31.0's initiative, recall
 and morale, #68 his +5 CPA escort (R-137), reactions and free retreat
-through enemy ZOC, #70 his capture alone in an enemy ZOC once his escape is spent (R-138); the LRDG raid (27.9x) remains, with the desert raiders. Mission 4 still comes first the moment its spec
+through enemy ZOC, #70 his capture alone in an enemy ZOC once his escape is spent (R-138), #74 his own retreat when an assault destroys his stack (R-140); #73 makes a reaction pin only on an enemy ZOC the unit stood in before the mover came (R-139); the LRDG raid (27.9x) remains, with the desert raiders. Mission 4 still comes first the moment its spec
 (PR #25) is approved (see *Order against Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
