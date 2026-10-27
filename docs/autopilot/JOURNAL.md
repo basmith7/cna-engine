@@ -476,4 +476,15 @@ Blocked: Mission 4 on Brian's review of #25.
 Done: #78 (draft, stacked on #77): reactions and retreats before assault pay fuel or are refused (32.22, R-120) (c74cba4). Module-on golden loses 4 RHA's reaction; graziani-m5.json, hashes, cna-web indices, e2e fixtures and three Playwright specs re-pinned.
 In flight: local Playwright (/tmp/pw-fuel.log); combat spec's retreat-before-assault test fixed to click an on-screen hex (uncommitted until the rerun passes). #77 web CI.
 Next: merge #77, merge main into #78, mark ready, merge. Then forced retreats paying fuel (treat no fuel as no path for R-012 and 10.36).
+
+## 2026-10-26 19:30 MST — autopilot/m5-rail-units
+Done: #77 merged (capture of lone supply). #78 ready: reactions and every retreat pay fuel, a stack without fuel stands and pays (R-120); local gates and Playwright green (23/23 on the changed specs, 45/46 full suite before the last spec fix). #79 (draft): plan for combat units by rail.
+In flight: #78's web CI.
+Next: merge #78 if green and not merged; then build #79's plan, Task 1 first (TDD).
+Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 19:42 MST — autopilot/m5-rail-units
+Done: #78 merged. #79 ready: combat units and HQs ride the railway, 2 SP a run, supply limit counts supply only (edd6f0e); goldens unchanged since phase J still opens only for supply. Local gates green.
+In flight: #79 CI.
+Next: merge #79 on green CI; then the plan's remaining tasks (carry attached units, one stack each way, phase J for units alone with a golden re-pin).
 Blocked: Mission 4 on Brian's review of #25.

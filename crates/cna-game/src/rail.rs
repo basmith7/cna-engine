@@ -1,6 +1,7 @@
 //! Phase J under abstract supply (SPI 8.7x, 32.3x, R-005): the
-//! Commonwealth runs up to two supply units a stage, all one direction,
-//! along the Alexandria–Mersa Matruh railway.
+//! Commonwealth runs stacks of up to 2 SP of units, and up to two supply
+//! units a stage, all one direction, along the Alexandria–Mersa Matruh
+//! railway.
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -16,6 +17,9 @@ use cna_data::scenario::Side;
 
 /// Supply units the Commonwealth may run by rail in one stage (32.3x).
 const RAIL_SUPPLY: usize = 2;
+
+/// Stacking points of units in one rail run (8.7x).
+const RAIL_SP: u32 = 2;
 
 /// The railway, west to east: the shortest run of finished railroad
 /// hexsides from Mersa Matruh, where it ends at the start (60.7), to
@@ -67,17 +71,27 @@ impl GameState {
             .map_or(0, |i| i + 1)
     }
 
-    /// A Commonwealth supply unit that may still ride the railway this
-    /// stage: on the open line, no CP spent (8.7x), not already railed.
+    /// Supply units that have ridden the railway this stage.
+    fn railed_supply(&self) -> usize {
+        self.railed
+            .iter()
+            .filter(|id| self.pieces[*id].kind.is_supply())
+            .count()
+    }
+
+    /// A Commonwealth combat unit, HQ or supply unit that may still ride
+    /// the railway this stage: on the open line, no CP spent (8.7x), not
+    /// already railed.
     fn may_rail(&self, data: &Data, line: &[HexId], id: &PieceId) -> Result<usize, Illegal> {
         let p = self
             .pieces
             .get(id)
             .ok_or_else(|| Illegal::new("32.3x", format!("no piece {id}")))?;
-        if p.side != Side::Cw || !p.kind.is_supply() {
+        let rides = p.kind.is_supply() || matches!(p.kind, PieceKind::Combat | PieceKind::Hq);
+        if p.side != Side::Cw || !rides {
             return Err(Illegal::new(
-                "32.3x",
-                format!("{id}: only Commonwealth supply units ride the railway"),
+                "8.7x",
+                format!("{id}: only Commonwealth units and supply ride the railway"),
             ));
         }
         let at = p
@@ -122,14 +136,16 @@ impl GameState {
     pub(crate) fn rail_to_move(&self, data: &Data) -> bool {
         if !self.modules.abstract_supply
             || self.phasing() != Some(Side::Cw)
-            || self.railed.len() >= RAIL_SUPPLY
+            || self.railed_supply() >= RAIL_SUPPLY
         {
             return false;
         }
+        // Units ride once the phase is open; only supply opens it (for
+        // now: opening it for units adds stages to the goldens).
         let line = railway(data);
         self.pieces
             .values()
-            .filter(|p| p.side == Side::Cw)
+            .filter(|p| p.side == Side::Cw && p.kind.is_supply())
             .any(|p| self.may_rail(data, &line, &p.id).is_ok())
     }
 
@@ -194,7 +210,8 @@ impl GameState {
     }
 
     /// Where on the railway the run of `pieces` starts: all in one hex,
-    /// each free to ride, within the stage's two.
+    /// each free to ride, the units within 2 SP and the supply within
+    /// the stage's two.
     fn rail_start(
         &self,
         data: &Data,
@@ -223,13 +240,29 @@ impl GameState {
         {
             return Err(Illegal::new("8.7x", format!("{id} is listed twice")));
         }
-        if self.railed.len() + pieces.len() > RAIL_SUPPLY {
+        let supply = pieces
+            .iter()
+            .filter(|id| self.pieces.get(*id).is_some_and(|p| p.kind.is_supply()))
+            .count();
+        if supply > 0 && self.railed_supply() + supply > RAIL_SUPPLY {
             return Err(Illegal::new(
                 "32.3x",
                 format!(
                     "two supply units a stage ride the railway; {} already have",
-                    self.railed.len()
+                    self.railed_supply()
                 ),
+            ));
+        }
+        let sp: u32 = pieces
+            .iter()
+            .filter_map(|id| self.pieces.get(id))
+            .filter(|p| !p.kind.is_supply())
+            .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
+            .sum();
+        if sp > RAIL_SP {
+            return Err(Illegal::new(
+                "8.7x",
+                format!("a rail run carries at most {RAIL_SP} SP of units, not {sp}"),
             ));
         }
         let mut start = None;
@@ -243,7 +276,7 @@ impl GameState {
         Ok(start.expect("non-empty"))
     }
 
-    /// `Order::Rail`: the supply units run along the railway to the end
+    /// `Order::Rail`: the stack runs along the railway to the end
     /// of `path`, one hex at a time, never into an Axis hex or ZOC
     /// (8.7x); every run in a stage goes the same way (32.3x). Rail pays
     /// no fuel (32.2x).
@@ -276,7 +309,13 @@ impl GameState {
         let line = railway(data);
         let index = |h: &HexId| line.iter().position(|l| l == h);
         let east = index(end) > index(&from);
-        if let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, pieces.len()) {
+        let supply = pieces
+            .iter()
+            .filter(|id| self.pieces[*id].kind.is_supply())
+            .count();
+        if supply > 0
+            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, supply)
+        {
             return Err(e);
         }
         for id in pieces {
@@ -530,5 +569,60 @@ mod tests {
         assert!(!state.rail_to_move(&data));
         state.clock.phase = Phase::Rail;
         assert!(state.rail_destinations(&data, &[]).is_empty());
+    }
+
+    fn pid(s: &str) -> PieceId {
+        PieceId::from(cna_data::oa::UnitId::parse(s).unwrap())
+    }
+
+    /// `at_rail` at Alexandria's west hex, with `units` put there too,
+    /// alone and with no CP spent this stage.
+    fn units_at_alexandria(data: &Data, units: &[&str]) -> (GameState, Vec<PieceId>) {
+        let (mut state, _) = at_rail(data, "E3613");
+        let at = HexId::parse("E3613").unwrap();
+        let ids: Vec<PieceId> = units.iter().map(|u| pid(u)).collect();
+        for id in &ids {
+            state.put(id, Location::Hex(at.clone()));
+            state.pieces.get_mut(id).unwrap().cp_spent = Cp::ZERO;
+        }
+        (state, ids)
+    }
+
+    #[test]
+    fn a_combat_unit_rides_the_railway_free_8_7x() {
+        let data = graziani();
+        let line = railway(&data);
+        let (mut state, ids) = units_at_alexandria(&data, &["unit:cw:1-krrc"]);
+        let to = line[line.len() - 3].clone();
+        let path = vec![line[line.len() - 2].clone(), to.clone()];
+        let events = state.apply(&data, Side::Cw, run(&ids, &path)).unwrap();
+        assert!(matches!(&events[..], [Event::Railed { .. }]), "{events:?}");
+        let p = &state.pieces[&ids[0]];
+        assert_eq!(p.hex(), Some(&to));
+        assert_eq!(p.cp_spent, Cp::ZERO);
+        // It has ridden: not again this stage.
+        assert!(state.rail_destinations(&data, &ids).is_empty());
+    }
+
+    #[test]
+    fn a_unit_that_spent_cp_or_a_stack_over_two_sp_does_not_ride_8_7x() {
+        let data = graziani();
+        let line = railway(&data);
+        let path = vec![line[line.len() - 2].clone()];
+        let (mut state, ids) = units_at_alexandria(&data, &["unit:cw:1-krrc"]);
+        state.pieces.get_mut(&ids[0]).unwrap().cp_spent = Cp::whole(1);
+        let err = state.apply(&data, Side::Cw, run(&ids, &path)).unwrap_err();
+        assert_eq!(err.case, "8.7x", "{}", err.reason);
+        let (mut state, ids) = units_at_alexandria(
+            &data,
+            &["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:1-rnf"],
+        );
+        let before = state.clone();
+        let err = state.apply(&data, Side::Cw, run(&ids, &path)).unwrap_err();
+        assert_eq!(err.case, "8.7x", "{}", err.reason);
+        assert!(err.reason.contains("SP"), "{}", err.reason);
+        assert_eq!(state, before);
+        // Two battalions are 2 SP: they go.
+        state.apply(&data, Side::Cw, run(&ids[..2], &path)).unwrap();
     }
 }
