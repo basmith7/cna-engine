@@ -105,6 +105,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   (198–227 ms, timed in the page in a Playwright test build; the engine
   is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
   wait reads ~0.5 s because of its selector polling, not the app.
+- #75's choices ledger (PR comment), item 1: the shell share is still
+  matched by unit kind (HQ or brigade-equivalent), not by the chart
+  slot it fills, so a counted component outside that filter (a German
+  artillery group?) can never count. Check which counted components
+  that misses; if any, match attached units to the row's components.
 - Look at #75's two new starting shells (2nd NZ Division, the Trivioli
   tank regiment at Bardia): they follow the OA and the 19.3 chart, but
   change Graziani's opening.
