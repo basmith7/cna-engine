@@ -106,10 +106,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
   wait reads ~0.5 s because of its selector polling, not the app.
 - #75's choices ledger (PR comment), item 1: the shell share is still
-  matched by unit kind (HQ or brigade-equivalent), not by the chart
-  slot it fills, so a counted component outside that filter (a German
-  artillery group?) can never count. Check which counted components
-  that misses; if any, match attached units to the row's components.
+  matched by unit kind, not by the chart slot it fills. A division's
+  share counts HQs and brigade-equivalents, a brigade's battalion-
+  equivalent combat units; but counted chart components include German
+  `artillery-group` (division rows) and artillery, anti-tank, AA and
+  armoured-car units (brigade rows), none of them HQs. If their
+  counters are not of the counted equivalent, the whole holds slots
+  the share can never fill. Check, and if so match attached units to
+  the row's components by kind.
 - Look at #75's two new starting shells (2nd NZ Division, the Trivioli
   tank regiment at Bardia): they follow the OA and the 19.3 chart, but
   change Graziani's opening.
