@@ -285,3 +285,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-26 09:53 | 74 | 36→37 | 4→11 | $10.94 | 3 | This run merged three Mission 5 PRs (#67, #68, #69). All nine scenarios now set up and play a Game-Turn, and the browser offers every one of them. - **#67:** cn |
 | 2026-10-26 11:53 | 61 | 38→39 | 16→5 | $11.62 | 206 | I merged three PRs this run: the new Rommel ruling, two missing rule tests, and a 3× faster move search. Mission 4 is still waiting on your review of the spec,  |
 | 2026-10-26 16:53 | 75 | 40→? | 7→? | $10.41 | 3 | cna answered all three of this repo's open rulings requests (R-139, R-140, R-141). All three are now built and merged into the engine, with the docs updated. Yo |
+| 2026-10-26 18:53 | 59 | 41→42 | 9→13 | $13.25 | 5 | I merged three PRs this run (#77, #78, #79), plus `PROGRESS.md` updates on `main`. Each one passed clippy, `cargo test` and `cna-probe check` locally and was gr |
