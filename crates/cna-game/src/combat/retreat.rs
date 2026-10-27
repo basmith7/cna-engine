@@ -271,6 +271,8 @@ impl GameState {
                         ));
                     }
                 }
+                // Short of safety he is captured below (R-140).
+                RetreatReason::RommelAlone => {}
                 _ => {
                     let path_exists = self.retreat_path_exists(data, &start, side);
                     if !may_buy_out(&self.ruleset, path_exists) {
@@ -337,7 +339,7 @@ impl GameState {
                 // No captor stands by: they wait where they stood (a
                 // must-attack stack short of its retreat never moved).
                 self.capture_prisoners(data, side.other(), &start, prisoners, &mut events);
-            } else {
+            } else if reason != RetreatReason::RommelAlone {
                 events.push(Event::RetreatBoughtOut {
                     pieces: pieces.clone(),
                     short,
@@ -366,6 +368,10 @@ impl GameState {
                     &mut events,
                 );
             }
+        }
+        // R-140: he goes on until he is safe, or is taken where he stops.
+        if reason == RetreatReason::RommelAlone {
+            self.capture_lone_rommel(data, &[], &mut events);
         }
         if reason == RetreatReason::MustAttack && !self.end_close_assault(data, &mut events) {
             self.open_step(data, Segment::ReserveRelease, &mut events);

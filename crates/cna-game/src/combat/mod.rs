@@ -56,6 +56,9 @@ pub enum RetreatReason {
     /// A unit that neither assaulted nor held off an enemy ZOC hex
     /// (10.36): all its CP and 3 DP; no stopping short.
     MustAttack,
+    /// Rommel alone after an assault destroyed his stack (R-140): on
+    /// through enemy ZOC to safety, captured where he stops short of it.
+    RommelAlone,
 }
 
 /// One close assault as assigned: the phasing pieces and points against

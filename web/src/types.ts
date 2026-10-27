@@ -127,7 +127,7 @@ export interface Piece {
 }
 
 export type SealedStep = "gun-positions" | "barrage" | "assign-forces";
-export type RetreatReason = "assault-result" | "withheld" | "must-attack";
+export type RetreatReason = "assault-result" | "withheld" | "must-attack" | "rommel-alone";
 
 export type Pending =
   | { "set-up": { side: Side } }

@@ -3,6 +3,7 @@
 //! two-dice 12 recalls him to Germany for the turn: out of play, he
 //! neither moves nor can be caught, and comes back to the hex he left.
 
+use crate::combat::RetreatReason;
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::{Location, Piece, PieceId, PieceKind};
@@ -146,6 +147,37 @@ impl GameState {
                 });
             }
         }
+    }
+
+    /// R-140: an assault has destroyed every combat unit in `target`,
+    /// leaving a commanding Rommel there alone. He retreats at once, the
+    /// result's `retreat` hexes or at least one, before the next assault
+    /// and any advance; true if he was ordered to.
+    pub(crate) fn retreat_lone_rommel(
+        &mut self,
+        target: &HexId,
+        retreat: u32,
+        from: Vec<HexId>,
+        events: &mut Vec<Event>,
+    ) -> bool {
+        let Some(p) = self.rommel_on_map().filter(|_| self.rommel_at(target)) else {
+            return false;
+        };
+        let (id, side) = (p.id.clone(), p.side);
+        if self.friendly_combat_in(target, side, &[]) {
+            return false;
+        }
+        self.order_retreat(
+            side,
+            vec![id],
+            retreat.max(1),
+            from,
+            RetreatReason::RommelAlone,
+            0,
+            false,
+            events,
+        );
+        true
     }
 
     /// R-138: a commanding Rommel alone in an enemy ZOC in the enemy's

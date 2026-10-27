@@ -388,9 +388,11 @@ impl GameState {
         if let Some((hexes, from_hexes, reason)) = forced {
             // How far short of the order each end is (15.82); a short
             // hex is kept only where `apply` lets the stack stand and
-            // pay (R-012), never for a must-attack retreat (10.36).
-            let buy_out = reason != RetreatReason::MustAttack
-                && may_buy_out(&self.ruleset, self.retreat_path_exists(data, &from, side));
+            // pay (R-012), never for a must-attack retreat (10.36), and
+            // always for a lone Rommel, who is captured there (R-140).
+            let buy_out = reason == RetreatReason::RommelAlone
+                || (reason != RetreatReason::MustAttack
+                    && may_buy_out(&self.ruleset, self.retreat_path_exists(data, &from, side)));
             reaches.retain_mut(|r| {
                 let reached = from_hexes
                     .iter()
