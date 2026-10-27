@@ -677,4 +677,24 @@ mod tests {
         assert!(alone.is_shell(&data, &brigade));
         assert_eq!(alone.stacked(&data, &hex), 1);
     }
+
+    #[test]
+    fn a_division_is_judged_against_its_organisation_chart_row() {
+        // The OA assigns the 2nd New Zealand Division only its 4th
+        // Brigade; the chart's infantry-division row counts three
+        // brigades (R-141), so one attached of three is a shell (9.26).
+        let data = graziani();
+        let state = moving(&data, 3, Side::Axis);
+        let nz = pid("unit:cw:2-nz-hq");
+        assert_eq!(state.pieces[&pid("unit:cw:4-nz-hq")].attached_to, nz.unit());
+        assert!(state.is_shell(&data, &nz));
+        // Without the row, the OA's assigned units decide: its one
+        // brigade, attached, is all of it.
+        let mut chartless = graziani();
+        chartless
+            .organisation
+            .rows
+            .retain(|r| r.parent != "infantry-division");
+        assert!(!state.is_shell(&chartless, &nz));
+    }
 }

@@ -453,3 +453,9 @@ Done: cna answered all three requests (R-139, R-140, R-141). #73 (draft): vendor
 In flight: local Playwright (/tmp/pw-r139.log), then mark #73 ready.
 Next: R-140 (Rommel's own forced retreat when his stack dies) on a branch after #73; then R-141 (`counts_for_shell` as the shell denominator).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 17:40 MST — autopilot/m5-r141-shell-components
+Done: #73 merged (R-139, vendor/cna eafa8a3), #74 merged (R-140, Rommel retreats alone; local Playwright 46/46 on both). #75: R-141, the 19.3 chart's counted components as the shell denominator (0b26d1b, by a subagent), merged with main. PROGRESS on main (e53278c). Browser shading timed: ~0.5 s click to shaded, engine ~141 ms of it.
+In flight: #75 CI (ready).
+Next: merge #75 on green CI; then substitution (19.x) or Axis convoy lanes beyond Tripoli; or profile the overlay render.
+Blocked: Mission 4 on Brian's review of #25.
