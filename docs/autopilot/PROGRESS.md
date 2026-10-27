@@ -102,6 +102,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
 - If #78 is still open: merge it once its web CI is green.
+- #79 (draft) holds the plan for combat units by rail (8.7x, R-005):
+  build it task by task.
 - Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
   (ports as destinations, 56.15, 55.17, a new player order); combat
   units by rail; substitution (19.x) once cna maps counters to chart
