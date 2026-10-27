@@ -37,6 +37,7 @@ const REASON: Record<RetreatReason, string> = {
   "assault-result": "the assault result",
   withheld: "withheld forces",
   "must-attack": "must attack or retreat",
+  "rommel-alone": "Rommel's stack destroyed",
 };
 
 const STEP = { "gun-positions": "gun positions", barrage: "barrage", "assign-forces": "force assignment" } as const;

@@ -97,7 +97,7 @@ export function passConsequence(preview: ApplyResult, name: Namer): { text: stri
 
 /** The forced retreat's order, in words. */
 export function retreatOrderWords(p: { side: string; hexes: number; from: HexId[]; reason: RetreatReason }): string {
-  const why = { "assault-result": "the assault result", withheld: "committing nothing", "must-attack": "neither assaulting nor holding off the enemy" }[p.reason];
+  const why = { "assault-result": "the assault result", withheld: "committing nothing", "must-attack": "neither assaulting nor holding off the enemy", "rommel-alone": "losing his stack, on until safe or captured" }[p.reason];
   const from = [...new Set(p.from)].join(", ");
   return `${sideName(p.side as "axis" | "cw")} must retreat ${p.hexes} hex${p.hexes === 1 ? "" : "es"} from ${from} for ${why}.`;
 }

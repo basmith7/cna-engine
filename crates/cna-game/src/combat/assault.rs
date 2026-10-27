@@ -686,6 +686,8 @@ impl GameState {
                 self.pieces.get_mut(id).expect("listed").cohesion.victory();
             }
             self.charge_assault_cp(&attackers, target, probe, false, &mut events);
+            let from = attackers.iter().map(|c| c.hex.clone()).collect();
+            self.retreat_lone_rommel(target, 0, from, &mut events);
             return Ok(events);
         }
         let all_pinned =
@@ -972,6 +974,8 @@ impl GameState {
                     p.cohesion.victory();
                 }
             }
+            let from = attackers.iter().map(|c| c.hex.clone()).collect();
+            self.retreat_lone_rommel(target, d_roll.retreat, from, &mut events);
             return Ok(events);
         }
         if d_roll.retreat > 0 {
@@ -1958,6 +1962,104 @@ mod tests {
         );
         // A hex cleared is a victory: 3 RP.
         assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cohesion.level, 3);
+        assert_eq!(state.pending, None);
+    }
+
+    /// The -17 surrender at C4020 with one of its HQs standing in for
+    /// Rommel (Graziani's Offensive has no Rommel piece): the surrender
+    /// takes every combat unit and HQ, leaving him alone.
+    fn rommel_left_by_a_surrender(data: &Data) -> (GameState, PieceId, Vec<Event>) {
+        let mut state = assigning(data);
+        state
+            .apply(
+                data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        vec![],
+                        vec![alloc(Some("C4020"), 6)],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        for id in c4020_ids(&state) {
+            state.pieces.get_mut(&id).unwrap().cohesion.level = -17;
+        }
+        let rommel = c4020_ids(&state)
+            .into_iter()
+            .find(|id| state.pieces[id].kind == PieceKind::Hq)
+            .unwrap();
+        state.pieces.get_mut(&rommel).unwrap().kind = PieceKind::Commander;
+        let events = state
+            .apply(
+                data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        (state, rommel, events)
+    }
+
+    // R-140: his stack destroyed, Rommel at once retreats alone, at least
+    // one hex, before the next assault.
+    #[test]
+    fn rommel_whose_stack_is_destroyed_retreats_alone() {
+        let data = graziani();
+        let (mut state, rommel, events) = rommel_left_by_a_surrender(&data);
+        assert!(
+            events.contains(&Event::RetreatOrdered {
+                pieces: vec![rommel.clone()],
+                hexes: 1,
+                reason: RetreatReason::RommelAlone,
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        // West along the coast road, out of 1 KRRC's reach at C4021.
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Retreat {
+                    path: vec![hex("C3920"), hex("C3819")],
+                },
+            )
+            .unwrap();
+        assert!(
+            !events.iter().any(|e| matches!(e, Event::Captured { .. })),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&rommel].hex(), Some(&hex("C3819")));
+        assert_eq!(state.pending, None);
+    }
+
+    // R-140: standing, or stopping where an enemy ZOC still reaches him,
+    // he is captured.
+    #[test]
+    fn rommel_who_cannot_reach_safety_is_captured() {
+        let data = graziani();
+        let (mut state, rommel, _) = rommel_left_by_a_surrender(&data);
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert!(
+            events.contains(&Event::Captured {
+                piece: rommel.clone(),
+                hex: hex("C4020"),
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&rommel].location, Location::Eliminated);
         assert_eq!(state.pending, None);
     }
 
