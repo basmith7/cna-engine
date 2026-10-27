@@ -48,7 +48,7 @@ safety. #75 (R-141): shells are judged against the 19.3 chart's counted
 components; in Graziani's Offensive the 2nd NZ Division and the
 Trivioli tank regiment now start as shells. **Seventh run
 (2026-10-27):** #77 (merged): a combat unit entering a hex of lone
-enemy supply captures it (32.1x). #78: reactions and every retreat pay
+enemy supply captures it (32.1x). #78 (merged): reactions and every retreat pay
 fuel (32.22); a unit that cannot pay does not react or retreat before
 assault, and a stack ordered to retreat stands and pays (R-120). The
 module-on golden game changes with it: 4 RHA has no fuel to react on
@@ -101,7 +101,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- If #78 is still open: merge it once its web CI is green.
+- #79 (draft) holds the plan for combat units by rail (8.7x, R-005):
+  build it task by task.
 - Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
   (ports as destinations, 56.15, 55.17, a new player order); combat
   units by rail; substitution (19.x) once cna maps counters to chart

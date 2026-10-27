@@ -566,19 +566,6 @@
     },
     {
       "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
-        }
-      }
-    },
-    {
-      "player": "cw",
       "order": "pass"
     },
     {

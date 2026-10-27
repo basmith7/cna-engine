@@ -182,6 +182,12 @@ impl GameState {
         Ok(payments)
     }
 
+    /// Whether `pieces` owe fuel to move at all and cannot pay it: such
+    /// a stack makes no land move (R-120).
+    pub(crate) fn unfuelled(&self, data: &Data, pieces: &[PieceId]) -> bool {
+        self.modules.abstract_supply && self.plan_fuel(data, pieces, Cp::ZERO, None).is_err()
+    }
+
     /// Debits what `plan_fuel` chose and marks the movers fuelled.
     pub(crate) fn spend_fuel(
         &mut self,

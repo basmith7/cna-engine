@@ -2607,18 +2607,16 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3923"
+        "hex": "C3922"
       },
-      "cp_spent": 2.0,
-      "cp_enemy_half": 2.0,
+      "cp_spent": 3.0,
+      "cp_enemy_half": 3.0,
       "cohesion": {
-        "level": 0,
-        "dp_tally": 0
+        "level": -3,
+        "dp_tally": 3
       },
       "contact": false,
-      "engaged": false,
-      "breakdown_halves": 8,
-      "breakdown_checked": 1
+      "engaged": false
     },
     "unit:cw:4th-armored-bde-hq": {
       "id": "unit:cw:4th-armored-bde-hq",
@@ -8884,6 +8882,7 @@
       "pieces": [
         "unit:cw:1-krrc",
         "unit:cw:3-cldgds",
+        "unit:cw:4-rha",
         "unit:cw:7-med"
       ],
       "hexes": 3,
@@ -8894,7 +8893,7 @@
         "C4021"
       ],
       "reason": "withheld",
-      "raw": 24,
+      "raw": 30,
       "overrun": false
     }
   },
@@ -8993,6 +8992,7 @@
     "charged": {
       "unit:cw:1-krrc": 3.0,
       "unit:cw:3-cldgds": 3.0,
+      "unit:cw:4-rha": 3.0,
       "unit:cw:7-med": 3.0,
       "unit:it:1st-libyan-anti-tank-coy": 5.0,
       "unit:it:1st-libyan-artillery-regt": 5.0,
@@ -9009,6 +9009,7 @@
     "barrage_involved": [
       "unit:cw:1-krrc",
       "unit:cw:3-cldgds",
+      "unit:cw:4-rha",
       "unit:cw:7-med",
       "unit:it:1st-libyan-artillery-regt"
     ],
@@ -9574,19 +9575,6 @@
             "C4021"
           ],
           "assault": true
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
         }
       }
     },

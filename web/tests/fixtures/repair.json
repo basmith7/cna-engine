@@ -2611,30 +2611,26 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 6,
+      "toe": 0,
       "weapons": [
         {
           "weapon": "18/25-pounders",
-          "points": 6
+          "points": 0
         }
       ],
       "cpa": "20",
       "morale": 2,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3923"
-      },
-      "cp_spent": 2.0,
-      "cp_enemy_half": 2.0,
+      "location": "eliminated",
+      "cp_spent": 3.0,
+      "cp_enemy_half": 3.0,
       "cohesion": {
         "level": 0,
         "dp_tally": 0
       },
       "contact": false,
-      "engaged": false,
-      "breakdown_halves": 8,
-      "breakdown_checked": 1
+      "engaged": false
     },
     "unit:cw:4th-armored-bde-hq": {
       "id": "unit:cw:4th-armored-bde-hq",
@@ -9450,19 +9446,6 @@
             "C4021"
           ],
           "assault": true
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
         }
       }
     },
