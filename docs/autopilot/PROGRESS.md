@@ -40,7 +40,7 @@ captured. New requests: whose ZOC 8.53 means for every unit, which
 is destroyed. #71 (merged) adds the last assignment tests; #72 (merged)
 makes the reach search 3x faster under wasm (Mission 3's slow shading).
 **Sixth run:** cna answered all three requests (R-139, R-140, R-141).
-#73 bumps `vendor/cna` to eafa8a3 and builds R-139: a reaction is barred
+#73, #74 and #75 are merged. #73 bumps `vendor/cna` to eafa8a3 and builds R-139: a reaction is barred
 only by an enemy ZOC the unit stood in before the mover arrived, so the
 mover's own ZOC no longer pins. #74 (R-140): Rommel whose stack an
 assault destroys retreats alone at once, captured if he stops short of
@@ -94,8 +94,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5: merge #74 (R-140) and #75 (R-141) on green CI if this
-  run did not. Then, for Graziani's: substitution (19.x, the chart's
+- Mission 5: merge #76 (design Status, docs only) on green CI. Then,
+  for Graziani's: substitution (19.x, the chart's
   slots filled by like units), or Axis convoy lanes beyond Tripoli
   (ports as destinations, 56.15, 55.17, a new player order); or the
   desert raiders (§27) that the raid on Rommel needs, which want
