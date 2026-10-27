@@ -31,12 +31,15 @@ replay unchanged. Bombing and repairing the line (the Air Game).
 
 ### Task 1: combat units ride
 
-- [ ] Write the failing tests: a Commonwealth battalion at Mersa Matruh
-  with no CP spent runs east to Alexandria in phase J and spends nothing;
-  one that spent CP, stands in an enemy ZOC, or would make a stack over
-  2 SP is refused (8.7x); an Axis unit is refused.
-- [ ] Widen `may_rail` and `rail_start` past supply units; stacking
-  points checked on the stack.
+- [x] Write the failing tests: a Commonwealth battalion at Alexandria
+  with no CP spent runs west in phase J and spends nothing; one that
+  spent CP, or a stack over 2 SP, is refused (8.7x). (Built with the
+  tests at Alexandria, where `at_rail` already opens phase J.)
+- [x] Widen `may_rail` and `rail_start` past supply units; stacking
+  points checked on the stack; the 32.3x count is of supply only.
+  Phase J still opens only for supply (`rail_to_move`), so the goldens
+  are unchanged until Task 3.
+- [ ] Carry attached units along (`carried`, 19.4x), as a move does.
 
 ### Task 2: one stack each way
 
