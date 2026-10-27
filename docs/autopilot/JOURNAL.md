@@ -482,3 +482,9 @@ Done: #77 merged (capture of lone supply). #78 ready: reactions and every retrea
 In flight: #78's web CI.
 Next: merge #78 if green and not merged; then build #79's plan, Task 1 first (TDD).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 19:42 MST — autopilot/m5-rail-units
+Done: #78 merged. #79 ready: combat units and HQs ride the railway, 2 SP a run, supply limit counts supply only (edd6f0e); goldens unchanged since phase J still opens only for supply. Local gates green.
+In flight: #79 CI.
+Next: merge #79 on green CI; then the plan's remaining tasks (carry attached units, one stack each way, phase J for units alone with a golden re-pin).
+Blocked: Mission 4 on Brian's review of #25.
