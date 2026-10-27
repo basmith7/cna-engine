@@ -39,6 +39,14 @@ captured. New requests: whose ZOC 8.53 means for every unit, which
 19.3 chart components count toward a shell, and Rommel after his stack
 is destroyed. #71 (merged) adds the last assignment tests; #72 (merged)
 makes the reach search 3x faster under wasm (Mission 3's slow shading).
+**Sixth run:** cna answered all three requests (R-139, R-140, R-141).
+#73 bumps `vendor/cna` to eafa8a3 and builds R-139: a reaction is barred
+only by an enemy ZOC the unit stood in before the mover arrived, so the
+mover's own ZOC no longer pins. #74 (R-140): Rommel whose stack an
+assault destroys retreats alone at once, captured if he stops short of
+safety. #75 (R-141): shells are judged against the 19.3 chart's counted
+components; in Graziani's Offensive the 2nd NZ Division and the
+Trivioli tank regiment now start as shells.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -87,16 +95,19 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   selecting an uncapped motorised stack took ~0.6 s to shade (#72 cut
   the engine's share 3x; not yet re-timed in a browser); at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 continues with whichever cna request lands first (below).
-  Meanwhile: time the browser's shading after #72 (the engine call went
-  from 424 to 141 ms under wasm), then Axis convoy lanes beyond Tripoli
-  (56.15, 55.17) or the desert raiders (§27), which need hidden movement
-  and so wait for Mission 4's per-side views.
-  Then: Axis convoy lanes
-  beyond Tripoli (ports as destinations, 56.15, 55.17), the 19.3 chart
-  as the shell denominator, or the desert raiders (§27) that the raid
-  on Rommel needs. The end dialog's points table is not yet seen in a
-  browser.
+- Mission 5: merge #74 (R-140) and #75 (R-141) on green CI if this
+  run did not. Then, for Graziani's: substitution (19.x, the chart's
+  slots filled by like units), or Axis convoy lanes beyond Tripoli
+  (ports as destinations, 56.15, 55.17, a new player order); or the
+  desert raiders (§27) that the raid on Rommel needs, which want
+  hidden movement and so Mission 4's per-side views.
+- Shading after #72, timed 2026-10-26 in a Playwright test build:
+  click to shaded ~0.5 s for the LXII tank battalion (631, 513, 491,
+  494 ms), of which the engine is ~141 ms. The rest is the UI's; profile
+  the overlay render before touching the engine again.
+- Look at #75's two new starting shells (2nd NZ Division, the Trivioli
+  tank regiment at Bardia): they follow the OA and the 19.3 chart, but
+  change Graziani's opening.
 - PR #23's review follow-ups are all merged: hostile saves refused
   (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
   Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
@@ -110,36 +121,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Whose ZOC "already in an enemy ZOC" means in 8.53, as a ruling**
-  (Mission 5). cna's restatement bars a reaction by a unit "already in
-  an enemy ZOC — this is how faster units pin slower ones". The engine
-  reads it as including the ZOC of the stack that just moved next to it
-  (`reaction.rs`, test `a_unit_under_the_mover_s_zoc_cannot_react`), so
-  only a mover that exerts no ZOC (under 10.1x's minimum) ever draws a
-  reaction, and the 6-CPA assault pin rarely matters. R-138's rationale
-  reads the other way for Rommel ("the approach is exactly what puts him
-  in its ZOC"), and #70 exempts him alone. Needed: does the mover's own
-  ZOC bar a reaction, or only an enemy ZOC the unit stood in before the
-  mover arrived? If the latter, the engine changes for every unit and
-  the goldens get re-recorded.
-- **Which 19.3 chart components count toward a shell (9.26–9.27)**
-  (Mission 5). The engine judges a shell against the units the OA
-  assigns to an HQ, not the Formation Organisation Chart, because the
-  chart's rows don't say which components 9.26's "assignable brigade
-  equivalents" and 9.27's "assignable battalions" count. For example:
-  does a CW infantry brigade (3 SP) count its artillery unit, its
-  anti-tank unit (no SP printed) and its `unit` slot? Does a division
-  count only its 2+ SP components? Do 0 SP companies count? Needed:
-  per component, counted or not (a flag on each component would do),
-  and `turns` on CW armoured brigade type II, which has `turns_list`
-  where the other rows have `turns`.
-- **Rommel whose stack is destroyed in an assault (R-138's "he may
-  retreat with it")** (Mission 5). When an assault destroys every
-  combat unit in his hex, the stack has no retreat to join, and R-138
-  gives no distance or moment. Today (#70) he stays put, and is captured
-  only at the next Commonwealth segment's start if still in an enemy
-  ZOC. Needed: does he retreat (how far, and before or after the losses
-  are taken), or is he captured then and there?
+None open.
 
 ## Runs and quota
 
