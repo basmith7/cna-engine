@@ -66,6 +66,13 @@ pub enum PieceKind {
     DummySupplyUnit,
 }
 
+impl PieceKind {
+    /// A supply unit, real or dummy (32.1x).
+    pub fn is_supply(self) -> bool {
+        matches!(self, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Location {

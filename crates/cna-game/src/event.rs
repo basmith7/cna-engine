@@ -345,7 +345,8 @@ pub enum Event {
         cp: Cp,
         dp: u32,
     },
-    /// A non-combat unit alone in an enemy ZOC was taken (10.29).
+    /// A non-combat unit alone in an enemy ZOC was taken (10.29), or a
+    /// supply unit alone in a hex an enemy combat unit entered (32.1x).
     Captured {
         piece: PieceId,
         hex: HexId,

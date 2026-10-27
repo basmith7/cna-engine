@@ -84,10 +84,7 @@ impl GameState {
     /// by this, not by Rommel's bonus (R-137).
     pub(crate) fn base_cpa(&self, piece: &Piece) -> Option<u32> {
         // The points carrying a supply unit move it at CPA 15 (32.5x).
-        if matches!(
-            piece.kind,
-            PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
-        ) {
+        if piece.kind.is_supply() {
             return (self.modules.abstract_supply && piece.motorised > 0 && !piece.flown)
                 .then_some(15);
         }
@@ -260,10 +257,9 @@ impl GameState {
             })
         };
         if phasing
-            && pieces.iter().any(|id| {
-                matches!(kind(id), PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-                    && !escorted(id)
-            })
+            && pieces
+                .iter()
+                .any(|id| kind(id).is_supply() && !escorted(id))
         {
             return Err(Illegal::new(
                 "32.31",
@@ -391,7 +387,7 @@ impl GameState {
                 // The first step is checked before the move is parked on
                 // the declaration: an order that could never be taken is
                 // refused, not logged (8.1x).
-                self.entry(data, mover.side, from, &path[0])?;
+                self.entry(data, &mover, from, &path[0])?;
                 plan.interrupt = Some((path[0].clone(), hexes));
                 return Ok(plan);
             }
@@ -504,7 +500,7 @@ impl GameState {
         to: &HexId,
         at_in_zoc: bool,
     ) -> Result<(Cp, Zoc), Illegal> {
-        let hex = self.entry(data, mover.side, at, to)?;
+        let hex = self.entry(data, mover, at, to)?;
         let hexside = data.map.hexside(at, to);
         let step = Step {
             from: data.map.hex(at).expect("on the map"),
@@ -553,16 +549,18 @@ impl GameState {
         Ok((cost, zoc))
     }
 
-    /// Whether a unit of `side` may step from `at` into `to` at all
-    /// (8.1x): on the map, adjacent, not an enemy-held hex, and east of
+    /// Whether the stack may step from `at` into `to` at all (8.1x): on
+    /// the map, adjacent, not an enemy-held hex (a combat unit may enter
+    /// one of lone enemy supply, capturing it, 32.1x), and east of
     /// Marble Arch for the Commonwealth. The terrain is the chart's.
     fn entry<'a>(
         &self,
         data: &'a Data,
-        side: Side,
+        mover: &Mover,
         at: &HexId,
         to: &HexId,
     ) -> Result<&'a cna_data::map::Hex, Illegal> {
+        let side = mover.side;
         let Some(hex) = data.map.hex(to) else {
             return Err(Illegal::new("8.1x", format!("{to}: not on the map")));
         };
@@ -572,7 +570,13 @@ impl GameState {
                 format!("{to} is not adjacent to {at}"),
             ));
         }
-        if let Some(enemy) = self.pieces_at(to).into_iter().find(|q| q.side != side) {
+        let enemies: Vec<&Piece> = self
+            .pieces_at(to)
+            .into_iter()
+            .filter(|q| q.side != side)
+            .collect();
+        let capturable = mover.combat && enemies.iter().all(|q| q.kind.is_supply());
+        if let Some(enemy) = enemies.first().filter(|_| !capturable) {
             return Err(Illegal::new(
                 "8.1x",
                 format!("{to} holds the enemy unit {}", enemy.id),
@@ -605,7 +609,7 @@ impl GameState {
         }
         let dp = p.cp_spent.saturating_sub(cpa).floor() - before;
         // Supply units have no cohesion to lose (32.1x: no combat value).
-        let supply = matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
+        let supply = p.kind.is_supply();
         if dp > 0 && !supply {
             p.cohesion.earn_dp(dp);
             events.push(Event::Disorganised {
@@ -632,7 +636,7 @@ impl GameState {
                     .pieces
                     .get(id)
                     .ok_or_else(|| Illegal::new("32.31", format!("no piece {id}")))?;
-                if !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit) {
+                if !p.kind.is_supply() {
                     return Err(Illegal::new(
                         "32.31",
                         format!("{id}: only supply units move in the truck convoy phase"),
@@ -719,12 +723,7 @@ impl GameState {
         // Supply stacking binds where the move ends (32.1x).
         let supply = pieces
             .iter()
-            .filter(|id| {
-                matches!(
-                    self.pieces[*id].kind,
-                    PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
-                )
-            })
+            .filter(|id| self.pieces[*id].kind.is_supply())
             .count();
         if supply > 0
             && let Some(end) = path.last()
@@ -819,6 +818,7 @@ impl GameState {
             for id in pieces {
                 self.charge(id, cost, false, &mut events);
             }
+            self.capture_supply_entered(pieces, &to, &mut events);
             self.capture_wrecks(data, pieces, &to, &mut events);
             self.mine_rolls(data, pieces, &to, &mut events);
             if let Some(side) = pieces.first().map(|id| self.pieces[id].side) {
@@ -862,12 +862,7 @@ impl GameState {
                 .cloned()
                 .collect();
             for id in pieces {
-                if in_g
-                    && matches!(
-                        self.pieces[id].kind,
-                        PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
-                    )
-                {
+                if in_g && self.pieces[id].kind.is_supply() {
                     self.escorts
                         .entry(id.clone())
                         .or_default()
@@ -876,8 +871,7 @@ impl GameState {
                 let p = self.pieces.get_mut(id).expect("checked");
                 p.landed = false;
                 // A supply unit moves in G or in H, not both (32.31).
-                p.escorted |=
-                    in_g && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit);
+                p.escorted |= in_g && p.kind.is_supply();
             }
         }
         // A stack its own breakdown check destroyed draws no reaction.
