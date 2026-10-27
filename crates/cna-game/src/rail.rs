@@ -1,9 +1,11 @@
 //! Phase J under abstract supply (SPI 8.7x, 32.3x, R-005): the
-//! Commonwealth runs stacks of up to 2 SP of units, and up to two supply
-//! units a stage, all one direction, along the Alexandria–Mersa Matruh
-//! railway.
+//! Commonwealth runs one stack each way along the Alexandria–Mersa
+//! Matruh railway, each up to 2 SP of units with what is attached to
+//! them, and up to two supply units a stage, all one way.
 
 use std::collections::{BTreeMap, VecDeque};
+
+use serde::{Deserialize, Serialize};
 
 use crate::clock::Phase;
 use crate::data::Data;
@@ -20,6 +22,30 @@ const RAIL_SUPPLY: usize = 2;
 
 /// Stacking points of units in one rail run (8.7x).
 const RAIL_SP: u32 = 2;
+
+/// Which way a rail run goes along the line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RailWay {
+    East,
+    West,
+}
+
+impl std::fmt::Display for RailWay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            RailWay::East => "east",
+            RailWay::West => "west",
+        })
+    }
+}
+
+/// A run that may start: where on the line, and everything it carries.
+struct RailStack {
+    at: usize,
+    pieces: Vec<PieceId>,
+    supply: bool,
+}
 
 /// The railway, west to east: the shortest run of finished railroad
 /// hexsides from Mersa Matruh, where it ends at the start (60.7), to
@@ -131,8 +157,8 @@ impl GameState {
     }
 
     /// Phase J waits on the Commonwealth only when the module is on and
-    /// it has a supply unit that may still ride the railway; otherwise it
-    /// is skipped.
+    /// it has a supply unit that may still ride the railway somewhere;
+    /// otherwise it is skipped.
     pub(crate) fn rail_to_move(&self, data: &Data) -> bool {
         if !self.modules.abstract_supply
             || self.phasing() != Some(Side::Cw)
@@ -142,11 +168,28 @@ impl GameState {
         }
         // Units ride once the phase is open; only supply opens it (for
         // now: opening it for units adds stages to the goldens).
-        let line = railway(data);
         self.pieces
             .values()
             .filter(|p| p.side == Side::Cw && p.kind.is_supply())
-            .any(|p| self.may_rail(data, &line, &p.id).is_ok())
+            .any(|p| !self.rail_destinations(data, std::slice::from_ref(&p.id)).is_empty())
+    }
+
+    /// Why a stack may not run `way` this stage: that way's stack has
+    /// gone (8.7x), or supply has gone the other way (32.3x).
+    fn way_refusal(&self, way: RailWay, supply: bool) -> Option<Illegal> {
+        if self.rail_runs.contains(&way) {
+            return Some(Illegal::new(
+                "8.7x",
+                format!("one stack a stage runs {way}, and it has gone"),
+            ));
+        }
+        match self.rail_supply_way {
+            Some(w) if supply && w != way => Some(Illegal::new(
+                "32.3x",
+                format!("supply has gone {w} by rail this stage: all of it goes one way"),
+            )),
+            _ => None,
+        }
     }
 
     /// The railway hexes `pieces` may run to from where they stand, in
@@ -155,16 +198,16 @@ impl GameState {
     /// when they may not ride at all.
     pub fn rail_destinations(&self, data: &Data, pieces: &[PieceId]) -> Vec<HexId> {
         let line = railway(data);
-        let Some(at) = self.rail_start(data, &line, pieces).ok() else {
+        let Ok(RailStack { at, supply, .. }) = self.rail_start(data, &line, pieces) else {
             return Vec::new();
         };
         let open = self.open_line(&line);
         let clear = |h: &HexId| self.holder(h) != Some(Side::Axis) && !self.enemy_zoc(data, h);
         let mut out = Vec::new();
-        if self.rail_east != Some(false) {
+        if self.way_refusal(RailWay::East, supply).is_none() {
             out.extend(line[at + 1..].iter().take_while(|h| clear(h)).cloned());
         }
-        if self.rail_east != Some(true) {
+        if self.way_refusal(RailWay::West, supply).is_none() {
             out.extend(
                 line[open..at]
                     .iter()
@@ -184,7 +227,7 @@ impl GameState {
         pieces: &[PieceId],
     ) -> Result<Vec<crate::reach::Reach>, Illegal> {
         let line = railway(data);
-        let at = self.rail_start(data, &line, pieces)?;
+        let at = self.rail_start(data, &line, pieces)?.at;
         Ok(self
             .rail_destinations(data, pieces)
             .into_iter()
@@ -209,15 +252,15 @@ impl GameState {
             .collect())
     }
 
-    /// Where on the railway the run of `pieces` starts: all in one hex,
-    /// each free to ride, the units within 2 SP and the supply within
-    /// the stage's two.
+    /// The run of `pieces` and what is attached to them (19.4x): all in
+    /// one hex, each free to ride, the units within 2 SP and the supply
+    /// within the stage's two.
     fn rail_start(
         &self,
         data: &Data,
         line: &[HexId],
         pieces: &[PieceId],
-    ) -> Result<usize, Illegal> {
+    ) -> Result<RailStack, Illegal> {
         if !self.modules.abstract_supply
             || self.clock.phase != Phase::Rail
             || self.phasing() != Some(Side::Cw)
@@ -240,6 +283,7 @@ impl GameState {
         {
             return Err(Illegal::new("8.7x", format!("{id} is listed twice")));
         }
+        let pieces = &self.carried(pieces)?;
         let supply = pieces
             .iter()
             .filter(|id| self.pieces.get(*id).is_some_and(|p| p.kind.is_supply()))
@@ -273,13 +317,17 @@ impl GameState {
             }
             start = Some(at);
         }
-        Ok(start.expect("non-empty"))
+        Ok(RailStack {
+            at: start.expect("non-empty"),
+            pieces: pieces.clone(),
+            supply: supply > 0,
+        })
     }
 
-    /// `Order::Rail`: the stack runs along the railway to the end
-    /// of `path`, one hex at a time, never into an Axis hex or ZOC
-    /// (8.7x); every run in a stage goes the same way (32.3x). Rail pays
-    /// no fuel (32.2x).
+    /// `Order::Rail`: the stack, with what is attached to it, runs along
+    /// the railway to the end of `path`, one hex at a time, never into an
+    /// Axis hex or ZOC; one stack a stage each way (8.7x), supply all one
+    /// way (32.3x). Rail pays no fuel (32.2x).
     pub(crate) fn rail(
         &mut self,
         data: &Data,
@@ -289,6 +337,15 @@ impl GameState {
         let Some(end) = path.last() else {
             return Err(Illegal::new("8.7x", "a rail run goes somewhere"));
         };
+        let line = railway(data);
+        let stack = self.rail_start(data, &line, pieces)?;
+        let way = match line.iter().position(|h| h == end) {
+            Some(to) if to > stack.at => RailWay::East,
+            _ => RailWay::West,
+        };
+        if let Some(e) = self.way_refusal(way, stack.supply) {
+            return Err(e);
+        }
         let Some(reach) = self
             .rail_reaches(data, pieces)?
             .into_iter()
@@ -305,11 +362,9 @@ impl GameState {
                 "a rail run follows the railway hex by hex",
             ));
         }
-        let from = self.pieces[&pieces[0]].hex().expect("on the line").clone();
-        let line = railway(data);
-        let index = |h: &HexId| line.iter().position(|l| l == h);
-        let east = index(end) > index(&from);
-        let supply = pieces
+        let from = line[stack.at].clone();
+        let supply = stack
+            .pieces
             .iter()
             .filter(|id| self.pieces[*id].kind.is_supply())
             .count();
@@ -318,13 +373,16 @@ impl GameState {
         {
             return Err(e);
         }
-        for id in pieces {
+        for id in &stack.pieces {
             self.pieces.get_mut(id).expect("checked").location = Location::Hex(end.clone());
             self.railed.insert(id.clone());
         }
-        self.rail_east = Some(east);
+        self.rail_runs.insert(way);
+        if stack.supply {
+            self.rail_supply_way = Some(way);
+        }
         Ok(vec![Event::Railed {
-            pieces: pieces.to_vec(),
+            pieces: stack.pieces,
             from,
             to: end.clone(),
         }])
@@ -455,16 +513,16 @@ mod tests {
         state
             .apply(&data, Side::Cw, run(&ids[..1], &[line[i + 1].clone()]))
             .unwrap();
-        // The second unit may not go the other way.
+        // The second unit may not go the other way (32.3x), nor east,
+        // where the stage's one stack has gone (8.7x).
         assert_eq!(state.clock.phase, Phase::Rail);
-        assert!(
-            state
-                .rail_destinations(&data, &ids[1..])
-                .iter()
-                .all(|h| { line.iter().position(|l| l == h).unwrap() > i })
-        );
+        assert!(state.rail_destinations(&data, &ids[1..]).is_empty());
         let err = state
             .apply(&data, Side::Cw, run(&ids[1..], &[line[i - 1].clone()]))
+            .unwrap_err();
+        assert_eq!(err.case, "32.3x");
+        let err = state
+            .apply(&data, Side::Cw, run(&ids[1..], &[line[i + 2].clone()]))
             .unwrap_err();
         assert_eq!(err.case, "8.7x");
         // Nor ride twice.
@@ -625,4 +683,81 @@ mod tests {
         // Two battalions are 2 SP: they go.
         state.apply(&data, Side::Cw, run(&ids[..2], &path)).unwrap();
     }
+
+    #[test]
+    fn attached_units_ride_with_their_parent_19_4x() {
+        let data = graziani();
+        let line = railway(&data);
+        let path = vec![line[line.len() - 2].clone()];
+        let (mut state, ids) =
+            units_at_alexandria(&data, &["unit:cw:1-krrc", "unit:cw:3-cldgds"]);
+        state.pieces.get_mut(&ids[1]).unwrap().attached_to = ids[0].unit();
+        let err = state
+            .apply(&data, Side::Cw, run(&ids[1..], &path))
+            .unwrap_err();
+        assert_eq!(err.case, "19.4x", "{}", err.reason);
+        let events = state.apply(&data, Side::Cw, run(&ids[..1], &path)).unwrap();
+        let Event::Railed { pieces, .. } = &events[0] else {
+            panic!("{events:?}");
+        };
+        assert_eq!(pieces, &ids);
+        for id in &ids {
+            assert_eq!(state.pieces[id].hex(), Some(&path[0]));
+        }
+    }
+
+    #[test]
+    fn one_stack_runs_each_way_a_stage_r005() {
+        let data = graziani();
+        let line = railway(&data);
+        let (mut state, ids) = units_at_alexandria(
+            &data,
+            &["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:1-rnf"],
+        );
+        let west = vec![line[line.len() - 2].clone()];
+        state.apply(&data, Side::Cw, run(&ids[..1], &west)).unwrap();
+        // The westward stack has gone: no second one.
+        assert!(state.rail_destinations(&data, &ids[1..2]).is_empty());
+        let err = state
+            .apply(&data, Side::Cw, run(&ids[1..2], &west))
+            .unwrap_err();
+        assert_eq!(err.case, "8.7x", "{}", err.reason);
+        // Eastward is still open, from further up the line.
+        let mid = line.len() / 2;
+        state.put(&ids[2], Location::Hex(line[mid].clone()));
+        let east = state.rail_destinations(&data, &ids[2..]);
+        assert!(!east.is_empty());
+        let i = |h: &HexId| line.iter().position(|l| l == h).unwrap();
+        assert!(east.iter().all(|h| i(h) > mid), "{east:?}");
+        state
+            .apply(&data, Side::Cw, run(&ids[2..], &[line[mid + 1].clone()]))
+            .unwrap();
+        // Both ways run: phase J has nothing left to offer.
+        assert!(!state.rail_to_move(&data));
+    }
+
+    #[test]
+    fn supply_rides_in_a_stack_one_way_a_stage_32_3x() {
+        let data = graziani();
+        let line = railway(&data);
+        let mid = line.len() / 2;
+        let (mut state, supply) = at_rail(&data, &line[mid].to_string());
+        let (_, units) = units_at_alexandria(&data, &["unit:cw:1-krrc"]);
+        for id in &units {
+            state.put(id, Location::Hex(line[mid].clone()));
+            state.pieces.get_mut(id).unwrap().cp_spent = Cp::ZERO;
+        }
+        // A battalion and a supply unit go east together (R-005).
+        let both = [units[0].clone(), supply[0].clone()];
+        state
+            .apply(&data, Side::Cw, run(&both, &[line[mid + 1].clone()]))
+            .unwrap();
+        // The other supply unit may not go west: supply goes one way.
+        assert!(state.rail_destinations(&data, &supply[1..]).is_empty());
+        let err = state
+            .apply(&data, Side::Cw, run(&supply[1..], &[line[mid - 1].clone()]))
+            .unwrap_err();
+        assert_eq!(err.case, "32.3x", "{}", err.reason);
+    }
 }
+
