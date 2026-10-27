@@ -95,6 +95,7 @@ impl GameState {
             for id in pieces {
                 self.charge(id, cost, true, &mut events);
             }
+            self.capture_supply_entered(pieces, &to, &mut events);
             at = to;
         }
         // It stops: a breakdown check (21.2x).
@@ -312,6 +313,7 @@ impl GameState {
                 for id in &pieces {
                     self.charge(id, cost, !phasing, &mut events);
                 }
+                self.capture_supply_entered(&pieces, &to, &mut events);
                 at = to;
             }
             self.check_breakdown(data, &pieces, storm, &start, &mut events);

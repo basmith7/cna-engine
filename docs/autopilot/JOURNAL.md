@@ -465,3 +465,9 @@ Done: #73 (R-139), #74 (R-140), #75 (R-141) merged; #75 choices ledger posted as
 In flight: #76 (design Status, docs only) on CI.
 Next: merge #76; check #75 ledger item 1 (share matched by kind, not chart slot); then substitution (19.x) or Axis convoy lanes beyond Tripoli.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 19:05 MST — autopilot/m5-capture-supply
+Done: #75 ledger item 1 checked, real (share by equivalent, not chart slot: 15th Panzer's artillery-group, Polish MG slot); cna request posted on main (391c5bf). #77 (draft): a combat unit entering a hex of lone enemy supply captures it, on moves, reactions and retreats (1b75f87); `PieceKind::is_supply`. Local gates green.
+In flight: #77 CI.
+Next: mark #77 ready and merge on green; then reactions and retreats paying fuel (NOT_SIMULATED's abstract-supply row).
+Blocked: Mission 4 on Brian's review of #25.

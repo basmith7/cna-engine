@@ -74,9 +74,7 @@ impl GameState {
             .pieces
             .get(id)
             .ok_or_else(|| Illegal::new("32.3x", format!("no piece {id}")))?;
-        if p.side != Side::Cw
-            || !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-        {
+        if p.side != Side::Cw || !p.kind.is_supply() {
             return Err(Illegal::new(
                 "32.3x",
                 format!("{id}: only Commonwealth supply units ride the railway"),

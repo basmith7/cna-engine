@@ -66,8 +66,7 @@ impl GameState {
         let Some(p) = self.pieces.get(id) else {
             return refuse(format!("no piece {id}"));
         };
-        if p.side != player || !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-        {
+        if p.side != player || !p.kind.is_supply() {
             return refuse(format!("{id} is not one of {player}'s supply units"));
         }
         if p.motorised > 0 {

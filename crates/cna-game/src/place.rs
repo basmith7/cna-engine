@@ -244,9 +244,7 @@ impl GameState {
         hex: &HexId,
         adding: usize,
     ) -> Option<Illegal> {
-        if !self.modules.abstract_supply
-            || !matches!(kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-        {
+        if !self.modules.abstract_supply || !kind.is_supply() {
             return None;
         }
         let n = adding + self.supply_units_at(hex);
@@ -267,10 +265,7 @@ impl GameState {
     pub(crate) fn supply_units_at(&self, hex: &HexId) -> usize {
         self.pieces
             .values()
-            .filter(|p| {
-                matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-                    && p.hex() == Some(hex)
-            })
+            .filter(|p| p.kind.is_supply() && p.hex() == Some(hex))
             .count()
     }
 

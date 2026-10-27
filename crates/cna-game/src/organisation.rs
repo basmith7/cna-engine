@@ -162,8 +162,7 @@ impl GameState {
             .pieces
             .get(id)
             .ok_or_else(|| Illegal::new(case, format!("no piece {id}")))?;
-        if p.side != player || !matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
-        {
+        if p.side != player || !p.kind.is_supply() {
             return Err(Illegal::new(
                 case,
                 format!("{id} is not one of {player}'s supply units"),
@@ -184,7 +183,7 @@ impl GameState {
         self.modules.abstract_supply
             && self.pieces.values().any(|p| {
                 p.side == side
-                    && matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+                    && p.kind.is_supply()
                     && p.motorised > 0
                     && !p.escorted
                     && p.hex().is_some()
@@ -226,7 +225,7 @@ impl GameState {
             .pieces
             .values()
             .filter(here)
-            .filter(|p| matches!(p.kind, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit))
+            .filter(|p| p.kind.is_supply())
             .filter(|p| !self.scuttled.contains(&p.id))
             .map(|p| p.id.clone())
             .collect();

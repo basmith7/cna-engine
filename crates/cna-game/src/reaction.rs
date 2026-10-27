@@ -54,12 +54,7 @@ impl GameState {
         // is the trucks', not the stack's).
         let pinner_cpa = mover
             .iter()
-            .filter(|id| {
-                !matches!(
-                    self.pieces[*id].kind,
-                    PieceKind::SupplyUnit | PieceKind::DummySupplyUnit
-                )
-            })
+            .filter(|id| !self.pieces[*id].kind.is_supply())
             .filter_map(|id| self.cpa(&self.pieces[id]))
             .min()
             .unwrap_or(0);
@@ -193,6 +188,7 @@ impl GameState {
             for id in pieces {
                 self.charge(id, *cost, true, &mut events);
             }
+            self.capture_supply_entered(pieces, to, &mut events);
             at = to.clone();
         }
         // It stops: a breakdown check (21.2x).
