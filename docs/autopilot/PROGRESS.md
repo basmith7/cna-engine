@@ -46,7 +46,14 @@ mover's own ZOC no longer pins. #74 (R-140): Rommel whose stack an
 assault destroys retreats alone at once, captured if he stops short of
 safety. #75 (R-141): shells are judged against the 19.3 chart's counted
 components; in Graziani's Offensive the 2nd NZ Division and the
-Trivioli tank regiment now start as shells.
+Trivioli tank regiment now start as shells. **Seventh run
+(2026-10-27):** #77 (merged): a combat unit entering a hex of lone
+enemy supply captures it (32.1x). #78: reactions and every retreat pay
+fuel (32.22); a unit that cannot pay does not react or retreat before
+assault, and a stack ordered to retreat stands and pays (R-120). The
+module-on golden game changes with it: 4 RHA has no fuel to react on
+GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
+on a cna request (below).
 Mission 4 resumes first the moment **Feedback** approves #25.
 
 **MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
@@ -94,10 +101,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5 (#76 merged), for Graziani's: substitution (19.x, the chart's
-  slots filled by like units), or Axis convoy lanes beyond Tripoli
-  (ports as destinations, 56.15, 55.17, a new player order); or the
-  desert raiders (§27) that the raid on Rommel needs, which want
+- If #78 is still open: merge it once its web CI is green.
+- Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
+  (ports as destinations, 56.15, 55.17, a new player order); combat
+  units by rail; substitution (19.x) once cna maps counters to chart
+  slots; or the desert raiders (§27) that the raid on Rommel needs, which want
   hidden movement and so Mission 4's per-side views.
 - Mission 3's slow shading is closed: after #72, an uncapped motorised
   stack (11 Hussars, 3,614 hexes) paints in ~200 ms from pointer-down
