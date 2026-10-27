@@ -335,7 +335,9 @@ impl GameState {
                             flagged,
                             reaction: purpose == Purpose::Move
                                 && mover.combat
-                                && !self.reactors_next_to(data, &to, &at, pieces, false).is_empty(),
+                                && !self
+                                    .reactors_next_to(data, &to, &at, pieces, false)
+                                    .is_empty(),
                             zoc: in_zoc,
                         },
                     );

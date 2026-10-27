@@ -34,16 +34,11 @@ impl GameState {
         }
     }
 
-    /// Raw close-assault defence points in a hex (4.4x): TOE points
-    /// times each combat unit's defence rating, tanks and guns by their
-    /// weapon systems (4.47–4.49); a parenthesised rating counts only
-    /// when no unit in the hex has a plain one.
-    pub(crate) fn raw_defence(&self, data: &Data, hex: &HexId) -> u32 {
-        self.raw_defence_of(data, &self.pieces_at(hex))
-    }
-
-    /// `raw_defence` of the given pieces, as if they stood together.
-    fn raw_defence_of(&self, data: &Data, pieces: &[&Piece]) -> u32 {
+    /// Raw close-assault defence points of pieces standing together
+    /// (4.4x): TOE points times each combat unit's defence rating, tanks
+    /// and guns by their weapon systems (4.47–4.49); a parenthesised
+    /// rating counts only when no unit in the hex has a plain one.
+    pub(crate) fn raw_defence(&self, data: &Data, pieces: &[&Piece]) -> u32 {
         pieces
             .iter()
             .filter(|p| p.kind == PieceKind::Combat)
@@ -67,7 +62,7 @@ impl GameState {
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
-        cna_rules::zoc::exerts(sp, self.raw_defence_of(data, pieces))
+        cna_rules::zoc::exerts(sp, self.raw_defence(data, pieces))
     }
 
     /// Whether a ZOC from `src` reaches the adjacent `hex` (10.21): not
@@ -345,13 +340,19 @@ mod tests {
         // defence 1 (30 points) and eight 75/27 guns at 1, 6 SP of combat
         // units.
         assert!(state.could_exert(&data, &hex("C4020")));
-        assert_eq!(state.raw_defence(&data, &hex("C4020")), 38);
+        assert_eq!(
+            state.raw_defence(&data, &state.pieces_at(&hex("C4020"))),
+            38
+        );
         // C3922: 3 Coldstream Guards and 1 KRRC, 6 TOE at 2 each, plus 4
         // RHA's six 18/25-pounders at 1 (7 Med's 60-pounders defend at 0).
-        assert_eq!(state.raw_defence(&data, &hex("C3922")), 30);
+        assert_eq!(
+            state.raw_defence(&data, &state.pieces_at(&hex("C3922"))),
+            30
+        );
         assert!(state.could_exert(&data, &hex("C3922")));
         // The Fort Maddalena garrison: 2 TOE at 3, one battalion: neither.
-        assert_eq!(state.raw_defence(&data, &hex("C3019")), 6);
+        assert_eq!(state.raw_defence(&data, &state.pieces_at(&hex("C3019"))), 6);
         assert!(!state.could_exert(&data, &hex("C3019")));
         // 11 Hussars alone at C3020: 8 x 3 = 24 points but 1 SP.
         assert!(!state.could_exert(&data, &hex("C3020")));
