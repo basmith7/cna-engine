@@ -94,8 +94,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- Mission 5: merge #76 (design Status, docs only) on green CI. Then,
-  for Graziani's: substitution (19.x, the chart's
+- Mission 5 (#76 merged), for Graziani's: substitution (19.x, the chart's
   slots filled by like units), or Axis convoy lanes beyond Tripoli
   (ports as destinations, 56.15, 55.17, a new player order); or the
   desert raiders (§27) that the raid on Rommel needs, which want
