@@ -283,9 +283,6 @@ test("a forced retreat shows the order, says what standing costs as the engine t
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
   await expect(page.locator("polygon.reach")).toHaveCount(0);
 });
-  await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
-  await expectDomMatchesView(page);
-});
 
 test("the forced retreat panel reads whole at a phone width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
