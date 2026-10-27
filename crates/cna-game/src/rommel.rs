@@ -418,11 +418,13 @@ mod tests {
                 Some((p.id.clone(), free))
             })
             .unwrap();
+        let was = state.pieces[&enemy].hex().unwrap().clone();
         state.pieces.get_mut(&enemy).unwrap().location = Location::Hex(next.clone());
-        let offered = state.reactors_next_to(&data, &next, std::slice::from_ref(&enemy), false);
+        let mover = std::slice::from_ref(&enemy);
+        let offered = state.reactors_next_to(&data, &next, &was, mover, false);
         assert!(offered.contains(&rommel()), "{offered:?}");
         state.rommel_recalled = true;
-        let offered = state.reactors_next_to(&data, &next, &[enemy], false);
+        let offered = state.reactors_next_to(&data, &next, &was, mover, false);
         assert!(!offered.contains(&rommel()), "{offered:?}");
     }
 

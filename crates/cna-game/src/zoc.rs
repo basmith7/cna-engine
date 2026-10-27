@@ -6,7 +6,7 @@
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceKind};
+use crate::piece::{Location, Piece, PieceKind};
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
@@ -39,8 +39,13 @@ impl GameState {
     /// weapon systems (4.47–4.49); a parenthesised rating counts only
     /// when no unit in the hex has a plain one.
     pub(crate) fn raw_defence(&self, data: &Data, hex: &HexId) -> u32 {
-        self.pieces_at(hex)
-            .into_iter()
+        self.raw_defence_of(data, &self.pieces_at(hex))
+    }
+
+    /// `raw_defence` of the given pieces, as if they stood together.
+    fn raw_defence_of(&self, data: &Data, pieces: &[&Piece]) -> u32 {
+        pieces
+            .iter()
             .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| self.raw_of(data, p, crate::combat::strength::Kind::Defence))
@@ -51,20 +56,35 @@ impl GameState {
     /// more than 1 SP of combat units, not collapsed, with 10 raw
     /// defence points.
     pub(crate) fn could_exert(&self, data: &Data, hex: &HexId) -> bool {
-        let sp: u32 = self
-            .pieces_at(hex)
-            .into_iter()
+        self.could_exert_with(data, &self.pieces_at(hex))
+    }
+
+    /// `could_exert` for the given pieces, as if they stood together.
+    pub(crate) fn could_exert_with(&self, data: &Data, pieces: &[&Piece]) -> bool {
+        let sp: u32 = pieces
+            .iter()
             .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
-        cna_rules::zoc::exerts(sp, self.raw_defence(data, hex))
+        cna_rules::zoc::exerts(sp, self.raw_defence_of(data, pieces))
     }
 
     /// Whether a ZOC from `src` reaches the adjacent `hex` (10.21): not
     /// across a major river, lake or escarpment, nor into a hex no
     /// combat unit in `src` could enter from there.
     pub(crate) fn reaches(&self, data: &Data, src: &HexId, hex: &HexId) -> bool {
+        self.reaches_with(data, &self.pieces_at(src), src, hex)
+    }
+
+    /// `reaches` for the given pieces, as if they stood in `src`.
+    pub(crate) fn reaches_with(
+        &self,
+        data: &Data,
+        pieces: &[&Piece],
+        src: &HexId,
+        hex: &HexId,
+    ) -> bool {
         let hexside = data.map.hexside(src, hex);
         if !cna_rules::zoc::crosses(hexside) {
             return false;
@@ -79,8 +99,8 @@ impl GameState {
             climbs: hexside.is_some_and(|hs| hs.climbs(src, hex)),
             weather: self.weather_at(hex),
         };
-        self.pieces_at(src)
-            .into_iter()
+        pieces
+            .iter()
             .filter(|p| p.kind == PieceKind::Combat)
             .any(|p| step_cost(&data.terrain, self.mobility(data, p), &step).is_ok())
     }
@@ -559,17 +579,23 @@ mod tests {
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
             .unwrap();
         state.apply(&data, Side::Axis, Order::Pass).unwrap();
-        // 3 Coldstream Guards pass through C4021 (1 KRRC is there) on to
-        // C4121, which no ZOC reaches: up the escarpment by the unfinished
-        // road, a track, (2 + 6) / 2, then 2. At C4021 the two battalions
-        // exert a ZOC over C4020, so its guns may not react (8.5x); at
-        // C4121 the 63rd Cirene's vehicles at C4120 are offered one.
+        // 3 Coldstream Guards enter C4021 (1 KRRC is there, so C4020's ZOC
+        // does not stop them). 1 KRRC alone exerts no ZOC, so C4020 stood
+        // in none before the Guards came and its vehicles are offered a
+        // reaction (R-139).
         let events = state
-            .apply(
-                &data,
-                Side::Cw,
-                mv(&["unit:cw:3-cldgds"], &["C4021", "C4121"]),
-            )
+            .apply(&data, Side::Cw, mv(&["unit:cw:3-cldgds"], &["C4021"]))
+            .unwrap();
+        assert!(matches!(
+            events.last(),
+            Some(Event::ReactionOffered { at, .. }) if at == &hex("C4021")
+        ));
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        // On to C4121, which no ZOC reaches: up the escarpment by the
+        // unfinished road, a track, (2 + 6) / 2, then 2. The 63rd
+        // Cirene's vehicles at C4120 are offered one there.
+        let events = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:3-cldgds"], &["C4121"]))
             .unwrap();
         assert!(matches!(
             events.last(),

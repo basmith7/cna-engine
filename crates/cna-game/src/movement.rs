@@ -365,8 +365,9 @@ impl GameState {
     }
 
     /// `plan` for a `purpose`: a forced retreat may leave an enemy ZOC it
-    /// entered this segment, being no voluntary move (15.82), and Rommel
-    /// retreating alone ignores enemy ZOC (31.0).
+    /// entered this segment, being no voluntary move (15.82), a reaction
+    /// the ZOC the mover brought to it (R-139), and Rommel retreating
+    /// alone ignores enemy ZOC (31.0).
     pub(crate) fn plan_with(
         &self,
         data: &Data,
@@ -378,13 +379,13 @@ impl GameState {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
-        let forced = purpose == Purpose::ForcedRetreat;
+        let may_leave = matches!(purpose, Purpose::ForcedRetreat | Purpose::React);
         let mover = self.mover(data, pieces, purpose);
         let mut plan = Plan {
             break_off: mover.break_off,
             ..Plan::default()
         };
-        let mut at_in_zoc = match self.start(data, &mover, from, forced)? {
+        let mut at_in_zoc = match self.start(data, &mover, from, may_leave)? {
             Start::In(in_zoc) => in_zoc,
             Start::Undeclared(hexes) => {
                 // The first step is checked before the move is parked on
@@ -458,13 +459,14 @@ impl GameState {
     /// is stopped (10.22), unless another friendly combat unit there
     /// cancels the ZOC (10.26), as it did when the stack entered; next
     /// to enemy units that have not said whether they exert one, the
-    /// move waits (10.16).
+    /// move waits (10.16). `may_leave` lets a forced retreat or a
+    /// reaction go without breaking off.
     pub(crate) fn start(
         &self,
         data: &Data,
         mover: &Mover,
         from: &HexId,
-        forced: bool,
+        may_leave: bool,
     ) -> Result<Start, Illegal> {
         if mover.free_of_zoc {
             return Ok(Start::In(false));
@@ -472,7 +474,7 @@ impl GameState {
         Ok(match self.zoc_at(data, from, mover.side) {
             Zoc::Exerts => {
                 let cancelled = self.friendly_combat_in(from, mover.side, &mover.pieces);
-                if !mover.break_off && !cancelled && !forced {
+                if !mover.break_off && !cancelled && !may_leave {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(
@@ -810,7 +812,7 @@ impl GameState {
             self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
-                from: at,
+                from: at.clone(),
                 to: to.clone(),
                 cost,
             });
@@ -824,11 +826,11 @@ impl GameState {
             }
             self.surrender_collapsed(data, pieces, &to, &mut events);
             self.free_prisoners(data, pieces, &to, &mut events);
-            at = to;
+            let left = std::mem::replace(&mut at, to);
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.
             if combat {
-                let eligible = self.reactors_next_to(data, &at, pieces, assault);
+                let eligible = self.reactors_next_to(data, &at, &left, pieces, assault);
                 self.capture_lone_rommel(data, &eligible, &mut events);
                 // R-138: Rommel offered a reaction stands in the mover's
                 // ZOC, so in contact: he pays to break off if he goes.

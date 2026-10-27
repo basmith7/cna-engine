@@ -1,15 +1,14 @@
 //! Reaction (SPI 8.5x, R-006, R-007, R-008): when a phasing combat unit
 //! moves next to motorised non-phasing combat units (or Rommel, 31.0)
-//! that are not in an enemy ZOC, in contact, engaged or pinned, the
-//! non-phasing player may move them, never into an enemy ZOC and never
-//! paying to break off. Rommel alone may react out of the mover's own
-//! ZOC, and pays to break off from it (R-138).
+//! that were not in an enemy ZOC before it arrived (R-139), in contact,
+//! engaged or pinned, the non-phasing player may move them, never into
+//! an enemy ZOC and never paying to break off. Rommel alone pays to
+//! break off from the mover's ZOC (R-138).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
-use crate::zoc::Zoc;
 use cna_data::map::HexId;
 use cna_data::scenario::{Side, Status};
 
@@ -37,11 +36,12 @@ impl GameState {
     }
 
     /// The non-phasing combat units next to `at` that may react to the
-    /// stack that just moved there (8.5x, R-006, R-008).
+    /// stack that just moved there from `from` (8.5x, R-006, R-008).
     pub(crate) fn reactors_next_to(
         &self,
         data: &Data,
         at: &HexId,
+        from: &HexId,
         mover: &[PieceId],
         assault: bool,
     ) -> Vec<PieceId> {
@@ -65,18 +65,7 @@ impl GameState {
             .unwrap_or(0);
         let mut out = Vec::new();
         for n in data.map.neighbours(at) {
-            let pinned_by_zoc = || self.zoc_at(data, &n, phasing.other()) == Zoc::Exerts;
-            // R-138: the ZOC his approach puts him in does not bar Rommel's
-            // reaction; any other enemy ZOC does.
-            let rommel_pinned = || {
-                data.map.neighbours(&n).iter().any(|src| {
-                    src != at
-                        && self.holder(src) == Some(phasing)
-                        && self.could_exert(data, src)
-                        && self.reaches(data, src, &n)
-                })
-            };
-            let mut any = false;
+            let mut pinned = None;
             for p in self.pieces_at(&n).into_iter().filter(|p| p.side != phasing) {
                 // Rommel reacts like a motorised combat unit (31.0).
                 let commanding = p.kind == PieceKind::Commander && !self.rommel_recalled;
@@ -91,20 +80,36 @@ impl GameState {
                 {
                     continue;
                 }
-                if commanding {
-                    if !rommel_pinned() {
-                        out.push(p.id.clone());
-                    }
-                    continue;
-                }
-                if !any && pinned_by_zoc() {
+                if *pinned.get_or_insert_with(|| self.pinned_before(data, &n, from, mover)) {
                     break;
                 }
-                any = true;
                 out.push(p.id.clone());
             }
         }
         out
+    }
+
+    /// Whether `hex` stood in an enemy ZOC just before `mover` entered
+    /// the hex next to it from `from` (8.53c, R-139): the mover counted
+    /// at the hex it left, everything else where it stands, so the ZOC
+    /// the mover now throws over `hex` never pins by itself. 8.54's size
+    /// limit never spares a unit here: a stack exerting a ZOC has 2 SP
+    /// or more, which pins every size.
+    fn pinned_before(&self, data: &Data, hex: &HexId, from: &HexId, mover: &[PieceId]) -> bool {
+        let phasing = self.pieces[&mover[0]].side;
+        data.map.neighbours(hex).iter().any(|src| {
+            let mut before: Vec<&Piece> = self
+                .pieces_at(src)
+                .into_iter()
+                .filter(|p| !mover.contains(&p.id))
+                .collect();
+            if src == from {
+                before.extend(mover.iter().map(|id| &self.pieces[id]));
+            }
+            before.first().is_some_and(|p| p.side == phasing)
+                && self.could_exert_with(data, &before)
+                && self.reaches_with(data, &before, src, hex)
+        })
     }
 
     // TODO(32.22): fuel is not charged here until cna answers "What a unit may
@@ -475,13 +480,101 @@ mod tests {
         assert!(state.pins(&data, 1, 45, &brigade));
     }
 
+    /// The two Libyan battalions (2 SP, 10 defence points, so they
+    /// exert a ZOC) put at `at`, in the Axis movement segment.
+    fn libyans_at(data: &Data, at: &str) -> GameState {
+        let mut state = moving(data, 3, Side::Axis);
+        for id in ["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"] {
+            state.put(&pid(id), Location::Hex(hex(at)));
+        }
+        assert!(state.could_exert(data, &hex(at)));
+        state
+    }
+
+    fn libyans_to(state: &mut GameState, data: &Data, path: &[&str]) -> Vec<Event> {
+        state
+            .apply(
+                data,
+                Side::Axis,
+                mv(&["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"], path),
+            )
+            .unwrap()
+    }
+
+    fn offered(events: &[Event]) -> Option<&Vec<PieceId>> {
+        events.iter().find_map(|e| match e {
+            Event::ReactionOffered { pieces, .. } => Some(pieces),
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn the_mover_s_own_zoc_does_not_pin() {
+        // R-139: the Libyans come from C3122, out of reach of 11 Hussars
+        // at C3020, to C3021 next to them. The ZOC they now throw over
+        // C3020 is the mover's own, so the Hussars may still react.
+        let data = graziani();
+        let mut state = libyans_at(&data, "C3122");
+        assert!(!data.map.adjacent(&hex("C3122"), &hex("C3020")));
+        let events = libyans_to(&mut state, &data, &["C3021"]);
+        let hussars = pid("unit:cw:11-hus");
+        assert_eq!(offered(&events), Some(&vec![hussars.clone()]));
+        // They pull back out of the Libyans' ZOC, paying only the move:
+        // a reaction never pays to break off (8.5x).
+        let events = state
+            .apply(&data, Side::Cw, react(&["unit:cw:11-hus"], &["C2920"]))
+            .unwrap();
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::ContactBroken { .. })),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&hussars].hex(), Some(&hex("C2920")));
+    }
+
+    #[test]
+    fn another_enemy_zoc_already_over_the_unit_pins_it() {
+        // R-139: two more battalions already stand at C3120, next to the
+        // Hussars, so the Hussars stood in an enemy ZOC before the
+        // Libyans arrived and may not react.
+        let data = graziani();
+        let mut state = libyans_at(&data, "C3122");
+        for id in ["unit:it:ii-libyan-bn", "unit:it:ix-libyan-bn"] {
+            state.put(&pid(id), Location::Hex(hex("C3120")));
+        }
+        assert!(state.could_exert(&data, &hex("C3120")));
+        let events = libyans_to(&mut state, &data, &["C3021"]);
+        assert_eq!(offered(&events), None, "{events:?}");
+        assert_eq!(state.pending, None);
+    }
+
+    #[test]
+    fn a_unit_that_did_not_react_is_pinned_by_the_mover_later() {
+        // R-139: offered a reaction at C3021, the Hussars stay; from then
+        // they stand in the Libyans' ZOC, so the Libyans' next step to
+        // C2921, still next to them, offers nothing.
+        let data = graziani();
+        let mut state = libyans_at(&data, "C3122");
+        let events = libyans_to(&mut state, &data, &["C3021", "C2921"]);
+        assert!(offered(&events).is_some());
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        let events = libyans_to(&mut state, &data, &["C2921"]);
+        assert_eq!(offered(&events), None, "{events:?}");
+        assert_eq!(
+            state.pieces[&pid("unit:it:xvii-libyan-bn")].hex(),
+            Some(&hex("C2921"))
+        );
+    }
+
     #[test]
     fn a_unit_under_the_mover_s_zoc_cannot_react() {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Axis);
-        // Two Libyan battalions (2 SP, 10 defence points) next to 11
-        // Hussars at C3020 exert a ZOC over it: no reaction. (The
-        // battalions come from C3617 by the tracks, well within CPA 10.)
+        // Two Libyan battalions (2 SP, 10 defence points) at C3121 already
+        // exert a ZOC over 11 Hussars at C3020 before they move on to
+        // C3021, still next to them: no reaction (R-139, the mover judged
+        // at the hex it left).
         for id in ["unit:it:xvii-libyan-bn", "unit:it:xix-libyan-bn"] {
             state.put(&pid(id), Location::Hex(hex("C3121")));
         }
