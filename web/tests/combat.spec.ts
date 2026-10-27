@@ -214,9 +214,15 @@ test("a retreat before assault goes along a reachable path from the panel, and i
   await expect(page.getByTestId("assault")).toHaveCount(0);
   const reaches = page.locator("polygon.reach");
   expect(await reaches.count()).toBeGreaterThan(0);
+  // A shaded, empty hex next to Halfaya, on screen.
+  const near = () =>
+    page.evaluate(() =>
+      ["C3822", "C3823", "C3821", "C3921", "C3923", "C4022"].find((h) => document.querySelector(`polygon.reach[data-hex="${h}"]`) && !document.querySelector(`[data-stack="${h}"]`)),
+    );
   const before = await page.evaluate(() => window.__cna.save());
-  const far = (await reaches.first().getAttribute("data-hex"))!;
-  await page.locator(`polygon.hex[data-hex="${far}"]`).click();
+  const back = (await near())!;
+  expect(back).toBeTruthy();
+  await page.locator(`polygon.hex[data-hex="${back}"]`).click();
   await expect(page.getByTestId("toast")).toContainText("Illegal (32.22)");
   expect(await page.evaluate(() => window.__cna.save())).toBe(before);
   await page.getByTestId("toast").getByLabel("Dismiss").click();
@@ -224,7 +230,8 @@ test("a retreat before assault goes along a reachable path from the panel, and i
   await clickHex(page, "C3922");
   await only("unit:cw:3-cldgds");
   await expect(page.getByTestId("retreat-count")).toContainText(/^\d+ hexes to retreat to for the 1 ticked\./);
-  const to = (await reaches.first().getAttribute("data-hex"))!;
+  const to = (await near())!;
+  expect(to).toBeTruthy();
   await page.locator(`polygon.hex[data-hex="${to}"]`).click();
   await expect(log(page).filter({ hasText: `3rd Coldstream Guards retreat before assault to ${to}.` })).toHaveCount(1);
   await expect(page.getByTestId("curtain")).toHaveCount(0);
@@ -234,7 +241,7 @@ test("a retreat before assault goes along a reachable path from the panel, and i
   await expect(pending(page)).toContainText("Sealed force assignment · Axis");
 });
 
-test("a forced retreat shows the order, says what standing costs as the engine then charges it, and takes a reachable hex", async ({ page }) => {
+test("a forced retreat shows the order, says what standing costs as the engine then charges it, and shades nothing without fuel", async ({ page }) => {
   await openFixture(page, "forced-retreat");
   await expect(pending(page)).toHaveAttribute("data-kind", "forced-retreat");
   await expect(page.getByTestId("retreat-order")).toHaveText("Commonwealth must retreat 3 hexes from C4021 for committing nothing.");
@@ -270,17 +277,12 @@ test("a forced retreat shows the order, says what standing costs as the engine t
   await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
   await expectDomMatchesView(page);
 
-  // Or the retreat is made: an empty hex the full distance away (a hex
-  // of one's own would be selected, not retreated to).
+  // The retreat itself cannot be made: 4 RHA and 7 Medium owe fuel that
+  // nothing in range can pay, so no hex is shaded (R-120).
   await openFixture(page, "forced-retreat");
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
-  const to = await page.evaluate(() =>
-    [...document.querySelectorAll('polygon.reach[data-short="0"]')].map((p) => p.getAttribute("data-hex")!).find((h) => !document.querySelector(`[data-stack="${h}"]`)),
-  );
-  expect(to).toBeTruthy();
-  await clickHex(page, to!);
-  await expect(log(page).filter({ hasText: `→ ${to} for` })).toHaveCount(1);
-  expect(await page.evaluate(() => window.__cna.view().pieces["unit:cw:1-krrc"].location)).toEqual({ hex: to });
+  await expect(page.locator("polygon.reach")).toHaveCount(0);
+});
   await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
   await expectDomMatchesView(page);
 });

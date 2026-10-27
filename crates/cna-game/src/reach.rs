@@ -145,6 +145,11 @@ impl GameState {
                         format!("the stack ordered to retreat is {ordered:?}, not {pieces:?}"),
                     ));
                 }
+                // A stack that cannot pay its fuel makes no forced
+                // retreat; it stands and pays instead (R-120).
+                if self.unfuelled(data, pieces) {
+                    return Ok(Vec::new());
+                }
                 forced = Some((*hexes, from.clone(), *reason));
                 let start = pieces
                     .first()
@@ -375,16 +380,8 @@ impl GameState {
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
                     short: 0,
-                    // Moves, reactions and retreats before assault pay
-                    // fuel; forced retreats do not yet (NOT_SIMULATED).
-                    fuel: if matches!(
-                        purpose,
-                        Purpose::Move | Purpose::React | Purpose::RetreatBeforeAssault
-                    ) {
-                        self.fuel_owed(data, pieces, cp)
-                    } else {
-                        0
-                    },
+                    // Every land move pays fuel; the railway does not.
+                    fuel: self.fuel_owed(data, pieces, cp),
                 }
             })
             .collect();

@@ -1154,13 +1154,14 @@ mod tests {
                 forced_retreat.pending
             );
         };
+        // 4 RHA and 7 Medium owe fuel nothing in range can pay, so the
+        // stack makes no retreat at all (R-120).
         assert!(
             forced_retreat
                 .reachable(graziani(), Side::Cw, pieces, Purpose::ForcedRetreat)
                 .unwrap()
-                .iter()
-                .any(|r| r.short == 0),
-            "the full retreat can be made"
+                .is_empty(),
+            "no fuel, no retreat"
         );
         assert!(
             forced_retreat
