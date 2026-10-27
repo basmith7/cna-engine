@@ -53,7 +53,7 @@ fuel (32.22); a unit that cannot pay does not react or retreat before
 assault, and a stack ordered to retreat stands and pays (R-120). The
 module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
-on a cna request (below). #79 builds combat units and HQs by rail,
+on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
 Mission 4 resumes first the moment **Feedback** approves #25.
 
@@ -102,8 +102,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- #79: merge it if its CI is green and it is still open. Then the rest
-  of its plan (`docs/plans/2026-10-27-m5-rail-units.md`): attached
+- The rest of #79's plan (`docs/plans/2026-10-27-m5-rail-units.md`): attached
   units carried by rail, one stack each way, phase J opening for units
   alone (re-pins the module-on golden, as #78 did).
 - Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
