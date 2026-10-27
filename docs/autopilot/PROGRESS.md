@@ -92,8 +92,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
   non-goal); ticks are offered in a sealed step though nothing moves;
-  selecting an uncapped motorised stack took ~0.6 s to shade (#72 cut
-  the engine's share 3x; not yet re-timed in a browser); at 390 px
+  at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
 - Mission 5: merge #74 (R-140) and #75 (R-141) on green CI if this
   run did not. Then, for Graziani's: substitution (19.x, the chart's
@@ -101,10 +100,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   (ports as destinations, 56.15, 55.17, a new player order); or the
   desert raiders (§27) that the raid on Rommel needs, which want
   hidden movement and so Mission 4's per-side views.
-- Shading after #72, timed 2026-10-26 in a Playwright test build:
-  click to shaded ~0.5 s for the LXII tank battalion (631, 513, 491,
-  494 ms), of which the engine is ~141 ms. The rest is the UI's; profile
-  the overlay render before touching the engine again.
+- Mission 3's slow shading is closed: after #72, an uncapped motorised
+  stack (11 Hussars, 3,614 hexes) paints in ~200 ms from pointer-down
+  (198–227 ms, timed in the page in a Playwright test build; the engine
+  is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
+  wait reads ~0.5 s because of its selector polling, not the app.
 - Look at #75's two new starting shells (2nd NZ Division, the Trivioli
   tank regiment at Bardia): they follow the OA and the 19.3 chart, but
   change Graziani's opening.
