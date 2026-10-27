@@ -459,3 +459,9 @@ Done: #73 merged (R-139, vendor/cna eafa8a3), #74 merged (R-140, Rommel retreats
 In flight: #75 CI (ready).
 Next: merge #75 on green CI; then substitution (19.x) or Axis convoy lanes beyond Tripoli; or profile the overlay render.
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 17:55 MST — autopilot/m5-status-r139-r141
+Done: #73 (R-139), #74 (R-140), #75 (R-141) merged; #75 choices ledger posted as a PR comment. Browser shading re-timed: ~200 ms for an uncapped stack (closed). PROGRESS on main.
+In flight: #76 (design Status, docs only) on CI.
+Next: merge #76; check #75 ledger item 1 (share matched by kind, not chart slot); then substitution (19.x) or Axis convoy lanes beyond Tripoli.
+Blocked: Mission 4 on Brian's review of #25.
