@@ -471,3 +471,9 @@ Done: #75 ledger item 1 checked, real (share by equivalent, not chart slot: 15th
 In flight: #77 CI.
 Next: mark #77 ready and merge on green; then reactions and retreats paying fuel (NOT_SIMULATED's abstract-supply row).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-10-26 19:30 MST — autopilot/m5-rail-units
+Done: #77 merged (capture of lone supply). #78 ready: reactions and every retreat pay fuel, a stack without fuel stands and pays (R-120); local gates and Playwright green (23/23 on the changed specs, 45/46 full suite before the last spec fix). #79 (draft): plan for combat units by rail.
+In flight: #78's web CI.
+Next: merge #78 if green and not merged; then build #79's plan, Task 1 first (TDD).
+Blocked: Mission 4 on Brian's review of #25.
