@@ -2607,18 +2607,16 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3923"
+        "hex": "C3922"
       },
-      "cp_spent": 2.0,
-      "cp_enemy_half": 2.0,
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
       "cohesion": {
         "level": 0,
         "dp_tally": 0
       },
       "contact": false,
-      "engaged": false,
-      "breakdown_halves": 8,
-      "breakdown_checked": 1
+      "engaged": false
     },
     "unit:cw:4th-armored-bde-hq": {
       "id": "unit:cw:4th-armored-bde-hq",
@@ -9469,19 +9467,6 @@
             "C4021"
           ],
           "assault": true
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
         }
       }
     },

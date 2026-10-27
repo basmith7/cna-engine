@@ -28,7 +28,7 @@ mod tests {
 
     /// The same final state's hash with the abstract supply module on.
     const M5_FINAL_STATE_SHA256: &str =
-        "72587b3f0c68a207b449cb57631912c741e19293c1fde0aa74922d3a3c6b25e2";
+        "825ebf2090117ae78d578a48dac08f9a91d606672cd3ca3dbba46b0f43e40728";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
@@ -134,19 +134,29 @@ mod tests {
             vec![(Axis, Order::DeclareInitiative { player_a: Axis })],
         );
         organise(data, &mut state);
+        // 4 RHA pulls back from the Libyans' advance; with the module on
+        // it has no fuel in range and cannot (R-120).
+        let reaction = if modules.abstract_supply {
+            vec![]
+        } else {
+            vec![(
+                Cw,
+                Order::React {
+                    pieces: vec![pid("unit:cw:4-rha")],
+                    path: vec![hex("C3923")],
+                },
+            )]
+        };
+        play(
+            data,
+            &mut state,
+            vec![(Axis, Order::Pass), (Axis, none(div1, &["C4021"], true))],
+        );
+        play(data, &mut state, reaction);
         play(
             data,
             &mut state,
             vec![
-                (Axis, Order::Pass),
-                (Axis, none(div1, &["C4021"], true)),
-                (
-                    Cw,
-                    Order::React {
-                        pieces: vec![pid("unit:cw:4-rha")],
-                        path: vec![hex("C3923")],
-                    },
-                ),
                 (Cw, Order::Pass),
                 (Axis, none(div2, &["C4020"], false)),
                 (Axis, Order::EndSegment),
@@ -394,10 +404,10 @@ mod tests {
     }
 
     // The old orders with the module on (Mission 5), now with loads and
-    // motorisation in the state. Halfaya Pass's defenders have no
-    // ammunition in range, so the hex surrenders to the assault (R-120)
-    // and the Commonwealth no longer holds it; neither side reaches a
-    // level either way.
+    // motorisation in the state. 4 RHA has no fuel in range and cannot
+    // react; Halfaya Pass's defenders have no ammunition in range, so
+    // the hex surrenders to the assault (R-120) and the Commonwealth no
+    // longer holds it; neither side reaches a level either way.
     #[test]
     fn the_golden_game_with_abstract_supply_replays_to_its_pinned_end() {
         let data = Data::load("grazianis-offensive").unwrap();

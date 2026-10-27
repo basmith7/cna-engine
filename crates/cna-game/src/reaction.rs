@@ -9,6 +9,7 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
+use cna_data::cp::Cp;
 use cna_data::map::HexId;
 use cna_data::scenario::{Side, Status};
 
@@ -148,6 +149,10 @@ impl GameState {
                 format!("{hex} is in an enemy ZOC: a reacting unit never enters one"),
             ));
         }
+        // A reaction is a land move: it pays its fuel, or is not made
+        // (32.22, R-120). Chosen from where the stack stands now.
+        let total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
+        let payments = self.plan_fuel(data, pieces, total, None)?;
         // The ceiling binds where the reaction ends (9.14): the only
         // moment the engine can refuse it, so it is settled before any
         // CP is charged. The stack stands on its end hex for the count.
@@ -162,6 +167,7 @@ impl GameState {
             return Err(e);
         }
         let mut events = Vec::new();
+        self.spend_fuel(data, total, payments, &mut events);
         // Only Rommel reacts from an enemy ZOC, paying to break off
         // (R-138).
         if plan.break_off {
@@ -592,5 +598,83 @@ mod tests {
             "{events:?}"
         );
         assert_eq!(state.pending, None);
+    }
+
+    /// `tanks_near_halfaya` under abstract supply, with one Commonwealth
+    /// supply unit holding `fuel` at C3922 and the rest spent; the tanks
+    /// have paid their fuel for the stage.
+    fn with_supply(data: &Data, fuel: u32) -> (GameState, PieceId) {
+        use crate::piece::Load;
+        let dump = PieceId::supply(Side::Cw, 1);
+        let state = tanks_near_halfaya_after(data, |s| {
+            s.modules.abstract_supply = true;
+            let ids: Vec<PieceId> = s
+                .pieces
+                .values()
+                .filter(|p| p.side == Side::Cw && p.kind == PieceKind::SupplyUnit)
+                .map(|p| p.id.clone())
+                .collect();
+            for id in ids {
+                s.pieces.get_mut(&id).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+            }
+            s.put(&dump, Location::Hex(hex("C3922")));
+            s.pieces.get_mut(&dump).unwrap().load = Some(Load { ammo: 10, fuel });
+            // The Axis tanks paid for the stage earlier.
+            s.pieces
+                .get_mut(&pid("unit:it:lxiil-tank-bn"))
+                .unwrap()
+                .fuelled = true;
+        });
+        (state, dump)
+    }
+
+    fn offer(data: &Data, state: &mut GameState) {
+        let events = state
+            .apply(data, Side::Axis, mv(&["unit:it:lxiil-tank-bn"], &["C3923"]))
+            .unwrap();
+        assert!(
+            matches!(events.last(), Some(Event::ReactionOffered { .. })),
+            "{events:?}"
+        );
+    }
+
+    #[test]
+    fn a_reaction_pays_its_fuel_32_22() {
+        let data = graziani();
+        let (mut state, dump) = with_supply(&data, 5);
+        offer(&data, &mut state);
+        let reach = state
+            .reachable(
+                &data,
+                Side::Cw,
+                &[pid("unit:cw:7-med")],
+                crate::reach::Purpose::React,
+            )
+            .unwrap();
+        let to = reach.iter().find(|r| r.hex == hex("C3822")).unwrap();
+        assert_eq!(to.fuel, 1, "the overlay shows what the reaction pays");
+        let events = state
+            .apply(&data, Side::Cw, react(&["unit:cw:7-med"], &["C3822"]))
+            .unwrap();
+        assert!(events.contains(&Event::FuelSpent {
+            piece: pid("unit:cw:7-med"),
+            from: dump.clone(),
+            fuel: 1,
+        }));
+        assert_eq!(state.pieces[&dump].load.unwrap().fuel, 4);
+        assert!(state.pieces[&pid("unit:cw:7-med")].fuelled);
+    }
+
+    #[test]
+    fn a_unit_that_cannot_pay_its_fuel_does_not_react_r120() {
+        let data = graziani();
+        let (mut state, _) = with_supply(&data, 0);
+        offer(&data, &mut state);
+        let before = snapshot(&state);
+        let err = state
+            .apply(&data, Side::Cw, react(&["unit:cw:7-med"], &["C3822"]))
+            .unwrap_err();
+        assert_eq!(err.case, "32.22", "{}", err.reason);
+        assert_eq!(snapshot(&state), before);
     }
 }
