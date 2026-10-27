@@ -375,9 +375,12 @@ impl GameState {
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
                     short: 0,
-                    // Only a move order pays fuel; reactions and
-                    // retreats do not yet (NOT_SIMULATED).
-                    fuel: if purpose == Purpose::Move {
+                    // Moves, reactions and retreats before assault pay
+                    // fuel; forced retreats do not yet (NOT_SIMULATED).
+                    fuel: if matches!(
+                        purpose,
+                        Purpose::Move | Purpose::React | Purpose::RetreatBeforeAssault
+                    ) {
                         self.fuel_owed(data, pieces, cp)
                     } else {
                         0
@@ -791,7 +794,7 @@ mod tests {
     }
 
     #[test]
-    fn a_reaction_quotes_no_fuel_since_only_a_move_pays_it() {
+    fn a_reaction_quotes_the_fuel_it_owes() {
         let data = graziani();
         let log: crate::log::Log = serde_json::from_str(
             &std::fs::read_to_string(cna_data::repo_root().join("tests/games/graziani-m5.json"))
@@ -803,11 +806,28 @@ mod tests {
         let state = crate::log::replay(&data, &prefix).unwrap();
         assert!(state.modules.abstract_supply);
         assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
-        let reaches = state
-            .reachable(&data, Side::Cw, &ids(&["unit:cw:4-rha"]), Purpose::React)
-            .unwrap();
-        assert!(!reaches.is_empty());
-        assert!(reaches.iter().all(|r| r.fuel == 0), "{reaches:?}");
+        // 4 RHA owes 1 fuel to react (32.22), once more past its CPA; the
+        // overlay quotes it though nothing in range can pay, and `apply`
+        // refuses (R-120).
+        let reaches = by_hex(
+            &state
+                .reachable(&data, Side::Cw, &ids(&["unit:cw:4-rha"]), Purpose::React)
+                .unwrap(),
+        );
+        assert_eq!(reaches["C3923"].fuel, 1);
+        assert!(reaches.values().all(|r| r.fuel >= 1));
+        let err = state
+            .clone()
+            .apply(
+                &data,
+                Side::Cw,
+                Order::React {
+                    pieces: ids(&["unit:cw:4-rha"]),
+                    path: reaches["C3923"].path.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.22");
     }
 
     #[test]

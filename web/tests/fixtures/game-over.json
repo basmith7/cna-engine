@@ -3382,20 +3382,18 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 6,
+      "toe": 0,
       "weapons": [
         {
           "weapon": "18/25-pounders",
-          "points": 6
+          "points": 0
         }
       ],
       "cpa": "20",
       "morale": 2,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3923"
-      },
+      "location": "eliminated",
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -10580,19 +10578,6 @@
             "C4021"
           ],
           "assault": true
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
         }
       }
     },

@@ -7,7 +7,7 @@ import { clickHex, expectDomMatchesView, here, openFixture, shoot as shootInto, 
 const shots = shotsDir("slice-4");
 const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
-/** `cna-play replay` of golden orders 0–65, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
+/** `cna-play replay` of golden orders 0–64, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
 const movementDone = readFileSync(here("fixtures/movement-done.sha256"), "utf8").trim();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -22,7 +22,7 @@ async function hexOf(page: Page, id: string): Promise<string | null> {
   }, id);
 }
 
-test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the reaction, Fort Capuzzo, end segment", async ({ page }) => {
+test("golden orders 59–64 by clicks: initiative, the Libyans into Sollum, a reaction refused for want of fuel, Fort Capuzzo, end segment", async ({ page }) => {
   test.setTimeout(120_000);
   await openFixture(page, "set-up-done");
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · A · initiative");
@@ -70,8 +70,10 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   await expectDomMatchesView(page);
   await throughCurtain(page, "cw");
 
-  // 62: the Commonwealth reacts with 4 RHA, from the reaction panel to a
-  // shaded hex; the hexes next to the Libyans are not offered (8.5x).
+  // The Commonwealth tries to react with 4 RHA, from the reaction panel
+  // to a shaded hex; the hexes next to the Libyans are not offered
+  // (8.5x). It owes 1 fuel and no supply unit in range can pay, so the
+  // engine refuses and nothing changes (32.22, R-120).
   const pending = page.getByTestId("pending");
   await expect(pending).toHaveAttribute("data-kind", "reaction");
   await expect(pending).toContainText("Reaction · Commonwealth");
@@ -79,11 +81,13 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "react");
   await expect(page.locator('polygon.reach[data-hex="C3923"]')).toBeAttached();
   for (const h of ["C3921", "C4022", "C4121", "C4122"]) await expect(page.locator(`polygon.reach[data-hex="${h}"]`)).toHaveCount(0);
+  const offered = await page.evaluate(() => window.__cna.save());
   await page.locator('polygon.hex[data-hex="C3923"]').click();
-  await expect(log(page).filter({ hasText: "4th Ryl Horse Arty: C3922 → C3923" })).toHaveCount(1);
-  expect(await hexOf(page, "unit:cw:4-rha")).toBe("C3923");
-  await expectDomMatchesView(page);
-  // 63: no more reaction.
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.22)");
+  expect(await page.evaluate(() => window.__cna.save())).toBe(offered);
+  await page.getByTestId("toast").getByLabel("Dismiss").click();
+  expect(await hexOf(page, "unit:cw:4-rha")).toBe("C3922");
+  // 62: the Commonwealth passes: no reaction.
   await expect(page.getByTestId("to-act")).toHaveText("Commonwealth to act");
   await pending.locator('[data-order="pass"]').click();
   await throughCurtain(page, "axis");
@@ -104,7 +108,7 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("custom-path")).toHaveCount(0);
 
-  // 64: the 2nd Libyan Division from C3920 into Fort Capuzzo, now empty.
+  // 63: the 2nd Libyan Division from C3920 into Fort Capuzzo, now empty.
   // C3920 is reachable for the Libyans still ticked at C4021: a click
   // on a hex of one's own selects it and never moves onto it.
   await expect(page.locator('polygon.reach[data-hex="C3920"]')).toBeAttached();
@@ -118,7 +122,7 @@ test("golden orders 59–65 by clicks: initiative, the Libyans into Sollum, the 
   expect(await hexOf(page, "unit:it:2nd-libyan-infantry-hq")).toBe("C4020");
   await expectDomMatchesView(page);
 
-  // 65: end the segment: gun positions are sealed first, the Axis to act
+  // 64: end the segment: gun positions are sealed first, the Axis to act
   // (slice 5's panel); the state is `replay`'s.
   await controls.locator('[data-order="end-segment"]').click();
   await expect(page.getByTestId("pending")).toHaveAttribute("data-kind", "sealed");

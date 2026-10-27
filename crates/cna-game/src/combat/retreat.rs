@@ -62,7 +62,10 @@ impl GameState {
                 ),
             ));
         }
+        // A land move: it pays its fuel, or is not made (32.22, R-120).
+        let payments = self.plan_fuel(data, pieces, total, None)?;
         let mut events = Vec::new();
+        self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off {
             for id in pieces {
                 let cost = break_off(&self.pieces[id]);
@@ -596,5 +599,75 @@ mod tests {
             let after: u32 = pieces.iter().map(|id| state.pieces[id].toe).sum();
             assert_eq!(before - after, lost, "overrun={overrun}");
         }
+    }
+
+    /// `retreating` under abstract supply: the L3s alone at C4020 with
+    /// one Axis supply unit holding `fuel`, every other one spent, and
+    /// an empty hex to pull back to.
+    fn tanks_with_supply(data: &Data, fuel: u32) -> (GameState, PieceId, PieceId, String) {
+        use crate::piece::{Load, Location, PieceKind};
+        let mut state = retreating(data);
+        state.modules.abstract_supply = true;
+        let tanks = pid("unit:it:lxl-tank-bn");
+        state.stand_alone(&tanks);
+        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C4020"));
+        let ids: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit)
+            .map(|p| p.id.clone())
+            .collect();
+        for id in &ids {
+            state.pieces.get_mut(id).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+        }
+        let dump = ids[0].clone();
+        let p = state.pieces.get_mut(&dump).unwrap();
+        p.location = Location::Hex(hex("C4020"));
+        p.load = Some(Load { ammo: 10, fuel });
+        let away = data
+            .map
+            .neighbours(&hex("C4020"))
+            .into_iter()
+            .find(|n| {
+                !data.map.adjacent(n, &hex("C4021"))
+                    && !state.pieces.values().any(|p| p.hex() == Some(n))
+            })
+            .unwrap();
+        (state, tanks, dump, away.as_str().to_string())
+    }
+
+    #[test]
+    fn a_retreat_before_assault_pays_its_fuel_32_22() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, tanks, dump, away) = tanks_with_supply(&data, 5);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[&away]),
+            )
+            .unwrap();
+        assert!(events.contains(&Event::FuelSpent {
+            piece: tanks.clone(),
+            from: dump.clone(),
+            fuel: 2,
+        }));
+        assert_eq!(state.pieces[&dump].load.unwrap().fuel, 3);
+    }
+
+    #[test]
+    fn a_unit_that_cannot_pay_its_fuel_does_not_retreat_before_assault_r120() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, _, _, away) = tanks_with_supply(&data, 1);
+        let before = state.clone();
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[&away]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.22", "{}", err.reason);
+        assert_eq!(state, before);
     }
 }
