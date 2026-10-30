@@ -7,6 +7,7 @@ writes is **Feedback**.
 
 ## Feedback
 
+- 2026-10-29 (Brian): **Mission 4 spec approved (PR #25).** Take the spec's defaults for all three questions: `guilds.join` at sign-in plus a small CNA Discord server for DMs, host port 3240 on Tower, and the public image `ghcr.io/basmith7/cna`. Resolve #25's conflicts with main, merge it, and start Mission 4.
 
 ## Addressed
 
