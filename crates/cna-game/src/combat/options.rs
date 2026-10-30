@@ -15,6 +15,7 @@ use crate::piece::PieceId;
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use cna_rules::supply::Role;
 use serde::{Deserialize, Serialize};
 
 /// The choices open to one side in the sealed step now pending.
@@ -55,6 +56,14 @@ pub struct Firer {
     /// target and never shares a target with a hex-mate (12.1x, 12.32).
     pub forward: bool,
     pub targets: Vec<PieceId>,
+    /// The ammunition its fire owes under abstract supply (32.21); 0
+    /// with the module off.
+    #[serde(default)]
+    pub ammo: u32,
+    /// No supply unit in range can pay it: a plot that fires it is
+    /// refused.
+    #[serde(default)]
+    pub ammo_short: bool,
 }
 
 /// A unit that may commit TOE points to the roles of step 4.
@@ -75,6 +84,15 @@ pub struct Committer {
     /// Released from reserve this OpStage: one close assault at most
     /// (18.2x).
     pub one_assault: bool,
+    /// The ammunition a close assault by it owes under abstract supply
+    /// (32.21); 0 with the module off.
+    #[serde(default)]
+    pub ammo: u32,
+    /// No supply unit in range can pay it: the phasing side's
+    /// assignment of it to an assault is refused; a defender fights
+    /// regardless.
+    #[serde(default)]
+    pub ammo_short: bool,
 }
 
 impl GameState {
@@ -128,11 +146,15 @@ impl GameState {
                         if targets.is_empty() {
                             return None;
                         }
+                        let (ammo, ammo_short) =
+                            self.ammo_quote(data, id, Role::Barrage, self.phasing() == Some(side));
                         Some(Firer {
                             piece: (*id).clone(),
                             points: p.toe,
                             forward: self.combat.forward.contains(id),
                             targets,
+                            ammo,
+                            ammo_short,
                         })
                     })
                     .collect(),
@@ -163,7 +185,10 @@ impl GameState {
                         } else {
                             (Vec::new(), Vec::new())
                         };
+                        let (ammo, ammo_short) = self.ammo_quote(data, id, Role::Assault, phasing);
                         Some(Committer {
+                            ammo,
+                            ammo_short,
                             piece: (*id).clone(),
                             points: p.toe,
                             anti_armour,

@@ -1,5 +1,6 @@
 pub mod anti_armour;
 pub mod barrage;
+pub mod breakdown;
 pub mod close_assault;
 pub mod cohesion;
 pub mod construction;
@@ -9,4 +10,5 @@ pub mod movement;
 pub mod ruleset;
 pub mod stacking;
 pub mod strength;
+pub mod supply;
 pub mod zoc;

@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "41846835e0b207798d101e551b473d8c91a193b0",
+  "rules_commit": "eafa8a3e0f04b7bf4ecf40d74e25cc09c0060989",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -9,6 +9,11 @@
     "R-015": 2,
     "R-018": 2
   },
+  "modules": {
+    "abstract_supply": true,
+    "breakdown": true,
+    "construction": true
+  },
   "clock": {
     "game_turn": 1,
     "stage": 1,
@@ -16,8 +21,51 @@
     "half": "A",
     "segment": "movement"
   },
+  "motorisation": {
+    "axis": {
+      "B5504": 5,
+      "C3617": 30,
+      "C3918": 40,
+      "C3919": 5,
+      "C3920": 15,
+      "C4020": 15,
+      "C4120": 45,
+      "C4218": 25,
+      "C4321": 20,
+      "C4507": 25,
+      "C4707": 30,
+      "C4807": 5
+    },
+    "cw": {
+      "C3020": 3,
+      "C3320": 10,
+      "C3520": 5,
+      "C3721": 5,
+      "C3922": 15,
+      "C3926": 2,
+      "C4131": 10,
+      "D3612": 5,
+      "D3615": 20,
+      "D3714": 15,
+      "E1829": 20,
+      "E3613": 15
+    }
+  },
   "initiative": "axis",
   "player_a": "axis",
+  "planned": [
+    {
+      "side": "axis",
+      "arrives": 3,
+      "units": 2
+    },
+    {
+      "side": "cw",
+      "arrives": 5,
+      "units": 3
+    }
+  ],
+  "attachment_tracked": true,
   "weather": "hot",
   "pieces": {
     "supply:axis:1": {
@@ -34,6 +82,10 @@
       "equivalent": null,
       "location": {
         "hex": "C4807"
+      },
+      "load": {
+        "ammo": 15,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -59,6 +111,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -82,6 +138,10 @@
       "equivalent": null,
       "location": {
         "box": "tripoli"
+      },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -107,6 +167,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -130,6 +194,10 @@
       "equivalent": null,
       "location": {
         "box": "tripoli"
+      },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -155,6 +223,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -179,6 +251,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -200,8 +276,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -224,8 +305,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -248,8 +334,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 1,
       "location": {
         "hex": "C0101"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -272,8 +363,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
-        "hex": "C0101"
+        "hex": "C0102"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -299,6 +395,10 @@
       "location": {
         "hex": "C4807"
       },
+      "load": {
+        "ammo": 15,
+        "fuel": 50
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -320,8 +420,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
-        "hex": "C0101"
+        "hex": "C0102"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -344,8 +449,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 2,
       "location": {
-        "hex": "C0101"
+        "hex": "C0102"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -371,6 +481,10 @@
       "location": {
         "hex": "C0716"
       },
+      "load": {
+        "ammo": 20,
+        "fuel": 6
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -394,6 +508,10 @@
       "equivalent": null,
       "location": {
         "hex": "C4807"
+      },
+      "load": {
+        "ammo": 15,
+        "fuel": 50
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -419,6 +537,10 @@
       "location": {
         "hex": "C4321"
       },
+      "load": {
+        "ammo": 10,
+        "fuel": 40
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -442,6 +564,10 @@
       "equivalent": null,
       "location": {
         "hex": "C4321"
+      },
+      "load": {
+        "ammo": 10,
+        "fuel": 40
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -467,6 +593,10 @@
       "location": {
         "hex": "A4827"
       },
+      "load": {
+        "ammo": 10,
+        "fuel": 10
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -490,6 +620,10 @@
       "equivalent": null,
       "location": {
         "hex": "B5925"
+      },
+      "load": {
+        "ammo": 0,
+        "fuel": 10
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -515,6 +649,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -539,6 +677,10 @@
       "location": {
         "box": "tripoli"
       },
+      "load": {
+        "ammo": 5,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -560,8 +702,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
-        "hex": "C0101"
+        "hex": "C0103"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -584,8 +727,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
-        "hex": "C0101"
+        "hex": "C0103"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -608,8 +752,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 3,
       "location": {
-        "hex": "C0101"
+        "hex": "C0103"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -632,8 +777,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
-        "hex": "C0101"
+        "hex": "C0104"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -656,8 +802,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
-        "hex": "C0101"
+        "hex": "C0104"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -680,8 +827,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 4,
       "location": {
-        "hex": "C0101"
+        "hex": "C0104"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -707,6 +855,10 @@
       "location": {
         "hex": "D3714"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -730,6 +882,10 @@
       "equivalent": null,
       "location": {
         "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -755,6 +911,10 @@
       "location": {
         "hex": "E3613"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -778,6 +938,10 @@
       "equivalent": null,
       "location": {
         "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -803,6 +967,10 @@
       "location": {
         "hex": "E1730"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -826,6 +994,10 @@
       "equivalent": null,
       "location": {
         "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -851,6 +1023,10 @@
       "location": {
         "hex": "E1730"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -874,6 +1050,10 @@
       "equivalent": null,
       "location": {
         "hex": "D3714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -899,6 +1079,10 @@
       "location": {
         "hex": "D3714"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -922,6 +1106,10 @@
       "equivalent": null,
       "location": {
         "hex": "D3714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -947,6 +1135,10 @@
       "location": {
         "hex": "D3714"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -971,6 +1163,10 @@
       "location": {
         "hex": "C4131"
       },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -992,8 +1188,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 30
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1016,8 +1217,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 30
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1040,8 +1246,13 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 5,
       "location": {
         "hex": "D3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 30
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1064,8 +1275,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
-        "hex": "D3613"
+        "hex": "D3614"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1088,8 +1300,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
-        "hex": "D3613"
+        "hex": "D3614"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1112,8 +1325,9 @@
       "morale": null,
       "status": null,
       "equivalent": null,
+      "group": 6,
       "location": {
-        "hex": "D3613"
+        "hex": "D3614"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1131,6 +1345,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:11-in-hq",
+      "attached_to": "unit:cw:11-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1155,6 +1370,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:16th-infantry-bde-hq",
+      "attached_to": "unit:cw:16th-infantry-bde-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1179,6 +1395,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:selby-force-the-matruh-garrison",
+      "attached_to": "unit:cw:selby-force-the-matruh-garrison",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1227,6 +1444,7 @@
       "nation": "cw",
       "id_code": "ll",
       "parent": "unit:cw:4-in-hq",
+      "attached_to": "unit:cw:4-in-hq",
       "toe": 8,
       "cpa": "45",
       "morale": 1,
@@ -1251,6 +1469,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:selby-force-the-matruh-garrison",
+      "attached_to": "unit:cw:selby-force-the-matruh-garrison",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1275,6 +1494,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:selby-force-the-matruh-garrison",
+      "attached_to": "unit:cw:selby-force-the-matruh-garrison",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1323,6 +1543,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:selby-force-the-matruh-garrison",
+      "attached_to": "unit:cw:selby-force-the-matruh-garrison",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1371,6 +1592,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:5-in-hq",
+      "attached_to": "unit:cw:5-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1449,6 +1671,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:selby-force-the-matruh-garrison",
+      "attached_to": "unit:cw:selby-force-the-matruh-garrison",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1521,6 +1744,7 @@
       "nation": "cw",
       "id_code": "a",
       "parent": "unit:cw:4-in-hq",
+      "attached_to": "unit:cw:4-in-hq",
       "toe": 0,
       "cpa": "30",
       "morale": 1,
@@ -1568,36 +1792,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:cw:15-laa": {
-      "id": "unit:cw:15-laa",
-      "side": "cw",
-      "kind": "combat",
-      "nation": "cw",
-      "id_code": "ee",
-      "parent": null,
-      "toe": 6,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 6
-        }
-      ],
-      "cpa": "15",
-      "morale": 1,
-      "status": null,
-      "equivalent": "battalion",
-      "location": {
-        "hex": "D0101"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:cw:16-aus-hq": {
       "id": "unit:cw:16-aus-hq",
       "side": "cw",
@@ -1605,6 +1799,7 @@
       "nation": "cw",
       "id_code": "f",
       "parent": "unit:cw:6-aus-hq",
+      "attached_to": "unit:cw:6-aus-hq",
       "toe": 1,
       "cpa": "20",
       "morale": 1,
@@ -1659,6 +1854,7 @@
       "nation": "cw",
       "id_code": "e",
       "parent": "unit:cw:6-aus-hq",
+      "attached_to": "unit:cw:6-aus-hq",
       "toe": 1,
       "cpa": "20",
       "morale": 1,
@@ -1683,6 +1879,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:4-nz-hq",
+      "attached_to": "unit:cw:4-nz-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1707,6 +1904,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:4-nz-hq",
+      "attached_to": "unit:cw:4-nz-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1731,6 +1929,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:16-aus-hq",
+      "attached_to": "unit:cw:16-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1755,6 +1954,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:16-aus-hq",
+      "attached_to": "unit:cw:16-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1779,6 +1979,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:16-aus-hq",
+      "attached_to": "unit:cw:16-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1803,6 +2004,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:17-aus-hq",
+      "attached_to": "unit:cw:17-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1827,6 +2029,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:17-aus-hq",
+      "attached_to": "unit:cw:17-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1851,6 +2054,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:17-aus-hq",
+      "attached_to": "unit:cw:17-aus-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1875,6 +2079,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:11-in-hq",
+      "attached_to": "unit:cw:11-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1923,6 +2128,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:16th-infantry-bde-hq",
+      "attached_to": "unit:cw:16th-infantry-bde-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -1947,6 +2153,7 @@
       "nation": "cw",
       "id_code": "ll",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 8,
       "cpa": "45",
       "morale": 1,
@@ -1995,6 +2202,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:16th-infantry-bde-hq",
+      "attached_to": "unit:cw:16th-infantry-bde-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -2067,6 +2275,7 @@
       "nation": "cw",
       "id_code": "m",
       "parent": "unit:cw:4-nz-hq",
+      "attached_to": "unit:cw:4-nz-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -2091,6 +2300,7 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:4-in-hq",
+      "attached_to": "unit:cw:4-in-hq",
       "toe": 6,
       "weapons": [
         {
@@ -2121,13 +2331,14 @@
       "nation": "cw",
       "id_code": "u",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 2,
       "cpa": "8",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E3714"
+        "hex": "E3613"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2145,6 +2356,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:5-in-hq",
+      "attached_to": "unit:cw:5-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -2253,6 +2465,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:5-in-hq",
+      "attached_to": "unit:cw:5-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -2277,6 +2490,7 @@
       "nation": "cw",
       "id_code": "p",
       "parent": "unit:cw:11-in-hq",
+      "attached_to": "unit:cw:11-in-hq",
       "toe": 6,
       "cpa": "10",
       "morale": 1,
@@ -2325,6 +2539,7 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 6,
       "weapons": [
         {
@@ -2337,7 +2552,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E3714"
+        "hex": "E3613"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2355,6 +2570,7 @@
       "nation": "cw",
       "id_code": "a",
       "parent": "unit:cw:2-nz-hq",
+      "attached_to": "unit:cw:2-nz-hq",
       "toe": 0,
       "cpa": "30",
       "morale": 1,
@@ -2409,6 +2625,7 @@
       "nation": "cw",
       "id_code": "b",
       "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -2439,6 +2656,7 @@
       "nation": "cw",
       "id_code": "a",
       "parent": "unit:cw:4-in-hq",
+      "attached_to": "unit:cw:4-in-hq",
       "toe": 0,
       "cpa": "30",
       "morale": 1,
@@ -2446,36 +2664,6 @@
       "equivalent": "hq",
       "location": {
         "hex": "D3615"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
-    "unit:cw:57-laa": {
-      "id": "unit:cw:57-laa",
-      "side": "cw",
-      "kind": "combat",
-      "nation": "cw",
-      "id_code": "ee",
-      "parent": null,
-      "toe": 6,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 6
-        }
-      ],
-      "cpa": "15",
-      "morale": 1,
-      "status": null,
-      "equivalent": "battalion",
-      "location": {
-        "hex": "D0101"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2517,6 +2705,7 @@
       "nation": "cw",
       "id_code": "ll",
       "parent": "unit:cw:6-aus-hq",
+      "attached_to": "unit:cw:6-aus-hq",
       "toe": 8,
       "cpa": "45",
       "morale": 1,
@@ -2541,6 +2730,7 @@
       "nation": "cw",
       "id_code": "g",
       "parent": "unit:cw:4th-armored-bde-hq",
+      "attached_to": "unit:cw:4th-armored-bde-hq",
       "toe": 10,
       "weapons": [
         {
@@ -2601,6 +2791,7 @@
       "nation": "cw",
       "id_code": "g",
       "parent": "unit:cw:4th-armored-bde-hq",
+      "attached_to": "unit:cw:4th-armored-bde-hq",
       "toe": 10,
       "weapons": [
         {
@@ -2661,6 +2852,7 @@
       "nation": "cw",
       "id_code": "a",
       "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
       "toe": 0,
       "cpa": "30",
       "morale": 2,
@@ -2685,6 +2877,7 @@
       "nation": "cw",
       "id_code": "d",
       "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -2775,6 +2968,7 @@
       "nation": "cw",
       "id_code": "g",
       "parent": "unit:cw:7th-armored-bde-hq",
+      "attached_to": "unit:cw:7th-armored-bde-hq",
       "toe": 7,
       "weapons": [
         {
@@ -2832,36 +3026,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:cw:9-haa": {
-      "id": "unit:cw:9-haa",
-      "side": "cw",
-      "kind": "combat",
-      "nation": "cw",
-      "id_code": "gg",
-      "parent": null,
-      "toe": 2,
-      "weapons": [
-        {
-          "weapon": "Heavy AA",
-          "points": 2
-        }
-      ],
-      "cpa": "15",
-      "morale": 1,
-      "status": null,
-      "equivalent": "battalion",
-      "location": {
-        "hex": "D0101"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:cw:selby-force-the-matruh-garrison": {
       "id": "unit:cw:selby-force-the-matruh-garrison",
       "side": "cw",
@@ -2893,6 +3057,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 1,
@@ -2917,6 +3082,7 @@
       "nation": "it",
       "id_code": "zz",
       "parent": "unit:it:sahariano-camel-regt-hq",
+      "attached_to": "unit:it:sahariano-camel-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -2976,6 +3142,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:233rd-legion-hq",
+      "attached_to": "unit:it:233rd-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3000,6 +3167,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3030,6 +3198,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:233rd-legion-hq",
+      "attached_to": "unit:it:233rd-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3054,6 +3223,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3084,6 +3254,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:233rd-legion-hq",
+      "attached_to": "unit:it:233rd-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3108,6 +3279,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:240th-legion-hq",
+      "attached_to": "unit:it:240th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3132,6 +3304,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:219th-legion-hq",
+      "attached_to": "unit:it:219th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3186,6 +3359,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:231st-legion-hq",
+      "attached_to": "unit:it:231st-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3210,6 +3384,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:231st-legion-hq",
+      "attached_to": "unit:it:231st-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3234,6 +3409,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:219th-legion-hq",
+      "attached_to": "unit:it:219th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3258,6 +3434,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:231st-legion-hq",
+      "attached_to": "unit:it:231st-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3282,6 +3459,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:238th-legion-hq",
+      "attached_to": "unit:it:238th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3306,6 +3484,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:238th-legion-hq",
+      "attached_to": "unit:it:238th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3330,6 +3509,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3360,6 +3540,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3390,6 +3571,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:238th-legion-hq",
+      "attached_to": "unit:it:238th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3414,6 +3596,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:219th-legion-hq",
+      "attached_to": "unit:it:219th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3468,6 +3651,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:250th-legion-hq",
+      "attached_to": "unit:it:250th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -3492,6 +3676,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3522,6 +3707,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:250th-legion-hq",
+      "attached_to": "unit:it:250th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -3546,6 +3732,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3606,6 +3793,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:270th-legion-hq",
+      "attached_to": "unit:it:270th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3630,6 +3818,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:240th-legion-hq",
+      "attached_to": "unit:it:240th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3654,6 +3843,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:270th-legion-hq",
+      "attached_to": "unit:it:270th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -3708,6 +3898,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:libyan-parachute-regt-hq",
+      "attached_to": "unit:it:libyan-parachute-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -3756,6 +3947,7 @@
       "nation": "it",
       "id_code": "rr",
       "parent": "unit:it:1st-libyan-infantry-hq",
+      "attached_to": "unit:it:1st-libyan-infantry-hq",
       "toe": 2,
       "weapons": [
         {
@@ -3786,6 +3978,7 @@
       "nation": "it",
       "id_code": "jj",
       "parent": "unit:it:1st-libyan-infantry-hq",
+      "attached_to": "unit:it:1st-libyan-infantry-hq",
       "toe": 6,
       "weapons": [
         {
@@ -3840,6 +4033,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:libyan-parachute-regt-hq",
+      "attached_to": "unit:it:libyan-parachute-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -3864,6 +4058,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:1st-libyan-infantry-hq",
+      "attached_to": "unit:it:1st-libyan-infantry-hq",
       "toe": 1,
       "weapons": [
         {
@@ -3894,6 +4089,7 @@
       "nation": "it",
       "id_code": "mm",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 3,
       "weapons": [
         {
@@ -3924,6 +4120,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:marine-regimental-hq",
+      "attached_to": "unit:it:marine-regimental-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -3980,6 +4177,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 1,
@@ -4004,6 +4202,7 @@
       "nation": "it",
       "id_code": "zz",
       "parent": "unit:it:sahariano-camel-regt-hq",
+      "attached_to": "unit:it:sahariano-camel-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -4028,7 +4227,8 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:1st-ccnn-div-hq",
-      "toe": 11,
+      "attached_to": "unit:it:1st-ccnn-div-hq",
+      "toe": 9,
       "weapons": [
         {
           "weapon": "75/27 Gun",
@@ -4037,10 +4237,6 @@
         {
           "weapon": "100/17 Howitzer",
           "points": 3
-        },
-        {
-          "weapon": "Heavy AA",
-          "points": 2
         }
       ],
       "cpa": "15",
@@ -4066,6 +4262,7 @@
       "nation": "it",
       "id_code": "aaa",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": 0,
@@ -4090,6 +4287,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": 0,
@@ -4114,6 +4312,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": 0,
@@ -4138,7 +4337,8 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:2nd-ccnn-div-hq",
-      "toe": 11,
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
+      "toe": 9,
       "weapons": [
         {
           "weapon": "75/18 Gun-Howitzer",
@@ -4147,10 +4347,6 @@
         {
           "weapon": "100/17 Howitzer",
           "points": 6
-        },
-        {
-          "weapon": "Heavy AA",
-          "points": 2
         }
       ],
       "cpa": "15",
@@ -4176,6 +4372,7 @@
       "nation": "it",
       "id_code": "aaa",
       "parent": "unit:it:2nd-ccnn-div-hq",
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": 0,
@@ -4200,6 +4397,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:2nd-ccnn-div-hq",
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": 0,
@@ -4224,6 +4422,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:2nd-ccnn-div-hq",
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": 0,
@@ -4248,6 +4447,7 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 12,
       "weapons": [
         {
@@ -4334,7 +4534,8 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:4th-ccnn-div-hq",
-      "toe": 11,
+      "attached_to": "unit:it:4th-ccnn-div-hq",
+      "toe": 9,
       "weapons": [
         {
           "weapon": "75/18 Gun-Howitzer",
@@ -4343,10 +4544,6 @@
         {
           "weapon": "105/28 Gun",
           "points": 3
-        },
-        {
-          "weapon": "Heavy AA",
-          "points": 2
         }
       ],
       "cpa": "15",
@@ -4372,6 +4569,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:4th-ccnn-div-hq",
+      "attached_to": "unit:it:4th-ccnn-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": 0,
@@ -4396,6 +4594,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:4th-ccnn-div-hq",
+      "attached_to": "unit:it:4th-ccnn-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": 0,
@@ -4454,6 +4653,7 @@
       "nation": "it",
       "id_code": "g",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4514,6 +4714,7 @@
       "nation": "it",
       "id_code": "g",
       "parent": "unit:it:2nd-ccnn-div-hq",
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4544,6 +4745,7 @@
       "nation": "it",
       "id_code": "g",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4574,6 +4776,7 @@
       "nation": "it",
       "id_code": "g",
       "parent": "unit:it:2nd-ccnn-div-hq",
+      "attached_to": "unit:it:2nd-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4604,6 +4807,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:4th-ccnn-div-hq",
+      "attached_to": "unit:it:4th-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4658,6 +4862,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:4th-ccnn-div-hq",
+      "attached_to": "unit:it:4th-ccnn-div-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4772,6 +4977,7 @@
       "nation": "it",
       "id_code": "jj",
       "parent": "unit:it:2nd-libyan-infantry-hq",
+      "attached_to": "unit:it:2nd-libyan-infantry-hq",
       "toe": 12,
       "weapons": [
         {
@@ -4830,6 +5036,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:1st-libyan-infantry-hq",
+      "attached_to": "unit:it:1st-libyan-infantry-hq",
       "toe": 1,
       "weapons": [
         {
@@ -4860,6 +5067,7 @@
       "nation": "it",
       "id_code": "mm",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 2,
       "weapons": [
         {
@@ -4890,6 +5098,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:marine-regimental-hq",
+      "attached_to": "unit:it:marine-regimental-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -4915,14 +5124,10 @@
       "nation": "it",
       "id_code": "pp",
       "parent": null,
-      "toe": 12,
+      "toe": 6,
       "weapons": [
         {
           "weapon": "100/17 Howitzer",
-          "points": 6
-        },
-        {
-          "weapon": "'I' Light AA",
           "points": 6
         }
       ],
@@ -4950,6 +5155,7 @@
       "nation": "it",
       "id_code": "zz",
       "parent": "unit:it:sahariano-camel-regt-hq",
+      "attached_to": "unit:it:sahariano-camel-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -5140,6 +5346,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:270th-legion-hq",
+      "attached_to": "unit:it:270th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -5164,6 +5371,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:2nd-libyan-infantry-hq",
+      "attached_to": "unit:it:2nd-libyan-infantry-hq",
       "toe": 1,
       "weapons": [
         {
@@ -5194,6 +5402,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:marine-regimental-hq",
+      "attached_to": "unit:it:marine-regimental-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -5219,15 +5428,11 @@
       "nation": "it",
       "id_code": "pp",
       "parent": null,
-      "toe": 12,
+      "toe": 4,
       "weapons": [
         {
           "weapon": "75/18 Gun-Howitzer",
           "points": 4
-        },
-        {
-          "weapon": "'I' Light AA",
-          "points": 8
         }
       ],
       "cpa": "0",
@@ -5284,6 +5489,7 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 12,
       "weapons": [
         {
@@ -5322,6 +5528,7 @@
       "nation": "it",
       "id_code": "kk",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 12,
       "weapons": [
         {
@@ -5438,6 +5645,7 @@
       "nation": "it",
       "id_code": "h",
       "parent": "unit:it:2nd-libyan-infantry-hq",
+      "attached_to": "unit:it:2nd-libyan-infantry-hq",
       "toe": 1,
       "weapons": [
         {
@@ -5468,15 +5676,11 @@
       "nation": "it",
       "id_code": "pp",
       "parent": null,
-      "toe": 10,
+      "toe": 6,
       "weapons": [
         {
           "weapon": "105/28 Gun",
           "points": 6
-        },
-        {
-          "weapon": "'I' Heavy AA",
-          "points": 4
         }
       ],
       "cpa": "0",
@@ -5589,6 +5793,7 @@
       "nation": "it",
       "id_code": "f",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 1,
       "cpa": "20",
       "morale": -2,
@@ -5613,15 +5818,11 @@
       "nation": "it",
       "id_code": "pp",
       "parent": null,
-      "toe": 8,
+      "toe": 6,
       "weapons": [
         {
           "weapon": "149/13 Howitzer",
           "points": 6
-        },
-        {
-          "weapon": "'I' Heavy AA",
-          "points": 2
         }
       ],
       "cpa": "0",
@@ -5648,6 +5849,7 @@
       "nation": "it",
       "id_code": "rr",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 2,
       "weapons": [
         {
@@ -5678,6 +5880,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": -1,
@@ -5702,6 +5905,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": -1,
@@ -5750,6 +5954,7 @@
       "nation": "it",
       "id_code": "rr",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 2,
       "weapons": [
         {
@@ -5780,6 +5985,7 @@
       "nation": "it",
       "id_code": "aaa",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": -1,
@@ -5804,6 +6010,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": -1,
@@ -5828,6 +6035,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": -1,
@@ -5876,6 +6084,7 @@
       "nation": "it",
       "id_code": "rr",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 2,
       "weapons": [
         {
@@ -5930,6 +6139,7 @@
       "nation": "it",
       "id_code": "bbb",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 1,
       "cpa": "25",
       "morale": -1,
@@ -5954,6 +6164,7 @@
       "nation": "it",
       "id_code": "bb",
       "parent": "unit:it:64th-catanzaro-div-hq",
+      "attached_to": "unit:it:64th-catanzaro-div-hq",
       "toe": 2,
       "cpa": "8",
       "morale": -1,
@@ -6039,6 +6250,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:240th-legion-hq",
+      "attached_to": "unit:it:240th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": 0,
@@ -6094,6 +6306,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:250th-legion-hq",
+      "attached_to": "unit:it:250th-legion-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -6207,36 +6420,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:it:benina-aa-battery": {
-      "id": "unit:it:benina-aa-battery",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "uu",
-      "parent": null,
-      "toe": 2,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 2
-        }
-      ],
-      "cpa": "15",
-      "morale": -3,
-      "status": null,
-      "equivalent": "company",
-      "location": {
-        "hex": "A4829"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:it:egug-garrison-bn": {
       "id": "unit:it:egug-garrison-bn",
       "side": "axis",
@@ -6275,37 +6458,6 @@
       "equivalent": "battalion",
       "location": {
         "hex": "C3019"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
-    "unit:it:giariabub-oasis-anti-air-bty": {
-      "id": "unit:it:giariabub-oasis-anti-air-bty",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "uu",
-      "parent": null,
-      "toe": 3,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 3
-        }
-      ],
-      "cpa": "15",
-      "morale": 0,
-      "status": null,
-      "equivalent": "company",
-      "garrison_of": "C1014",
-      "location": {
-        "hex": "C1014"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6460,6 +6612,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:115th-infantry-regt-hq",
+      "attached_to": "unit:it:115th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6484,6 +6637,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:116th-infantry-regt-hq",
+      "attached_to": "unit:it:116th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6508,6 +6662,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:141st-infantry-regt-hq",
+      "attached_to": "unit:it:141st-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6532,6 +6687,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:142nd-infantry-regt-hq",
+      "attached_to": "unit:it:142nd-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6556,6 +6712,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:157th-infantry-regt-hq",
+      "attached_to": "unit:it:157th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6580,6 +6737,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:158th-infantry-regt-hq",
+      "attached_to": "unit:it:158th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6604,6 +6762,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:30th-gaf-s-di-c-hq",
+      "attached_to": "unit:it:30th-gaf-s-di-c-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -3,
@@ -6629,6 +6788,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:31st-gaf-s-di-c-hq",
+      "attached_to": "unit:it:31st-gaf-s-di-c-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -6654,6 +6814,7 @@
       "nation": "it",
       "id_code": "v",
       "parent": "unit:it:32nd-gaf-s-di-c-hq",
+      "attached_to": "unit:it:32nd-gaf-s-di-c-hq",
       "toe": 6,
       "cpa": "10",
       "morale": -3,
@@ -6679,6 +6840,7 @@
       "nation": "it",
       "id_code": "w",
       "parent": "unit:it:i-libyan-mtr-regt-hq",
+      "attached_to": "unit:it:i-libyan-mtr-regt-hq",
       "toe": 5,
       "cpa": "10+",
       "morale": -2,
@@ -6703,6 +6865,7 @@
       "nation": "it",
       "id_code": "f",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 1,
       "cpa": "20",
       "morale": -2,
@@ -6727,6 +6890,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:115th-infantry-regt-hq",
+      "attached_to": "unit:it:115th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6751,6 +6915,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:116th-infantry-regt-hq",
+      "attached_to": "unit:it:116th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6775,6 +6940,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:141st-infantry-regt-hq",
+      "attached_to": "unit:it:141st-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6799,6 +6965,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:142nd-infantry-regt-hq",
+      "attached_to": "unit:it:142nd-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6823,6 +6990,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:157th-infantry-regt-hq",
+      "attached_to": "unit:it:157th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6847,6 +7015,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:158th-infantry-regt-hq",
+      "attached_to": "unit:it:158th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -6871,6 +7040,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:30th-gaf-s-di-c-hq",
+      "attached_to": "unit:it:30th-gaf-s-di-c-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -3,
@@ -6896,6 +7066,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:31st-gaf-s-di-c-hq",
+      "attached_to": "unit:it:31st-gaf-s-di-c-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -6921,6 +7092,7 @@
       "nation": "it",
       "id_code": "v",
       "parent": "unit:it:32nd-gaf-s-di-c-hq",
+      "attached_to": "unit:it:32nd-gaf-s-di-c-hq",
       "toe": 6,
       "cpa": "10",
       "morale": -3,
@@ -6946,6 +7118,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:3rd-libyan-regt-hq",
+      "attached_to": "unit:it:3rd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -6995,6 +7168,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:115th-infantry-regt-hq",
+      "attached_to": "unit:it:115th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7019,6 +7193,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:116th-infantry-regt-hq",
+      "attached_to": "unit:it:116th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7043,6 +7218,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:141st-infantry-regt-hq",
+      "attached_to": "unit:it:141st-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7067,6 +7243,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:142nd-infantry-regt-hq",
+      "attached_to": "unit:it:142nd-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7091,6 +7268,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:157th-infantry-regt-hq",
+      "attached_to": "unit:it:157th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7115,6 +7293,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:158th-infantry-regt-hq",
+      "attached_to": "unit:it:158th-infantry-regt-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -1,
@@ -7139,6 +7318,7 @@
       "nation": "it",
       "id_code": "u",
       "parent": "unit:it:30th-gaf-s-di-c-hq",
+      "attached_to": "unit:it:30th-gaf-s-di-c-hq",
       "toe": 7,
       "cpa": "10",
       "morale": -3,
@@ -7164,6 +7344,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:31st-gaf-s-di-c-hq",
+      "attached_to": "unit:it:31st-gaf-s-di-c-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -3,
@@ -7189,6 +7370,7 @@
       "nation": "it",
       "id_code": "v",
       "parent": "unit:it:32nd-gaf-s-di-c-hq",
+      "attached_to": "unit:it:32nd-gaf-s-di-c-hq",
       "toe": 6,
       "cpa": "10",
       "morale": -3,
@@ -7214,6 +7396,7 @@
       "nation": "it",
       "id_code": "w",
       "parent": "unit:it:i-libyan-mtr-regt-hq",
+      "attached_to": "unit:it:i-libyan-mtr-regt-hq",
       "toe": 5,
       "cpa": "10+",
       "morale": -2,
@@ -7238,6 +7421,7 @@
       "nation": "it",
       "id_code": "l",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 7,
       "weapons": [
         {
@@ -7268,6 +7452,7 @@
       "nation": "it",
       "id_code": "l",
       "parent": "unit:it:1st-ccnn-div-hq",
+      "attached_to": "unit:it:1st-ccnn-div-hq",
       "toe": 7,
       "weapons": [
         {
@@ -7329,6 +7514,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
+      "attached_to": "unit:it:1st-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -7353,6 +7539,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:2nd-libyan-infantry-hq",
+      "attached_to": "unit:it:2nd-libyan-infantry-hq",
       "toe": 9,
       "weapons": [
         {
@@ -7437,6 +7624,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:63rd-cirene-div-hq",
+      "attached_to": "unit:it:63rd-cirene-div-hq",
       "toe": 9,
       "weapons": [
         {
@@ -7467,6 +7655,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:62nd-marmarica-div-hq",
+      "attached_to": "unit:it:62nd-marmarica-div-hq",
       "toe": 9,
       "weapons": [
         {
@@ -7497,6 +7686,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:trivioli-2nd-regt-hq",
+      "attached_to": "unit:it:trivioli-2nd-regt-hq",
       "toe": 9,
       "weapons": [
         {
@@ -7527,6 +7717,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:trivioli-2nd-regt-hq",
+      "attached_to": "unit:it:trivioli-2nd-regt-hq",
       "toe": 9,
       "weapons": [
         {
@@ -7630,6 +7821,7 @@
       "nation": "it",
       "id_code": "yy",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 2,
       "cpa": "15",
       "morale": 1,
@@ -7654,6 +7846,7 @@
       "nation": "it",
       "id_code": "z",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 5,
       "cpa": "8",
       "morale": 1,
@@ -7678,6 +7871,7 @@
       "nation": "it",
       "id_code": "hh",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 1,
       "cpa": "8+",
       "morale": 1,
@@ -7702,6 +7896,7 @@
       "nation": "it",
       "id_code": "mm",
       "parent": "unit:it:saharan-detachment-hq",
+      "attached_to": "unit:it:saharan-detachment-hq",
       "toe": 5,
       "weapons": [
         {
@@ -7760,6 +7955,7 @@
       "nation": "it",
       "id_code": "f",
       "parent": "unit:it:maletti-div-hq",
+      "attached_to": "unit:it:maletti-div-hq",
       "toe": 1,
       "cpa": "20",
       "morale": -2,
@@ -7861,37 +8057,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:it:tobruk-light-aa-bn": {
-      "id": "unit:it:tobruk-light-aa-bn",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "ss",
-      "parent": null,
-      "toe": 8,
-      "weapons": [
-        {
-          "weapon": "'I' Light AA",
-          "points": 8
-        }
-      ],
-      "cpa": "15",
-      "morale": -3,
-      "status": null,
-      "equivalent": "battalion",
-      "garrison_of": "C4807",
-      "location": {
-        "hex": "C4807"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:it:trivioli-2nd-regt-hq": {
       "id": "unit:it:trivioli-2nd-regt-hq",
       "side": "axis",
@@ -7968,6 +8133,7 @@
       "nation": "it",
       "id_code": "w",
       "parent": "unit:it:i-libyan-mtr-regt-hq",
+      "attached_to": "unit:it:i-libyan-mtr-regt-hq",
       "toe": 5,
       "cpa": "10+",
       "morale": -2,
@@ -8048,6 +8214,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:3rd-libyan-regt-hq",
+      "attached_to": "unit:it:3rd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8065,37 +8232,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:it:vii-coastal-defense-arty-aa-group": {
-      "id": "unit:it:vii-coastal-defense-arty-aa-group",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "tt",
-      "parent": null,
-      "toe": 6,
-      "weapons": [
-        {
-          "weapon": "'I' Light AA",
-          "points": 6
-        }
-      ],
-      "cpa": "15",
-      "morale": -3,
-      "status": null,
-      "equivalent": "battalion",
-      "garrison_of": "A4827",
-      "location": {
-        "hex": "A4827"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:it:vii-libyan-bn": {
       "id": "unit:it:vii-libyan-bn",
       "side": "axis",
@@ -8103,6 +8239,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:3rd-libyan-regt-hq",
+      "attached_to": "unit:it:3rd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8152,6 +8289,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
+      "attached_to": "unit:it:1st-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8206,6 +8344,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
+      "attached_to": "unit:it:1st-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8230,6 +8369,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:2nd-libyan-regt-hq",
+      "attached_to": "unit:it:2nd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8254,6 +8394,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:2nd-libyan-regt-hq",
+      "attached_to": "unit:it:2nd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8278,6 +8419,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:2nd-libyan-regt-hq",
+      "attached_to": "unit:it:2nd-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8302,6 +8444,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:4th-libyan-regt-hq",
+      "attached_to": "unit:it:4th-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8326,6 +8469,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:5th-libyan-regt-hq",
+      "attached_to": "unit:it:5th-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8343,37 +8487,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:it:xv-coastal-def-aa-group": {
-      "id": "unit:it:xv-coastal-def-aa-group",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "tt",
-      "parent": null,
-      "toe": 6,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 6
-        }
-      ],
-      "cpa": "15",
-      "morale": -3,
-      "status": null,
-      "equivalent": "battalion",
-      "garrison_of": "B5925",
-      "location": {
-        "hex": "B5925"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:it:xv-libyan-bn": {
       "id": "unit:it:xv-libyan-bn",
       "side": "axis",
@@ -8381,6 +8494,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:4th-libyan-regt-hq",
+      "attached_to": "unit:it:4th-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8405,6 +8519,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:4th-libyan-regt-hq",
+      "attached_to": "unit:it:4th-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8422,37 +8537,6 @@
       "contact": false,
       "engaged": false
     },
-    "unit:it:xvii-anti-air-group": {
-      "id": "unit:it:xvii-anti-air-group",
-      "side": "axis",
-      "kind": "combat",
-      "nation": "it",
-      "id_code": "ss",
-      "parent": null,
-      "toe": 8,
-      "weapons": [
-        {
-          "weapon": "Light AA",
-          "points": 8
-        }
-      ],
-      "cpa": "15",
-      "morale": -3,
-      "status": null,
-      "equivalent": "battalion",
-      "garrison_of": "C4321",
-      "location": {
-        "hex": "C4321"
-      },
-      "cp_spent": 0.0,
-      "cp_enemy_half": 0.0,
-      "cohesion": {
-        "level": 0,
-        "dp_tally": 0
-      },
-      "contact": false,
-      "engaged": false
-    },
     "unit:it:xvii-libyan-bn": {
       "id": "unit:it:xvii-libyan-bn",
       "side": "axis",
@@ -8460,6 +8544,7 @@
       "nation": "it",
       "id_code": "x",
       "parent": "unit:it:5th-libyan-regt-hq",
+      "attached_to": "unit:it:5th-libyan-regt-hq",
       "toe": 5,
       "cpa": "10",
       "morale": -2,
@@ -8645,6 +8730,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:aresca-1st-regt-hq",
+      "attached_to": "unit:it:aresca-1st-regt-hq",
       "toe": 9,
       "weapons": [
         {
@@ -8675,6 +8761,7 @@
       "nation": "it",
       "id_code": "k",
       "parent": "unit:it:trivioli-2nd-regt-hq",
+      "attached_to": "unit:it:trivioli-2nd-regt-hq",
       "toe": 9,
       "weapons": [
         {
@@ -8827,7 +8914,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:19",
-          "hex": "C0101"
+          "hex": "C0102"
         }
       }
     },
@@ -8836,7 +8923,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:20",
-          "hex": "C0101"
+          "hex": "C0102"
         }
       }
     },
@@ -8845,7 +8932,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:21",
-          "hex": "C0101"
+          "hex": "C0102"
         }
       }
     },
@@ -8854,7 +8941,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-1",
-          "hex": "C0101"
+          "hex": "C0103"
         }
       }
     },
@@ -8863,7 +8950,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-2",
-          "hex": "C0101"
+          "hex": "C0103"
         }
       }
     },
@@ -8872,7 +8959,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-3",
-          "hex": "C0101"
+          "hex": "C0103"
         }
       }
     },
@@ -8881,7 +8968,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-4",
-          "hex": "C0101"
+          "hex": "C0104"
         }
       }
     },
@@ -8890,7 +8977,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-5",
-          "hex": "C0101"
+          "hex": "C0104"
         }
       }
     },
@@ -8899,7 +8986,7 @@
       "order": {
         "place": {
           "piece": "supply:axis:dummy-6",
-          "hex": "C0101"
+          "hex": "C0104"
         }
       }
     },
@@ -9178,7 +9265,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-1",
-          "hex": "D3613"
+          "hex": "D3614"
         }
       }
     },
@@ -9187,7 +9274,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-2",
-          "hex": "D3613"
+          "hex": "D3614"
         }
       }
     },
@@ -9196,7 +9283,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-3",
-          "hex": "D3613"
+          "hex": "D3614"
         }
       }
     },
@@ -9205,15 +9292,6 @@
       "order": {
         "place": {
           "piece": "unit:cw:149th-anti-tank-regt",
-          "hex": "D0101"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "place": {
-          "piece": "unit:cw:15-laa",
           "hex": "D0101"
         }
       }
@@ -9268,7 +9346,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:27-nz",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -9277,7 +9355,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:4-nz-fld",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -9287,15 +9365,6 @@
         "place": {
           "piece": "unit:cw:4-nz-hq",
           "hex": "E3613"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "place": {
-          "piece": "unit:cw:57-laa",
-          "hex": "D0101"
         }
       }
     },
@@ -9318,21 +9387,20 @@
       }
     },
     {
-      "player": "cw",
-      "order": {
-        "place": {
-          "piece": "unit:cw:9-haa",
-          "hex": "D0101"
-        }
-      }
-    },
-    {
       "player": "axis",
       "order": {
         "declare-initiative": {
           "player_a": "axis"
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "axis",

@@ -153,6 +153,7 @@ impl GameState {
     pub(crate) fn voluntary_cap(&self, id: &PieceId) -> Option<(Cp, &'static str, &'static str)> {
         let p = &self.pieces[id];
         let cpa = self.cpa(p)?;
+        let own = self.base_cpa(p)?;
         match p.released {
             Some(Reserve::I) => Some((
                 Cp::whole(cpa),
@@ -162,12 +163,13 @@ impl GameState {
             // Half the CPA rounded down; leg infantry (CPA 10 or less,
             // 8.1x) gets 5 whatever its CPA (18.24).
             Some(Reserve::II) => Some((
-                Cp::whole(if cpa <= 10 { 5 } else { cpa / 2 }),
+                Cp::whole(if own <= 10 { 5 } else { cpa / 2 }),
                 "18.2x",
                 "released from Reserve II: it may not exceed half its CPA this stage",
             )),
-            None if cpa <= 10 => Some((
-                Cp::halves(cpa * 3),
+            // 8.17 measures against the unit's own CPA (R-137).
+            None if own <= 10 => Some((
+                Cp::halves(own * 3),
                 "8.1x",
                 "a non-motorised unit may not go past 150 % of its CPA voluntarily",
             )),

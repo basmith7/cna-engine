@@ -9,9 +9,9 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 type Logged = { player: "axis" | "cw"; order: { place: { piece: string; hex: string } } };
 
-/** The golden game's 59 free placements: orders 0–58 of `tests/games/graziani-short.json`. */
-const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-short.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 59);
-/** `cna-play replay` of those 59 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
+/** The golden game's 56 free placements: orders 0–55 of `tests/games/graziani-m5.json`. */
+const placements: Logged[] = (JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as { orders: Logged[] }).orders.slice(0, 56);
+/** `cna-play replay` of those 56 orders, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_set_up_done_fixture_is_current`). */
 const setUpDone = readFileSync(here("fixtures/set-up-done.sha256"), "utf8").trim();
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -34,8 +34,8 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
   await pick(page, "axis", placements[0].order.place.piece);
   const count = Number(await page.getByTestId("placements").getAttribute("data-count"));
   expect(count).toBeGreaterThan(100);
-  await expect(page.getByTestId("setup")).toContainText("any hex of sheet C, not within 4 hexes of an enemy unit");
-  await expect(page.getByTestId("setup")).toContainText("also: Libyan part of sheet C; all units of the group in one hex");
+  await expect(page.getByTestId("setup")).toContainText("any hex in Libya on sheet C, not within 4 hexes of an enemy unit, all in one hex");
+  await expect(page.getByTestId("setup")).not.toContainText("also:");
   await expect(page.getByTestId("placement-count")).toHaveText(`${count} hexes allowed. Click one to place it.`);
   // The shaded hexes are the engine's, every one on sheet C.
   const shaded = await page.locator("polygon.placement").evaluateAll((ps) => ps.map((p) => p.getAttribute("data-hex")!));
@@ -69,10 +69,10 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
     await clickHex(page, hex);
     placed++;
     // One line per placement; the last one also starts play (set-up complete, the phase, the initiative).
-    if (i < 58) await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(placed, { timeout: 10_000 });
+    if (i < 55) await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(placed, { timeout: 10_000 });
     else await expect(page.getByTestId("log-entries").locator("li.event").last()).not.toContainText("placed at", { timeout: 10_000 });
     const { pending } = await expectDomMatchesView(page);
-    expect(pending.axis + pending.cw).toBe(59 - placed);
+    expect(pending.axis + pending.cw).toBe(56 - placed);
 
     if (i === 35) {
       // The Axis is done: the curtain drops for the Commonwealth.
@@ -81,8 +81,8 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
       await shoot(page, "curtain.png");
       await page.getByTestId("curtain").click();
       await expect(page.getByTestId("curtain")).toHaveCount(0);
-      await expect(page.getByTestId("setup")).toContainText("Set-up · Commonwealth 23 to place");
-    } else if (i < 58) {
+      await expect(page.getByTestId("setup")).toContainText("Set-up · Commonwealth 20 to place");
+    } else if (i < 55) {
       await expect(page.getByTestId("curtain")).toHaveCount(0);
     }
   }
@@ -100,7 +100,7 @@ test("both sides place their free pieces by clicking, through the curtain, to GT
   await expect(log.locator("li.event", { hasText: "Set-up complete; play begins." })).toHaveCount(1);
   await expect(log.locator("li.event").last()).toContainText("Game-Turn 1 OpStage 1: A · initiative begins.");
 
-  // The state is what `cna-play replay` makes of the same 59 orders.
+  // The state is what `cna-play replay` makes of the same 56 orders.
   const view = await page.evaluate(() => window.__cna.view());
   expect(view.pending).toBeNull();
   expect(view.to_act).toBe("axis");
@@ -117,4 +117,18 @@ test("stays usable at a phone width while placing", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await shoot(page, "placements-390.png");
+});
+
+test("a piece placed this set-up can be taken back and placed again (59.2)", async ({ page }) => {
+  await newGame(page);
+  const { piece, hex } = placements[0].order.place;
+  await pick(page, "axis", piece);
+  await clickHex(page, hex);
+  await expect(page.getByTestId("setup")).toContainText("Axis 35 to place");
+  // The stack panel shows the hex just placed in.
+  const back = page.getByTestId("stack-panel").locator(`li[data-unit="${piece}"] [data-order="unplace"]`);
+  await back.click();
+  await expect(page.getByTestId("setup")).toContainText("Axis 36 to place");
+  await expect(page.getByTestId("log-entries")).toContainText("taken back, to be placed again");
+  await expect(page.getByTestId("setup").locator(`[data-unit="${piece}"]`)).toBeAttached();
 });

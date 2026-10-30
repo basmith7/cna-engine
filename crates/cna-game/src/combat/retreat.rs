@@ -19,6 +19,8 @@ use cna_rules::close_assault::may_buy_out;
 /// The DP a must-attack retreat adds (10.36).
 const MUST_ATTACK_DP: u32 = 3;
 
+// TODO(32.22): fuel is not charged here until cna answers "What a unit may
+// do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
 impl GameState {
     /// `Order::RetreatBeforeAssault` (13.2x): ordinary voluntary movement
     /// by an unpinned, uncollapsed non-phasing stack, paid in the enemy
@@ -31,8 +33,9 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
     ) -> Result<Vec<Event>, Illegal> {
+        let pieces = &self.carried(pieces)?;
         let from = self.retreating_stack(player, pieces)?;
-        let plan = self.plan(data, pieces, &from, path)?;
+        let plan = self.plan_with(data, pieces, &from, path, Purpose::RetreatBeforeAssault)?;
         if let Some((before, _)) = &plan.interrupt {
             return Err(Illegal::new(
                 "13.2x",
@@ -59,7 +62,10 @@ impl GameState {
                 ),
             ));
         }
+        // A land move: it pays its fuel, or is not made (32.22, R-120).
+        let payments = self.plan_fuel(data, pieces, total, None)?;
         let mut events = Vec::new();
+        self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off {
             for id in pieces {
                 let cost = break_off(&self.pieces[id]);
@@ -76,10 +82,13 @@ impl GameState {
             }
         }
         let mut at = from.clone();
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
+            self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
                 from: at,
@@ -89,8 +98,11 @@ impl GameState {
             for id in pieces {
                 self.charge(id, cost, true, &mut events);
             }
+            self.capture_supply_entered(pieces, &to, &mut events);
             at = to;
         }
+        // It stops: a breakdown check (21.2x).
+        self.check_breakdown(data, pieces, storm, &from, &mut events);
         if at != from {
             self.release_contact_around(data, &from, player);
         }
@@ -159,6 +171,8 @@ impl GameState {
             .unwrap_or(limit + 1)
     }
 
+    // TODO(32.22): fuel is not charged here until cna answers "What a unit may
+    // do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
     /// `Order::Retreat` or `Pass` while a forced retreat is pending
     /// (15.82, 15.29, 10.36): the stack walks `path` as a move that may
     /// leave an enemy ZOC, ending at least the ordered hexes from every
@@ -202,8 +216,11 @@ impl GameState {
         };
         // 10.36: a must-attack stack surrenders only when every route is
         // forced into enemy ZOC, so it may not pass while one is open.
+        // A stack without the fuel it owes has no way out (R-120).
+        let unfuelled = self.unfuelled(data, &pieces);
         if path.is_none()
             && reason == RetreatReason::MustAttack
+            && !unfuelled
             && !self
                 .reachable(data, side, &pieces, Purpose::ForcedRetreat)?
                 .is_empty()
@@ -218,7 +235,7 @@ impl GameState {
         let phasing = self.phasing() == Some(side);
         let (end, plan) = match path {
             Some(path) => {
-                let plan = self.plan_with(data, &pieces, &start, path, true)?;
+                let plan = self.plan_with(data, &pieces, &start, path, Purpose::ForcedRetreat)?;
                 if let Some((before, _)) = &plan.interrupt {
                     return Err(match reason {
                         RetreatReason::MustAttack => Illegal::new(
@@ -261,6 +278,11 @@ impl GameState {
                         ));
                     }
                 }
+                // Short of safety he is captured below (R-140).
+                RetreatReason::RommelAlone => {}
+                // One that cannot pay its fuel stands and pays whatever
+                // R-012 says (R-120).
+                _ if unfuelled => {}
                 _ => {
                     let path_exists = self.retreat_path_exists(data, &start, side);
                     if !may_buy_out(&self.ruleset, path_exists) {
@@ -272,19 +294,27 @@ impl GameState {
                 }
             }
         }
-        if let Some(plan) = plan {
-            let break_off = Self::break_off_cost;
-            if plan.break_off {
-                for id in &pieces {
-                    let cost = break_off(&self.pieces[id]);
-                    if cost > Cp::ZERO {
-                        events.push(Event::ContactBroken {
-                            piece: id.clone(),
-                            cost,
-                        });
-                        self.charge(id, cost, !phasing, &mut events);
-                    }
+        // A land move: it pays its fuel, or is not made (32.22, R-120).
+        let payments = match &plan {
+            Some(plan) => {
+                let mut total: Cp = plan.steps.iter().map(|(_, c)| *c).sum();
+                if plan.break_off {
+                    total += pieces
+                        .iter()
+                        .map(|id| Self::break_off_cost(&self.pieces[id]))
+                        .max()
+                        .unwrap_or(Cp::ZERO);
                 }
+                Some((total, self.plan_fuel(data, &pieces, total, None)?))
+            }
+            None => None,
+        };
+        if let Some(plan) = plan {
+            if let Some((total, payments)) = payments {
+                self.spend_fuel(data, total, payments, &mut events);
+            }
+            if plan.break_off {
+                self.pay_break_off(&pieces, !phasing, &mut events);
             }
             for id in &pieces {
                 let p = self.pieces.get_mut(id).expect("checked");
@@ -292,10 +322,15 @@ impl GameState {
                 p.engaged = false;
             }
             let mut at = start.clone();
+            let storm = crate::breakdown::mostly_in_sandstorm(
+                self,
+                plan.steps.iter().map(|(h, c)| (h, *c)),
+            );
             for (to, cost) in plan.steps {
                 for id in &pieces {
                     self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
                 }
+                self.collect_breakdown(data, &pieces, &at, &to);
                 events.push(Event::Moved {
                     pieces: pieces.clone(),
                     from: at,
@@ -305,8 +340,10 @@ impl GameState {
                 for id in &pieces {
                     self.charge(id, cost, !phasing, &mut events);
                 }
+                self.capture_supply_entered(&pieces, &to, &mut events);
                 at = to;
             }
+            self.check_breakdown(data, &pieces, storm, &start, &mut events);
             if at != start {
                 self.release_contact_around(data, &start, side);
             }
@@ -321,13 +358,17 @@ impl GameState {
                     .iter()
                     .map(|id| (id.clone(), self.pieces[id].toe))
                     .collect();
+                let prisoners = self.prisoner_points(data, &pieces);
                 for (id, n) in toe {
                     self.take_loss(&id, n, &mut events);
                 }
                 events.push(Event::Surrendered {
                     pieces: pieces.clone(),
                 });
-            } else {
+                // No captor stands by: they wait where they stood (a
+                // must-attack stack short of its retreat never moved).
+                self.capture_prisoners(data, side.other(), &start, prisoners, &mut events);
+            } else if reason != RetreatReason::RommelAlone {
                 events.push(Event::RetreatBoughtOut {
                     pieces: pieces.clone(),
                     short,
@@ -356,6 +397,10 @@ impl GameState {
                     &mut events,
                 );
             }
+        }
+        // R-140: he goes on until he is safe, or is taken where he stops.
+        if reason == RetreatReason::RommelAlone {
+            self.capture_lone_rommel(data, &[], &mut events);
         }
         if reason == RetreatReason::MustAttack && !self.end_close_assault(data, &mut events) {
             self.open_step(data, Segment::ReserveRelease, &mut events);
@@ -420,6 +465,42 @@ mod tests {
     }
 
     #[test]
+    fn a_retreat_collects_breakdown_points_and_checks_where_it_stops_21_2x() {
+        use crate::event::Event;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = retreating(&data);
+        state.modules.breakdown = true;
+        // The L3s stand with the Libyans at C4020, already at 100 points.
+        let tanks = pid("unit:it:lxl-tank-bn");
+        state.stand_alone(&tanks);
+        let p = state.pieces.get_mut(&tanks).unwrap();
+        p.location = crate::piece::Location::Hex(hex("C4020"));
+        p.breakdown_halves = 200;
+        let away = data
+            .map
+            .neighbours(&hex("C4020"))
+            .into_iter()
+            .find(|n| {
+                !data.map.adjacent(n, &hex("C4021"))
+                    && !state.pieces.values().any(|p| p.hex() == Some(n))
+            })
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[away.as_str()]),
+            )
+            .unwrap();
+        assert!(state.pieces[&tanks].breakdown_halves > 200);
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::BrokeDown { piece, .. } if *piece == tanks))
+        );
+    }
+
+    #[test]
     fn an_adjacent_unit_pulls_back_in_the_enemy_half_unless_pinned() {
         let data = Data::load("grazianis-offensive").unwrap();
         let mut state = retreating(&data);
@@ -435,6 +516,7 @@ mod tests {
             })
             .unwrap();
         state.combat.pinned.insert(bn.clone());
+        state.stand_alone(&bn);
         let err = state
             .apply(
                 &data,
@@ -487,6 +569,7 @@ mod tests {
         let data = Data::load("grazianis-offensive").unwrap();
         let mut state = retreating(&data);
         let bn = pid("unit:it:xvii-libyan-bn");
+        state.stand_alone(&bn);
         assert_eq!(state.pieces[&bn].hex(), Some(&hex("C3617")));
         // Walk away from the enemy: three hexes west along row 36, 2 CP each.
         let path3 = ["C3616", "C3615", "C3614"];
@@ -540,5 +623,139 @@ mod tests {
             let after: u32 = pieces.iter().map(|id| state.pieces[id].toe).sum();
             assert_eq!(before - after, lost, "overrun={overrun}");
         }
+    }
+
+    /// `retreating` under abstract supply: the L3s alone at C4020 with
+    /// one Axis supply unit holding `fuel`, every other one spent, and
+    /// an empty hex to pull back to.
+    fn tanks_with_supply(data: &Data, fuel: u32) -> (GameState, PieceId, PieceId, String) {
+        use crate::piece::{Load, Location, PieceKind};
+        let mut state = retreating(data);
+        state.modules.abstract_supply = true;
+        let tanks = pid("unit:it:lxl-tank-bn");
+        state.stand_alone(&tanks);
+        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C4020"));
+        let ids: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit)
+            .map(|p| p.id.clone())
+            .collect();
+        for id in &ids {
+            state.pieces.get_mut(id).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+        }
+        let dump = ids[0].clone();
+        let p = state.pieces.get_mut(&dump).unwrap();
+        p.location = Location::Hex(hex("C4020"));
+        p.load = Some(Load { ammo: 10, fuel });
+        let away = data
+            .map
+            .neighbours(&hex("C4020"))
+            .into_iter()
+            .find(|n| {
+                !data.map.adjacent(n, &hex("C4021"))
+                    && !state.pieces.values().any(|p| p.hex() == Some(n))
+            })
+            .unwrap();
+        (state, tanks, dump, away.as_str().to_string())
+    }
+
+    #[test]
+    fn a_retreat_before_assault_pays_its_fuel_32_22() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, tanks, dump, away) = tanks_with_supply(&data, 5);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[&away]),
+            )
+            .unwrap();
+        assert!(events.contains(&Event::FuelSpent {
+            piece: tanks.clone(),
+            from: dump.clone(),
+            fuel: 2,
+        }));
+        assert_eq!(state.pieces[&dump].load.unwrap().fuel, 3);
+    }
+
+    #[test]
+    fn a_unit_that_cannot_pay_its_fuel_does_not_retreat_before_assault_r120() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, _, _, away) = tanks_with_supply(&data, 1);
+        let before = state.clone();
+        let err = state
+            .apply(
+                &data,
+                Side::Axis,
+                retreat(&["unit:it:lxl-tank-bn"], &[&away]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.22", "{}", err.reason);
+        assert_eq!(state, before);
+    }
+
+    /// `tanks_with_supply`, the L3s (one hex from C4021) ordered two hexes
+    /// back from it.
+    fn tanks_ordered_back(data: &Data, fuel: u32) -> (GameState, PieceId, PieceId, String) {
+        let (mut state, tanks, dump, away) = tanks_with_supply(data, fuel);
+        state.pending = Some(Pending::ForcedRetreat {
+            side: Side::Axis,
+            pieces: vec![tanks.clone()],
+            hexes: 2,
+            from: vec![hex("C4021")],
+            reason: RetreatReason::AssaultResult,
+            raw: 10,
+            overrun: false,
+        });
+        (state, tanks, dump, away)
+    }
+
+    fn forced(path: &[&str]) -> Order {
+        Order::Retreat {
+            path: path.iter().map(|h| hex(h)).collect(),
+        }
+    }
+
+    #[test]
+    fn a_forced_retreat_pays_its_fuel_32_22() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, tanks, dump, away) = tanks_ordered_back(&data, 5);
+        let events = state.apply(&data, Side::Axis, forced(&[&away])).unwrap();
+        assert!(events.contains(&Event::FuelSpent {
+            piece: tanks.clone(),
+            from: dump.clone(),
+            fuel: 2,
+        }));
+        assert_eq!(state.pieces[&tanks].hex(), Some(&hex(&away)));
+    }
+
+    #[test]
+    fn a_stack_that_cannot_pay_its_fuel_stands_and_pays_whatever_r012_says_r120() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, tanks, _, away) = tanks_ordered_back(&data, 1);
+        state.ruleset.r012 = cna_rules::ruleset::R012::MustRetreat;
+        let before = state.clone();
+        let err = state
+            .apply(&data, Side::Axis, forced(&[&away]))
+            .unwrap_err();
+        assert_eq!(err.case, "32.22", "{}", err.reason);
+        assert_eq!(state, before);
+        assert!(
+            state
+                .reachable(
+                    &data,
+                    Side::Axis,
+                    std::slice::from_ref(&tanks),
+                    crate::reach::Purpose::ForcedRetreat
+                )
+                .unwrap()
+                .is_empty()
+        );
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert!(events.contains(&Event::RetreatBoughtOut {
+            pieces: vec![tanks],
+            short: 1,
+        }));
     }
 }

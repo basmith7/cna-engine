@@ -6,7 +6,7 @@
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind};
 use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
@@ -34,14 +34,14 @@ impl GameState {
         }
     }
 
-    /// Raw close-assault defence points in a hex (4.4x): TOE points
-    /// times each combat unit's defence rating, tanks and guns by their
-    /// weapon systems (4.47–4.49); a parenthesised rating counts only
-    /// when no unit in the hex has a plain one.
-    pub(crate) fn raw_defence(&self, data: &Data, hex: &HexId) -> u32 {
-        self.pieces
-            .values()
-            .filter(|p| p.hex() == Some(hex) && p.kind == PieceKind::Combat)
+    /// Raw close-assault defence points of pieces standing together
+    /// (4.4x): TOE points times each combat unit's defence rating, tanks
+    /// and guns by their weapon systems (4.47–4.49); a parenthesised
+    /// rating counts only when no unit in the hex has a plain one.
+    pub(crate) fn raw_defence(&self, data: &Data, pieces: &[&Piece]) -> u32 {
+        pieces
+            .iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| self.raw_of(data, p, crate::combat::strength::Kind::Defence))
             .sum()
@@ -51,20 +51,35 @@ impl GameState {
     /// more than 1 SP of combat units, not collapsed, with 10 raw
     /// defence points.
     pub(crate) fn could_exert(&self, data: &Data, hex: &HexId) -> bool {
-        let sp: u32 = self
-            .pieces
-            .values()
-            .filter(|p| p.hex() == Some(hex) && p.kind == PieceKind::Combat)
+        self.could_exert_with(data, &self.pieces_at(hex))
+    }
+
+    /// `could_exert` for the given pieces, as if they stood together.
+    pub(crate) fn could_exert_with(&self, data: &Data, pieces: &[&Piece]) -> bool {
+        let sp: u32 = pieces
+            .iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
-        cna_rules::zoc::exerts(sp, self.raw_defence(data, hex))
+        cna_rules::zoc::exerts(sp, self.raw_defence(data, pieces))
     }
 
     /// Whether a ZOC from `src` reaches the adjacent `hex` (10.21): not
     /// across a major river, lake or escarpment, nor into a hex no
     /// combat unit in `src` could enter from there.
     pub(crate) fn reaches(&self, data: &Data, src: &HexId, hex: &HexId) -> bool {
+        self.reaches_with(data, &self.pieces_at(src), src, hex)
+    }
+
+    /// `reaches` for the given pieces, as if they stood in `src`.
+    pub(crate) fn reaches_with(
+        &self,
+        data: &Data,
+        pieces: &[&Piece],
+        src: &HexId,
+        hex: &HexId,
+    ) -> bool {
         let hexside = data.map.hexside(src, hex);
         if !cna_rules::zoc::crosses(hexside) {
             return false;
@@ -79,18 +94,15 @@ impl GameState {
             climbs: hexside.is_some_and(|hs| hs.climbs(src, hex)),
             weather: self.weather_at(hex),
         };
-        self.pieces
-            .values()
-            .filter(|p| p.hex() == Some(src) && p.kind == PieceKind::Combat)
+        pieces
+            .iter()
+            .filter(|p| p.kind == PieceKind::Combat)
             .any(|p| step_cost(&data.terrain, self.mobility(data, p), &step).is_ok())
     }
 
     /// The side holding a hex, if any.
     pub(crate) fn holder(&self, hex: &HexId) -> Option<Side> {
-        self.pieces
-            .values()
-            .find(|p| p.hex() == Some(hex))
-            .map(|p| p.side)
+        self.pieces_at(hex).first().map(|p| p.side)
     }
 
     /// The enemy ZOC over `hex` for a unit of `side` (10.2x): the phasing
@@ -147,12 +159,9 @@ impl GameState {
         side: Side,
         except: &[crate::piece::PieceId],
     ) -> bool {
-        self.pieces.values().any(|p| {
-            p.side == side
-                && p.kind == PieceKind::Combat
-                && p.hex() == Some(hex)
-                && !except.contains(&p.id)
-        })
+        self.pieces_at(hex)
+            .into_iter()
+            .any(|p| p.side == side && p.kind == PieceKind::Combat && !except.contains(&p.id))
     }
 
     /// Opens a movement segment: the declarations the non-phasing player
@@ -161,6 +170,9 @@ impl GameState {
     pub(crate) fn open_movement_segment(&mut self, data: &Data, events: &mut Vec<Event>) {
         self.zoc.clear();
         self.moved.clear();
+        self.escorts.clear();
+        self.scuttled.clear();
+        self.split.clear();
         self.shifted.clear();
         let Some(phasing) = self.phasing() else {
             return;
@@ -237,7 +249,8 @@ impl GameState {
     /// Contact at the start of a movement segment (R-003): every unit in
     /// an enemy ZOC is in contact until it breaks off. A non-combat piece
     /// with no strength, alone in an enemy ZOC during the enemy's phase,
-    /// is captured (10.29).
+    /// is captured (10.29): removed, or under abstract supply a real
+    /// supply unit goes over to the captor whole (32.1x).
     fn fix_contact(&mut self, data: &Data, events: &mut Vec<Event>) {
         let phasing = self.phasing();
         let ids: Vec<_> = self.pieces.keys().cloned().collect();
@@ -247,6 +260,11 @@ impl GameState {
                 let Some(h) = p.hex() else { continue };
                 (h.clone(), p.side)
             };
+            // A recalled Rommel is in Germany: his hex is only where he
+            // comes back to (31.0).
+            if self.rommel_recalled && self.pieces[&id].kind == PieceKind::Commander {
+                continue;
+            }
             let contact = self.zoc_at(data, &hex, side) == Zoc::Exerts;
             let p = self.pieces.get_mut(&id).expect("listed");
             p.contact = contact;
@@ -256,15 +274,58 @@ impl GameState {
                 && p.toe == 0
                 && !self.friendly_combat_in(&hex, side, &[])
             {
-                let p = self.pieces.get_mut(&id).expect("listed");
-                p.location = Location::Eliminated;
-                p.contact = false;
-                events.push(Event::Captured {
-                    piece: id.clone(),
-                    hex: hex.clone(),
-                });
+                self.capture(&id, side.other(), &hex, events);
             }
         }
+    }
+
+    /// A combat unit of `pieces` entering `hex` captures the enemy
+    /// supply units alone there (32.1x); `entry` lets it in only then.
+    pub(crate) fn capture_supply_entered(
+        &mut self,
+        pieces: &[PieceId],
+        hex: &HexId,
+        events: &mut Vec<Event>,
+    ) {
+        let Some(captor) = pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .find(|p| p.kind == PieceKind::Combat)
+            .map(|p| p.side)
+        else {
+            return;
+        };
+        let taken: Vec<PieceId> = self
+            .pieces_at(hex)
+            .into_iter()
+            .filter(|p| p.side != captor && p.kind.is_supply())
+            .map(|p| p.id.clone())
+            .collect();
+        for id in taken {
+            self.capture(&id, captor, hex, events);
+        }
+    }
+
+    /// `captor` takes the non-combat piece `id` in `hex`: removed, or
+    /// under abstract supply a real supply unit goes over whole.
+    fn capture(&mut self, id: &PieceId, captor: Side, hex: &HexId, events: &mut Vec<Event>) {
+        let module = self.modules.abstract_supply;
+        let p = self.pieces.get_mut(id).expect("listed");
+        p.contact = false;
+        if module && p.kind == PieceKind::SupplyUnit {
+            // The captor may use it at once (32.1x), its points with it
+            // (32.5x); its old owner's stage is over.
+            p.side = captor;
+            p.escorted = false;
+            self.scuttled.remove(id);
+            self.railed.remove(id);
+        } else {
+            p.location = Location::Eliminated;
+        }
+        events.push(Event::Captured {
+            piece: id.clone(),
+            hex: hex.clone(),
+        });
     }
 
     /// After a stack left `from`: enemy units next to it stay in contact
@@ -312,13 +373,19 @@ mod tests {
         // defence 1 (30 points) and eight 75/27 guns at 1, 6 SP of combat
         // units.
         assert!(state.could_exert(&data, &hex("C4020")));
-        assert_eq!(state.raw_defence(&data, &hex("C4020")), 38);
+        assert_eq!(
+            state.raw_defence(&data, &state.pieces_at(&hex("C4020"))),
+            38
+        );
         // C3922: 3 Coldstream Guards and 1 KRRC, 6 TOE at 2 each, plus 4
         // RHA's six 18/25-pounders at 1 (7 Med's 60-pounders defend at 0).
-        assert_eq!(state.raw_defence(&data, &hex("C3922")), 30);
+        assert_eq!(
+            state.raw_defence(&data, &state.pieces_at(&hex("C3922"))),
+            30
+        );
         assert!(state.could_exert(&data, &hex("C3922")));
         // The Fort Maddalena garrison: 2 TOE at 3, one battalion: neither.
-        assert_eq!(state.raw_defence(&data, &hex("C3019")), 6);
+        assert_eq!(state.raw_defence(&data, &state.pieces_at(&hex("C3019"))), 6);
         assert!(!state.could_exert(&data, &hex("C3019")));
         // 11 Hussars alone at C3020: 8 x 3 = 24 points but 1 SP.
         assert!(!state.could_exert(&data, &hex("C3020")));
@@ -546,17 +613,23 @@ mod tests {
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
             .unwrap();
         state.apply(&data, Side::Axis, Order::Pass).unwrap();
-        // 3 Coldstream Guards pass through C4021 (1 KRRC is there) on to
-        // C4121, which no ZOC reaches: up the escarpment by the unfinished
-        // road, a track, (2 + 6) / 2, then 2. At C4021 the two battalions
-        // exert a ZOC over C4020, so its guns may not react (8.5x); at
-        // C4121 the 63rd Cirene's vehicles at C4120 are offered one.
+        // 3 Coldstream Guards enter C4021 (1 KRRC is there, so C4020's ZOC
+        // does not stop them). 1 KRRC alone exerts no ZOC, so C4020 stood
+        // in none before the Guards came and its vehicles are offered a
+        // reaction (R-139).
         let events = state
-            .apply(
-                &data,
-                Side::Cw,
-                mv(&["unit:cw:3-cldgds"], &["C4021", "C4121"]),
-            )
+            .apply(&data, Side::Cw, mv(&["unit:cw:3-cldgds"], &["C4021"]))
+            .unwrap();
+        assert!(matches!(
+            events.last(),
+            Some(Event::ReactionOffered { at, .. }) if at == &hex("C4021")
+        ));
+        state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        // On to C4121, which no ZOC reaches: up the escarpment by the
+        // unfinished road, a track, (2 + 6) / 2, then 2. The 63rd
+        // Cirene's vehicles at C4120 are offered one there.
+        let events = state
+            .apply(&data, Side::Cw, mv(&["unit:cw:3-cldgds"], &["C4121"]))
             .unwrap();
         assert!(matches!(
             events.last(),
@@ -572,8 +645,10 @@ mod tests {
     fn a_non_combat_unit_may_not_enter_an_unoccupied_enemy_zoc() {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
+        // The HQ alone moves on its attached armour's CPA, as a vehicle,
+        // so it comes from C4022, across no escarpment (8.4x).
         let hq = pid("unit:cw:7th-armored-div-hq");
-        state.pieces.get_mut(&hq).unwrap().location = Location::Hex(hex("C3922"));
+        state.put(&hq, Location::Hex(hex("C4022")));
         state
             .apply(
                 &data,
@@ -607,7 +682,7 @@ mod tests {
         let data = graziani();
         let mut state = crate::state::test_support::set_up(&data, 3);
         let supply = PieceId::supply(Side::Cw, 1);
-        state.pieces.get_mut(&supply).unwrap().location = Location::Hex(hex("C4021"));
+        state.put(&supply, Location::Hex(hex("C4021")));
         state
             .apply(
                 &data,
@@ -624,5 +699,135 @@ mod tests {
             hex: hex("C4021")
         }));
         assert_eq!(state.pieces[&supply].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn under_abstract_supply_a_captured_supply_unit_changes_sides_with_its_load_and_points_32_1x() {
+        use crate::state::Modules;
+        let data = graziani();
+        let mut state = GameState::with_modules(&data, 3, Modules::ALL).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let supply = PieceId::supply(Side::Cw, 1);
+        let p = state.pieces.get_mut(&supply).unwrap();
+        p.location = Location::Hex(hex("C4021"));
+        p.motorised = 30;
+        p.escorted = true;
+        let load = p.load;
+        assert!(load.is_some());
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        let mut events = Vec::new();
+        while state.clock.segment != Some(Segment::Movement) {
+            let side = state.to_act().unwrap();
+            events.extend(state.apply(&data, side, Order::Pass).unwrap());
+        }
+        assert!(events.contains(&Event::Captured {
+            piece: supply.clone(),
+            hex: hex("C4021")
+        }));
+        let p = &state.pieces[&supply];
+        assert_eq!(p.side, Side::Axis);
+        assert_eq!(p.location, Location::Hex(hex("C4021")));
+        assert_eq!(p.load, load);
+        assert_eq!(p.motorised, 30);
+        assert!(!p.escorted, "the old owner's G move is not the captor's");
+    }
+
+    /// Graziani's, GT1, the Commonwealth moving, with an Axis supply
+    /// unit alone in C3823, two hexes from 1 KRRC, clear of its ZOC
+    /// (32.1x).
+    fn supply_ahead(modules: crate::state::Modules) -> (Data, GameState, PieceId) {
+        let data = graziani();
+        let mut state = GameState::with_modules(&data, 3, modules).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let supply = PieceId::supply(Side::Axis, 1);
+        state.put(&supply, Location::Hex(hex("C3823")));
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative { player_a: Side::Cw },
+            )
+            .unwrap();
+        while state.clock.segment != Some(Segment::Movement) {
+            let side = state.to_act().unwrap();
+            state.apply(&data, side, Order::Pass).unwrap();
+        }
+        assert_eq!(state.pieces[&supply].side, Side::Axis);
+        assert_eq!(state.pieces[&supply].location, Location::Hex(hex("C3823")));
+        (data, state, supply)
+    }
+
+    #[test]
+    fn a_combat_unit_entering_a_hex_of_lone_enemy_supply_captures_it_32_1x() {
+        use crate::state::Modules;
+        let (data, mut state, supply) = supply_ahead(Modules::ALL);
+        let load = state.pieces[&supply].load;
+        let krrc = crate::movement::test_support::pid("unit:cw:1-krrc");
+        let reach = state
+            .reachable(
+                &data,
+                Side::Cw,
+                std::slice::from_ref(&krrc),
+                crate::reach::Purpose::Move,
+            )
+            .unwrap();
+        assert!(reach.iter().any(|r| r.hex == hex("C3823")));
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:1-krrc"], &["C3822", "C3823", "C3824"]),
+            )
+            .unwrap();
+        assert!(events.contains(&Event::Captured {
+            piece: supply.clone(),
+            hex: hex("C3823")
+        }));
+        let p = &state.pieces[&supply];
+        assert_eq!(p.side, Side::Cw, "the captor may use it at once");
+        assert_eq!(p.location, Location::Hex(hex("C3823")));
+        assert_eq!(p.load, load);
+        assert_eq!(state.pieces[&krrc].location, Location::Hex(hex("C3824")));
+    }
+
+    #[test]
+    fn without_abstract_supply_a_supply_unit_entered_is_removed() {
+        let (data, mut state, supply) = supply_ahead(crate::state::Modules::default());
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:1-krrc"], &["C3822", "C3823"]),
+            )
+            .unwrap();
+        assert!(events.contains(&Event::Captured {
+            piece: supply.clone(),
+            hex: hex("C3823")
+        }));
+        assert_eq!(state.pieces[&supply].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn only_a_combat_unit_captures_by_entering() {
+        use crate::state::Modules;
+        let (data, mut state, _) = supply_ahead(Modules::ALL);
+        let hq = crate::movement::test_support::pid("unit:cw:7th-armored-div-hq");
+        state.put(&hq, Location::Hex(hex("C3822")));
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&["unit:cw:7th-armored-div-hq"], &["C3823"]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "8.1x", "{}", err.reason);
     }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOFILIA } from "./map";
-import { allOffMapCapable, allOnMap, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, tickable, toggle, toggleOffMap } from "./moves";
+import { allOffMapCapable, allOnMap, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -23,6 +23,12 @@ describe("defaultTicked", () => {
     expect(defaultTicked(view, "C4020", "cw")).toEqual(["enemy"]);
     expect(defaultTicked(view, "C4020", null)).toEqual([]);
     expect(defaultTicked(view, "C9999", "axis")).toEqual([]);
+  });
+  it("in phases H and J ticks the side's supply units instead, the only pieces that move there (32.31, 32.3x)", () => {
+    for (const phase of ["truck-convoy", "rail"]) {
+      const v = { ...view, clock: { phase } } as unknown as View;
+      expect(defaultTicked(v, "C4020", "axis")).toEqual(["supply"]);
+    }
   });
 });
 
@@ -62,7 +68,7 @@ describe("extendPath", () => {
 
 describe("byHex", () => {
   it("indexes reaches by hex", () => {
-    const r = { hex: "C1", cp: 1, path: ["C1"], dp: 0, ends_in_zoc: false, may_be_interrupted: false, short: 0 };
+    const r = { hex: "C1", cp: 1, path: ["C1"], dp: 0, ends_in_zoc: false, may_be_interrupted: false, short: 0, fuel: 0 };
     expect(byHex([r]).get("C1")).toBe(r);
   });
 });
@@ -96,5 +102,41 @@ describe("off-map", () => {
 
   it("offers every place on the chart; the engine says which can hold a unit", () => {
     expect(OFF_MAP_PLACES.map((p) => p.place)).toEqual(["tunis", "gabes", "tripoli", "tripolitania", "nofilia"]);
+  });
+});
+
+describe("attachmentOrder", () => {
+  const moving = { phase: "movement-combat", segment: "movement" };
+  const at = (pieces: Record<string, Partial<Piece>>, clock: object = moving, pending: unknown = null) =>
+    ({
+      clock,
+      pending,
+      to_act: "axis",
+      pieces: Object.fromEntries(Object.entries(pieces).map(([id, p]) => [id, { id, side: "axis", kind: "combat", location: { hex: "C3617" }, parent: null, ...p }])),
+    }) as unknown as View;
+
+  it("detaches an attached unit and attaches an assigned one standing with its parent (19.4x)", () => {
+    const v = at({
+      hq: { kind: "hq" },
+      bn: { parent: "hq", attached_to: "hq" },
+      loose: { parent: "hq" },
+      away: { parent: "hq", location: { hex: "C3618" } },
+      free: {},
+    });
+    expect(attachmentOrder(v, v.pieces.bn)).toEqual({ detach: { piece: "bn" } });
+    expect(attachmentOrder(v, v.pieces.loose)).toEqual({ attach: { piece: "loose", to: "hq" } });
+    expect(attachmentOrder(v, v.pieces.away)).toBeNull();
+    expect(attachmentOrder(v, v.pieces.free)).toBeNull();
+    expect(attachmentOrder(v, v.pieces.hq)).toBeNull();
+  });
+
+  it("offers nothing outside phase C and the movement segment, while something is pending, or for the other side", () => {
+    const pieces = { hq: { kind: "hq" as const }, bn: { parent: "hq", attached_to: "hq" } };
+    expect(attachmentOrder(at(pieces, { phase: "organisation" }), at(pieces).pieces.bn)).toEqual({ detach: { piece: "bn" } });
+    for (const v of [at(pieces, { phase: "movement-combat", segment: "close-assault" }), at(pieces, moving, { reaction: {} })]) {
+      expect(attachmentOrder(v, v.pieces.bn)).toBeNull();
+    }
+    const enemy = at({ hq: { kind: "hq", side: "cw" }, bn: { side: "cw", parent: "hq", attached_to: "hq" } });
+    expect(attachmentOrder(enemy, enemy.pieces.bn)).toBeNull();
   });
 });

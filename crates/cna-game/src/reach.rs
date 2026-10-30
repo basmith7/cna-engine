@@ -36,6 +36,8 @@ pub enum Purpose {
     RetreatBeforeAssault,
     /// `Order::Retreat` answering a `forced-retreat` (15.82, 10.36).
     ForcedRetreat,
+    /// `Order::Rail` in the Commonwealth's phase J (8.7x, 32.3x).
+    Rail,
 }
 
 /// A hex the stack can end in.
@@ -61,6 +63,10 @@ pub struct Reach {
     /// must-attack retreat.
     #[serde(default)]
     pub short: u32,
+    /// The fuel the move owes under abstract supply, the whole stack's
+    /// (32.22); 0 with the module off and for any purpose but `Move`.
+    #[serde(default)]
+    pub fuel: u32,
 }
 
 /// A settled hex of the search.
@@ -97,19 +103,26 @@ impl GameState {
             }
             Some(_) => {}
         }
+        // What a move takes along (19.4x), once the purpose's own
+        // refusals have had their say, as `apply` orders them.
+        let mut owned: Vec<PieceId> = pieces.to_vec();
         let mut forced: Option<(u32, Vec<HexId>, RetreatReason)> = None;
         let (from, shift) = match purpose {
+            // The railway is its own graph (8.7x); nothing below applies.
+            Purpose::Rail => return self.rail_reaches(data, pieces),
             Purpose::Move => {
                 if let Some(e) = self.pending_refusal() {
                     return Err(e);
                 }
-                self.stack_to_move(side, pieces)?
+                owned = self.carried(pieces)?;
+                self.stack_to_move(side, &owned)?
             }
             Purpose::RetreatBeforeAssault => {
                 if !matches!(self.pending, Some(Pending::RetreatBeforeAssault { .. })) {
                     return Err(Illegal::new("13.1", "no retreat before assault is pending"));
                 }
-                (self.retreating_stack(side, pieces)?, false)
+                owned = self.carried(pieces)?;
+                (self.retreating_stack(side, &owned)?, false)
             }
             Purpose::ForcedRetreat => {
                 let Some(Pending::ForcedRetreat {
@@ -132,6 +145,11 @@ impl GameState {
                         format!("the stack ordered to retreat is {ordered:?}, not {pieces:?}"),
                     ));
                 }
+                // A stack that cannot pay its fuel makes no forced
+                // retreat; it stands and pays instead (R-120).
+                if self.unfuelled(data, pieces) {
+                    return Ok(Vec::new());
+                }
                 forced = Some((*hexes, from.clone(), *reason));
                 let start = pieces
                     .first()
@@ -143,7 +161,8 @@ impl GameState {
                 let Some(Pending::Reaction { eligible, .. }) = &self.pending else {
                     return Err(Illegal::new("8.5x", "no reaction is pending"));
                 };
-                for id in pieces {
+                owned = self.carried(pieces)?;
+                for id in &owned {
                     if !eligible.contains(id) {
                         return Err(Illegal::new(
                             "8.5x",
@@ -151,18 +170,21 @@ impl GameState {
                         ));
                     }
                 }
-                (self.moving_stack(side, pieces, false)?, false)
+                (self.moving_stack(side, &owned, false)?, false)
             }
         };
-        let mover = self.mover(data, pieces);
+        let pieces = &owned[..];
+        let _indexed = self.index_hexes();
+        let mover = self.mover(data, pieces, purpose);
         let (start_in_zoc, start_flagged) = match self.start(
             data,
             &mover,
             &from,
-            purpose == Purpose::ForcedRetreat,
+            matches!(purpose, Purpose::ForcedRetreat | Purpose::React),
         )? {
             Start::In(in_zoc) => (in_zoc, false),
             Start::Undeclared(hexes) => match purpose {
+                Purpose::Rail => unreachable!("rail returned above"),
                 // The move is parked on the declaration (10.16); the
                 // hexes are priced as if it then went on unhindered.
                 Purpose::Move => (false, true),
@@ -227,7 +249,10 @@ impl GameState {
                         .map(|(cap, _, _)| cap.saturating_sub(self.pieces[id].cp_own_half()))
                 })
                 .min(),
-            Purpose::React | Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => None,
+            Purpose::React
+            | Purpose::RetreatBeforeAssault
+            | Purpose::ForcedRetreat
+            | Purpose::Rail => None,
         };
         if margin.is_some_and(|m| break_off > m) {
             return Ok(Vec::new());
@@ -315,7 +340,9 @@ impl GameState {
                             flagged,
                             reaction: purpose == Purpose::Move
                                 && mover.combat
-                                && !self.reactors_next_to(data, &to, pieces, false).is_empty(),
+                                && !self
+                                    .reactors_next_to(data, &to, &at, pieces, false)
+                                    .is_empty(),
                             zoc: in_zoc,
                         },
                     );
@@ -353,15 +380,19 @@ impl GameState {
                     ends_in_zoc: n.zoc,
                     may_be_interrupted: n.flagged,
                     short: 0,
+                    // Every land move pays fuel; the railway does not.
+                    fuel: self.fuel_owed(data, pieces, cp),
                 }
             })
             .collect();
         if let Some((hexes, from_hexes, reason)) = forced {
             // How far short of the order each end is (15.82); a short
             // hex is kept only where `apply` lets the stack stand and
-            // pay (R-012), never for a must-attack retreat (10.36).
-            let buy_out = reason != RetreatReason::MustAttack
-                && may_buy_out(&self.ruleset, self.retreat_path_exists(data, &from, side));
+            // pay (R-012), never for a must-attack retreat (10.36), and
+            // always for a lone Rommel, who is captured there (R-140).
+            let buy_out = reason == RetreatReason::RommelAlone
+                || (reason != RetreatReason::MustAttack
+                    && may_buy_out(&self.ruleset, self.retreat_path_exists(data, &from, side)));
             reaches.retain_mut(|r| {
                 let reached = from_hexes
                     .iter()
@@ -536,6 +567,7 @@ mod tests {
                     pieces: krrc.clone(),
                     path: c3929.path.clone(),
                     assault: false,
+                    fuel_from: None,
                 },
             )
             .unwrap();
@@ -597,7 +629,7 @@ mod tests {
         let mut state = moving(&data, 3, Side::Cw);
         // 7 Med (artillery, CPA 20, a vehicle) put at Sidi Barrani C4131.
         let med = pid("unit:cw:7-med");
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("C4131"));
+        state.put(&med, Location::Hex(hex("C4131")));
         let r = by_hex(
             &state
                 .reachable(&data, Side::Cw, &[med], Purpose::Move)
@@ -623,7 +655,8 @@ mod tests {
     #[test]
     fn a_vehicle_spending_past_its_cpa_is_told_the_dp() {
         let data = graziani();
-        let state = moving(&data, 3, Side::Axis);
+        let mut state = moving(&data, 3, Side::Axis);
+        state.stand_alone(&crate::movement::test_support::pid("unit:it:lxiil-tank-bn"));
         // LXII(L) tanks (CPA 30) at C3918: the move test pins 4½ CP to
         // C4120; the DP starts past 30 CP.
         let r = by_hex(
@@ -650,7 +683,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let hus = pid("unit:cw:11-hus");
-        state.pieces.get_mut(&hus).unwrap().location = Location::Hex(hex("A2110"));
+        state.put(&hus, Location::Hex(hex("A2110")));
         let r = by_hex(
             &state
                 .reachable(&data, Side::Cw, &[hus], Purpose::Move)
@@ -672,7 +705,7 @@ mod tests {
         // LXII(L) tanks put at C3924, two hexes from the four
         // Commonwealth units at C3922 (as the reaction tests do).
         let tanks = pid("unit:it:lxiil-tank-bn");
-        state.pieces.get_mut(&tanks).unwrap().location = Location::Hex(hex("C3924"));
+        state.put(&tanks, Location::Hex(hex("C3924")));
         let r = by_hex(
             &state
                 .reachable(
@@ -755,6 +788,43 @@ mod tests {
             .apply(&data, Side::Axis, log.orders[61].order.clone())
             .unwrap();
         assert_eq!(charged(&events), (Cp::whole(1), false));
+    }
+
+    #[test]
+    fn a_reaction_quotes_the_fuel_it_owes() {
+        let data = graziani();
+        let log: crate::log::Log = serde_json::from_str(
+            &std::fs::read_to_string(cna_data::repo_root().join("tests/games/graziani-m5.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let mut prefix = log.clone();
+        prefix.orders.truncate(61);
+        let state = crate::log::replay(&data, &prefix).unwrap();
+        assert!(state.modules.abstract_supply);
+        assert!(matches!(state.pending, Some(Pending::Reaction { .. })));
+        // 4 RHA owes 1 fuel to react (32.22), once more past its CPA; the
+        // overlay quotes it though nothing in range can pay, and `apply`
+        // refuses (R-120).
+        let reaches = by_hex(
+            &state
+                .reachable(&data, Side::Cw, &ids(&["unit:cw:4-rha"]), Purpose::React)
+                .unwrap(),
+        );
+        assert_eq!(reaches["C3923"].fuel, 1);
+        assert!(reaches.values().all(|r| r.fuel >= 1));
+        let err = state
+            .clone()
+            .apply(
+                &data,
+                Side::Cw,
+                Order::React {
+                    pieces: ids(&["unit:cw:4-rha"]),
+                    path: reaches["C3923"].path.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "32.22");
     }
 
     #[test]
@@ -885,7 +955,8 @@ mod tests {
     fn every_returned_retreat_before_assault_is_accepted_and_every_accepted_one_is_returned() {
         let data = graziani();
         let mut rng = ChaCha8Rng::seed_from_u64(13);
-        let state = retreating(&data);
+        let mut state = retreating(&data);
+        state.stand_alone(&pid("unit:it:viii-libyan-bn"));
         let err = state
             .reachable(
                 &data,
@@ -1083,6 +1154,7 @@ mod tests {
                                     pieces: stack.clone(),
                                     path: vec![n[0].clone()],
                                     assault: false,
+                                    fuel_from: None,
                                 },
                             )
                             .unwrap_err();
@@ -1180,6 +1252,7 @@ mod tests {
                 pieces: stack.to_vec(),
                 path,
                 assault: false,
+                fuel_from: None,
             },
             Purpose::React => Order::React {
                 pieces: stack.to_vec(),
@@ -1190,6 +1263,10 @@ mod tests {
                 path,
             },
             Purpose::ForcedRetreat => Order::Retreat { path },
+            Purpose::Rail => Order::Rail {
+                pieces: stack.to_vec(),
+                path,
+            },
         }
     }
 
@@ -1252,7 +1329,7 @@ mod tests {
         let (walks, max_len) = match purpose {
             Purpose::Move => (40, 6),
             Purpose::React => (300, 12),
-            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat => (200, 5),
+            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat | Purpose::Rail => (200, 5),
         };
         let mut accepted = 0;
         for _ in 0..walks {

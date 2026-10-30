@@ -5,7 +5,7 @@
 use super::cp::{BAD_ATTACK_REFUND, NON_PHASING_CEILING, PHASING_CEILING};
 use super::losses::Share;
 use super::strength::{Class, Kind, Part};
-use super::terrain::{hex_shift, hexside_shift};
+use super::terrain::hexside_shift;
 use super::{AssaultRecord, RetreatReason};
 use crate::clock::Segment;
 use crate::data::Data;
@@ -21,6 +21,7 @@ use cna_rules::anti_armour::damage_for;
 use cna_rules::close_assault::{column_for, loss_base_factor, resolve_side, shift};
 use cna_rules::morale::{MoraleLookup, lookup};
 use cna_rules::strength::assault_actual;
+use cna_rules::supply::Role;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A unit's points committed to one attack or defence, and where from.
@@ -136,6 +137,48 @@ impl GameState {
         out
     }
 
+    /// The defender's loss base (15.83, R-011, R-122) as shares: each
+    /// committed unit at its whole TOE, since the points it holds back
+    /// count; pinned and retreated-in units; infantry, which may not be
+    /// withheld; and in an overrun every wholly withheld unit. Also
+    /// returns the held-back points, which are not committed (15.86).
+    fn defender_loss_shares(
+        &self,
+        data: &Data,
+        defenders: &[Commit],
+        in_hex: &[PieceId],
+        overrun: bool,
+    ) -> (Vec<Share>, u32) {
+        let held_back: u32 = defenders
+            .iter()
+            .map(|c| self.pieces[&c.piece].toe.saturating_sub(c.points))
+            .sum();
+        let mut shares: Vec<Share> = defenders
+            .iter()
+            .map(|c| Share {
+                piece: c.piece.clone(),
+                points: c.points.max(self.pieces[&c.piece].toe),
+            })
+            .collect();
+        for id in in_hex {
+            let p = &self.pieces[id];
+            if shares.iter().any(|s| s.piece == *id) || !self.can_fight(p) {
+                continue;
+            }
+            let counted = self.combat.pinned.contains(id)
+                || self.combat.retreated.contains(id)
+                || overrun
+                || self.class_of(data, p) == Class::Infantry;
+            if counted {
+                shares.push(Share {
+                    piece: id.clone(),
+                    points: p.toe,
+                });
+            }
+        }
+        (shares, held_back)
+    }
+
     /// The non-phasing player's commits of `kind` in `hex`: what it
     /// assigned, plus — for close assault — every unlisted infantry
     /// unit in full, since only armour and guns may be withheld (14.14,
@@ -240,7 +283,14 @@ impl GameState {
             let shift = cna_rules::anti_armour::terrain_shift(
                 &self.ruleset,
                 true,
-                hex_shift(data, &target, Kind::AntiArmour).unwrap_or(0),
+                self.in_hex_shift(data, &target, Kind::AntiArmour, true)
+                    .unwrap_or(0)
+                    + self.minefield_shift(
+                        &target,
+                        other,
+                        &firers.iter().map(|c| c.hex.clone()).collect::<Vec<_>>(),
+                        Kind::AntiArmour,
+                    ),
                 hexside,
             );
             // Committed defenders, and units that retreated in (14.13).
@@ -312,7 +362,10 @@ impl GameState {
             }
             let hex_of_armour = armour
                 .iter()
-                .map(|c| hex_shift(data, &c.hex, Kind::AntiArmour).unwrap_or(0))
+                .map(|c| {
+                    self.in_hex_shift(data, &c.hex, Kind::AntiArmour, true)
+                        .unwrap_or(0)
+                })
                 .min()
                 .unwrap_or(0);
             let hexside = armour
@@ -378,27 +431,57 @@ impl GameState {
         }
     }
 
-    /// The side's largest unit equivalent, as the size table names it.
-    fn largest(&self, ids: impl Iterator<Item = PieceId>) -> Option<&'static str> {
-        let mut best: Option<u8> = None;
+    /// The side's largest unit equivalent, as the size table names it
+    /// (15.5x): a piece under an HQ on its hex counts as that HQ's
+    /// formation, as in stacking (9.2x), so a brigade is part of a
+    /// division only through its attached HQ (15.55); a shell counts one
+    /// size smaller (9.28).
+    fn largest(&self, data: &Data, ids: impl Iterator<Item = PieceId>) -> Option<&'static str> {
+        const NAMES: [&str; 5] = ["company", "battalion", "brigade-2", "brigade-3", "division"];
+        let mut best: Option<usize> = None;
         for id in ids {
-            let rank = match self.pieces[&id].equivalent {
-                Some(Equivalent::Brigade) => 3,
-                Some(Equivalent::Battalion) => 2,
-                Some(Equivalent::Company) => 1,
-                _ => continue,
+            let Some(rank) = self.size_rank(data, &id) else {
+                continue;
             };
-            best = Some(best.map_or(rank, |b: u8| b.max(rank)));
+            best = Some(best.map_or(rank, |b| b.max(rank)));
         }
-        best.map(|b| match b {
-            3 => "brigade",
-            2 => "battalion",
-            _ => "company",
+        best.map(|b| NAMES[b])
+    }
+
+    /// `id`'s size as an index into `largest`'s names, or None for a
+    /// piece of no size.
+    fn size_rank(&self, data: &Data, id: &PieceId) -> Option<usize> {
+        let p = &self.pieces[id];
+        if let Some(hq) = p.hex().and_then(|h| self.top_formation(p, h)) {
+            let unit = hq.id.unit().expect("an HQ comes from a sheet");
+            let whole = !self.is_shell(data, &hq.id);
+            return Some(match (self.has_sub_formation(&unit), whole) {
+                (true, true) => 4,
+                (true, false) | (false, true) => 2,
+                (false, false) => 1,
+            });
+        }
+        let rank = match p.equivalent {
+            Some(Equivalent::Brigade)
+                if cna_rules::stacking::points(&data.stacking, p.equivalent) >= 3 =>
+            {
+                3
+            }
+            Some(Equivalent::Brigade) => 2,
+            Some(Equivalent::Battalion) => 1,
+            Some(Equivalent::Company) => 0,
+            _ => return None,
+        };
+        Some(match rank {
+            3 | 2 if self.is_shell(data, id) => 1,
+            1 if self.is_shell(data, id) => 0,
+            r => r,
         })
     }
 
     /// Adjusted morale for a side (15.6x): the largest unit's basic
-    /// morale plus the Morale Modifier Table roll at its cohesion.
+    /// morale plus the Morale Modifier Table roll at its cohesion, and
+    /// Rommel's bonus where he shares the hex (17.28).
     fn adjusted_morale(&mut self, data: &Data, ids: &[PieceId], events: &mut Vec<Event>) -> i32 {
         let Some(lead) = ids
             .iter()
@@ -428,7 +511,7 @@ impl GameState {
             MoraleLookup::Gap if level.clamp(-17, 8) == -4 && reading == 56 => -2,
             MoraleLookup::Gap | MoraleLookup::Overlap(_) => 0,
         };
-        basic + modifier
+        basic + modifier + self.rommel_morale_bonus(data, ids)
     }
 
     /// The 50 % rule (15.9x), applied as the assignments are revealed and
@@ -496,6 +579,18 @@ impl GameState {
         }
         let mut events = Vec::new();
         let attacker_ids: Vec<PieceId> = attackers.iter().map(|c| c.piece.clone()).collect();
+        // Ammunition (32.21): each attacker pays double as phasing; an
+        // assault the attacker cannot pay for is refused unchanged
+        // (R-120: a unit out of ammunition cannot assault).
+        let payers: Vec<PieceId> = attacker_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        let plan = self.plan_ammo(data, &payers, Role::Assault, true);
+        plan.refuse()?;
+        self.spend_ammo(plan.payments, &mut events);
         let probe = attacker_ids
             .iter()
             .all(|id| self.combat.probing.contains(id));
@@ -512,7 +607,15 @@ impl GameState {
             })
             .map(|p| p.id.clone())
             .collect();
+        // Prisoners stand with the assaulting stack (28.12).
+        let captor_hex = attacker_ids
+            .iter()
+            .filter_map(|id| self.pieces[id].hex())
+            .min()
+            .cloned()
+            .unwrap_or_else(|| target.clone());
         if !surrendering.is_empty() {
+            let prisoners = self.prisoner_points(data, &surrendering);
             for id in &surrendering {
                 let toe = self.pieces[id].toe;
                 self.take_loss(id, toe, &mut events);
@@ -520,9 +623,44 @@ impl GameState {
             events.push(Event::Surrendered {
                 pieces: surrendering,
             });
+            self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
         }
 
-        let defenders = self.defending_commits(data, other, target, true);
+        let mut defenders = self.defending_commits(data, other, target, true);
+        // Committed defenders pay one each if they can (32.21). One that
+        // cannot is out of ammunition and does not defend; when every
+        // committed defender that owes any is out, the hex surrenders,
+        // HQs and all (R-120: an HQ owes none, so is never out itself).
+        let payers: Vec<PieceId> = defenders.iter().map(|c| c.piece.clone()).collect();
+        let plan = self.plan_ammo(data, &payers, Role::Assault, false);
+        let paid_any = !plan.payments.is_empty();
+        self.spend_ammo(plan.payments, &mut events);
+        let out: BTreeSet<PieceId> = plan.short.iter().map(|(p, _)| p.clone()).collect();
+        for (piece, _) in plan.short {
+            events.push(Event::AmmunitionShort { piece });
+        }
+        if !out.is_empty() && !paid_any {
+            let all: Vec<PieceId> = self
+                .pieces
+                .values()
+                .filter(|p| {
+                    p.side == other
+                        && p.hex() == Some(target)
+                        && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                })
+                .map(|p| p.id.clone())
+                .collect();
+            let prisoners = self.prisoner_points(data, &all);
+            for id in &all {
+                let toe = self.pieces[id].toe;
+                self.take_loss(id, toe, &mut events);
+            }
+            events.push(Event::Surrendered { pieces: all });
+            self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
+            defenders.clear();
+        } else {
+            defenders.retain(|c| !out.contains(&c.piece));
+        }
         let in_hex: Vec<PieceId> = self
             .pieces
             .values()
@@ -548,6 +686,8 @@ impl GameState {
                 self.pieces.get_mut(id).expect("listed").cohesion.victory();
             }
             self.charge_assault_cp(&attackers, target, probe, false, &mut events);
+            let from = attackers.iter().map(|c| c.hex.clone()).collect();
+            self.retreat_lone_rommel(target, 0, from, &mut events);
             return Ok(events);
         }
         let all_pinned =
@@ -602,7 +742,11 @@ impl GameState {
         let basic = a_act as i32 - d_act as i32;
         let mut shifts = 0;
         // Terrain: the hex, and the hexsides crossed (15.3x).
-        shifts += hex_shift(data, target, Kind::Defence).unwrap_or(0);
+        shifts += self
+            .in_hex_shift(data, target, Kind::Defence, false)
+            .unwrap_or(0);
+        let from: Vec<HexId> = attackers.iter().map(|c| c.hex.clone()).collect();
+        shifts += self.minefield_shift(target, phasing.other(), &from, Kind::Defence);
         let hexsides: Vec<i32> = attackers
             .iter()
             .map(|c| c.hex.clone())
@@ -628,8 +772,8 @@ impl GameState {
         } else if attacker_raw > 0 && base_defender_raw >= 2 * attacker_raw {
             shifts -= 2;
         }
-        let a_size = self.largest(attacker_ids.iter().cloned());
-        let d_size = self.largest(in_hex.iter().cloned());
+        let a_size = self.largest(data, attacker_ids.iter().cloned());
+        let d_size = self.largest(data, in_hex.iter().cloned());
         if let (Some(a), Some(d)) = (a_size, d_size)
             && a != d
         {
@@ -668,31 +812,9 @@ impl GameState {
         let a_roll = resolve_side(&data.close_assault, CrtSide::Attacker, &column, a_reading);
         let d_roll = resolve_side(&data.close_assault, CrtSide::Defender, &column, d_reading);
 
-        // Loss bases (15.83, R-011): the defender's includes pinned and
-        // retreated-in units, and in an overrun every withheld one.
-        let mut defender_shares: Vec<Share> = defenders
-            .iter()
-            .map(|c| Share {
-                piece: c.piece.clone(),
-                points: c.points,
-            })
-            .collect();
-        for id in &in_hex {
-            let p = &self.pieces[id];
-            if defender_shares.iter().any(|s| s.piece == *id) || !self.can_fight(p) {
-                continue;
-            }
-            let counted = self.combat.pinned.contains(id)
-                || self.combat.retreated.contains(id)
-                || overrun
-                || self.class_of(data, p) == Class::Infantry;
-            if counted {
-                defender_shares.push(Share {
-                    piece: id.clone(),
-                    points: p.toe,
-                });
-            }
-        }
+        // Loss bases (15.83, R-011, R-122).
+        let (mut defender_shares, held_back) =
+            self.defender_loss_shares(data, &defenders, &in_hex, overrun);
         let defender_base: u32 = defender_shares
             .iter()
             .map(|s| self.raw_points(data, &self.pieces[&s.piece], Kind::Defence, s.points))
@@ -726,7 +848,7 @@ impl GameState {
             })
             .collect();
         let a_committed: u32 = attacker_shares.iter().map(|s| s.points).sum();
-        let d_committed: u32 = defender_shares.iter().map(|s| s.points).sum();
+        let d_committed: u32 = defender_shares.iter().map(|s| s.points).sum::<u32>() - held_back;
         let paren_a = !attackers
             .iter()
             .any(|c| self.plain_in_hex(data, &c.hex, Kind::Offence));
@@ -746,16 +868,28 @@ impl GameState {
             &mut events,
         );
         // Gun losses (15.84): forward guns pay vulnerability for half the
-        // raw points lost; in an overrun the defender's back guns too.
-        let a_gun = self.gun_losses(data, &attacker_ids, a_lost, true, false, &mut events);
-        let d_gun = self.gun_losses(data, &in_hex, d_lost, false, overrun, &mut events);
+        // raw points lost, the attacker's in the assaulting hexes whether
+        // or not they joined; in an overrun the defender's back guns too.
+        let joined: BTreeSet<PieceId> = attacker_ids.iter().cloned().collect();
+        let a_exposed = self.exposed_guns(data, phasing, &attacker_ids);
+        let a_gun = self.gun_losses(data, &a_exposed, a_lost, &joined, false, &mut events);
+        let d_gun = self.gun_losses(
+            data,
+            &in_hex,
+            d_lost,
+            &BTreeSet::new(),
+            overrun,
+            &mut events,
+        );
         let a_toe = a_toe + a_gun;
         let d_toe = d_toe + d_gun;
 
         // Prisoners (15.89).
-        for (side, hit, toe) in [
-            (phasing, a_roll.captured, a_toe),
-            (other, d_roll.captured, d_toe),
+        // The captor holds them: the defender in the assaulted hex, the
+        // attacker with its stack (28.12).
+        for (side, hit, toe, held_in) in [
+            (phasing, a_roll.captured, a_toe, target.clone()),
+            (other, d_roll.captured, d_toe, captor_hex.clone()),
         ] {
             if hit && toe > 0 {
                 let die = self.rng.d6();
@@ -766,6 +900,7 @@ impl GameState {
                 let pct = data.prisoners.percent(die).unwrap_or(0);
                 let points = (pct * toe).div_ceil(100);
                 events.push(Event::Prisoners { side, points });
+                self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
             }
         }
         // Disorganisation (15.86).
@@ -839,6 +974,8 @@ impl GameState {
                     p.cohesion.victory();
                 }
             }
+            let from = attackers.iter().map(|c| c.hex.clone()).collect();
+            self.retreat_lone_rommel(target, d_roll.retreat, from, &mut events);
             return Ok(events);
         }
         if d_roll.retreat > 0 {
@@ -901,15 +1038,72 @@ impl GameState {
             .min(4)
     }
 
+    /// The attacker's guns an assault exposes (15.84): those that joined
+    /// it and every forward gun unit of `side` in a hex it came from.
+    pub(crate) fn exposed_guns(
+        &self,
+        data: &Data,
+        side: Side,
+        attacker_ids: &[PieceId],
+    ) -> Vec<PieceId> {
+        let hexes: BTreeSet<&HexId> = attacker_ids
+            .iter()
+            .filter_map(|id| self.pieces[id].hex())
+            .collect();
+        let mut ids: BTreeSet<PieceId> = attacker_ids.iter().cloned().collect();
+        ids.extend(
+            self.combat
+                .forward
+                .iter()
+                .filter(|id| {
+                    let p = &self.pieces[*id];
+                    p.side == side
+                        && p.hex().is_some_and(|h| hexes.contains(h))
+                        && self.is_gun_unit(data, p)
+                })
+                .cloned(),
+        );
+        ids.into_iter().collect()
+    }
+
+    /// A gun point's vulnerability in close-assault losses (11.x, 14.14,
+    /// 15.84): artillery that fired in the anti-armour role this segment
+    /// has 2; artillery that `joined` an offensive assault has half,
+    /// rounded up; flak and non-gun points none.
+    pub(crate) fn gun_vulnerability(
+        &self,
+        id: &PieceId,
+        part: &Part,
+        joined: &BTreeSet<PieceId>,
+    ) -> u32 {
+        if part.flak || !part.gun() {
+            return 0;
+        }
+        let artillery = part.barrage.is_some();
+        let fired_aa = self
+            .combat
+            .assignments
+            .values()
+            .flatten()
+            .any(|a| a.piece == *id && !a.anti_armour.is_empty());
+        let mut v = part.vulnerability;
+        if artillery && joined.contains(id) {
+            v = v.div_ceil(2);
+        }
+        if artillery && fired_aa {
+            v = v.min(2);
+        }
+        v
+    }
+
     /// Vulnerability losses on forward guns (15.84): enough gun points
     /// to absorb half the raw points lost, at least one when any was.
-    /// An attacker's artillery is at half vulnerability, rounded up.
     fn gun_losses(
         &mut self,
         data: &Data,
         ids: &[PieceId],
         raw_lost: u32,
-        attacking: bool,
+        joined: &BTreeSet<PieceId>,
         overrun: bool,
         events: &mut Vec<Event>,
     ) -> u32 {
@@ -933,18 +1127,26 @@ impl GameState {
         if shares.is_empty() {
             return 0;
         }
-        let (_, removed) = self.absorb(
+        let rates: BTreeMap<PieceId, BTreeMap<Option<String>, u32>> = shares
+            .iter()
+            .map(|sh| {
+                let by_weapon = self
+                    .parts(data, &self.pieces[&sh.piece])
+                    .iter()
+                    .map(|part| {
+                        (
+                            part.weapon.clone(),
+                            self.gun_vulnerability(&sh.piece, part, joined),
+                        )
+                    })
+                    .collect();
+                (sh.piece.clone(), by_weapon)
+            })
+            .collect();
+        let (_, removed) = self.absorb_by(
             data,
             &mut shares,
-            |p| {
-                if p.flak || !p.gun() {
-                    0
-                } else if attacking {
-                    p.vulnerability.div_ceil(2)
-                } else {
-                    p.vulnerability
-                }
-            },
+            |id, p| rates[id].get(&p.weapon).copied().unwrap_or(0),
             needed,
             events,
         );
@@ -1150,6 +1352,141 @@ mod tests {
         state
     }
 
+    /// 4 RHA (18/25-pounders, vulnerability 5) in 1 KRRC's hex.
+    fn rha_beside_krrc(data: &Data) -> (GameState, PieceId, PieceId) {
+        let mut state = assigning(data);
+        let krrc = pid("unit:cw:1-krrc");
+        let rha = pid("unit:cw:4-rha");
+        let at = state.pieces[&krrc].hex().unwrap().clone();
+        state.pieces.get_mut(&rha).unwrap().location = Location::Hex(at);
+        (state, krrc, rha)
+    }
+
+    #[test]
+    fn the_attackers_forward_guns_are_exposed_though_they_did_not_fight_15_84() {
+        let data = graziani();
+        let (mut state, krrc, rha) = rha_beside_krrc(&data);
+        assert!(
+            !state
+                .exposed_guns(&data, Side::Cw, std::slice::from_ref(&krrc))
+                .contains(&rha)
+        );
+        state.combat.forward.insert(rha.clone());
+        assert!(state.exposed_guns(&data, Side::Cw, &[krrc]).contains(&rha));
+    }
+
+    #[test]
+    fn artillery_vulnerability_halves_in_an_assault_and_is_two_after_anti_armour_fire_14_14() {
+        let data = graziani();
+        let (mut state, _, rha) = rha_beside_krrc(&data);
+        let part = state.parts(&data, &state.pieces[&rha])[0].clone();
+        let none = BTreeSet::new();
+        assert_eq!(state.gun_vulnerability(&rha, &part, &none), 5);
+        let joined = BTreeSet::from([rha.clone()]);
+        assert_eq!(state.gun_vulnerability(&rha, &part, &joined), 3);
+        state.combat.assignments.insert(
+            Side::Cw,
+            vec![assign(
+                "unit:cw:4-rha",
+                vec![alloc(Some("C4020"), 2)],
+                vec![],
+            )],
+        );
+        assert_eq!(state.gun_vulnerability(&rha, &part, &none), 2);
+        assert_eq!(state.gun_vulnerability(&rha, &part, &joined), 2);
+    }
+
+    #[test]
+    fn a_shell_battalion_counts_as_a_company_for_size_9_28() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        assert_eq!(
+            state.largest(&data, [krrc.clone()].into_iter()),
+            Some("battalion")
+        );
+        // 1 KRRC prints 6 TOE points: at 2 it is under half, a shell.
+        state.pieces.get_mut(&krrc).unwrap().toe = 2;
+        assert_eq!(state.largest(&data, [krrc].into_iter()), Some("company"));
+    }
+
+    #[test]
+    fn a_battalion_under_a_whole_division_on_its_hex_counts_as_a_division_15_55() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        let division = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Cw
+                    && p.kind == PieceKind::Hq
+                    && p.id.unit().and_then(|u| data.oa.unit(&u)?.echelon)
+                        == Some(cna_data::oa::Echelon::Division)
+                    && p.hex().is_some()
+                    // Two of the chart's three brigades assigned, so all
+                    // of them attached make it whole (R-141).
+                    && state
+                        .pieces
+                        .values()
+                        .filter(|q| q.parent == p.id.unit() && q.kind == PieceKind::Hq)
+                        .count()
+                        >= 2
+            })
+            .unwrap()
+            .id
+            .clone();
+        let div_unit = division.unit().unwrap();
+        let at = state.pieces[&division].hex().unwrap().clone();
+        let brigades: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.parent.as_ref() == Some(&div_unit) && p.kind == PieceKind::Hq)
+            .map(|p| p.id.clone())
+            .collect();
+        assert!(!brigades.is_empty());
+        let bde_unit = brigades[0].unit().unwrap();
+        let battalion = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.parent.as_ref() == Some(&bde_unit)
+                    && p.kind == PieceKind::Combat
+                    && p.equivalent == Some(Equivalent::Battalion)
+            })
+            .unwrap()
+            .id
+            .clone();
+        // Set-up stacks HQs with their formations; detached, the
+        // battalion is only itself.
+        state.pieces.get_mut(&battalion).unwrap().attached_to = None;
+        assert_eq!(
+            state.largest(&data, [battalion.clone()].into_iter()),
+            Some("battalion")
+        );
+        for b in &brigades {
+            let p = state.pieces.get_mut(b).unwrap();
+            p.location = Location::Hex(at.clone());
+            p.attached_to = Some(div_unit.clone());
+        }
+        let p = state.pieces.get_mut(&battalion).unwrap();
+        p.location = Location::Hex(at.clone());
+        p.attached_to = Some(bde_unit.clone());
+        assert!(!state.is_shell(&data, &division));
+        assert_eq!(
+            state.largest(&data, [battalion.clone()].into_iter()),
+            Some("division")
+        );
+        // Without its brigade HQs the division is a shell: a brigade (9.28).
+        for b in &brigades {
+            state.pieces.get_mut(b).unwrap().attached_to = None;
+        }
+        state.pieces.get_mut(&battalion).unwrap().attached_to = Some(div_unit);
+        assert_eq!(
+            state.largest(&data, [battalion].into_iter()),
+            Some("brigade-2")
+        );
+    }
+
     #[test]
     fn return_fire_is_banned_across_the_hexside_the_assault_crosses() {
         // 14.34 bans anti-armour fire by either side across the hexside
@@ -1235,6 +1572,31 @@ mod tests {
             .filter(|p| p.hex() == Some(&hex("C4020")))
             .map(|p| p.id.clone())
             .collect()
+    }
+
+    // R-122: a committed defender's held-back points count in the loss
+    // base; a wholly withheld gun counts only in an overrun.
+    #[test]
+    fn held_back_points_of_a_committed_defender_count_in_the_loss_base_r122() {
+        let data = graziani();
+        let state = at_sollum(&data);
+        let coy = pid("unit:it:1st-libyan-anti-tank-coy");
+        let toe = state.pieces[&coy].toe;
+        assert!(toe > 1, "{toe}");
+        let in_hex = vec![coy.clone()];
+        let commit = Commit {
+            piece: coy.clone(),
+            hex: state.pieces[&coy].hex().unwrap().clone(),
+            points: 1,
+        };
+        let (shares, held) =
+            state.defender_loss_shares(&data, std::slice::from_ref(&commit), &in_hex, false);
+        assert_eq!(shares.len(), 1);
+        assert_eq!((shares[0].points, held), (toe, toe - 1));
+        let (shares, _) = state.defender_loss_shares(&data, &[], &in_hex, false);
+        assert!(shares.is_empty(), "withheld whole: not in the base");
+        let (shares, _) = state.defender_loss_shares(&data, &[], &in_hex, true);
+        assert_eq!(shares[0].points, toe, "an overrun counts it");
     }
 
     fn find_assault(events: &[Event]) -> Option<Event> {
@@ -1404,10 +1766,12 @@ mod tests {
         );
         // Pinned to seed 3 so the fixture stays honest.
         assert_eq!((attacker.reading, defender.reading), (43, 36));
-        // Adjusted +1 under this seed: no refund, no retreat. CP: the
+        // The Libyan battalions defend under their whole division on its
+        // hex, against battalions: four columns their way (15.53, 15.55).
+        // Adjusted -3 under this seed: no refund, no retreat. CP: the
         // attacking hex 5; the defended hex 3 (the bad-attack refund has
         // its own test below).
-        assert_eq!(basic + shifts, 1);
+        assert_eq!(basic + shifts, -3);
         assert_eq!(defender.retreat, 0);
         assert_eq!(state.pending, None);
         for id in ["unit:cw:1-krrc", "unit:cw:1-rtr", "unit:cw:7-med"] {
@@ -1601,6 +1965,104 @@ mod tests {
         assert_eq!(state.pending, None);
     }
 
+    /// The -17 surrender at C4020 with one of its HQs standing in for
+    /// Rommel (Graziani's Offensive has no Rommel piece): the surrender
+    /// takes every combat unit and HQ, leaving him alone.
+    fn rommel_left_by_a_surrender(data: &Data) -> (GameState, PieceId, Vec<Event>) {
+        let mut state = assigning(data);
+        state
+            .apply(
+                data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        vec![],
+                        vec![alloc(Some("C4020"), 6)],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        for id in c4020_ids(&state) {
+            state.pieces.get_mut(&id).unwrap().cohesion.level = -17;
+        }
+        let rommel = c4020_ids(&state)
+            .into_iter()
+            .find(|id| state.pieces[id].kind == PieceKind::Hq)
+            .unwrap();
+        state.pieces.get_mut(&rommel).unwrap().kind = PieceKind::Commander;
+        let events = state
+            .apply(
+                data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        (state, rommel, events)
+    }
+
+    // R-140: his stack destroyed, Rommel at once retreats alone, at least
+    // one hex, before the next assault.
+    #[test]
+    fn rommel_whose_stack_is_destroyed_retreats_alone() {
+        let data = graziani();
+        let (mut state, rommel, events) = rommel_left_by_a_surrender(&data);
+        assert!(
+            events.contains(&Event::RetreatOrdered {
+                pieces: vec![rommel.clone()],
+                hexes: 1,
+                reason: RetreatReason::RommelAlone,
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        // West along the coast road, out of 1 KRRC's reach at C4021.
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Retreat {
+                    path: vec![hex("C3920"), hex("C3819")],
+                },
+            )
+            .unwrap();
+        assert!(
+            !events.iter().any(|e| matches!(e, Event::Captured { .. })),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&rommel].hex(), Some(&hex("C3819")));
+        assert_eq!(state.pending, None);
+    }
+
+    // R-140: standing, or stopping where an enemy ZOC still reaches him,
+    // he is captured.
+    #[test]
+    fn rommel_who_cannot_reach_safety_is_captured() {
+        let data = graziani();
+        let (mut state, rommel, _) = rommel_left_by_a_surrender(&data);
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert!(
+            events.contains(&Event::Captured {
+                piece: rommel.clone(),
+                hex: hex("C4020"),
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&rommel].location, Location::Eliminated);
+        assert_eq!(state.pending, None);
+    }
+
     #[test]
     fn a_probe_is_half_or_less_and_costs_two() {
         let data = graziani();
@@ -1711,7 +2173,13 @@ mod tests {
                 .is_some_and(|h| h.terrain != cna_data::map::Terrain::Sea)
                 && !state.pieces.values().any(|p| p.hex() == Some(to))
                 && state
-                    .plan_with(data, stack, from, std::slice::from_ref(to), true)
+                    .plan_with(
+                        data,
+                        stack,
+                        from,
+                        std::slice::from_ref(to),
+                        crate::reach::Purpose::ForcedRetreat,
+                    )
                     .is_ok_and(|p| p.interrupt.is_none())
         };
         let mut frontier: Vec<Vec<HexId>> = vec![vec![hex("C4021")]];

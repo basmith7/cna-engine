@@ -12,14 +12,16 @@
 //! The Land-Game-only abstraction is applied first (60.92), so the supply
 //! blocks seen here are supply units, which become inert pieces.
 
-use crate::piece::{Load, Location, Piece, PieceId, PieceKind};
+use crate::piece::{Entry, Load, Location, Piece, PieceId, PieceKind};
 use crate::state::Modules;
 use anyhow::{Context, Result, bail};
-use cna_data::characteristics::{Characteristics, Equivalent, Row};
+use cna_data::characteristics::{Characteristics, Equivalent, Rating, Row};
 use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
-use cna_data::scenario::{Locator, Placement, Scenario, Side, Subject, SupplyKind, UnitEntry};
+use cna_data::scenario::{
+    Locator, Placement, Scenario, Side, Subject, SupplyKind, TruckClass, UnitEntry,
+};
 use cna_data::time::GameTime;
 use cna_data::weapons::{WeaponClass, WeaponSystems};
 use std::collections::BTreeSet;
@@ -40,13 +42,13 @@ pub struct Setup {
 }
 
 /// A deployment's motorisation points. Where the deployment is still
-/// pending, they follow `anchor`, its first piece, to the hex it lands in.
+/// pending, they follow the first of its `pieces` to the hex it lands in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Motorisation {
     pub side: Side,
     pub location: Location,
     pub points: u32,
-    pub anchor: Option<PieceId>,
+    pub pieces: Vec<PieceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,41 +70,91 @@ pub fn expand(
     modules: Modules,
 ) -> Result<Setup> {
     let scenario = scenario.land_only();
+    // 32.5, 59.63: which truck classes give motorisation points, as the
+    // scenario's abstraction types them; none named, none given.
+    let motorising: Vec<TruckClass> = scenario
+        .abstractions
+        .as_ref()
+        .and_then(|a| a.air_and_logistics.as_ref())
+        .and_then(|a| a.motorisation.as_ref())
+        .map(|m| m.from.clone())
+        .unwrap_or_default();
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
         motorisation: Vec::new(),
     };
     let mut placed = BTreeSet::new();
+    // `apart` blocks so far, numbering each one's entries (R-136).
+    let mut blocks = 0;
     for side in [Side::Axis, Side::Cw] {
         let set = scenario.side(side);
+        // A unit an entry names as `attached` or `assigned` is that
+        // entry's, with its subtree, even where another entry sets its
+        // sheet formation up whole (61.38's reassignments).
+        let mut named = BTreeSet::new();
+        for e in set.deployments.iter().flat_map(|d| &d.units) {
+            for a in e.attached.iter().chain(&e.assigned) {
+                let mut sub = Vec::new();
+                subtree(a, oa, NEVER, &mut sub)?;
+                named.extend(sub.into_iter().map(|m| m.id));
+            }
+        }
+        // Units an entry of their own places: a replacement does not
+        // bring them (the Last Chance's 3rd Aufkl and 104th).
+        let own: BTreeSet<UnitId> = set
+            .deployments
+            .iter()
+            .flat_map(|d| &d.units)
+            .filter_map(|e| match &e.subject {
+                Subject::Unit(u) => Some(u.clone()),
+                Subject::Formation(_) => None,
+            })
+            .collect();
         for (di, d) in set.deployments.iter().enumerate() {
             let location = resolve(&d.placement, map)
                 .with_context(|| format!("{side} deployment {}", di + 1))?;
             let mut ids = Vec::new();
-            for e in &d.units {
-                let members = members(e, oa, scenario.start)
+            for (ei, e) in d.units.iter().enumerate() {
+                let members = members(e, oa, scenario.start, &named, &own)
                     .with_context(|| format!("{side} deployment {}", di + 1))?;
                 for m in members {
                     let unit = oa.unit(&m.id).expect("resolved by members");
                     if !placed.insert(m.id.clone()) {
                         bail!("{}: placed twice (R-094)", m.id);
                     }
-                    let piece = piece(side, unit, m.parent, e, chars, oa, location.clone());
+                    let mut piece = piece(side, unit, m.parent, e, chars, oa, location.clone());
+                    if d.placement.apart.is_some() {
+                        piece.entry = Some(Entry {
+                            block: blocks,
+                            index: u32::try_from(ei).expect("a short block"),
+                        });
+                    }
                     ids.push(piece.id.clone());
                     setup.pieces.push(piece);
                 }
             }
-            // 60.92: each medium truck point becomes a motorisation
-            // point; light and heavy give none.
-            let medium = d.trucks.map_or(0, |t| t.medium);
-            if modules.abstract_supply && medium > 0 {
+            // Each truck point of a motorising class is one point.
+            let points: u32 = d.trucks.map_or(0, |t| {
+                motorising
+                    .iter()
+                    .map(|c| match c {
+                        TruckClass::Light => t.light,
+                        TruckClass::Medium => t.medium,
+                        TruckClass::Heavy => t.heavy,
+                    })
+                    .sum()
+            });
+            if modules.abstract_supply && points > 0 {
                 setup.motorisation.push(Motorisation {
                     side,
                     location: location.clone(),
-                    points: medium,
-                    anchor: ids.first().cloned(),
+                    points,
+                    pieces: ids.clone(),
                 });
+            }
+            if d.placement.apart.is_some() {
+                blocks += 1;
             }
             log_constraint(&mut setup, side, &d.placement, ids);
         }
@@ -116,6 +168,16 @@ pub fn expand(
             };
             let location = resolve(&b.placement, map)
                 .with_context(|| format!("{side} supply block {}", bi + 1))?;
+            // The figures are each supply unit's own unless the block is
+            // pooled (scenario schema, `supplyBlock.count` and `pooled`,
+            // cna f33ac72). A pool is the owner's to share out, which
+            // set-up has no order for yet.
+            if b.pooled && kind == PieceKind::SupplyUnit && modules.abstract_supply {
+                bail!(
+                    "{side} supply block {}: pooled supply-unit loads are not supported",
+                    bi + 1
+                );
+            }
             let mut ids = Vec::new();
             for _ in 0..b.count {
                 let id = if kind == PieceKind::SupplyUnit {
@@ -126,41 +188,98 @@ pub fn expand(
                     PieceId::dummy_supply(side, dummies)
                 };
                 ids.push(id.clone());
-                setup.pieces.push(Piece {
-                    id,
-                    side,
-                    kind,
-                    nation: None,
-                    id_code: None,
-                    parent: None,
-                    toe: 0,
-                    weapons: Vec::new(),
-                    cpa: None,
-                    morale: None,
-                    status: None,
-                    equivalent: None,
-                    garrison_of: None,
-                    location: location.clone(),
-                    load: (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| {
-                        Load {
-                            ammo: b.ammo.unwrap_or(0),
-                            fuel: b.fuel.unwrap_or(0),
-                        }
-                    }),
-                    cp_spent: Cp::ZERO,
-                    cp_enemy_half: Cp::ZERO,
-                    cohesion: Default::default(),
-                    contact: false,
-                    engaged: false,
-                    reserve: None,
-                    released: None,
-                    landed: false,
-                });
+                let load =
+                    (modules.abstract_supply && kind == PieceKind::SupplyUnit).then(|| Load {
+                        ammo: b.ammo.unwrap_or(0),
+                        fuel: b.fuel.unwrap_or(0),
+                    });
+                setup
+                    .pieces
+                    .push(supply_piece(side, kind, id, location.clone(), load));
             }
             log_constraint(&mut setup, side, &b.placement, ids);
         }
     }
+    reparent_replaced(&mut setup, oa);
     Ok(setup)
+}
+
+/// A placed replacement counter is the parent of what its `assigns`
+/// names and of what was under the counter it `replaces`, where entries
+/// of their own placed them (R-096).
+fn reparent_replaced(setup: &mut Setup, oa: &Oa) {
+    let ids: BTreeSet<PieceId> = setup.pieces.iter().map(|p| p.id.clone()).collect();
+    let mut new_parent: Vec<(UnitId, UnitId)> = Vec::new();
+    for p in &setup.pieces {
+        let Some(id) = p.id.unit() else { continue };
+        let Some(unit) = oa.unit(&id) else { continue };
+        let Some(old) = &unit.replaces else { continue };
+        if ids.contains(&PieceId::from(old)) {
+            continue;
+        }
+        for q in &setup.pieces {
+            let Some(qid) = q.id.unit() else { continue };
+            if q.parent.as_ref() == Some(old) || unit.assigns.contains(&qid) {
+                new_parent.push((qid, id.clone()));
+            }
+        }
+    }
+    for (child, parent) in new_parent {
+        if let Some(q) = setup
+            .pieces
+            .iter_mut()
+            .find(|q| q.id == PieceId::from(&child))
+        {
+            q.parent = Some(parent);
+        }
+    }
+}
+
+/// A supply unit or dummy, fresh: no CP spent, nothing attached.
+pub(crate) fn supply_piece(
+    side: Side,
+    kind: PieceKind,
+    id: PieceId,
+    location: Location,
+    load: Option<Load>,
+) -> Piece {
+    Piece {
+        id,
+        side,
+        kind,
+        nation: None,
+        id_code: None,
+        parent: None,
+        attached_to: None,
+        toe: 0,
+        weapons: Vec::new(),
+        cpa: None,
+        morale: None,
+        status: None,
+        equivalent: None,
+        garrison_of: None,
+        group: None,
+        entry: None,
+        location,
+        load,
+        rommel_cpa: 0,
+        cp_spent: Cp::ZERO,
+        cp_enemy_half: Cp::ZERO,
+        cohesion: Default::default(),
+        contact: false,
+        engaged: false,
+        reserve: None,
+        released: None,
+        released_assaulted: false,
+        landed: false,
+        fuelled: false,
+        fuelled_over: false,
+        motorised: 0,
+        escorted: false,
+        breakdown_halves: 0,
+        breakdown_checked: None,
+        flown: false,
+    }
 }
 
 /// A unit the set-up brings, and what it is under.
@@ -196,8 +315,76 @@ fn subtree(head: &UnitId, oa: &Oa, start: GameTime, out: &mut Vec<Member>) -> Re
     Ok(())
 }
 
-/// Every unit one set-up entry stands for.
-fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
+/// A set-up that places a replacement counter starts with the
+/// replacement made (R-096): `head` takes the units under the counter it
+/// `replaces` and its `assigns`, each with the units under it, less later
+/// arrivals; a unit so brought in that replaces another with no arrival
+/// of its own replaces it now. Units in `own`, placed by entries of
+/// their own, stay there. Set-up only: a replacement arriving in play is
+/// not made (NOT_SIMULATED).
+fn replacement(
+    head: &UnitId,
+    oa: &Oa,
+    start: GameTime,
+    own: &BTreeSet<UnitId>,
+    out: &mut Vec<Member>,
+) -> Result<()> {
+    let unit = oa.unit(head).expect("subtree checked it");
+    let old = unit.replaces.as_ref();
+    let heads = old
+        .map(|o| oa.children(o))
+        .unwrap_or_default()
+        .iter()
+        .chain(&unit.assigns);
+    let mut adopted = Vec::new();
+    for id in heads {
+        let u = oa
+            .unit(id)
+            .with_context(|| format!("{id}: not on any OA sheet"))?;
+        if let Some(Arrival::At(t)) = u.arrives
+            && t > start
+        {
+            continue;
+        }
+        let mut sub = Vec::new();
+        subtree(id, oa, start, &mut sub)?;
+        sub[0].parent = Some(head.clone());
+        adopted.extend(sub);
+    }
+    let mut gone_heads: Vec<UnitId> = adopted
+        .iter()
+        .filter_map(|m| oa.unit(&m.id))
+        .filter(|u| u.arrives.is_none())
+        .filter_map(|u| u.replaces.clone())
+        .collect();
+    gone_heads.extend(
+        adopted
+            .iter()
+            .filter(|m| own.contains(&m.id))
+            .map(|m| m.id.clone()),
+    );
+    for r in &gone_heads {
+        let mut gone = Vec::new();
+        subtree(r, oa, NEVER, &mut gone)?;
+        adopted.retain(|m| !gone.iter().any(|g| g.id == m.id));
+    }
+    for m in adopted {
+        if !out.iter().any(|x| x.id == m.id) {
+            out.push(m);
+        }
+    }
+    Ok(())
+}
+
+/// Every unit one set-up entry stands for. Units in `named` (some
+/// entry's `attached` or `assigned`) come only through those lists.
+fn members(
+    e: &UnitEntry,
+    oa: &Oa,
+    start: GameTime,
+    named: &BTreeSet<UnitId>,
+    own: &BTreeSet<UnitId>,
+) -> Result<Vec<Member>> {
     let mut out = Vec::new();
     let head = match &e.subject {
         Subject::Formation(f) => {
@@ -239,6 +426,7 @@ fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
                 }
             } else {
                 subtree(u, oa, start, &mut out)?;
+                replacement(u, oa, start, own, &mut out)?;
             }
             Some(u.clone())
         }
@@ -247,7 +435,10 @@ fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
     // name something in it, or the data is wrong.
     let mut full = Vec::new();
     match &e.subject {
-        Subject::Unit(u) => subtree(u, oa, NEVER, &mut full)?,
+        Subject::Unit(u) => {
+            subtree(u, oa, NEVER, &mut full)?;
+            replacement(u, oa, NEVER, &BTreeSet::new(), &mut full)?;
+        }
         Subject::Formation(f) => {
             for u in &oa.formation(f).expect("checked above").units {
                 full.push(Member {
@@ -258,7 +449,13 @@ fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
         }
     }
     for r in e.less.iter().chain(&e.detached) {
-        if !full.iter().any(|m| &m.id == r) {
+        // A unit printed on the head's sheet but under no counter (the
+        // Littorio's V Articelere, under a heading with none) is the
+        // entry's to leave out too.
+        let same_sheet = head.as_ref().is_some_and(|h| {
+            oa.unit(r).is_some() && oa.formation_of(r).id == oa.formation_of(h).id
+        });
+        if !same_sheet && !full.iter().any(|m| &m.id == r) {
             bail!(
                 "{}: `{r}` is not in the entry",
                 head.as_ref()
@@ -269,6 +466,7 @@ fn members(e: &UnitEntry, oa: &Oa, start: GameTime) -> Result<Vec<Member>> {
         subtree(r, oa, NEVER, &mut gone)?;
         out.retain(|m| !gone.iter().any(|g| g.id == m.id));
     }
+    out.retain(|m| Some(&m.id) == head.as_ref() || !named.contains(&m.id));
     for a in e.attached.iter().chain(&e.assigned) {
         let mut added = Vec::new();
         subtree(a, oa, start, &mut added)?;
@@ -307,7 +505,9 @@ fn piece(
     Piece {
         id: PieceId::from(&unit.id),
         side,
-        kind: if equivalent == Some(Equivalent::Hq) {
+        kind: if unit.commander.is_some() {
+            PieceKind::Commander
+        } else if equivalent == Some(Equivalent::Hq) {
             PieceKind::Hq
         } else {
             PieceKind::Combat
@@ -315,15 +515,26 @@ fn piece(
         nation: Some(unit.id.nation()),
         id_code: unit.id_code.clone(),
         parent,
+        attached_to: None,
         toe,
         weapons,
-        cpa: row.and_then(|r| r.cpa.clone()),
+        cpa: match &unit.commander {
+            Some(c) => Some(Rating {
+                value: i32::try_from(c.cpa).ok(),
+                mark: None,
+                raw: c.cpa.to_string(),
+            }),
+            None => row.and_then(|r| r.cpa.clone()),
+        },
         morale: oa.morale(&unit.id),
         status: entry.status,
         equivalent,
         garrison_of: oa.formation_of(&unit.id).garrison_hex(),
+        group: None,
+        entry: None,
         location,
         load: None,
+        rommel_cpa: 0,
         cp_spent: Cp::ZERO,
         cp_enemy_half: Cp::ZERO,
         cohesion: Default::default(),
@@ -331,7 +542,15 @@ fn piece(
         engaged: false,
         reserve: None,
         released: None,
+        released_assaulted: false,
         landed: false,
+        fuelled: false,
+        fuelled_over: false,
+        motorised: 0,
+        escorted: false,
+        breakdown_halves: 0,
+        breakdown_checked: None,
+        flown: false,
     }
 }
 
@@ -363,7 +582,8 @@ pub fn reinforcement(
         .into_iter()
         .filter_map(|m| {
             let unit = oa.unit(&m.id)?;
-            if unit.id_code.is_none() && unit.toe.is_empty() {
+            // A heading with no counter; Rommel's has none but is one.
+            if unit.id_code.is_none() && unit.toe.is_empty() && unit.commander.is_none() {
                 return None;
             }
             Some(piece(
@@ -382,7 +602,7 @@ pub fn reinforcement(
 /// TOE points as the sheet prints them: `N` is the row's `max_toe` plus
 /// any points listed with it; `U@x` and `O@x` are `x`; else the sum of
 /// the listed weapons.
-fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
+pub(crate) fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
     let listed: u32 = unit.toe.iter().map(|t| t.points).sum();
     match unit.toe_mark {
         Some(ToeMark::Full) => {
@@ -400,39 +620,50 @@ fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
 /// A single hex or a place is a location; a box is a box; anything the
 /// owner must choose among is pending.
 fn resolve(p: &Placement, map: &Map) -> Result<Location> {
-    match &p.locator {
-        Locator::Hexes(h) => {
-            for hex in h {
-                if map.hex(hex).is_none() {
-                    bail!("{hex}: not on the map");
+    for l in &p.locators {
+        match l {
+            Locator::Hexes(h) => {
+                for hex in h {
+                    if map.hex(hex).is_none() {
+                        bail!("{hex}: not on the map");
+                    }
                 }
             }
-            if h.len() == 1 {
-                return Ok(Location::Hex(h[0].clone()));
-            }
-        }
-        Locator::Place(id) => {
-            let place = map
-                .place(id)
-                .with_context(|| format!("{id}: not in places.json"))?;
-            return Ok(Location::Hex(place.hex.clone()));
-        }
-        Locator::Box(b) => return Ok(Location::Box(*b)),
-        Locator::Within { of, .. } => {
-            if map.hex(of).is_none() {
-                bail!("{of}: not on the map");
-            }
-        }
-        Locator::Sheets(s) => {
-            for sheet in s {
-                if map.sheet(*sheet).is_none() {
-                    bail!("sheet {sheet}: not on the map");
+            Locator::Place(ids) => {
+                for id in ids {
+                    map.place(id)
+                        .with_context(|| format!("{id}: not in places.json"))?;
                 }
             }
+            Locator::Within { of, .. } | Locator::WestOf(of) => {
+                if map.hex(of).is_none() {
+                    bail!("{of}: not on the map");
+                }
+            }
+            Locator::Sheets(s) => {
+                for sheet in s {
+                    if map.sheet(*sheet).is_none() {
+                        bail!("sheet {sheet}: not on the map");
+                    }
+                }
+            }
+            Locator::Box(_)
+            | Locator::Region(_)
+            | Locator::AirFacility
+            | Locator::StackedWith(_) => {}
         }
-        Locator::Region(_) | Locator::AirFacility => {}
     }
-    Ok(Location::Pending(p.clone()))
+    match p.sole() {
+        Some(Locator::Hexes(h)) if h.len() == 1 => Ok(Location::Hex(h[0].clone())),
+        // A choice of places (Cairo or Helwan) still starts at the first:
+        // offering the others would add set-up orders and move every
+        // golden game's indices. `log_constraint` logs the alternatives.
+        Some(Locator::Place(ids)) => Ok(Location::Hex(
+            map.place(&ids[0]).expect("checked").hex.clone(),
+        )),
+        Some(Locator::Box(b)) => Ok(Location::Box(*b)),
+        _ => Ok(Location::Pending(p.clone())),
+    }
 }
 
 /// 32.8x, the Land Game without the Air Game: AA is thinned at set-up.
@@ -485,17 +716,41 @@ pub fn thin_anti_air(setup: &mut Setup, weapons: &WeaponSystems) -> Result<Vec<P
     for u in &mut setup.unchecked {
         u.pieces.retain(|id| !removed.contains(id));
     }
-    for m in &setup.motorisation {
-        if let Some(anchor) = &m.anchor
-            && removed.contains(anchor)
-        {
-            bail!("{anchor}: removed by 32.8x but anchors motorisation points");
+    // Points a removed piece carried pass to the next of its deployment;
+    // a pending deployment removed whole (the Last Chance's AA park at
+    // E3002) takes its trucks with it.
+    for m in &mut setup.motorisation {
+        let had = !m.pieces.is_empty();
+        m.pieces.retain(|id| !removed.contains(id));
+        if had && m.pieces.is_empty() && m.location.key().is_none() {
+            m.points = 0;
         }
     }
+    setup.motorisation.retain(|m| m.points > 0);
     Ok(removed)
 }
 
 fn log_constraint(setup: &mut Setup, side: Side, p: &Placement, pieces: Vec<PieceId>) {
+    if p.together && pieces.len() > 1 {
+        let g = setup
+            .pieces
+            .iter()
+            .filter_map(|q| q.group)
+            .max()
+            .map_or(1, |g| g + 1);
+        for q in setup.pieces.iter_mut().filter(|q| pieces.contains(&q.id)) {
+            q.group = Some(g);
+        }
+    }
+    if let Some(Locator::Place(ids)) = p.sole()
+        && ids.len() > 1
+    {
+        setup.unchecked.push(Unchecked {
+            side,
+            constraint: format!("or {}", ids[1..].join(" or ")),
+            pieces: pieces.clone(),
+        });
+    }
     if let Some(c) = &p.constraint {
         setup.unchecked.push(Unchecked {
             side,
@@ -601,6 +856,73 @@ mod tests {
     // Hampshires, assigned to the Matruh garrison (4.44b), 2. The 7th Motor
     // HQ and 1st Fld are `less`; the arrival filter already dropped them.
     // Sum: 12+4+7+11+4+8+10+4+6+2 = 68.
+    fn load(slug: &str) -> Result<Setup> {
+        let scenario = Scenario::load(slug).unwrap();
+        let oa = Oa::load_all().unwrap();
+        let chars = Characteristics::load().unwrap();
+        let map = Map::load().unwrap();
+        expand(&scenario, &oa, &chars, &map, Modules::default())
+    }
+
+    #[test]
+    fn a_unit_assigned_elsewhere_leaves_its_sheet_formation() {
+        // Rommel's Arrival sets the 7th Armoured Division up whole, while
+        // an entry at A2022 assigns its 6 RTR to the 3rd Armoured Brigade
+        // (61.38). The named assignment wins: one piece, under the 3rd.
+        let setup = load("rommels-arrival").unwrap();
+        let rtr: Vec<&Piece> = setup
+            .pieces
+            .iter()
+            .filter(|p| p.id == PieceId::from(uid("unit:cw:6-rtr")))
+            .collect();
+        assert_eq!(rtr.len(), 1);
+        assert_eq!(rtr[0].parent, Some(uid("unit:cw:3-armd-bde-hq")));
+        assert_eq!(rtr[0].location, Location::Hex(hex("A2022")));
+    }
+
+    #[test]
+    fn rommel_arrives_as_a_commander() {
+        let oa = Oa::load_all().unwrap();
+        let chars = Characteristics::load().unwrap();
+        let at = cna_data::time::GameTime::new(20, 2);
+        let pieces = reinforcement(
+            Side::Axis,
+            &uid("unit:de:rommel"),
+            &oa,
+            &chars,
+            at,
+            Location::Box(OffMapBox::Tripoli),
+        )
+        .unwrap();
+        assert_eq!(pieces.len(), 1);
+        assert_eq!(pieces[0].kind, PieceKind::Commander);
+        assert_eq!(pieces[0].cpa.as_ref().and_then(|r| r.value), Some(60));
+    }
+
+    #[test]
+    fn a_replacement_counter_takes_the_replaced_ones_units() {
+        // The Last Chance places 21st Panzer, which replaces 5th Light
+        // and gains the 104th and 155th regiments (R-096); the 155th's
+        // II/155 replaces 5th Light's I/75 with it.
+        let setup = load("the-last-chance").unwrap();
+        let get = |id: &str| setup.pieces.iter().find(|p| p.id == PieceId::from(uid(id)));
+        let pz = Some(uid("unit:de:21-pz-div-hq"));
+        assert!(get("unit:de:5le-div-hq").is_none());
+        assert_eq!(get("unit:de:8-mg-bn").unwrap().parent, pz);
+        assert_eq!(get("unit:de:104-schutzen-regt-hq").unwrap().parent, pz);
+        assert_eq!(get("unit:de:155-arty-regt-hq").unwrap().parent, pz);
+        assert!(get("unit:de:ii-155-arty-bn").is_some());
+        assert!(get("unit:de:i-75-arty-bn").is_none());
+        // 21st Panzer's `less` names a replaced counter's unit, which
+        // 15th Panzer is assigned.
+        assert_eq!(
+            get("unit:de:2-mg-bn").unwrap().parent,
+            Some(uid("unit:de:15-pz-div-hq"))
+        );
+        // An entry of its own keeps its unit, now under 21st Panzer.
+        assert_eq!(get("unit:de:3-aufkl-bn").unwrap().parent, pz);
+    }
+
     #[test]
     fn piece_counts_are_pinned() {
         let f = graziani();
@@ -709,9 +1031,11 @@ mod tests {
         let f = graziani();
         for side in [Side::Axis, Side::Cw] {
             for d in &f.scenario.side(side).deployments {
-                let expect = match &d.placement.locator {
-                    Locator::Hexes(h) if h.len() == 1 => Location::Hex(h[0].clone()),
-                    Locator::Place(p) => Location::Hex(f.map.place(p).unwrap().hex.clone()),
+                let expect = match d.placement.sole() {
+                    Some(Locator::Hexes(h)) if h.len() == 1 => Location::Hex(h[0].clone()),
+                    Some(Locator::Place(p)) if p.len() == 1 => {
+                        Location::Hex(f.map.place(&p[0]).unwrap().hex.clone())
+                    }
                     _ => continue,
                 };
                 for e in &d.units {
@@ -747,7 +1071,7 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            p.locator,
+            p.locators[0],
             Locator::Within {
                 of: hex("C0716"),
                 hexes: 3
@@ -884,7 +1208,7 @@ mod tests {
     }
 
     // 32.1x, 60.92: each real supply unit carries its block's figures
-    // (per unit: every block's figure is within 40/60); Derna's printed
+    // (per unit, as the scenario schema now says unless `pooled`); Derna's printed
     // dash is no ammunition; dummies carry nothing.
     #[test]
     fn supply_units_carry_their_block_loads() {
@@ -930,20 +1254,68 @@ mod tests {
             .iter()
             .map(|u| u.constraint.as_str())
             .collect();
-        assert!(texts.contains(&"or Helwan (E1430)"));
-        assert!(texts.contains(&"any one hex of map D that lies west of Mersa Matruh (D3714); all three units in that one hex (60.92)"));
-        let helwan = f
-            .setup
-            .unchecked
-            .iter()
-            .find(|u| u.constraint == "or Helwan (E1430)")
-            .unwrap();
+        // Graziani's sentences are all typed now (cna bd108b6); only the
+        // Cairo-or-Helwan choice the engine does not yet offer is left.
+        assert_eq!(texts, vec!["or helwan"]);
+        let helwan = &f.setup.unchecked[0];
         assert_eq!(helwan.side, Side::Cw);
         assert!(
             helwan
                 .pieces
                 .contains(&PieceId::from(uid("unit:cw:6-aus-hq")))
         );
+    }
+
+    // 32.5, 59.63: the truck classes that motorise come from the
+    // scenario's typed `motorisation.from` (cna 277cd31), not a fixed
+    // "medium". The Axis's first deployment has 10/25/10 trucks.
+    #[test]
+    fn motorisation_counts_the_classes_the_scenario_names() {
+        use cna_data::scenario::TruckClass;
+        let mut f = graziani();
+        let first = |s: &Setup| {
+            s.motorisation
+                .iter()
+                .find(|m| m.side == Side::Axis)
+                .map(|m| m.points)
+        };
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        assert_eq!(first(&on), Some(25));
+        f.scenario
+            .abstractions
+            .as_mut()
+            .unwrap()
+            .air_and_logistics
+            .as_mut()
+            .unwrap()
+            .motorisation
+            .as_mut()
+            .unwrap()
+            .from = vec![TruckClass::Medium, TruckClass::Heavy];
+        let on = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap();
+        assert_eq!(first(&on), Some(35));
+    }
+
+    #[test]
+    fn a_pooled_supply_unit_block_is_refused_with_the_module_on() {
+        let mut f = graziani();
+        let abs = f.scenario.abstractions.as_mut().unwrap();
+        let axis = abs.air_and_logistics.as_mut().unwrap();
+        let blocks = axis
+            .replaces
+            .get_mut(&Side::Axis)
+            .unwrap()
+            .supply
+            .as_mut()
+            .unwrap();
+        let b = blocks
+            .iter_mut()
+            .find(|b| b.kind == Some(SupplyKind::SupplyUnit))
+            .unwrap();
+        b.pooled = true;
+        assert!(expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::default()).is_ok());
+        let err = expand(&f.scenario, &f.oa, &f.chars, &f.map, Modules::ALL).unwrap_err();
+        assert!(format!("{err:#}").contains("pooled"), "{err:#}");
     }
 
     #[test]
@@ -961,7 +1333,7 @@ mod tests {
         let chars = Characteristics::load().unwrap();
         let map = Map::load().unwrap();
         let d = &mut scenario.sides.get_mut(&Side::Axis).unwrap().deployments[0];
-        d.placement.locator = Locator::Hexes(vec![hex("C9999")]);
+        d.placement = cna_data::scenario::Placement::of(Locator::Hexes(vec![hex("C9999")]));
         let err = format!(
             "{:#}",
             expand(&scenario, &oa, &chars, &map, Modules::default()).unwrap_err()

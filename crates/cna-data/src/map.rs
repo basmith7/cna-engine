@@ -859,7 +859,8 @@ mod tests {
                 + m.edges().filter(|(_, _, hs)| hs.has(f)).count()
         };
         assert_eq!(count(HexsideFeature::Track), 1808);
-        assert_eq!(count(HexsideFeature::Road), 354);
+        // 355 with M-933's A2109|A2208.
+        assert_eq!(count(HexsideFeature::Road), 355);
         assert_eq!(count(HexsideFeature::Escarpment), 216);
     }
 

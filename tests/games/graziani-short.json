@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "41846835e0b207798d101e551b473d8c91a193b0",
+  "rules_commit": "eafa8a3e0f04b7bf4ecf40d74e25cc09c0060989",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -484,7 +484,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:27-nz",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -493,7 +493,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:4-nz-fld",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -746,6 +746,10 @@
       }
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": "pass"
     },
@@ -912,7 +916,7 @@
           "fires": [
             {
               "piece": "unit:it:1st-libyan-artillery-regt",
-              "points": 6,
+              "points": 5,
               "target": "unit:cw:3-cldgds"
             }
           ]

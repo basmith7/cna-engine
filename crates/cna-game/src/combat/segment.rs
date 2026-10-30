@@ -14,6 +14,8 @@ use crate::order::Order;
 use crate::piece::{Piece, PieceId, PieceKind, Reserve};
 use crate::state::{GameState, Pending};
 use cna_data::scenario::Side;
+use cna_rules::supply::Role;
+use std::collections::BTreeSet;
 
 impl GameState {
     /// Whether a piece of `side` on the map stands next to an enemy piece.
@@ -196,10 +198,32 @@ impl GameState {
             }
             Order::Barrage { fires } => {
                 self.check_barrage(data, player, fires)?;
+                // The plot binds once sealed: what it owes must be
+                // payable now (32.21); the debit comes at the roll.
+                let firers: Vec<PieceId> = fires
+                    .iter()
+                    .map(|f| f.piece.clone())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                let phasing = self.phasing() == Some(player);
+                self.plan_ammo(data, &firers, Role::Barrage, phasing)
+                    .refuse()?;
                 self.combat.plots.insert(player, fires.clone());
             }
             Order::AssignForces { assignments } => {
                 self.check_assignments(data, player, assignments)?;
+                // The attacker must be able to pay for what it commits
+                // to assault (32.21); defenders fight regardless.
+                if self.phasing() == Some(player) {
+                    let attackers: Vec<PieceId> = assignments
+                        .iter()
+                        .filter(|a| !a.close_assault.is_empty())
+                        .map(|a| a.piece.clone())
+                        .collect();
+                    self.plan_ammo(data, &attackers, Role::Assault, true)
+                        .refuse()?;
+                }
                 self.combat.assignments.insert(player, assignments.clone());
             }
             _ => unreachable!("matched by the caller"),
@@ -257,6 +281,15 @@ impl GameState {
                         .filter(|a| !a.anti_armour.is_empty() || !a.close_assault.is_empty())
                         .map(|a| a.piece.clone())
                         .collect();
+                    for a in assignments
+                        .iter()
+                        .filter(|a| a.close_assault.iter().any(|al| al.target.is_some()))
+                    {
+                        let p = self.pieces.get_mut(&a.piece).expect("assigned");
+                        if p.released.is_some() {
+                            p.released_assaulted = true;
+                        }
+                    }
                     events.push(Event::ForcesAssigned { side, assignments });
                     self.reserve_ii_dp(&active, events);
                 }
@@ -276,6 +309,8 @@ impl GameState {
     ) -> Result<Vec<Event>, Illegal> {
         self.pending = None;
         let mut events = Vec::new();
+        // R-138: a lone Rommel who did not retreat is taken now.
+        self.capture_lone_rommel(data, &[], &mut events);
         self.open_step(data, Segment::ForceAssignment, &mut events);
         Ok(events)
     }
@@ -677,6 +712,35 @@ mod tests {
     }
 
     #[test]
+    fn a_released_unit_that_has_assaulted_does_not_assault_again_this_stage_18_23() {
+        let data = graziani();
+        let mut state = at_sollum(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        let p = state.pieces.get_mut(&krrc).unwrap();
+        p.released = Some(Reserve::I);
+        p.released_assaulted = true;
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign("unit:cw:1-krrc", &[], &[(Some("C4020"), 3)])],
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "18.2x");
+    }
+
+    #[test]
     fn a_released_unit_assaults_once_and_reserve_ii_pays_a_dp() {
         let data = graziani();
         let mut state = at_sollum(&data);
@@ -732,6 +796,7 @@ mod tests {
                 },
             )
             .unwrap();
+        assert!(state.pieces[&pid("unit:cw:1-krrc")].released_assaulted);
         assert!(events.contains(&Event::Disorganised {
             piece: pid("unit:cw:1-krrc"),
             dp: 1,

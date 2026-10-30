@@ -31,6 +31,13 @@ enum Cmd {
         /// carry nothing and no motorisation points exist.
         #[arg(long)]
         no_abstract_supply: bool,
+        /// Play without the breakdown module (§21): vehicles never
+        /// break down.
+        #[arg(long)]
+        no_breakdown: bool,
+        /// Play without construction (§24): engineers build nothing.
+        #[arg(long)]
+        no_construction: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -150,11 +157,15 @@ fn main() -> Result<()> {
             scenario,
             seed,
             no_abstract_supply,
+            no_breakdown,
+            no_construction,
             output,
         } => {
             let data = Data::load(&scenario)?;
             let modules = Modules {
                 abstract_supply: !no_abstract_supply,
+                breakdown: !no_breakdown,
+                construction: !no_construction,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 pub enum Order {
     /// Set-up: put a pending piece on a hex (59.2).
     Place { piece: PieceId, hex: HexId },
+    /// Set-up: take back a piece this side placed, to wait again (59.2).
+    Unplace { piece: PieceId },
     /// Phase A: the initiative holder names who acts first this OpStage
     /// (7.1x).
     DeclareInitiative { player_a: Side },
@@ -27,6 +29,10 @@ pub enum Order {
         /// slice 5's.
         #[serde(default)]
         assault: bool,
+        /// The supply unit that pays the fuel (32.22); none takes the
+        /// nearest in range with fuel.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
     },
     /// The non-phasing player, offered a reaction (8.5x): some of the
     /// units offered move along `path`, never into an enemy ZOC. `Pass`
@@ -74,7 +80,80 @@ pub enum Order {
     /// Phase G: the movement segment is over (stacking is checked, 9.14),
     /// or from reserve release, another cycle begins (8.2x).
     EndSegment,
-    /// Nothing more this phase: ends F or G for the phasing player.
+    /// Phase C or the player's movement segment: `piece` attaches to `to`
+    /// in its hex, a CP each (19.4x).
+    Attach { piece: PieceId, to: PieceId },
+    /// Phase C or the player's movement segment: `piece` detaches from
+    /// the unit it is attached to, a CP each (19.4x).
+    Detach { piece: PieceId },
+    /// Phase C, abstract supply: the supply unit takes its motorisation
+    /// points (30 real, 6 dummy) from its hex's pool (32.31).
+    AttachMotorisation { piece: PieceId },
+    /// Phase C: the supply unit's points go back to its hex's pool.
+    DetachMotorisation { piece: PieceId },
+    /// Phase C: ammunition and fuel move between two supply units in one
+    /// hex (32.1x).
+    TransferLoad {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
+    /// Phase C, abstract supply: the player's once-a-Game-Turn air lift
+    /// of one supply unit to `to`, 12 fuel from `fuel_from` (none takes
+    /// the first at the origin with enough) (32.37).
+    AirLift {
+        piece: PieceId,
+        to: crate::piece::Location,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
+    /// A movement segment, before anything moves: the player's supply
+    /// units in `hex` are put to the torch, one die each (32.1x).
+    DestroySupply { hex: HexId },
+    /// Phase J, abstract supply: the Commonwealth's supply units ride the
+    /// railway hex by hex along `path` (8.7x, 32.3x).
+    Rail {
+        pieces: Vec<PieceId>,
+        path: Vec<HexId>,
+    },
+    /// Phase K: one field-repair roll for the player's broken-down
+    /// `weapon` in `hex` (22.2x); with abstract supply `fuel_from` pays a
+    /// fuel a point attempted (none takes the first in range).
+    Repair {
+        hex: HexId,
+        weapon: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
+    /// Phase H: `points` of the player's prisoners in `from` walk `path`
+    /// (28.13).
+    MarchPrisoners {
+        from: HexId,
+        path: Vec<HexId>,
+        points: u32,
+    },
+    /// Phase C: `builders` in `hex` begin building `item` (24.1x).
+    Build {
+        item: crate::construction::Item,
+        hex: HexId,
+        builders: Vec<PieceId>,
+    },
+    /// Phase C or the player's phase H: `points` of `piece`'s infantry
+    /// TOE points become guard points in its hex (28.21).
+    DetailGuards { piece: PieceId, points: u32 },
+    /// Phase C or the player's phase H: `points` of the guard points in
+    /// `piece`'s hex rejoin it as infantry TOE points (28.22).
+    ReleaseGuards { piece: PieceId, points: u32 },
+    /// Phase C: `piece` absorbs `points` of the player's repaired
+    /// `weapon` points waiting in its hex (19.61, 20.41).
+    Absorb {
+        piece: PieceId,
+        weapon: String,
+        points: u32,
+    },
+    /// Nothing more this phase: ends F or G for the phasing player, or
+    /// C for one player.
     Pass,
 }
 

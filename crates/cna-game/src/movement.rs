@@ -8,6 +8,7 @@ use crate::clock::{Phase, Segment};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, Piece, PieceId, PieceKind, Reserve};
+use crate::reach::Purpose;
 use crate::state::{GameState, Pending, Weather};
 use crate::zoc::Zoc;
 use cna_data::cp::Cp;
@@ -39,6 +40,9 @@ pub(crate) struct Mover {
     /// A combat unit is in it, so it may enter an enemy ZOC (10.29).
     pub(crate) combat: bool,
     pub(crate) break_off: bool,
+    /// Rommel alone, retreating: enemy ZOC neither stops nor holds him
+    /// and he pays no break-off (31.0).
+    pub(crate) free_of_zoc: bool,
     mobilities: Vec<Mobility>,
     pub(crate) pieces: Vec<PieceId>,
 }
@@ -66,10 +70,27 @@ impl GameState {
         }
     }
 
-    /// The CPA a piece moves on (6.1x): its printed allowance, or for an
-    /// HQ the slowest unit under it (its whole subtree, 6.15); none for a
-    /// printed 0, which cannot move on its own.
+    /// The CPA a piece moves on this stage: its `base_cpa` and what
+    /// Rommel lends it (R-137).
     pub(crate) fn cpa(&self, piece: &Piece) -> Option<u32> {
+        self.base_cpa(piece).map(|c| c + piece.rommel_cpa)
+    }
+
+    /// The CPA a piece has of its own (6.1x): its printed allowance, or
+    /// for an HQ the slowest unit attached to it, nested attachments
+    /// included (6.15); none for a printed 0, which cannot move on its
+    /// own. A supply unit moves on 15 with its motorisation points, else
+    /// not at all (32.5x). Whether a unit is motorised and 8.17's cap go
+    /// by this, not by Rommel's bonus (R-137).
+    pub(crate) fn base_cpa(&self, piece: &Piece) -> Option<u32> {
+        // The points carrying a supply unit move it at CPA 15 (32.5x).
+        if piece.kind.is_supply() {
+            return (self.modules.abstract_supply && piece.motorised > 0 && !piece.flown)
+                .then_some(15);
+        }
+        if let Some(cpa) = self.riding_cpa(piece) {
+            return Some(cpa);
+        }
         let own = piece.cpa.as_ref()?.value?;
         let mut cpa = own;
         if piece.kind == PieceKind::Hq
@@ -78,10 +99,13 @@ impl GameState {
             let mut heads = vec![unit];
             while let Some(head) = heads.pop() {
                 for q in self.pieces.values() {
-                    if q.parent.as_ref() != Some(&head) {
+                    if q.attached_to.as_ref() != Some(&head) {
                         continue;
                     }
-                    if let Some(v) = q.cpa.as_ref().and_then(|r| r.value)
+                    if let Some(v) = self
+                        .riding_cpa(q)
+                        .map(|c| c as i32)
+                        .or_else(|| q.cpa.as_ref().and_then(|r| r.value))
                         && v > 0
                     {
                         cpa = cpa.min(v);
@@ -95,10 +119,67 @@ impl GameState {
         (cpa > 0).then_some(u32::try_from(cpa).unwrap_or(0))
     }
 
+    /// Enemy units at cohesion −26 or worse next to `at` surrender when
+    /// a combat piece of `pieces` comes alongside, whatever its size
+    /// (6.26, R-001).
+    pub(crate) fn surrender_collapsed(
+        &mut self,
+        data: &Data,
+        pieces: &[PieceId],
+        at: &HexId,
+        events: &mut Vec<Event>,
+    ) {
+        let Some(side) = pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .find(|p| p.kind == PieceKind::Combat)
+            .map(|p| p.side)
+        else {
+            return;
+        };
+        let near = data.map.neighbours(at);
+        let gone: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side != side
+                    && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                    && p.cohesion.collapsed(&self.ruleset)
+                    && p.hex().is_some_and(|h| near.contains(h))
+            })
+            .map(|p| p.id.clone())
+            .collect();
+        if gone.is_empty() {
+            return;
+        }
+        let prisoners = self.prisoner_points(data, &gone);
+        for id in &gone {
+            let toe = self.pieces[id].toe;
+            self.take_loss(id, toe, events);
+        }
+        events.push(Event::Surrendered { pieces: gone });
+        self.capture_prisoners(data, side, at, prisoners, events);
+    }
+
+    /// A foot unit on its motorisation points moves as medium trucks:
+    /// 20 carrying infantry, 15 a gun (R-123).
+    fn riding_cpa(&self, piece: &Piece) -> Option<u32> {
+        if !self.modules.abstract_supply {
+            return None;
+        }
+        crate::organisation::riding(piece).map(|c| {
+            if c == cna_rules::supply::Carrying::Gun {
+                15
+            } else {
+                20
+            }
+        })
+    }
+
     /// How a piece moves on the chart: foot at CPA 10 or less (8.1x),
     /// recce by its characteristics row, any other vehicle.
     pub(crate) fn mobility(&self, data: &Data, piece: &Piece) -> Mobility {
-        if self.cpa(piece).is_none_or(|c| c <= 10) {
+        if self.base_cpa(piece).is_none_or(|c| c <= 10) {
             return Mobility::Foot;
         }
         let recce = piece
@@ -161,6 +242,30 @@ impl GameState {
                 ));
             }
         }
+        // In the movement segment a supply unit goes only with a friendly
+        // combat unit, which it starts and ends stacked with (32.31): both
+        // unmoved this segment, or one it has moved with.
+        let kind = |id: &PieceId| self.pieces[id].kind;
+        let escorted = |s: &PieceId| {
+            pieces.iter().any(|c| {
+                kind(c) == PieceKind::Combat
+                    && if self.moved.contains(s) {
+                        self.escorts.get(s).is_some_and(|e| e.contains(c))
+                    } else {
+                        !self.moved.contains(c)
+                    }
+            })
+        };
+        if phasing
+            && pieces
+                .iter()
+                .any(|id| kind(id).is_supply() && !escorted(id))
+        {
+            return Err(Illegal::new(
+                "32.31",
+                "a supply unit moves in the movement segment only with a friendly combat unit it started the segment with",
+            ));
+        }
         Ok(from.expect("at least one piece"))
     }
 
@@ -168,11 +273,30 @@ impl GameState {
     pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
             PieceKind::Combat | PieceKind::Hq => {}
+            PieceKind::Commander => {
+                if self.rommel_recalled {
+                    return Err(Illegal::new(
+                        "31.0",
+                        format!("{}: Rommel is in Germany this Game-Turn", p.id),
+                    ));
+                }
+            }
             PieceKind::SupplyUnit | PieceKind::DummySupplyUnit => {
-                return Err(Illegal::new(
-                    "32.x",
-                    format!("{}: supply units are inert in this mission", p.id),
-                ));
+                if !self.modules.abstract_supply {
+                    return Err(Illegal::new(
+                        "32.x",
+                        format!("{}: supply units are inert without abstract supply", p.id),
+                    ));
+                }
+                if p.motorised == 0 {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!(
+                            "{}: a supply unit moves only with its motorisation points",
+                            p.id
+                        ),
+                    ));
+                }
             }
         }
         if self.cpa(p).is_none() {
@@ -233,34 +357,37 @@ impl GameState {
         from: &HexId,
         path: &[HexId],
     ) -> Result<Plan, Illegal> {
-        self.plan_with(data, pieces, from, path, false)
+        self.plan_with(data, pieces, from, path, Purpose::Move)
     }
 
-    /// `plan`, where `forced` lets a stack leave an enemy ZOC it entered
-    /// this segment: a forced retreat (15.82) is no voluntary move.
+    /// `plan` for a `purpose`: a forced retreat may leave an enemy ZOC it
+    /// entered this segment, being no voluntary move (15.82), a reaction
+    /// the ZOC the mover brought to it (R-139), and Rommel retreating
+    /// alone ignores enemy ZOC (31.0).
     pub(crate) fn plan_with(
         &self,
         data: &Data,
         pieces: &[PieceId],
         from: &HexId,
         path: &[HexId],
-        forced: bool,
+        purpose: Purpose,
     ) -> Result<Plan, Illegal> {
         if path.is_empty() {
             return Err(Illegal::new("8.1x", "an empty path"));
         }
-        let mover = self.mover(data, pieces);
+        let may_leave = matches!(purpose, Purpose::ForcedRetreat | Purpose::React);
+        let mover = self.mover(data, pieces, purpose);
         let mut plan = Plan {
             break_off: mover.break_off,
             ..Plan::default()
         };
-        let mut at_in_zoc = match self.start(data, &mover, from, forced)? {
+        let mut at_in_zoc = match self.start(data, &mover, from, may_leave)? {
             Start::In(in_zoc) => in_zoc,
             Start::Undeclared(hexes) => {
                 // The first step is checked before the move is parked on
                 // the declaration: an order that could never be taken is
                 // refused, not logged (8.1x).
-                self.entry(data, mover.side, from, &path[0])?;
+                self.entry(data, &mover, from, &path[0])?;
                 plan.interrupt = Some((path[0].clone(), hexes));
                 return Ok(plan);
             }
@@ -293,8 +420,15 @@ impl GameState {
         Ok(plan)
     }
 
-    /// The fixed facts about a stack a plan prices.
-    pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId]) -> Mover {
+    /// The fixed facts about a stack a plan for `purpose` prices.
+    pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId], purpose: Purpose) -> Mover {
+        let free_of_zoc = matches!(
+            purpose,
+            Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat
+        ) && !self.rommel_recalled
+            && pieces
+                .iter()
+                .all(|id| self.pieces[id].kind == PieceKind::Commander);
         Mover {
             side: self.pieces[&pieces[0]].side,
             combat: pieces
@@ -304,9 +438,11 @@ impl GameState {
             // (8.6x). Contact only exists in an enemy ZOC; an engaged
             // unit need not be in one, so this is the pieces' state, not
             // the hex's.
-            break_off: pieces
-                .iter()
-                .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            break_off: !free_of_zoc
+                && pieces
+                    .iter()
+                    .any(|id| self.pieces[id].contact || self.pieces[id].engaged),
+            free_of_zoc,
             mobilities: pieces
                 .iter()
                 .map(|id| self.mobility(data, &self.pieces[id]))
@@ -319,18 +455,22 @@ impl GameState {
     /// is stopped (10.22), unless another friendly combat unit there
     /// cancels the ZOC (10.26), as it did when the stack entered; next
     /// to enemy units that have not said whether they exert one, the
-    /// move waits (10.16).
+    /// move waits (10.16). `may_leave` lets a forced retreat or a
+    /// reaction go without breaking off.
     pub(crate) fn start(
         &self,
         data: &Data,
         mover: &Mover,
         from: &HexId,
-        forced: bool,
+        may_leave: bool,
     ) -> Result<Start, Illegal> {
+        if mover.free_of_zoc {
+            return Ok(Start::In(false));
+        }
         Ok(match self.zoc_at(data, from, mover.side) {
             Zoc::Exerts => {
                 let cancelled = self.friendly_combat_in(from, mover.side, &mover.pieces);
-                if !mover.break_off && !cancelled && !forced {
+                if !mover.break_off && !cancelled && !may_leave {
                     return Err(Illegal::new(
                         "10.2x",
                         format!(
@@ -360,7 +500,7 @@ impl GameState {
         to: &HexId,
         at_in_zoc: bool,
     ) -> Result<(Cp, Zoc), Illegal> {
-        let hex = self.entry(data, mover.side, at, to)?;
+        let hex = self.entry(data, mover, at, to)?;
         let hexside = data.map.hexside(at, to);
         let step = Step {
             from: data.map.hex(at).expect("on the map"),
@@ -372,7 +512,11 @@ impl GameState {
         let mut cost = Cp::ZERO;
         for (id, m) in mover.pieces.iter().zip(&mover.mobilities) {
             match step_cost(&data.terrain, *m, &step) {
-                Ok(c) => cost = cost.max(c),
+                Ok(c) => {
+                    let mines =
+                        self.minefield_cost(data, mover.side, &mover.pieces, id, m.motorised(), to);
+                    cost = cost.max(c + mines);
+                }
                 Err(p) => {
                     return Err(Illegal::new(
                         p.case,
@@ -381,7 +525,7 @@ impl GameState {
                 }
             }
         }
-        let zoc = if self.friendly_combat_in(to, mover.side, &mover.pieces) {
+        let zoc = if mover.free_of_zoc || self.friendly_combat_in(to, mover.side, &mover.pieces) {
             Zoc::Clear
         } else {
             self.zoc_at(data, to, mover.side)
@@ -405,16 +549,18 @@ impl GameState {
         Ok((cost, zoc))
     }
 
-    /// Whether a unit of `side` may step from `at` into `to` at all
-    /// (8.1x): on the map, adjacent, not an enemy-held hex, and east of
+    /// Whether the stack may step from `at` into `to` at all (8.1x): on
+    /// the map, adjacent, not an enemy-held hex (a combat unit may enter
+    /// one of lone enemy supply, capturing it, 32.1x), and east of
     /// Marble Arch for the Commonwealth. The terrain is the chart's.
     fn entry<'a>(
         &self,
         data: &'a Data,
-        side: Side,
+        mover: &Mover,
         at: &HexId,
         to: &HexId,
     ) -> Result<&'a cna_data::map::Hex, Illegal> {
+        let side = mover.side;
         let Some(hex) = data.map.hex(to) else {
             return Err(Illegal::new("8.1x", format!("{to}: not on the map")));
         };
@@ -424,11 +570,13 @@ impl GameState {
                 format!("{to} is not adjacent to {at}"),
             ));
         }
-        if let Some(enemy) = self
-            .pieces
-            .values()
-            .find(|q| q.side != side && q.hex() == Some(to))
-        {
+        let enemies: Vec<&Piece> = self
+            .pieces_at(to)
+            .into_iter()
+            .filter(|q| q.side != side)
+            .collect();
+        let capturable = mover.combat && enemies.iter().all(|q| q.kind.is_supply());
+        if let Some(enemy) = enemies.first().filter(|_| !capturable) {
             return Err(Illegal::new(
                 "8.1x",
                 format!("{to} holds the enemy unit {}", enemy.id),
@@ -460,7 +608,9 @@ impl GameState {
             p.cp_enemy_half += cost;
         }
         let dp = p.cp_spent.saturating_sub(cpa).floor() - before;
-        if dp > 0 {
+        // Supply units have no cohesion to lose (32.1x: no combat value).
+        let supply = p.kind.is_supply();
+        if dp > 0 && !supply {
             p.cohesion.earn_dp(dp);
             events.push(Event::Disorganised {
                 piece: id.clone(),
@@ -478,6 +628,30 @@ impl GameState {
         player: Side,
         pieces: &[PieceId],
     ) -> Result<(HexId, bool), Illegal> {
+        if self.clock.phase == Phase::TruckConvoy && self.modules.abstract_supply {
+            // The truck convoy phase moves supply units alone, and only
+            // those that did not move in G (32.31).
+            for id in pieces {
+                let p = self
+                    .pieces
+                    .get(id)
+                    .ok_or_else(|| Illegal::new("32.31", format!("no piece {id}")))?;
+                if !p.kind.is_supply() {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id}: only supply units move in the truck convoy phase"),
+                    ));
+                }
+                if p.escorted {
+                    return Err(Illegal::new(
+                        "32.31",
+                        format!("{id} moved in the movement and combat phase: not again in H"),
+                    ));
+                }
+            }
+            let from = self.moving_stack(player, pieces, false)?;
+            return Ok((from, false));
+        }
         if self.clock.phase != Phase::MovementCombat
             || self.clock.segment != Some(Segment::Movement)
         {
@@ -508,6 +682,30 @@ impl GameState {
         }
     }
 
+    /// Breaking off before a stack leaves an enemy ZOC (8.6x): each piece
+    /// pays its own cost, in the enemy's half when `enemy_half`, and is
+    /// out of contact.
+    pub(crate) fn pay_break_off(
+        &mut self,
+        pieces: &[PieceId],
+        enemy_half: bool,
+        events: &mut Vec<Event>,
+    ) {
+        for id in pieces {
+            let cost = Self::break_off_cost(&self.pieces[id]);
+            if cost > Cp::ZERO {
+                events.push(Event::ContactBroken {
+                    piece: id.clone(),
+                    cost,
+                });
+                self.charge(id, cost, enemy_half, events);
+            }
+            let p = self.pieces.get_mut(id).expect("checked");
+            p.contact = false;
+            p.engaged = false;
+        }
+    }
+
     /// `Order::Move`: the stack walks `path` in the phasing player's
     /// movement segment.
     pub(crate) fn move_pieces(
@@ -517,9 +715,22 @@ impl GameState {
         pieces: &[PieceId],
         path: &[HexId],
         assault: bool,
+        fuel_from: Option<&PieceId>,
     ) -> Result<Vec<Event>, Illegal> {
+        let pieces = &self.carried(pieces)?;
         let (from, shift) = self.stack_to_move(player, pieces)?;
         let mut plan = self.plan(data, pieces, &from, path)?;
+        // Supply stacking binds where the move ends (32.1x).
+        let supply = pieces
+            .iter()
+            .filter(|id| self.pieces[*id].kind.is_supply())
+            .count();
+        if supply > 0
+            && let Some(end) = path.last()
+            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, supply)
+        {
+            return Err(e);
+        }
         if shift {
             // A Reserve I unit shifts one hex a segment, free, never into
             // an enemy ZOC (18.2x).
@@ -576,61 +787,95 @@ impl GameState {
                 ));
             }
         }
+        let payments = if plan.steps.is_empty() {
+            Vec::new()
+        } else {
+            self.plan_fuel(data, pieces, total, fuel_from)?
+        };
         let mut events = Vec::new();
+        self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off && !plan.steps.is_empty() {
-            for id in pieces {
-                let cost = break_off(&self.pieces[id]);
-                if cost > Cp::ZERO {
-                    events.push(Event::ContactBroken {
-                        piece: id.clone(),
-                        cost,
-                    });
-                    self.charge(id, cost, false, &mut events);
-                }
-                let p = self.pieces.get_mut(id).expect("checked");
-                p.contact = false;
-                p.engaged = false;
-            }
+            self.pay_break_off(pieces, false, &mut events);
         }
         let combat = pieces
             .iter()
             .any(|id| self.pieces[id].kind == PieceKind::Combat);
         let mut at = from.clone();
         let mut reaction = None;
+        let storm =
+            crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
                 self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
             }
+            self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {
                 pieces: pieces.to_vec(),
-                from: at,
+                from: at.clone(),
                 to: to.clone(),
                 cost,
             });
             for id in pieces {
                 self.charge(id, cost, false, &mut events);
             }
-            at = to;
+            self.capture_supply_entered(pieces, &to, &mut events);
+            self.capture_wrecks(data, pieces, &to, &mut events);
+            self.mine_rolls(data, pieces, &to, &mut events);
+            if let Some(side) = pieces.first().map(|id| self.pieces[id].side) {
+                self.reveal_minefield(side, &to, &mut events);
+            }
+            self.surrender_collapsed(data, pieces, &to, &mut events);
+            self.free_prisoners(data, pieces, &to, &mut events);
+            let left = std::mem::replace(&mut at, to);
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.
             if combat {
-                let eligible = self.reactors_next_to(data, &at, pieces, assault);
+                let eligible = self.reactors_next_to(data, &at, &left, pieces, assault);
+                self.capture_lone_rommel(data, &eligible, &mut events);
+                // R-138: Rommel offered a reaction stands in the mover's
+                // ZOC, so in contact: he pays to break off if he goes.
+                for id in &eligible {
+                    let p = self.pieces.get_mut(id).expect("offered");
+                    if p.kind == PieceKind::Commander {
+                        p.contact = true;
+                    }
+                }
                 if !eligible.is_empty() {
                     reaction = Some(eligible);
                     break;
                 }
             }
         }
+        // The stack stops, for good or for an answer: a breakdown check
+        // (21.2x).
+        self.check_breakdown(data, pieces, storm, &from, &mut events);
         if at != from {
             self.moved.extend(pieces.iter().cloned());
             self.release_contact_around(data, &from, player);
             if shift {
                 self.shifted.extend(pieces.iter().cloned());
             }
+            let in_g = self.clock.phase == Phase::MovementCombat;
+            let combat: Vec<PieceId> = pieces
+                .iter()
+                .filter(|id| self.pieces[*id].kind == PieceKind::Combat)
+                .cloned()
+                .collect();
             for id in pieces {
-                self.pieces.get_mut(id).expect("checked").landed = false;
+                if in_g && self.pieces[id].kind.is_supply() {
+                    self.escorts
+                        .entry(id.clone())
+                        .or_default()
+                        .extend(combat.iter().cloned());
+                }
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.landed = false;
+                // A supply unit moves in G or in H, not both (32.31).
+                p.escorted |= in_g && p.kind.is_supply();
             }
         }
+        // A stack its own breakdown check destroyed draws no reaction.
+        let reaction = reaction.filter(|_| pieces.iter().any(|id| self.pieces[id].hex().is_some()));
         if let Some(eligible) = reaction {
             events.push(Event::ReactionOffered {
                 pieces: eligible.clone(),
@@ -699,6 +944,7 @@ pub(crate) mod test_support {
             pieces: pieces.iter().map(|s| pid(s)).collect(),
             path: path(p),
             assault: false,
+            fuel_from: None,
         }
     }
 }
@@ -750,6 +996,64 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "6.26");
         assert_eq!(snapshot(&state), before);
+    }
+
+    /// A Libyan battalion moved next to C3924 and away from C3922 and
+    /// C3923, at cohesion `level`; 1 KRRC then walks C3923, C3924.
+    fn krrc_comes_alongside(
+        level: i32,
+    ) -> (
+        GameState,
+        PieceId,
+        Result<Vec<Event>, crate::event::Illegal>,
+    ) {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let near = |h: &str| data.map.neighbours(&hex(h));
+        let spot = near("C3924")
+            .into_iter()
+            .find(|h| {
+                !near("C3923").contains(h)
+                    && !near("C3922").contains(h)
+                    && *h != hex("C3922")
+                    && *h != hex("C3923")
+                    && state.holder(h).is_none()
+            })
+            .unwrap();
+        let bn = pid("unit:it:viii-libyan-bn");
+        let p = state.pieces.get_mut(&bn).unwrap();
+        p.location = Location::Hex(spot);
+        p.cohesion.level = level;
+        let r = state.apply(
+            &data,
+            Side::Cw,
+            mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]),
+        );
+        (state, bn, r)
+    }
+
+    #[test]
+    fn a_collapsed_unit_surrenders_to_any_enemy_coming_alongside_6_26() {
+        let (state, bn, r) = krrc_comes_alongside(-26);
+        let events = r.unwrap();
+        assert!(
+            events.contains(&Event::Surrendered {
+                pieces: vec![bn.clone()]
+            }),
+            "{events:?}"
+        );
+        assert_eq!(state.pieces[&bn].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn a_unit_above_minus_26_does_not_6_26() {
+        let (state, bn, r) = krrc_comes_alongside(-25);
+        let surrendered = r
+            .iter()
+            .flatten()
+            .any(|e| matches!(e, Event::Surrendered { .. }));
+        assert!(!surrendered);
+        assert_ne!(state.pieces[&bn].location, Location::Eliminated);
     }
 
     #[test]
@@ -848,6 +1152,7 @@ mod tests {
                     pieces: vec![PieceId::supply(Side::Cw, 1)],
                     path: path(&["C3923"]),
                     assault: false,
+                    fuel_from: None,
                 },
                 "32.x",
             ),
@@ -920,6 +1225,7 @@ mod tests {
         assert_eq!(state.cpa(&state.pieces[&hq]), Some(10));
         assert_eq!(state.mobility(&data, &state.pieces[&hq]), Mobility::Foot);
         let tanks = pid("unit:it:lxiil-tank-bn");
+        state.stand_alone(&tanks);
         assert_eq!(state.pieces[&tanks].hex(), Some(&hex("C3918")));
         assert_eq!(
             state.mobility(&data, &state.pieces[&tanks]),
@@ -946,7 +1252,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let hus = pid("unit:cw:11-hus");
-        state.pieces.get_mut(&hus).unwrap().location = Location::Hex(hex("A2110"));
+        state.put(&hus, Location::Hex(hex("A2110")));
         let before = snapshot(&state);
         let err = state
             .apply(
@@ -1039,7 +1345,7 @@ mod tests {
         // 1 KRRC (foot) at C0633 (rough) crosses the seam slope to D0701
         // (clear), the higher hex: 2 + 2 up; back is 3 + 1 down.
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C0633"));
+        state.put(&krrc, Location::Hex(hex("C0633")));
         let events = state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["D0701"]))
             .unwrap();
@@ -1060,14 +1366,14 @@ mod tests {
         // into E2301, the higher hex (8.4x); by the coast road across
         // C4033|D4001 it pays the road rate, ½.
         let med = pid("unit:cw:7-med");
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("D2233"));
+        state.put(&med, Location::Hex(hex("D2233")));
         let before = snapshot(&state);
         let err = state
             .apply(&data, Side::Cw, mv(&["unit:cw:7-med"], &["E2301"]))
             .unwrap_err();
         assert_eq!(err.case, "8.4x");
         assert_eq!(snapshot(&state), before);
-        state.pieces.get_mut(&med).unwrap().location = Location::Hex(hex("C4033"));
+        state.put(&med, Location::Hex(hex("C4033")));
         let events = state
             .apply(&data, Side::Cw, mv(&["unit:cw:7-med"], &["D4001"]))
             .unwrap();
@@ -1116,7 +1422,7 @@ mod tests {
         // that is not even adjacent is refused outright, not parked on
         // the declaration.
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("C4021"));
+        state.put(&krrc, Location::Hex(hex("C4021")));
         assert!(matches!(
             state.zoc_at(&data, &hex("C4021"), Side::Cw),
             Zoc::Undeclared(_)

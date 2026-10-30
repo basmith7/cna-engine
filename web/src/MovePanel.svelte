@@ -3,13 +3,19 @@
   // now, from the engine's `reachable`; the assault toggle; the custom
   // path shift-clicks build; and the key to the overlay. The engine's
   // refusal is shown as it is when the stack cannot move at all.
-  import { cpLabel, OFF_MAP_PLACES } from "./moves";
-  import type { HexId, Illegal, OffMapPlace, PieceId, Purpose, Reach } from "./types";
+  import { label } from "./counters";
+  import { attachmentOrder, cpLabel, OFF_MAP_PLACES } from "./moves";
+  import { fuelSummary, sourceLabel } from "./supply";
+  import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, View } from "./types";
 
   let {
+    view,
     purpose,
     ticked,
     reaches,
+    fuelSources = [],
+    fuelPick = $bindable(null),
+    hovered = null,
     refusal,
     assault = $bindable(false),
     custom,
@@ -18,10 +24,18 @@
     onsend,
     onclear,
     onoffmap,
+    onorder,
   }: {
+    view: View;
     purpose: Purpose;
     ticked: PieceId[];
     reaches: Reach[];
+    /** Abstract supply: the supply units that could pay the stack's fuel (32.17). */
+    fuelSources?: PieceId[];
+    /** The one the player picked to pay; null lets the engine take the nearest. */
+    fuelPick?: PieceId | null;
+    /** The hex under the pointer, for its CP and fuel. */
+    hovered?: HexId | null;
     refusal: Illegal | null;
     assault?: boolean;
     custom: HexId[];
@@ -32,14 +46,19 @@
     onsend: () => void;
     onclear: () => void;
     onoffmap: (to: OffMapPlace) => void;
+    /** Attach or detach a ticked unit in a box, which has no stack panel (19.4x). */
+    onorder?: (o: Order) => void;
   } = $props();
 
-  const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat" };
+  const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat", rail: "Rail" };
   const title = $derived(TITLES[purpose]);
   const shorts = $derived(reaches.filter((r) => r.short > 0).length);
   const zocStops = $derived(reaches.filter((r) => r.ends_in_zoc).length);
   const maybe = $derived(reaches.filter((r) => r.may_be_interrupted).length);
   const dearest = $derived(reaches.reduce((m, r) => Math.max(m, r.cp), 0));
+  const fuel = $derived(fuelSummary(reaches));
+  const under = $derived(hovered ? reaches.find((r) => r.hex === hovered) : undefined);
+  const nameOf = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
 </script>
 
 <section class="panel" data-testid="move-panel" data-purpose={purpose}>
@@ -51,7 +70,29 @@
   {:else if !onMap && !offMap}
     <p class="refusal" data-testid="move-refusal">The ticked pieces are not all in one place.</p>
   {:else if onMap}
-    <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
+    {#if purpose === "rail"}
+      <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} along the railway, no CP or fuel. Click one to go there.</p>
+    {:else}
+      <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
+    {/if}
+    {#if fuel}
+      <div class="fuel" data-testid="fuel">
+        <p>Fuel owed (32.22): <span data-testid="fuel-owed">{fuel}</span>{#if under}, <span data-testid="fuel-hovered">{under.fuel} to {under.hex}</span>{/if}.</p>
+        {#if fuelSources.length === 0}
+          <p class="refusal" data-testid="fuel-none">No supply unit in range has fuel: a move that owes some is refused.</p>
+        {:else}
+          <label>
+            Paid by
+            <select bind:value={fuelPick} data-testid="fuel-from">
+              <option value={null}>the nearest in range</option>
+              {#each fuelSources as id (id)}
+                <option value={id}>{sourceLabel(view, id, nameOf)}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+      </div>
+    {/if}
     {#if purpose === "move"}
       <label class="assault">
         <input type="checkbox" bind:checked={assault} data-testid="assault" />
@@ -74,6 +115,16 @@
           <button type="button" data-to={place} onclick={() => onoffmap(place)}>{name}</button>
         {/each}
       </p>
+      {#if onorder}
+        <p class="buttons">
+          {#each ticked as id (id)}
+            {@const order = view.pieces[id] ? attachmentOrder(view, view.pieces[id]) : null}
+            {#if order}
+              <button type="button" data-order={"detach" in order ? "detach" : "attach"} data-unit={id} title="A CP from the unit and its parent (19.4x)" onclick={() => onorder(order)}>{"detach" in order ? "Detach" : "Attach"} {label(view.pieces[id]).short}</button>
+            {/if}
+          {/each}
+        </p>
+      {/if}
     </div>
   {/if}
   <div class="custom" data-testid="custom">
@@ -116,6 +167,13 @@
   }
   .refusal {
     color: #a4161a;
+  }
+  .fuel {
+    margin: 0.2rem 0 0.3rem;
+  }
+  .fuel select {
+    font: inherit;
+    max-width: 100%;
   }
   .assault {
     display: block;

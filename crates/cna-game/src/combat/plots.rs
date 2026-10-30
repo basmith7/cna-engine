@@ -278,14 +278,23 @@ impl GameState {
                     self.assault_target(data, p, &from, h)?;
                 }
             }
-            // A unit released from reserve makes one assault at most
-            // (18.2x).
+            // A unit released from reserve makes one assault at most for
+            // the rest of the stage (18.23, 18.24).
             if let Some(released) = p.released {
                 let targets: BTreeSet<&HexId> = a
                     .close_assault
                     .iter()
                     .filter_map(|al| al.target.as_ref())
                     .collect();
+                if p.released_assaulted && !targets.is_empty() {
+                    return Err(Illegal::new(
+                        "18.2x",
+                        format!(
+                            "{} was released from Reserve {} and has made its one close assault this stage",
+                            a.piece, released
+                        ),
+                    ));
+                }
                 if targets.len() > 1 {
                     return Err(Illegal::new(
                         "18.2x",
@@ -564,6 +573,52 @@ mod tests {
             .check_assignments(&data, Side::Cw, &[assignment()])
             .unwrap_err();
         assert_eq!(err.case, "6.26");
+    }
+
+    fn assault_c4020(piece: &PieceId) -> Assignment {
+        Assignment {
+            piece: piece.clone(),
+            anti_armour: vec![],
+            close_assault: vec![Allocation {
+                target: Some(hex("C4020")),
+                points: 1,
+            }],
+        }
+    }
+
+    #[test]
+    fn a_piece_with_no_toe_points_may_not_be_assigned() {
+        // 15.1x: only TOE points are committed; a supply unit has none.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_sollum(&data);
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::SupplyUnit)
+            .map(|p| p.id.clone())
+            .expect("a Commonwealth supply unit");
+        state.pieces.get_mut(&supply).unwrap().location = crate::piece::Location::Hex(hex("C4021"));
+        let err = state
+            .check_assignments(&data, Side::Cw, &[assault_c4020(&supply)])
+            .unwrap_err();
+        assert_eq!(err.case, "15.1x");
+    }
+
+    #[test]
+    fn a_unit_that_retreated_before_assault_may_not_be_assigned() {
+        // 13.28: a unit that retreated before assault adds nothing this
+        // segment.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_sollum(&data);
+        let krrc = pid("unit:cw:1-krrc");
+        state
+            .check_assignments(&data, Side::Cw, &[assault_c4020(&krrc)])
+            .unwrap();
+        state.combat.retreated.insert(krrc.clone());
+        let err = state
+            .check_assignments(&data, Side::Cw, &[assault_c4020(&krrc)])
+            .unwrap_err();
+        assert_eq!(err.case, "13.28");
     }
 
     #[test]

@@ -36,6 +36,8 @@ pub enum Event {
         holder: Side,
         rolled: bool,
     },
+    /// A 12 on 31.0's roll: Rommel is in Germany this Game-Turn.
+    RommelRecalled,
     /// Who is Player A this OpStage.
     InitiativeDeclared {
         player_a: Side,
@@ -46,6 +48,10 @@ pub enum Event {
     Placed {
         piece: PieceId,
         hex: HexId,
+    },
+    /// A placed piece taken back to wait again (59.2).
+    Unplaced {
+        piece: PieceId,
     },
     /// Every piece is on the map; play begins.
     SetUpComplete,
@@ -196,6 +202,128 @@ pub enum Event {
         points: u32,
         toe: u32,
     },
+    /// A supply unit paid fuel for a piece's land move (32.22).
+    FuelSpent {
+        piece: PieceId,
+        from: PieceId,
+        fuel: u32,
+    },
+    /// A supply unit paid ammunition for a piece's fire or assault
+    /// (32.21).
+    AmmunitionSpent {
+        piece: PieceId,
+        from: PieceId,
+        ammo: u32,
+    },
+    /// A committed defender that no supply unit in range could pay is
+    /// out of ammunition and does not defend (32.21, R-120).
+    AmmunitionShort {
+        piece: PieceId,
+    },
+    /// A supply unit with no ammunition and no fuel left was removed
+    /// (32.1x).
+    SupplyUnitSpent {
+        piece: PieceId,
+    },
+    /// A supply unit its own side destroyed (32.1x).
+    SupplyDestroyed {
+        piece: PieceId,
+    },
+    /// A breakdown check (21.3x): `points` of `weapon` broke down on a
+    /// reading of `reading` at `percent` %.
+    BrokeDown {
+        piece: PieceId,
+        weapon: String,
+        reading: u8,
+        percent: u32,
+        points: u32,
+    },
+    /// A battalion took the enemy's broken-down vehicles at `hex` (21.5x).
+    WrecksCaptured {
+        by: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// A field-repair roll (22.2x): `repaired` of `attempted` points of
+    /// `weapon` at `hex` come back as replacement points.
+    FieldRepaired {
+        hex: HexId,
+        weapon: String,
+        attempted: u32,
+        die: u8,
+        repaired: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
+    /// A supply unit flown in phase C, `fuel_from` paying 12 fuel (32.37).
+    AirLifted {
+        piece: PieceId,
+        from: crate::piece::Location,
+        to: crate::piece::Location,
+        fuel_from: PieceId,
+    },
+    /// Supply units ran along the railway (8.7x, 32.3x).
+    Railed {
+        pieces: Vec<PieceId>,
+        from: HexId,
+        to: HexId,
+    },
+    /// A unit merged into another's counter, or standing on its own
+    /// again (19.4x).
+    Attached {
+        piece: PieceId,
+        to: PieceId,
+    },
+    Detached {
+        piece: PieceId,
+        from: PieceId,
+    },
+    /// Motorisation points attached to a supply unit (32.31).
+    MotorisationAttached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// A supply unit's motorisation points back in its hex's pool.
+    /// The Commonwealth bombed an Axis convoy on `lane` (32.6x): the
+    /// lowest `bomb_points` of the chart's band for its westernmost
+    /// division HQ, the two dice read in order, the percentage lost and
+    /// the supply units `sunk` of the `units` aboard.
+    ConvoyBombed {
+        lane: u8,
+        bomb_points: u32,
+        reading: u8,
+        percent: u32,
+        units: u32,
+        sunk: u32,
+    },
+    /// A planning roll (32.4x): `units` real supply units for `side`
+    /// arriving in Game-Turn `arrives`.
+    SupplyPlanned {
+        side: Side,
+        die: u8,
+        units: u32,
+        arrives: u8,
+    },
+    /// The month's abstract motorisation losses (32.5x): `percent` of
+    /// the side's `of` points, `points` removed from the pools of its
+    /// rear map (E, or A and the boxes).
+    MotorisationLost {
+        side: Side,
+        percent: u32,
+        of: u32,
+        points: u32,
+    },
+    MotorisationDetached {
+        piece: PieceId,
+        points: u32,
+    },
+    /// Ammunition and fuel moved between supply units in one hex (32.1x).
+    LoadTransferred {
+        from: PieceId,
+        to: PieceId,
+        ammo: u32,
+        fuel: u32,
+    },
     /// A piece whose last TOE point went.
     Eliminated {
         piece: PieceId,
@@ -217,10 +345,111 @@ pub enum Event {
         cp: Cp,
         dp: u32,
     },
-    /// A non-combat unit alone in an enemy ZOC was taken (10.29).
+    /// A non-combat unit alone in an enemy ZOC was taken (10.29), or a
+    /// supply unit alone in a hex an enemy combat unit entered (32.1x).
     Captured {
         piece: PieceId,
         hex: HexId,
+    },
+    /// Prisoner points taken by `side` (the captor), standing in `hex`
+    /// (28.11).
+    PrisonersTaken {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
+    /// `side`'s prisoners marched along `path` (28.13).
+    PrisonersMarched {
+        side: Side,
+        path: Vec<HexId>,
+        points: u32,
+        cp: Cp,
+    },
+    /// `side`'s prisoners left the map for the Tripolitania box, which
+    /// they reach after `stages` more of the captor's phase Hs (R-132).
+    PrisonersLeftMap {
+        side: Side,
+        points: u32,
+        stages: u8,
+    },
+    /// `side`'s prisoners left play at a departure hex (28.15).
+    PrisonersGone {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
+    /// `side`'s `builders` began `item` in `hex` (24.1x).
+    ConstructionBegun {
+        side: Side,
+        item: crate::construction::Item,
+        hex: HexId,
+        builders: Vec<PieceId>,
+    },
+    /// `side`'s project in `hex` was lost: a builder left (24.1x).
+    ConstructionLost {
+        side: Side,
+        item: crate::construction::Item,
+        hex: HexId,
+    },
+    /// `side` finished a fortification in `hex`, now at `level` (24.4x).
+    FortificationBuilt {
+        side: Side,
+        hex: HexId,
+        level: u8,
+    },
+    /// `side` laid a minefield in `hex`, real or dummy as its secret
+    /// (24.3x).
+    MinefieldLaid {
+        side: Side,
+        hex: HexId,
+    },
+    /// An enemy entered the minefield in `hex`, turning it face up
+    /// (26.11).
+    MinefieldRevealed {
+        hex: HexId,
+        real: bool,
+    },
+    /// The minefield in `hex` was taken off: a dummy an enemy paid to
+    /// enter, or a field an engineer cleared (26.11).
+    MinefieldRemoved {
+        hex: HexId,
+    },
+    /// `piece` turned `points` infantry TOE points into guards in `hex`
+    /// (28.21).
+    GuardsDetailed {
+        piece: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// `points` guards in `hex` rejoined `piece` (28.22).
+    GuardsReleased {
+        piece: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// `side`'s men held prisoner in `hex` got away (28.23): `rejoined`
+    /// left play to come back to their side (28.24); the rest wait there
+    /// as escapees (28.25).
+    PrisonersEscaped {
+        side: Side,
+        hex: HexId,
+        rejoined: u32,
+        escapees: u32,
+    },
+    /// `side`'s units entered `hex` and freed `points` of their own men
+    /// held prisoner there (28.24, 28.26).
+    PrisonersFreed {
+        side: Side,
+        hex: HexId,
+        points: u32,
+    },
+    /// `piece` absorbed `points` repaired `weapon` points for `cp` CP
+    /// (19.61, 20.41).
+    Absorbed {
+        piece: PieceId,
+        weapon: String,
+        points: u32,
+        cp: Cp,
     },
     /// The scenario's last OpStage is over (60.22): each side's level
     /// and what was checked (60.8).

@@ -9,6 +9,7 @@ use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::characteristics::Equivalent;
 use cna_data::map::HexId;
 use cna_data::oa::UnitId;
 use cna_data::scenario::Side;
@@ -20,17 +21,43 @@ const DIVISION_SP: u32 = 5;
 const BRIGADE_SP: u32 = 2;
 
 impl GameState {
-    /// The unit this piece is under, as a piece, if that piece is on
-    /// `hex`.
+    /// The unit this piece is attached to, as a piece, if that piece is
+    /// on `hex`.
     fn parent_on<'a>(&'a self, piece: &Piece, hex: &HexId) -> Option<&'a Piece> {
-        let parent = piece.parent.as_ref()?;
+        let parent = piece.attached_to.as_ref()?;
         let p = self.pieces.get(&PieceId::from(parent))?;
         (p.hex() == Some(hex)).then_some(p)
     }
 
+    /// The topmost HQ on `hex` that `piece` is attached under, if any.
+    fn top_parent<'a>(&'a self, piece: &'a Piece, hex: &HexId) -> Option<&'a Piece> {
+        let mut top = None;
+        let mut cur = piece;
+        while let Some(parent) = self.parent_on(cur, hex) {
+            top = Some(parent);
+            cur = parent;
+        }
+        top
+    }
+
+    /// The formation `piece` counts as part of on `hex` (9.2x, 15.55):
+    /// the topmost HQ there it is attached under, or itself if it is an
+    /// HQ with something attached there.
+    pub(crate) fn top_formation<'a>(&'a self, piece: &'a Piece, hex: &HexId) -> Option<&'a Piece> {
+        self.top_parent(piece, hex).or_else(|| {
+            let unit = piece.id.unit()?;
+            (piece.kind == PieceKind::Hq
+                && self
+                    .pieces
+                    .values()
+                    .any(|q| q.attached_to.as_ref() == Some(&unit) && q.hex() == Some(hex)))
+            .then_some(piece)
+        })
+    }
+
     /// Whether any HQ is under this unit (a division has brigades or
     /// regiments under it; a brigade has only battalions, 9.21–9.24).
-    fn has_sub_formation(&self, unit: &UnitId) -> bool {
+    pub(crate) fn has_sub_formation(&self, unit: &UnitId) -> bool {
         let mut heads = vec![unit.clone()];
         while let Some(head) = heads.pop() {
             for q in self.pieces.values() {
@@ -65,10 +92,11 @@ impl GameState {
                 .is_some_and(|r| r.unit_type.contains("Anti-air"))
     }
 
-    /// Stacking points in a hex (9.1x): a unit stacked with an HQ it is
-    /// under counts as part of that HQ's formation, a division 5 SP and a
+    /// Stacking points in a hex (9.1x): a unit attached to an HQ in the
+    /// hex counts as part of that HQ's formation, a division 5 SP and a
     /// brigade equivalent 2 (9.13, 9.21, 9.4); an HQ alone is 0 (9.25);
-    /// anything else its equivalent's value, or nothing by 9.16.
+    /// anything else its equivalent's value, or nothing by 9.16. A shell
+    /// formation counts one level smaller (9.28).
     pub(crate) fn stacked(&self, data: &Data, hex: &HexId) -> u32 {
         let in_hex: Vec<&Piece> = self
             .pieces
@@ -78,14 +106,7 @@ impl GameState {
         let mut formations: BTreeSet<PieceId> = BTreeSet::new();
         let mut sp = 0;
         for p in &in_hex {
-            // Climb to the topmost HQ on this hex the piece is under.
-            let mut top: Option<&Piece> = None;
-            let mut cur = *p;
-            while let Some(parent) = self.parent_on(cur, hex) {
-                top = Some(parent);
-                cur = parent;
-            }
-            match top {
+            match self.top_parent(p, hex) {
                 Some(hq) => {
                     formations.insert(hq.id.clone());
                 }
@@ -98,10 +119,14 @@ impl GameState {
                 .id
                 .unit()
                 .expect("an HQ comes from a sheet");
-            sp += if self.has_sub_formation(&unit) {
-                DIVISION_SP
-            } else {
-                BRIGADE_SP
+            // A shell stacks one level smaller (9.28).
+            let shell = self.is_shell(data, &hq);
+            sp += match (self.has_sub_formation(&unit), shell) {
+                (true, false) => DIVISION_SP,
+                (true, true) | (false, false) => BRIGADE_SP,
+                (false, true) => {
+                    cna_rules::stacking::points(&data.stacking, Some(Equivalent::Battalion))
+                }
             };
         }
         sp
@@ -181,6 +206,7 @@ impl GameState {
             .collect();
         self.cycle += 1;
         self.moved.clear();
+        self.escorts.clear();
         Ok(())
     }
 
@@ -284,9 +310,11 @@ mod tests {
         assert_eq!(state.stacked(&data, &hex("E1829")), 2);
         // Four independent battalions at C3922: 4.
         assert_eq!(state.stacked(&data, &hex("C3922")), 4);
-        // Bardia (major city, ceiling 8): the Trivioli regiment (2); its
-        // garrison sheet and the AA group take no space there (9.16).
-        assert_eq!(state.stacked(&data, &hex("C4321")), 2);
+        // Bardia (major city, ceiling 8): the Trivioli regiment, one of
+        // its chart row's five tank battalions attached, is a shell and
+        // stacks as a battalion (9.28, R-141): 1; its garrison sheet and
+        // the AA group take no space there (9.16).
+        assert_eq!(state.stacked(&data, &hex("C4321")), 1);
         // The Fort Maddalena garrison battalion is from the minor-garrison
         // sheet, which names no hex: 1 SP like any battalion.
         assert_eq!(state.stacked(&data, &hex("C3019")), 1);
@@ -339,7 +367,7 @@ mod tests {
         // Cairo (E1730) starts over its ceiling. 1 KRRC passes through it
         // from E1629 to E1731: never a violation (9.31).
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state.put(&krrc, Location::Hex(hex("E1629")));
         state
             .apply(
                 &data,
@@ -356,7 +384,7 @@ mod tests {
         let data = graziani();
         let mut state = moving(&data, 3, Side::Cw);
         let krrc = pid("unit:cw:1-krrc");
-        state.pieces.get_mut(&krrc).unwrap().location = Location::Hex(hex("E1629"));
+        state.put(&krrc, Location::Hex(hex("E1629")));
         state
             .apply(&data, Side::Cw, mv(&["unit:cw:1-krrc"], &["E1730"]))
             .unwrap();

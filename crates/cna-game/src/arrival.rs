@@ -44,6 +44,7 @@ impl GameState {
                         ids.push(p.id.clone());
                         self.pieces.insert(p.id.clone(), p);
                     }
+                    self.attach_where_stacked(Some(&ids));
                     if !ids.is_empty() {
                         any = true;
                         events.push(Event::Arrived {
@@ -53,6 +54,9 @@ impl GameState {
                     }
                 }
             }
+        }
+        if self.supply_arrivals(data, events) {
+            any = true;
         }
         any
     }
@@ -146,6 +150,7 @@ mod tests {
             .find(|h| data.map.hex(h).unwrap().terrain != cna_data::map::Terrain::Sea)
             .unwrap();
         state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        state.stand_alone(&bn);
         let events = state
             .apply(&data, Side::Cw, mv(&[bn.as_str()], &[out.as_str()]))
             .unwrap();

@@ -1,7 +1,7 @@
 # Mission 5, slice 2 (spending) Implementation Plan
 
 > **For agentic workers:** implement this plan task by task with the
-> **implement-spec** skill. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **implement-spec** skill. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** with `abstract_supply` on, a fuel-using unit pays fuel from a
 supply unit in range the first time it moves by land in a stage and again
@@ -20,33 +20,33 @@ As slice 1.
 
 ### Task 1: rates (cna-rules)
 
-- [ ] `cna_rules::supply::fuel_owed(class, equivalent, carrying) -> u32`
+- [x] `cna_rules::supply::fuel_owed(class, equivalent, carrying) -> u32`
   and `ammo_owed(equivalent, role, phasing) -> u32` (32.21, 32.22), pure,
   with a table test per row of the restatement (tank battalion 2, tank
   company 1, gun-class and recce battalion 1, camel recce 0, company
   doing anything else 0; ammunition 1 defend, 2 barrage, doubled when
   phasing; a division pays by its components).
-- [ ] Where `weapon-systems.json` gives `fuel_rate` for a unit's
+- [x] Where `weapon-systems.json` gives `fuel_rate` for a unit's
   weapons, compare it with the class rate in a test; if they disagree,
   follow `fuel_rate` and say so in the PR.
 
 ### Task 2: the draw range
 
-- [ ] `GameState::supply_in_range(piece) -> Vec<PieceId>`: friendly real
+- [x] `GameState::supply_in_range(piece) -> Vec<PieceId>`: friendly real
   supply units with fuel or ammunition whose hex is within half the
   piece's CPA, traced at medium-truck costs (foot infantry as infantry),
   never through prohibited terrain or an enemy ZOC hex without a friendly
   combat unit, supply units ignored as blockers (R-119). Reuse `reach.rs`.
-- [ ] Random-walk test both ways (as `reach.rs`): every unit returned is
+- [x] Random-walk test both ways (as `reach.rs`): every unit returned is
   accepted as a source by `apply`, and a source not returned is refused.
 
 ### Task 3: fuel
 
-- [ ] `Piece.fuelled: bool` (this stage) and `Piece.fuelled_over:
+- [x] `Piece.fuelled: bool` (this stage) and `Piece.fuelled_over:
   bool`, reset in `start_stage`.
-- [ ] `Order::Move` gains `fuel_from: Option<PieceId>` (serde default);
+- [x] `Order::Move` gains `fuel_from: Option<PieceId>` (serde default);
   default is the nearest in range with fuel, ties by id.
-- [ ] Failing tests: a tank battalion with no supply in range is refused
+- [x] Failing tests: a tank battalion with no supply in range is refused
   (32.22); with one in range its first move debits 2 fuel and logs
   `FuelSpent`; a second move that stage debits nothing; a move past CPA
   debits again; rail and sea moves pay nothing; a foot unit pays nothing.
@@ -55,7 +55,7 @@ As slice 1.
 
 ### Task 4: ammunition
 
-- [ ] Barrage plots and assault force assignment check ammunition in
+- [x] Barrage plots and assault force assignment check ammunition in
   range per battalion-equivalent at the instant of combat; failing tests
   for the refusal (32.21), the debit, R-013 (pinned, retreated-in and
   withheld pay none), and a defender with none fighting on with
@@ -63,20 +63,20 @@ As slice 1.
 
 ### Task 5: empty dumps, the switch, NOT_SIMULATED
 
-- [ ] A supply unit at 0/0 is removed (32.1x), test.
-- [ ] With `abstract_supply` off none of this runs (test on the old
+- [x] A supply unit at 0/0 is removed (32.1x), test.
+- [x] With `abstract_supply` off none of this runs (test on the old
   golden).
-- [ ] R-013 leaves `NOT_SIMULATED.md` for the "Implemented as decided"
+- [x] R-013 leaves `NOT_SIMULATED.md` for the "Implemented as decided"
   table; the *Systems* row for §32 is rewritten.
 
 ### Task 6: UI
 
-- [ ] The browser's new game turns the module on (`api::Game::new`
+- [x] The browser's new game turns the module on (`api::Game::new`
   with `Modules::ALL`); the golden e2e drives `tests/games/graziani-m5.json`
   (re-recorded under this slice's rules) and its hashes are re-pinned.
-- [ ] `StackPanel` shows a supply unit's load and the hex's motorisation
+- [x] `StackPanel` shows a supply unit's load and the hex's motorisation
   points to their owner (slice 1's Task 6); Vitest for the formatting.
-- [ ] The move panel shows the fuel source and cost and offers the other
+- [x] The move panel shows the fuel source and cost and offers the other
   sources in range; the barrage and assign panels show ammunition owed;
   refusals appear in the panel as today. Playwright for one paid move and
   one refused one; the golden e2e re-pinned.

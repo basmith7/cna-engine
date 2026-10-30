@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "41846835e0b207798d101e551b473d8c91a193b0",
+  "rules_commit": "eafa8a3e0f04b7bf4ecf40d74e25cc09c0060989",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -10,7 +10,9 @@
     "R-018": 2
   },
   "modules": {
-    "abstract_supply": true
+    "abstract_supply": true,
+    "breakdown": true,
+    "construction": true
   },
   "seed": 7,
   "orders": [
@@ -478,7 +480,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:27-nz",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -487,7 +489,7 @@
       "order": {
         "place": {
           "piece": "unit:cw:4-nz-fld",
-          "hex": "E3714"
+          "hex": "E3613"
         }
       }
     },
@@ -531,6 +533,14 @@
       "order": "pass"
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": {
         "move": {
@@ -551,19 +561,6 @@
             "C4021"
           ],
           "assault": true
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "react": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3923"
-          ]
         }
       }
     },
@@ -730,25 +727,33 @@
       "order": "pass"
     },
     {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
+      "player": "axis",
       "order": {
-        "move": {
-          "pieces": [
-            "unit:cw:4-rha"
-          ],
-          "path": [
-            "C3922"
-          ],
-          "assault": false
+        "detail-guards": {
+          "piece": "unit:it:ix-libyan-bn",
+          "points": 3
         }
       }
     },
     {
       "player": "axis",
+      "order": {
+        "march-prisoners": {
+          "from": "C4021",
+          "path": [
+            "C4020",
+            "C4120"
+          ],
+          "points": 12
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
       "order": "pass"
     },
     {
@@ -758,32 +763,8 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": [
-            "unit:cw:7-med"
-          ]
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
         "barrage": {
-          "fires": [
-            {
-              "piece": "unit:cw:7-med",
-              "points": 6,
-              "target": "unit:it:ix-libyan-bn"
-            }
-          ]
+          "fires": []
         }
       }
     },
@@ -820,12 +801,24 @@
       "order": "pass"
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": {
         "declare-initiative": {
           "player_a": "axis"
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "axis",
@@ -866,32 +859,8 @@
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": [
-            "unit:it:1st-libyan-artillery-regt"
-          ]
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
-          "fires": [
-            {
-              "piece": "unit:it:1st-libyan-artillery-regt",
-              "points": 6,
-              "target": "unit:cw:3-cldgds"
-            }
-          ]
+          "fires": []
         }
       }
     },
@@ -922,6 +891,14 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
     },
     {
       "player": "axis",
@@ -938,22 +915,6 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -986,6 +947,10 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",
@@ -1004,198 +969,6 @@
       "order": "pass"
     },
     {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
       "player": "cw",
       "order": "pass"
     },
@@ -1210,294 +983,6 @@
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -1537,71 +1022,7 @@
     },
     {
       "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
       "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
     },
     {
       "player": "axis",
@@ -1618,22 +1039,6 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -1666,6 +1071,10 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",
@@ -1684,28 +1093,20 @@
       "order": "pass"
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": "end-segment"
     },
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -1738,6 +1139,14 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
     },
     {
       "player": "axis",
@@ -1754,22 +1163,6 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -1802,6 +1195,10 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",
@@ -1820,198 +1217,6 @@
       "order": "pass"
     },
     {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
       "player": "cw",
       "order": "pass"
     },
@@ -2026,702 +1231,6 @@
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "declare-initiative": {
-          "player_a": "cw"
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": "end-segment"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -2761,71 +1270,7 @@
     },
     {
       "player": "axis",
-      "order": {
-        "declare-initiative": {
-          "player_a": "axis"
-        }
-      }
-    },
-    {
-      "player": "axis",
       "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": "end-segment"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "barrage": {
-          "fires": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": "pass"
-    },
-    {
-      "player": "axis",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "assign-forces": {
-          "assignments": []
-        }
-      }
     },
     {
       "player": "axis",
@@ -2842,22 +1287,6 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -2890,6 +1319,10 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",
@@ -2908,28 +1341,20 @@
       "order": "pass"
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": "end-segment"
     },
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -2962,6 +1387,14 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
     },
     {
       "player": "axis",
@@ -2978,18 +1411,70 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
+        "barrage": {
+          "fires": []
         }
       }
     },
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
+        "barrage": {
+          "fires": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
     },
     {
       "player": "cw",
@@ -3026,6 +1511,1170 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "declare-initiative": {
+          "player_a": "cw"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",
@@ -3044,28 +2693,20 @@
       "order": "pass"
     },
     {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
       "player": "axis",
       "order": "end-segment"
     },
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "cw",
-      "order": {
-        "gun-positions": {
-          "forward": []
-        }
-      }
-    },
-    {
-      "player": "axis",
-      "order": {
         "barrage": {
           "fires": []
         }
@@ -3098,6 +2739,14 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
     },
     {
       "player": "axis",
@@ -3114,18 +2763,126 @@
     {
       "player": "cw",
       "order": {
-        "gun-positions": {
-          "forward": []
+        "barrage": {
+          "fires": []
         }
       }
     },
     {
       "player": "axis",
       "order": {
-        "gun-positions": {
-          "forward": []
+        "barrage": {
+          "fires": []
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
     },
     {
       "player": "cw",
@@ -3162,6 +2919,10 @@
           "assignments": []
         }
       }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "cw",

@@ -12,6 +12,7 @@ use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_game::combat::SealedStep;
+use cna_game::data::Data;
 use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
@@ -22,29 +23,38 @@ use serde_json::{Value, json};
 #[derive(Debug)]
 pub struct Game {
     state: GameState,
+    data: &'static Data,
 }
 
 impl Game {
-    /// A new Graziani game, the Axis to place first. Abstract supply
-    /// stays off in the browser until its panels land (Mission 5): the
-    /// golden e2e's set-up stacks supply past 32.1x's cap.
-    pub fn new(seed: u64) -> Result<Game> {
-        Game::with_modules(seed, Modules::default())
+    /// A new game of the scenario `slug` (an embedded one), waiting on
+    /// its first set-up, with every rules module on (abstract supply
+    /// included).
+    pub fn new(slug: &str, seed: u64) -> Result<Game> {
+        Game::with_modules(slug, seed, Modules::ALL)
     }
 
     /// `new` with the rules modules named.
-    pub fn with_modules(seed: u64, modules: Modules) -> Result<Game> {
+    pub fn with_modules(slug: &str, seed: u64, modules: Modules) -> Result<Game> {
+        let data = data(slug)?;
         Ok(Game {
-            state: GameState::with_modules(data(), seed, modules)?,
+            state: GameState::with_modules(data, seed, modules)?,
+            data,
         })
     }
 
-    /// A saved game, checked against the embedded scenario and
+    /// A saved game, checked against its (embedded) scenario's data and
     /// `rules_commit`, and for the invariants `apply` relies on
     /// (`GameState::check_invariants`): a bad file is an `Err`.
     pub fn load(json: &str) -> Result<Game> {
+        let head: Value = serde_json::from_str(json).context("parsing the state")?;
+        let slug = head["scenario"]
+            .as_str()
+            .context("the state names no scenario")?;
+        let data = data(slug)?;
         Ok(Game {
-            state: GameState::from_json(json, data())?,
+            state: GameState::from_json(json, data)?,
+            data,
         })
     }
 
@@ -56,7 +66,8 @@ impl Game {
     /// What the UI draws: the state minus `log` and `rng`, plus `to_act`
     /// and, per piece, `unit_type` from the characteristics chart (null
     /// for supply units and ID codes the chart lacks) and the OA unit's
-    /// `name` and `abbreviation` (null for supply units);
+    /// `name` and `abbreviation` (null for supply units), and `shell: true`
+    /// on a formation that is a shell (9.26);
     /// `assaults_to_resolve`, the hexes the phasing player still has to
     /// assault in the close assault step. While a sealed step is
     /// pending, the answers already given to it by sides other than
@@ -108,14 +119,36 @@ impl Game {
                 }
             }
         }
-        // 3.61: loads and motorisation points are the owner's secret.
+        // 3.61: loads, motorisation points (pooled or attached),
+        // repaired points waiting as replacements and what a project
+        // builds are the owner's secret.
         if let Some(acting) = self.state.to_act() {
             let other = serde_json::to_value(acting.other())?
                 .as_str()
                 .unwrap_or_default()
                 .to_owned();
-            if let Some(m) = v.get_mut("motorisation").and_then(Value::as_object_mut) {
-                m.remove(&other);
+            for key in ["motorisation", "repaired"] {
+                if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
+                    m.remove(&other);
+                }
+            }
+            // Whether the other side's unrevealed minefields are real (26.1x).
+            if let Some(m) = v.get_mut("minefields").and_then(Value::as_object_mut) {
+                for field in m.values_mut().filter_map(Value::as_object_mut) {
+                    let theirs = field.get("side").and_then(Value::as_str) == Some(other.as_str());
+                    let revealed = field.get("revealed").and_then(Value::as_bool) == Some(true);
+                    if theirs && !revealed {
+                        field.remove("real");
+                    }
+                }
+            }
+            // What the other side builds (3.61); its projects still show.
+            if let Some(m) = v.get_mut("projects").and_then(Value::as_object_mut) {
+                for project in m.values_mut().filter_map(Value::as_object_mut) {
+                    if project.get("side").and_then(Value::as_str) == Some(other.as_str()) {
+                        project.remove("item");
+                    }
+                }
             }
             if let Some(m) = v
                 .get_mut("pending_motorisation")
@@ -131,6 +164,8 @@ impl Game {
             for p in self.state.pieces.values().filter(|p| p.side != acting) {
                 if let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() {
                     o.remove("load");
+                    o.remove("motorised");
+                    o.remove("escorted");
                 }
             }
         }
@@ -142,9 +177,9 @@ impl Game {
                 let unit_type = p
                     .nation
                     .zip(p.id_code.as_deref())
-                    .and_then(|(nation, code)| data().chars.row(nation, code))
+                    .and_then(|(nation, code)| self.data.chars.row(nation, code))
                     .map(|row| row.unit_type.clone());
-                let oa = p.id.unit().and_then(|id| data().oa.unit(&id));
+                let oa = p.id.unit().and_then(|id| self.data.oa.unit(&id));
                 let labels = json!({
                     "unit_type": unit_type,
                     "name": oa.map(|u| u.name.clone()),
@@ -153,6 +188,18 @@ impl Game {
                 (p.id.as_str().to_owned(), labels)
             })
             .collect();
+        // Shells (9.26) are worked out from what both sides see (attachments
+        // and TOE are not redacted), so every piece carries the flag.
+        let shells: Vec<String> = self
+            .state
+            .pieces
+            .values()
+            .filter(|p| self.state.is_shell(self.data, &p.id))
+            .map(|p| p.id.as_str().to_owned())
+            .collect();
+        for id in shells {
+            v["pieces"][&id]["shell"] = json!(true);
+        }
         for (id, labels) in labels {
             for (k, val) in labels.as_object().context("labels")? {
                 v["pieces"][&id][k] = val.clone();
@@ -167,7 +214,7 @@ impl Game {
     /// `Err`.
     pub fn placements(&self, piece: &str) -> Result<Value> {
         let id: PieceId = serde_json::from_value(Value::String(piece.to_owned()))?;
-        Ok(json!(self.state.placements(data(), &id)))
+        Ok(json!(self.state.placements(self.data, &id)))
     }
 
     /// The hexes a stack of `side`'s can end a move of `purpose`
@@ -180,12 +227,14 @@ impl Game {
         let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
         let purpose: Purpose = serde_json::from_value(Value::String(purpose.to_owned()))
             .with_context(|| format!("purpose {purpose:?}"))?;
-        Ok(match self.state.reachable(data(), side, &pieces, purpose) {
-            Ok(reaches) => json!({ "ok": reaches }),
-            Err(illegal) => {
-                json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
-            }
-        })
+        Ok(
+            match self.state.reachable(self.data, side, &pieces, purpose) {
+                Ok(reaches) => json!({ "ok": reaches }),
+                Err(illegal) => {
+                    json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
+                }
+            },
+        )
     }
 
     /// What `side` may answer the sealed step now pending with
@@ -194,11 +243,30 @@ impl Game {
     /// or `side` is not the one to answer.
     pub fn sealed_options(&self, side: &str) -> Result<Value> {
         let side = Self::side(side)?;
-        Ok(match self.state.sealed_options(data(), side) {
+        Ok(match self.state.sealed_options(self.data, side) {
             Ok(options) => json!({ "ok": options }),
             Err(illegal) => {
                 json!({ "illegal": { "case": illegal.case, "reason": illegal.reason } })
             }
+        })
+    }
+
+    /// The supply units that could pay the fuel of a move by `pieces`
+    /// (`GameState::fuel_sources`), as a JSON array of piece ids: the
+    /// choices for the order's `fuel_from`. Empty unless `side` is to
+    /// act and owns every piece, so no one learns where the other
+    /// side's supply stands (3.61).
+    pub fn fuel_sources(&self, side: &str, pieces: &str) -> Result<Value> {
+        let side = Self::side(side)?;
+        let pieces: Vec<PieceId> = serde_json::from_str(pieces).context("parsing the pieces")?;
+        let own = self.state.to_act() == Some(side)
+            && pieces
+                .iter()
+                .all(|id| self.state.pieces.get(id).is_some_and(|p| p.side == side));
+        Ok(if own {
+            json!(self.state.fuel_sources(self.data, &pieces))
+        } else {
+            json!([])
         })
     }
 
@@ -211,7 +279,7 @@ impl Game {
     pub fn apply(&mut self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
-        Ok(Self::answer(self.state.apply(data(), side, order)))
+        Ok(Self::answer(self.state.apply(self.data, side, order)))
     }
 
     /// What `apply` would answer `order` from `side` with, on a copy:
@@ -220,7 +288,9 @@ impl Game {
     pub fn preview(&self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
-        Ok(Self::answer(self.state.clone().apply(data(), side, order)))
+        Ok(Self::answer(
+            self.state.clone().apply(self.data, side, order),
+        ))
     }
 
     fn answer(r: std::result::Result<Vec<Event>, cna_game::event::Illegal>) -> Value {
@@ -236,7 +306,11 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedded::{RULES_COMMIT, SCENARIO};
+    use crate::embedded::{DEFAULT_SCENARIO as SCENARIO, RULES_COMMIT};
+
+    fn graziani() -> &'static Data {
+        data(SCENARIO).unwrap()
+    }
     use cna_game::log::{Log, replay};
 
     fn setup_log() -> Log {
@@ -246,7 +320,7 @@ mod tests {
 
     #[test]
     fn a_new_game_waits_on_the_axis_set_up() {
-        let game = Game::new(7).unwrap();
+        let game = Game::new(SCENARIO, 7).unwrap();
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "axis");
         assert_eq!(view["pending"], json!({ "set-up": { "side": "axis" } }));
@@ -257,8 +331,51 @@ mod tests {
     }
 
     #[test]
+    fn view_marks_shell_formations_and_only_those() {
+        let mut game = Game {
+            data: graziani(),
+            state: replay(graziani(), &setup_log()).unwrap(),
+        };
+        // Strip an HQ of its attached units: it becomes a shell (9.26).
+        let hq = game
+            .state
+            .pieces
+            .values()
+            .find(|p| {
+                p.kind == cna_game::piece::PieceKind::Hq
+                    && !game.state.is_shell(graziani(), &p.id)
+                    && game
+                        .state
+                        .pieces
+                        .values()
+                        .any(|q| q.attached_to == p.id.unit())
+            })
+            .expect("a whole formation")
+            .id
+            .clone();
+        let unit = hq.unit();
+        for q in game.state.pieces.values_mut() {
+            if q.attached_to == unit {
+                q.attached_to = None;
+            }
+        }
+        assert!(game.state.is_shell(graziani(), &hq));
+        let view = game.view().unwrap();
+        for p in game.state.pieces.values() {
+            let shell = game.state.is_shell(graziani(), &p.id);
+            assert_eq!(
+                view["pieces"][p.id.as_str()].get("shell").is_some(),
+                shell,
+                "{}",
+                p.id.as_str()
+            );
+        }
+        assert_eq!(view["pieces"][hq.as_str()]["shell"], true);
+    }
+
+    #[test]
     fn view_adds_unit_type_per_piece() {
-        let view = Game::new(7).unwrap().view().unwrap();
+        let view = Game::new(SCENARIO, 7).unwrap().view().unwrap();
         let pieces = view["pieces"].as_object().unwrap();
         assert!(!pieces.is_empty());
         let on_chart = |p: &&Value| p["kind"] == "combat" || p["kind"] == "hq";
@@ -282,7 +399,7 @@ mod tests {
 
     #[test]
     fn view_adds_the_oa_name_and_abbreviation_per_unit() {
-        let view = Game::new(7).unwrap().view().unwrap();
+        let view = Game::new(SCENARIO, 7).unwrap().view().unwrap();
         let pieces = view["pieces"].as_object().unwrap();
         let tank = &pieces["unit:it:ixl-tank-bn"];
         assert!(tank["name"].is_string(), "{tank}");
@@ -300,9 +417,81 @@ mod tests {
 
     // 3.61: the other side's loads and motorisation points are not in the
     // view; the acting side's own are, and the save keeps both.
+    // The replacement points waiting from repair (22.5) are a side's own
+    // business too, like its motorisation.
+    // 3.61: what a project builds is its owner's secret; that one is
+    // under way, and by whom, is not.
+    // 26.1x: a minefield is seen, but whether the other side's is real
+    // only once an enemy has entered it.
+    #[test]
+    fn the_view_hides_whether_the_other_side_s_minefield_is_real() {
+        use cna_game::construction::Minefield;
+        let mut game = Game::with_modules(SCENARIO, 7, Modules::ALL).unwrap();
+        for (side, hex, revealed) in [
+            (Side::Axis, "C4021", false),
+            (Side::Cw, "C3923", false),
+            (Side::Cw, "C3924", true),
+        ] {
+            game.state.minefields.insert(
+                cna_data::map::HexId::parse(hex).unwrap(),
+                Minefield {
+                    side,
+                    real: true,
+                    revealed,
+                },
+            );
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["minefields"]["C4021"]["real"], true);
+        assert!(view["minefields"]["C3923"].get("real").is_none());
+        assert_eq!(view["minefields"]["C3923"]["side"], "cw");
+        assert_eq!(view["minefields"]["C3924"]["real"], true);
+    }
+
+    #[test]
+    fn the_view_hides_what_the_other_side_is_building() {
+        let mut game = Game::with_modules(SCENARIO, 7, Modules::ALL).unwrap();
+        for (side, hex) in [(Side::Axis, "C4021"), (Side::Cw, "C3923")] {
+            game.state.projects.insert(
+                cna_data::map::HexId::parse(hex).unwrap(),
+                cna_game::construction::Project {
+                    side,
+                    item: cna_game::construction::Item::Fortification,
+                    builders: vec![],
+                    stages: 1,
+                },
+            );
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["projects"]["C4021"]["item"], "fortification");
+        assert!(view["projects"]["C3923"].get("item").is_none());
+        assert_eq!(view["projects"]["C3923"]["side"], "cw");
+    }
+
+    #[test]
+    fn the_view_hides_the_other_side_s_repaired_points() {
+        use std::collections::BTreeMap;
+        let mut game = Game::with_modules(SCENARIO, 7, Modules::ALL).unwrap();
+        for side in [Side::Axis, Side::Cw] {
+            game.state.repaired.insert(
+                side,
+                BTreeMap::from([(
+                    cna_data::map::HexId::parse("C4021").unwrap(),
+                    BTreeMap::from([("tank".to_string(), 1)]),
+                )]),
+            );
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["repaired"]["axis"]["C4021"]["tank"], 1);
+        assert!(view["repaired"].get("cw").is_none());
+    }
+
     #[test]
     fn the_view_hides_the_other_side_s_loads_and_motorisation() {
-        let game = Game::with_modules(7, Modules::ALL).unwrap();
+        let game = Game::with_modules(SCENARIO, 7, Modules::ALL).unwrap();
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "axis");
         assert_eq!(
@@ -325,8 +514,24 @@ mod tests {
     }
 
     #[test]
+    fn the_view_hides_the_other_side_s_attached_motorisation() {
+        let mut game = Game::with_modules(SCENARIO, 7, Modules::ALL).unwrap();
+        for id in ["supply:axis:1", "supply:cw:1"] {
+            game.state
+                .pieces
+                .get_mut(&serde_json::from_value::<PieceId>(json!(id)).unwrap())
+                .unwrap()
+                .motorised = 30;
+        }
+        let view = game.view().unwrap();
+        assert_eq!(view["to_act"], "axis");
+        assert_eq!(view["pieces"]["supply:axis:1"]["motorised"], 30);
+        assert!(view["pieces"]["supply:cw:1"].get("motorised").is_none());
+    }
+
+    #[test]
     fn an_illegal_order_is_a_value_and_changes_nothing() {
-        let mut game = Game::new(7).unwrap();
+        let mut game = Game::new(SCENARIO, 7).unwrap();
         let before = game.save().unwrap();
         let r = game
             .apply(
@@ -341,7 +546,7 @@ mod tests {
 
     #[test]
     fn a_legal_order_answers_with_its_events() {
-        let mut game = Game::new(7).unwrap();
+        let mut game = Game::new(SCENARIO, 7).unwrap();
         let r = game
             .apply(
                 "axis",
@@ -358,7 +563,7 @@ mod tests {
 
     #[test]
     fn placements_lists_the_hexes_place_accepts_for_the_side_setting_up() {
-        let mut game = Game::new(7).unwrap();
+        let mut game = Game::new(SCENARIO, 7).unwrap();
         let hexes = game.placements("supply:axis:16").unwrap();
         let hexes = hexes.as_array().unwrap();
         assert!(hexes.contains(&json!("C0101")), "{hexes:?}");
@@ -379,7 +584,7 @@ mod tests {
 
     #[test]
     fn malformed_input_is_an_error_not_an_illegal_order() {
-        let mut game = Game::new(7).unwrap();
+        let mut game = Game::new(SCENARIO, 7).unwrap();
         assert!(game.apply("allies", r#""pass""#).is_err());
         assert!(game.apply("axis", r#"{"teleport":{}}"#).is_err());
         assert!(game.apply("axis", "not json").is_err());
@@ -395,18 +600,18 @@ mod tests {
 
     /// The golden game replayed to just before order `n`.
     fn golden_before(n: usize) -> (Game, Log) {
-        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let path = cna_data::repo_root().join("tests/games/graziani-m5.json");
         let log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut prefix = log.clone();
         prefix.orders.truncate(n);
-        let state = replay(data(), &prefix).unwrap();
+        let state = replay(graziani(), &prefix).unwrap();
         (Game::load(&state.to_json().unwrap()).unwrap(), log)
     }
 
     #[test]
     fn reachable_names_golden_order_61_s_hex_with_its_path_and_cost() {
-        let (game, log) = golden_before(61);
-        let Order::Move { pieces, .. } = &log.orders[61].order else {
+        let (game, log) = golden_before(60);
+        let Order::Move { pieces, .. } = &log.orders[60].order else {
             panic!("order 61 is a move");
         };
         let r = game
@@ -426,10 +631,22 @@ mod tests {
                 "dp": 0,
                 "ends_in_zoc": false,
                 "may_be_interrupted": false,
-                "short": 0
+                "short": 0,
+                "fuel": 1
             })
         );
-        // Not the Commonwealth's turn; a supply unit cannot move.
+        // The fuel quoted is the fuel the order burns.
+        let mut played = Game::load(&game.save().unwrap()).unwrap();
+        let order = serde_json::to_string(&log.orders[60].order).unwrap();
+        let events = played.apply("axis", &order).unwrap();
+        let burnt: u64 = events["ok"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|e| e["fuel-spent"]["fuel"].as_u64())
+            .sum();
+        assert_eq!(burnt, 1, "{events}");
+        // Not the Commonwealth's turn; a supply unit without motorisation points cannot move (32.31).
         let r = game
             .reachable("cw", r#"["unit:cw:4-rha"]"#, "move")
             .unwrap();
@@ -437,12 +654,36 @@ mod tests {
         let r = game
             .reachable("axis", r#"["supply:axis:1"]"#, "move")
             .unwrap();
-        assert_eq!(r["illegal"]["case"], "32.x", "{r}");
+        assert_eq!(r["illegal"]["case"], "32.31", "{r}");
+    }
+
+    #[test]
+    fn fuel_sources_are_the_side_to_act_s_own_only() {
+        let (game, _) = golden_before(60);
+        let tank = game
+            .state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && !game
+                        .state
+                        .fuel_sources(graziani(), std::slice::from_ref(&p.id))
+                        .is_empty()
+            })
+            .expect("an Axis fuel burner near supply")
+            .id
+            .clone();
+        let pieces = serde_json::to_string(&[&tank]).unwrap();
+        let mine = game.fuel_sources("axis", &pieces).unwrap();
+        assert!(!mine.as_array().unwrap().is_empty(), "{mine}");
+        // The Commonwealth may not ask after the Axis' supply (3.61).
+        assert_eq!(game.fuel_sources("cw", &pieces).unwrap(), json!([]));
     }
 
     #[test]
     fn reachable_for_a_reaction_names_golden_order_62_s_hex() {
-        let (game, _) = golden_before(62);
+        let (game, _) = golden_before(61);
         assert_eq!(game.view().unwrap()["to_act"], "cw");
         let r = game
             .reachable("cw", r#"["unit:cw:4-rha"]"#, "react")
@@ -459,14 +700,14 @@ mod tests {
         assert_eq!(r["illegal"]["case"], "8.5x", "{r}");
     }
 
-    /// Golden orders 66–72 are the sealed steps: after the Axis has
-    /// answered (67, 69, 72 are the Commonwealth's turns) its answer is
+    /// Golden orders 65–71 are the sealed steps: after the Axis has
+    /// answered (66, 68, 71 are the Commonwealth's turns) its answer is
     /// not in the Commonwealth's view; once both are in, both are.
     #[test]
     fn a_sealed_answer_is_redacted_from_the_other_side_s_view_until_revealed() {
         let axis_gun = json!("unit:it:1st-libyan-artillery-regt");
-        // 67: the Axis gun stands forward; the Commonwealth sees no forward gun.
-        let (game, _) = golden_before(67);
+        // 66: the Axis gun stands forward; the Commonwealth sees no forward gun.
+        let (game, _) = golden_before(65);
         let view = game.view().unwrap();
         assert_eq!(view["to_act"], "cw");
         assert_eq!(view["pending"]["sealed"]["step"], "gun-positions");
@@ -479,8 +720,8 @@ mod tests {
         );
         // The save keeps everything.
         assert!(game.save().unwrap().contains("1st-libyan-artillery-regt\""));
-        // 68: revealed, both sides' positions are in the view.
-        let (game, _) = golden_before(68);
+        // 67: revealed, both sides' positions are in the view.
+        let (game, _) = golden_before(66);
         let view = game.view().unwrap();
         assert!(
             view["combat"]["forward"]
@@ -490,8 +731,8 @@ mod tests {
             "{}",
             view["combat"]
         );
-        // 69: the Axis barrage is plotted; the Commonwealth sees no plot.
-        let (game, _) = golden_before(69);
+        // 68: the Axis barrage is plotted; the Commonwealth sees no plot.
+        let (game, _) = golden_before(67);
         let view = game.view().unwrap();
         assert_eq!(view["pending"]["sealed"]["step"], "barrage");
         assert!(
@@ -508,16 +749,16 @@ mod tests {
                 .contains(&axis_gun),
             "step 1 is revealed"
         );
-        // 70: revealed.
-        let (game, _) = golden_before(70);
+        // 69: revealed.
+        let (game, _) = golden_before(68);
         let view = game.view().unwrap();
         assert_eq!(
             view["combat"]["plots"]["axis"][0]["target"],
             "unit:cw:1-krrc"
         );
         assert!(view["combat"]["plots"]["cw"].as_array().unwrap().is_empty());
-        // 72: the Axis assignments are in; the Commonwealth sees none.
-        let (game, _) = golden_before(72);
+        // 71: the Axis assignments are in; the Commonwealth sees none.
+        let (game, _) = golden_before(70);
         let view = game.view().unwrap();
         assert_eq!(view["pending"]["sealed"]["step"], "assign-forces");
         assert!(
@@ -532,9 +773,9 @@ mod tests {
             "step 2 is revealed"
         );
         assert_eq!(view["assaults_to_resolve"], json!([]));
-        // 73: revealed, and the close assault step waits on the Axis
+        // 72: revealed, and the close assault step waits on the Axis
         // with C3922 to assault.
-        let (game, _) = golden_before(73);
+        let (game, _) = golden_before(71);
         let view = game.view().unwrap();
         assert!(view["pending"].is_null());
         assert_eq!(view["clock"]["segment"], "close-assault");
@@ -553,13 +794,13 @@ mod tests {
             2
         );
         assert_eq!(view["assaults_to_resolve"], json!(["C3922"]));
-        let (game, _) = golden_before(74);
+        let (game, _) = golden_before(72);
         assert_eq!(game.view().unwrap()["assaults_to_resolve"], json!([]));
     }
 
     #[test]
     fn sealed_options_name_the_golden_barrage_and_nothing_at_other_moments() {
-        let (game, _) = golden_before(68);
+        let (game, _) = golden_before(66);
         let r = game.sealed_options("axis").unwrap();
         let firers = r["ok"]["barrage"]["firers"]
             .as_array()
@@ -576,7 +817,7 @@ mod tests {
         );
         assert_eq!(gun["forward"], true);
         assert_eq!(game.sealed_options("cw").unwrap()["illegal"]["case"], "5.2");
-        let (game, _) = golden_before(70);
+        let (game, _) = golden_before(68);
         assert_eq!(
             game.sealed_options("cw").unwrap()["illegal"]["case"],
             "11.0"
@@ -584,12 +825,12 @@ mod tests {
         assert!(game.sealed_options("allies").is_err());
     }
 
-    /// Golden order 70 is the Commonwealth's pass in retreat before
+    /// Golden order 69 is the Commonwealth's pass in retreat before
     /// assault: the query names where 4 RHA at C3923 could have gone
     /// instead, with `short` 0 throughout.
     #[test]
     fn reachable_for_a_retreat_before_assault_at_golden_order_70() {
-        let (game, _) = golden_before(70);
+        let (game, _) = golden_before(68);
         assert_eq!(
             game.view().unwrap()["pending"],
             json!({ "retreat-before-assault": { "side": "cw" } })
@@ -625,7 +866,7 @@ mod tests {
         assert_eq!(game.save().unwrap(), fixture, "a preview changes nothing");
         assert_eq!(
             previewed["ok"][0],
-            json!({ "retreat-bought-out": { "pieces": ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"], "short": 2 } }),
+            json!({ "retreat-bought-out": { "pieces": ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:4-rha", "unit:cw:7-med"], "short": 2 } }),
             "{previewed}"
         );
         assert!(
@@ -640,7 +881,7 @@ mod tests {
 
     #[test]
     fn load_of_a_save_round_trips_byte_for_byte() {
-        let mut game = Game::new(7).unwrap();
+        let mut game = Game::new(SCENARIO, 7).unwrap();
         game.apply(
             "axis",
             r#"{"place":{"piece":"supply:axis:16","hex":"C0101"}}"#,
@@ -653,8 +894,34 @@ mod tests {
     }
 
     #[test]
+    fn every_offered_scenario_starts_waiting_on_a_set_up() {
+        for (slug, _) in crate::embedded::scenarios().unwrap() {
+            let view = Game::new(&slug, 7).unwrap().view().unwrap();
+            assert_eq!(view["scenario"], slug.as_str());
+            assert!(
+                view["pending"]["set-up"].is_object(),
+                "{slug}: {}",
+                view["pending"]
+            );
+            assert!(!view["pieces"].as_object().unwrap().is_empty(), "{slug}");
+        }
+        assert!(Game::new("no-such-scenario", 7).is_err());
+    }
+
+    #[test]
+    fn load_of_an_operation_crusader_save_is_that_scenario() {
+        let game = Game::new("operation-crusader", 7).unwrap();
+        let saved = game.save().unwrap();
+        let loaded = Game::load(&saved).unwrap();
+        assert_eq!(loaded.save().unwrap(), saved);
+        assert_eq!(loaded.view().unwrap()["scenario"], "operation-crusader");
+        let unknown = saved.replace("\"operation-crusader\"", "\"no-such-scenario\"");
+        assert!(Game::load(&unknown).is_err());
+    }
+
+    #[test]
     fn a_save_from_another_rules_commit_is_refused() {
-        let saved = Game::new(7).unwrap().save().unwrap();
+        let saved = Game::new(SCENARIO, 7).unwrap().save().unwrap();
         let other = saved.replace(RULES_COMMIT, "0000000000000000000000000000000000000000");
         assert_ne!(other, saved);
         let err = Game::load(&other).unwrap_err().to_string();
@@ -663,7 +930,7 @@ mod tests {
     }
 
     fn golden_log() -> Log {
-        let path = cna_data::repo_root().join("tests/games/graziani-short.json");
+        let path = cna_data::repo_root().join("tests/games/graziani-m5.json");
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
@@ -671,7 +938,7 @@ mod tests {
     fn golden_prefix(n: usize) -> GameState {
         let mut log = golden_log();
         log.orders.truncate(n);
-        replay(data(), &log).unwrap()
+        replay(graziani(), &log).unwrap()
     }
 
     fn sha256(s: &str) -> String {
@@ -706,7 +973,7 @@ mod tests {
     ///   73) applied: the defenders must retreat three hexes or pay.
     /// - `game-over`: the whole golden game, the report in.
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
-        let set_up_done = golden_prefix(59);
+        let set_up_done = golden_prefix(56);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
         assert!(set_up_done.pending.is_none());
         assert_eq!(
@@ -714,7 +981,7 @@ mod tests {
             cna_game::clock::Phase::InitiativeDeclaration
         );
 
-        let reserve = golden_prefix(60);
+        let reserve = golden_prefix(59);
         assert_eq!(
             reserve.clock.phase,
             cna_game::clock::Phase::ReserveDesignation
@@ -722,14 +989,14 @@ mod tests {
         assert_eq!(reserve.to_act(), Some(Side::Axis));
         let Order::Move {
             pieces: libyans, ..
-        } = &golden_log().orders[61].order
+        } = &golden_log().orders[60].order
         else {
             panic!("order 61 is a move");
         };
         let mut reserve_release = reserve.clone();
         reserve_release
             .apply(
-                data(),
+                graziani(),
                 Side::Axis,
                 Order::DesignateReserve {
                     pieces: libyans.clone(),
@@ -737,10 +1004,10 @@ mod tests {
             )
             .unwrap();
         reserve_release
-            .apply(data(), Side::Axis, Order::Pass)
+            .apply(graziani(), Side::Axis, Order::Pass)
             .unwrap();
         reserve_release
-            .apply(data(), Side::Axis, Order::EndSegment)
+            .apply(graziani(), Side::Axis, Order::EndSegment)
             .unwrap();
         // The combat steps, answered with nothing (as the scripted games do).
         while reserve_release.clock.segment != Some(cna_game::clock::Segment::ReserveRelease) {
@@ -763,12 +1030,12 @@ mod tests {
                 },
                 _ => Order::Pass,
             };
-            reserve_release.apply(data(), player, order).unwrap();
+            reserve_release.apply(graziani(), player, order).unwrap();
         }
         assert_eq!(reserve_release.to_act(), Some(Side::Axis));
         assert!(reserve_release.pending.is_none());
 
-        let off_map = golden_prefix(61);
+        let off_map = golden_prefix(60);
         assert_eq!(
             off_map.clock.segment,
             Some(cna_game::clock::Segment::Movement)
@@ -779,7 +1046,7 @@ mod tests {
             .filter(|p| {
                 p.location == cna_game::piece::Location::Box(cna_data::scenario::OffMapBox::Tripoli)
             })
-            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat)
+            .filter(|p| p.kind == cna_game::piece::PieceKind::Combat && p.attached_to.is_none())
             .map(|p| p.id.clone())
             .take(2)
             .collect();
@@ -787,7 +1054,7 @@ mod tests {
         let mut probe = off_map.clone();
         probe
             .apply(
-                data(),
+                graziani(),
                 Side::Axis,
                 Order::MoveOffMap {
                     pieces: in_tripoli,
@@ -796,11 +1063,11 @@ mod tests {
             )
             .expect("a Tripoli stack may leave for Tripolitania");
 
-        let Order::Move { pieces, .. } = &golden_log().orders[61].order else {
+        let Order::Move { pieces, .. } = &golden_log().orders[60].order else {
             panic!("order 61 is a move");
         };
         let mut reaches = off_map
-            .reachable(data(), Side::Axis, pieces, Purpose::Move)
+            .reachable(graziani(), Side::Axis, pieces, Purpose::Move)
             .unwrap();
         reaches.sort_by_key(|r| (r.cp, r.path.len()));
         let declare_zoc = reaches
@@ -810,12 +1077,13 @@ mod tests {
                 let mut probe = off_map.clone();
                 probe
                     .apply(
-                        data(),
+                        graziani(),
                         Side::Axis,
                         Order::Move {
                             pieces: pieces.clone(),
                             path: r.path.clone(),
                             assault: false,
+                            fuel_from: None,
                         },
                     )
                     .ok()?;
@@ -824,11 +1092,11 @@ mod tests {
             .expect("a flagged move of the Libyans is stopped for a declaration");
         assert_eq!(declare_zoc.to_act(), Some(Side::Cw));
 
-        let combat_start = golden_prefix(66);
+        let combat_start = golden_prefix(64);
         assert_eq!(combat_start.to_act(), Some(Side::Axis));
         assert!(matches!(combat_start.pending, Some(Pending::Sealed { .. })));
 
-        let retreat_before_assault = golden_prefix(70);
+        let retreat_before_assault = golden_prefix(68);
         assert_eq!(
             retreat_before_assault.pending,
             Some(Pending::RetreatBeforeAssault { side: Side::Cw })
@@ -838,7 +1106,7 @@ mod tests {
         )];
         assert!(
             !retreat_before_assault
-                .reachable(data(), Side::Cw, &rha, Purpose::RetreatBeforeAssault)
+                .reachable(graziani(), Side::Cw, &rha, Purpose::RetreatBeforeAssault)
                 .unwrap()
                 .is_empty()
         );
@@ -848,7 +1116,7 @@ mod tests {
         // by default), so the assault (order 73) orders a three-hex
         // retreat without a die (15.29): the stack stands one hex from
         // its attackers, so Pass is two short and pays.
-        let mut forced_retreat = golden_prefix(72);
+        let mut forced_retreat = golden_prefix(70);
         let withheld = ["unit:cw:1-krrc", "unit:cw:3-cldgds"]
             .into_iter()
             .map(|id| cna_game::order::Assignment {
@@ -859,7 +1127,7 @@ mod tests {
             .collect();
         forced_retreat
             .apply(
-                data(),
+                graziani(),
                 Side::Cw,
                 Order::AssignForces {
                     assignments: withheld,
@@ -867,7 +1135,11 @@ mod tests {
             )
             .unwrap();
         forced_retreat
-            .apply(data(), Side::Axis, golden_log().orders[73].order.clone())
+            .apply(
+                graziani(),
+                Side::Axis,
+                golden_log().orders[71].order.clone(),
+            )
             .unwrap();
         let Some(Pending::ForcedRetreat {
             side: Side::Cw,
@@ -882,30 +1154,80 @@ mod tests {
                 forced_retreat.pending
             );
         };
+        // 4 RHA and 7 Medium owe fuel nothing in range can pay, so the
+        // stack makes no retreat at all (R-120).
         assert!(
             forced_retreat
-                .reachable(data(), Side::Cw, pieces, Purpose::ForcedRetreat)
+                .reachable(graziani(), Side::Cw, pieces, Purpose::ForcedRetreat)
                 .unwrap()
-                .iter()
-                .any(|r| r.short == 0),
-            "the full retreat can be made"
+                .is_empty(),
+            "no fuel, no retreat"
         );
         assert!(
             forced_retreat
                 .clone()
-                .apply(data(), Side::Cw, Order::Pass)
+                .apply(graziani(), Side::Cw, Order::Pass)
                 .unwrap()
                 .iter()
                 .any(|e| matches!(e, Event::RetreatBoughtOut { short: 2, .. })),
             "standing still is two hexes short"
         );
 
-        let game_over = replay(data(), &golden_log()).unwrap();
+        // Phase J of GT1 OpStage 1: the Commonwealth's supply at Mersa
+        // Matruh may ride the railway east (golden order 85 passes).
+        let rail = golden_prefix(85);
+        assert_eq!(rail.clock.phase, cna_game::clock::Phase::Rail);
+        assert_eq!(rail.to_act(), Some(Side::Cw));
+
+        // Phase K straight after: four broken-down Commonwealth light tank
+        // points put at Alexandria, where its supply stands (22.2x).
+        let mut repair = rail.clone();
+        let alexandria = cna_data::map::HexId::parse("E3613").unwrap();
+        repair.broken_down.insert(
+            alexandria.clone(),
+            vec![cna_game::breakdown::Wreck {
+                side: Side::Cw,
+                nation: None,
+                weapon: "Mark VI Light".into(),
+                points: 4,
+            }],
+        );
+        repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
+        assert_eq!(repair.clock.phase, cna_game::clock::Phase::Repair);
+        assert_eq!(repair.to_act(), Some(Side::Cw));
+        assert_eq!(repair.field_repairs(graziani()).len(), 1);
+
+        let game_over = replay(graziani(), &golden_log()).unwrap();
         assert!(game_over.is_over());
         assert_eq!(game_over.to_act(), None);
 
+        // Operation Crusader set up hex by hex, each piece on the first
+        // hex it is offered: Rommel with a German unit (R-135), lending
+        // the units in his hex +5 CPA (R-137).
+        let crusader = data("operation-crusader").unwrap();
+        let mut crusader_set_up = GameState::with_modules(crusader, 7, Modules::ALL).unwrap();
+        while let Some(Pending::SetUp { side }) = crusader_set_up.pending.clone() {
+            let (piece, hex) = crusader_set_up
+                .pieces
+                .values()
+                .filter(|p| p.side == side && p.is_pending())
+                .find_map(|p| {
+                    let hex = crusader_set_up
+                        .placements(crusader, &p.id)
+                        .into_iter()
+                        .next()?;
+                    Some((p.id.clone(), hex))
+                })
+                .expect("a pending piece with a hex to go to");
+            crusader_set_up
+                .apply(crusader, side, Order::Place { piece, hex })
+                .unwrap();
+        }
+        assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
+
         vec![
             ("set-up-done", set_up_done),
+            ("crusader-set-up", crusader_set_up),
             ("reserve", reserve),
             ("reserve-release", reserve_release),
             ("off-map", off_map),
@@ -913,6 +1235,8 @@ mod tests {
             ("combat-start", combat_start),
             ("retreat-before-assault", retreat_before_assault),
             ("forced-retreat", forced_retreat),
+            ("rail", rail),
+            ("repair", repair),
             ("game-over", game_over),
         ]
     }
@@ -922,10 +1246,10 @@ mod tests {
     /// movement stretch (slice 4), the combat stretch (slice 5) and the
     /// whole game (slice 6), which `cna_game::golden` pins too.
     const HASHED: [(&str, usize); 4] = [
-        ("set-up-done", 59),
-        ("movement-done", 66),
-        ("combat-done", 77),
-        ("golden-done", 446),
+        ("set-up-done", 56),
+        ("movement-done", 64),
+        ("combat-done", 78),
+        ("golden-done", 458),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`
@@ -939,6 +1263,11 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{name}.json: {e}"));
             assert_eq!(pinned, state.to_json().unwrap(), "{name}.json");
         }
+        assert_eq!(
+            HASHED[3].1,
+            golden_log().orders.len(),
+            "golden-done is the whole game"
+        );
         for (name, n) in HASHED {
             let pinned =
                 std::fs::read_to_string(fixtures_dir().join(format!("{name}.sha256"))).unwrap();
@@ -976,7 +1305,8 @@ mod tests {
         // The scripted set-up predates the module (it stacks supply units
         // past 32.1x's cap), so it plays without it.
         let mut game = Game {
-            state: GameState::new(data(), log.seed).unwrap(),
+            data: graziani(),
+            state: GameState::new(graziani(), log.seed).unwrap(),
         };
         for (i, o) in log.orders.iter().enumerate() {
             let side = serde_json::to_value(o.player).unwrap();
@@ -988,7 +1318,7 @@ mod tests {
                 .unwrap();
             assert!(r["ok"].is_array(), "order {i}: {r}");
         }
-        let replayed = replay(data(), &log).unwrap();
+        let replayed = replay(graziani(), &log).unwrap();
         assert_eq!(game.save().unwrap(), replayed.to_json().unwrap());
         let view = game.view().unwrap();
         assert!(view["pending"].is_null(), "{}", view["pending"]);

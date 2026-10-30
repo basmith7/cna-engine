@@ -22,6 +22,8 @@
   import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
+  import MarchPanel, { type March } from "./MarchPanel.svelte";
+  import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
@@ -39,6 +41,8 @@
   let loadError: string | null = $state(null);
   /** The tray piece picked to place; UI-only state (spec, *State sync*). */
   let picked: PieceId | null = $state(null);
+  /** Pieces placed in this sitting of the set-up, which may be taken back (59.2). */
+  let placedNow: PieceId[] = $state([]);
   /** The engine's last refusal, until the toast goes or the next order. */
   let illegal: string | null = $state(null);
   /** Counts refusals so a repeat of the same text is still a new toast. */
@@ -49,6 +53,15 @@
   let curtain: Side | null = $state(null);
   /** The pieces an order moves: the stack panel's ticks (spec, *Moving*). UI-only state. */
   let ticked: PieceId[] = $state([]);
+  /** A supply unit armed to fly in phase C: the next hex clicked is where (32.37). */
+  let flying: PieceId | null = $state(null);
+  /** Prisoners armed to march (28.13): map clicks extend the path until it is sent. */
+  let march: March | null = $state(null);
+  // An armed march lapses when its hex can no longer march: phase H
+  // ended, the other side is to act, or its points have gone.
+  $effect(() => {
+    if (march && (!view || !marchable(view).some((g) => g.hex === march!.from))) march = null;
+  });
   /** The assault toggle for the next move. */
   let assault = $state(false);
   /** The custom path shift-clicks build; Enter sends it. */
@@ -63,7 +76,7 @@
   const placements: HexId[] = $derived.by(() => (view && picked && engine ? engine.placements(picked) : []));
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
 
-  /** What a click on a reachable hex would send: a move in a movement segment, a reaction while one is offered, a retreat while one is asked. */
+  /** What a click on a reachable hex would send: a move in a movement segment or the truck convoy phase, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
     if (!view || !view.to_act) return null;
     if (view.pending) {
@@ -72,6 +85,10 @@
       if ("forced-retreat" in view.pending) return "forced-retreat";
       return null;
     }
+    // Phase H (abstract supply): supply units move alone, by the same order.
+    if (view.clock.phase === "truck-convoy") return "move";
+    // Phase J (abstract supply): Commonwealth supply units ride the railway.
+    if (view.clock.phase === "rail") return "rail";
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
   /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */
@@ -87,6 +104,7 @@
   });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
   const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
+  const wrecked: HexId[] = $derived(Object.keys(view?.broken_down ?? {}));
   let map: Map | undefined = $state();
   // A forced retreat is the ordered stack's, nobody else's: it stands
   // ticked and the map comes to it.
@@ -112,6 +130,10 @@
     return "ok" in r ? { ok: r.ok, illegal: null } : { ok: [], illegal: r.illegal };
   });
   const reaches = $derived(reach.ok);
+  /** Who could pay the ticked stack's fuel (32.17), and the player's pick; none picked lets the engine take the nearest. */
+  const fuelSources: PieceId[] = $derived(engine && view?.to_act && purpose === "move" && onMap && reaches.length > 0 ? engine.fuelSources(view.to_act, ticked) : []);
+  let fuelPick: PieceId | null = $state(null);
+  const fuelFrom = $derived(fuelPick && fuelSources.includes(fuelPick) ? fuelPick : null);
   const occupied = $derived(new Set(view ? stacks(view).keys() : []));
   /** The hexes the ZOC declaration asks about, outlined on the map. */
   const asked: HexId[] = $derived(view?.pending && "declare-zoc" in view.pending ? view.pending["declare-zoc"].hexes : []);
@@ -139,6 +161,7 @@
       return false;
     }
     illegal = null;
+    flying = null;
     const before = view;
     const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
     view = engine.view();
@@ -178,7 +201,9 @@
           ? { "retreat-before-assault": { pieces: ticked, path } }
           : purpose === "forced-retreat"
             ? { retreat: { path } }
-            : { move: { pieces: ticked, path, assault } };
+            : purpose === "rail"
+              ? { rail: { pieces: ticked, path } }
+              : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
     const ok = send(order);
     if (ok) assault = false;
     return ok;
@@ -195,9 +220,25 @@
     if (picked && view.pending && "set-up" in view.pending) {
       hex = h;
       const side = view.to_act;
-      if (send({ place: { piece: picked, hex: h } })) {
+      const piece = picked;
+      if (send({ place: { piece, hex: h } })) {
+        placedNow = view!.pending && "set-up" in view!.pending && view!.to_act === side ? [...placedNow, piece] : [];
         picked = view!.to_act === side && side ? nextToPlace(view!, side) : null;
       }
+      return;
+    }
+    // An armed air lift: the click is its destination, legal or not,
+    // while its supply unit is still ticked in phase C.
+    if (flying && (view.clock.phase !== "organisation" || !ticked.includes(flying))) flying = null;
+    if (flying) {
+      const piece = flying;
+      flying = null;
+      send({ "air-lift": { piece, to: { hex: h } } });
+      return;
+    }
+    // An armed prisoner march: each click is the path's next hex.
+    if (march) {
+      march = { ...march, path: [...march.path, h] };
       return;
     }
     // The close assault step: a click on a hex still to assault resolves it.
@@ -278,6 +319,7 @@
     hex = null;
     picked = null;
     ticked = [];
+    flying = null;
     custom = [];
     log = [];
     curtain = curtained ? curtainAfter(null, view.to_act) : null;
@@ -321,7 +363,7 @@
       });
   }
 
-  /** Downloads the state JSON as `graziani-gt<N>-os<M>.json`. */
+  /** Downloads the state JSON as `saveName`'s file. */
   function saveFile() {
     if (!engine || !view) return;
     const blob = new Blob([engine.save()], { type: "application/json" });
@@ -380,7 +422,7 @@
     {#if view.over && reportOpen}
       <EndDialog {view} onclose={() => (reportOpen = false)} />
     {/if}
-    <TopBar {view} {hex} />
+    <TopBar {view} {hex} title={Engine.scenarioName(view.scenario)} />
     <div class="body">
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
@@ -388,6 +430,7 @@
             <Placements hexes={placements} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
+            <Marks hexes={wrecked} kind="wreck" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
             <Reachable {reaches} {from} hovered={hover} {custom} {occupied} part="labels" />
@@ -409,15 +452,31 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
-          <PhaseControls {view} {ticked} onorder={(o) => send(o)} />
+          <PhaseControls {view} {ticked} {hex} {flying} onfly={(p) => (flying = p)} onorder={(o) => send(o)} />
+          <MarchPanel
+            {view}
+            {march}
+            onarm={(m) => (march = m)}
+            onsend={() => {
+              if (march && send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } })) march = null;
+            }}
+            oncancel={() => (march = null)}
+          />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
           {#if purpose}
-            <MovePanel {purpose} {ticked} {reaches} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} />
+            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} />
           {/if}
-          <StackPanel {view} {hex} {ticked} {ontoggle} />
+          <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={(o) => {
+            const ok = send(o);
+            if (ok && typeof o === "object" && "unplace" in o) {
+              placedNow = placedNow.filter((id) => id !== o.unplace.piece);
+              picked = o.unplace.piece;
+            }
+            return ok;
+          }} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />
         </div>
         <LogPanel entries={log} />
@@ -426,7 +485,7 @@
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
   {:else if loaded}
-    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} onnew={(seed) => start(Engine.newGame(seed))} onload={loadFile} />
+    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} scenarios={Engine.scenarios()} onnew={(scenario, seed) => start(Engine.newGame(scenario, seed))} onload={loadFile} />
   {:else}
     <p class="status">Loading the engine…</p>
   {/if}

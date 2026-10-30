@@ -7,6 +7,7 @@ describe("a placement in words", () => {
       "any hex of sheet C, not within 4 hexes of an enemy unit",
     );
     expect(placementWords({ sheets: ["D", "E"] })).toBe("any hex of sheets D or E");
+    expect(placementWords({ stacked_with: "german-unit" })).toBe("any hex with a German unit");
     expect(placementWords({ sheets: ["A", "B", "C"] })).toBe("any hex of sheets A, B or C");
   });
 
@@ -15,6 +16,14 @@ describe("a placement in words", () => {
     expect(placementWords({ within: { of: "C0716", hexes: 3 } })).toBe("any hex within 3 of C0716");
     expect(placementWords({ hexes: ["C4131"] })).toBe("C4131");
     expect(placementWords({ hexes: ["C4131", "C4130"] })).toBe("any of C4131 or C4130");
+  });
+
+  it("reads several locators as one area", () => {
+    expect(placementWords({ region: "libya", sheets: ["C"], together: true })).toBe(
+      "any hex in Libya on sheet C, all in one hex",
+    );
+    expect(placementWords({ sheets: ["D"], west_of: "D3714" })).toBe("any hex of sheet D west of D3714");
+    expect(placementWords({ place: ["cairo", "helwan"] })).toBe("cairo or helwan");
   });
 
   it("does not repeat the constraint prose: that is the tray's 'also'", () => {
