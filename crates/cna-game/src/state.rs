@@ -193,7 +193,8 @@ pub struct GameState {
         deserialize_with = "repaired_by_hex"
     )]
     pub repaired: Repaired,
-    /// Supply units that rode the railway this OpStage (32.3x: two).
+    /// Pieces that rode the railway this OpStage: once each (8.7x), and
+    /// two supply units at most (32.3x).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub railed: BTreeSet<PieceId>,
     /// The Game-Turn each side last flew a supply unit (32.37).
@@ -235,9 +236,12 @@ pub struct GameState {
     /// (28.13).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub marched: BTreeSet<HexId>,
-    /// Which way this OpStage's rail runs went: east or not (32.3x).
+    /// The ways a rail stack has run this OpStage: one each (8.7x, R-005).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub rail_runs: BTreeSet<crate::rail::RailWay>,
+    /// The way this OpStage's supply went by rail: all one (32.3x).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rail_east: Option<bool>,
+    pub rail_supply_way: Option<crate::rail::RailWay>,
     /// Phase C under abstract supply: Player A has passed and Player B
     /// is organising.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -355,7 +359,8 @@ impl GameState {
             escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
             air_lifted: BTreeMap::new(),
-            rail_east: None,
+            rail_runs: BTreeSet::new(),
+            rail_supply_way: None,
             weather: Weather::Normal,
             pieces,
             hex_index: Default::default(),

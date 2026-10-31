@@ -177,7 +177,8 @@ impl GameState {
     fn start_stage(&mut self) {
         self.railed.clear();
         self.field_rolled.clear();
-        self.rail_east = None;
+        self.rail_runs.clear();
+        self.rail_supply_way = None;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
                 p.cohesion.rest();
