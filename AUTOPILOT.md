@@ -4,25 +4,18 @@ Read by `~/Scripts/claude-autopilot.sh`, which cron launches every few hours
 when the Claude plan has headroom. Each run is a fresh session with no memory
 of the last one; this file plus the journal is the only continuity. Read `ARCHITECTURE.md` to orient in the code.
 
-## The goal
+## First: the shared protocol in cna
 
-This repo and `basmith7/cna` share one goal, and every mission in either
-repo serves it:
+Before anything else, read cna's `AUTOPILOT.md` from its `main`:
 
-> **An open-source, self-hostable digital *Campaign for North Africa*.**
-> Two players play a scenario, and in the end the full campaign, in a
-> browser, against each other, with the engine enforcing every rule. Each
-> ruling is a switch, so a group picks its ruleset.
+```
+gh api repos/basmith7/cna/contents/AUTOPILOT.md --jq .content | base64 -d
+```
 
-The two repos split the work:
-
-- **cna** is the rulebook: every SPI rule restated in our own
-  words, every chart, map hex, scenario and OA sheet as data, and every
-  ambiguity decided as a ruling. It is done when an engine can build the
-  whole game from it without opening the SPI books. No engine code there.
-- **cna-engine (this repo)** builds the game from cna: rules core, game
-  state, turn sequence, then a server and browser client. It reads cna as a
-  submodule and never copies its prose.
+Its **The goal**, **Picking up where the last run left off**, **Working
+rules** and **Handing off** bind this repo too; the rest of it is cna's own.
+This file adds cna-engine's missions and specifics, and wins where the two
+differ.
 
 This repo is the critical path to the goal. Each mission should leave the
 game measurably closer to playable.
@@ -103,53 +96,12 @@ that section every run and answers with a PR on cna. When it lands, bump
 Stay inside this repo. Do not deploy or host anything: hosting is Brian's
 call.
 
-## Picking up where the last run left off
+## Specifics for this repo
 
-You are in a dedicated clone owned by the autopilot, on `main`, freshly reset
-to `origin/main`. In order:
-
-1. `git submodule update --init` (the clone does not fetch `vendor/cna`).
-2. Read `docs/autopilot/PROGRESS.md`. Its **Feedback** section is Brian's
-   voice: act on every item first, then move it to **Addressed** with a
-   one-line reply. If an item changes the mission, it wins over this file.
-3. `gh pr list --state open --label autopilot` — if an autopilot PR is open,
-   check out its branch, read the last entry of `docs/autopilot/JOURNAL.md`
-   on it, and continue. If its gates and CI already pass, merge it
-   (`gh pr merge --merge`) and move on, unless it is labelled
-   `needs-brian` and **Feedback** has not approved it.
-4. Otherwise start the next unfinished part, branching from `origin/main`.
-
-## Working rules
-
-- Keep going until the wall-clock budget in the prompt is nearly spent.
-- TDD: every step in the plan that says "write the failing test" means it.
-- Commit small, push after every commit. Draft the PR
-  (`gh pr create --draft --label autopilot`) after the first commit; `gh pr
-  ready` only when `cargo clippy --all-targets -- -D warnings`, `cargo test`
-  and `cargo run -p cna-probe -- check` pass locally.
-- Never touch `main` directly except `docs/autopilot/PROGRESS.md`; never
-  force-push; never rewrite history.
+- **Start of run:** `git submodule update --init` first; the clone does not
+  fetch `vendor/cna`.
+- **Gates** for `gh pr ready`: `cargo clippy --all-targets -- -D warnings`,
+  `cargo test` and `cargo run -p cna-probe -- check`.
 - **The `cna` repo is read-only from here**: ask for changes under
-  **Requests for cna**. Bumping `vendor/cna` to a newer `cna` main is allowed at the start of a
-  part; regenerate `probes/` in the same commit.
-- No SPI rule text in this repo, ever; cite case numbers.
-- Commit messages end with the attribution trailer the harness gives you.
-
-## Handing off
-
-Before the budget runs out:
-
-1. **Update `docs/autopilot/PROGRESS.md` on `main`** (commit directly, it is
-   a doc): rewrite **Status** and **Next steps**; file replies under
-   **Addressed**. Do not touch **Runs and quota**; the cron script fills it.
-2. **Append to `docs/autopilot/JOURNAL.md`** on the working branch:
-
-```
-## <timestamp, local time> — <branch>
-Done: <what landed, with commit shas>
-In flight: <what is half-done and where>
-Next: <the first concrete thing the next run should do>
-Blocked: <anything only Brian can resolve, or "none">
-```
-
-Keep entries under ten lines.
+  **Requests for cna**. Bumping `vendor/cna` to a newer `cna` main is
+  allowed at the start of a part; regenerate `probes/` in the same commit.
