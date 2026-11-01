@@ -2,7 +2,7 @@
 
 Read by `~/Scripts/claude-autopilot.sh`, which cron launches every few hours
 when the Claude plan has headroom. Each run is a fresh session with no memory
-of the last one; this file plus the journal is the only continuity. Read `ARCHITECTURE.md` to orient in the code.
+of the last one; this file, cna's `AUTOPILOT.md` and the journal are the only continuity. Read `ARCHITECTURE.md` to orient in the code.
 
 ## First: the shared protocol in cna
 
