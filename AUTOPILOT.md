@@ -2,7 +2,7 @@
 
 Read by `~/Scripts/claude-autopilot.sh`, which cron launches every few hours
 when the Claude plan has headroom. Each run is a fresh session with no memory
-of the last one; this file, cna's `AUTOPILOT.md` and the journal are the only continuity. Read `ARCHITECTURE.md` to orient in the code.
+of the last one; this file, cna's `AUTOPILOT.md` and the journal are the only continuity. Read this repo's `AGENTS.md` (invariants and gotchas) to orient.
 
 ## First: the shared protocol in cna
 
@@ -104,4 +104,5 @@ call.
   `cargo test` and `cargo run -p cna-probe -- check`.
 - **The `cna` repo is read-only from here**: ask for changes under
   **Requests for cna**. Bumping `vendor/cna` to a newer `cna` main is
-  allowed at the start of a part; regenerate `probes/` in the same commit.
+  allowed at the start of a part; regenerate what `AGENTS.md`'s *Bumping
+  `vendor/cna`* lists in the same commit.

@@ -6,7 +6,7 @@ Rust. Every ruling in the [`cna`](https://github.com/basmith7/cna) repo's
 chosen option per ruling. The rules data is read directly from `cna`, which
 is a git submodule at `vendor/cna`.
 
-New here? Read [`ARCHITECTURE.md`](ARCHITECTURE.md) to orient.
+Agents: read [`AGENTS.md`](AGENTS.md) first, for the invariants and gotchas the code doesn't show.
 
 On top of the core sit *probes*: small programs that measure how a ruling's
 options differ in play (expected losses, how often a case comes up) and
@@ -100,9 +100,8 @@ commit. `tests/games/` holds scripted games the tests replay:
 and a close assault, then passes to the end; its final state's SHA-256 and
 victory report are pinned). A scripted game pins the commit and the
 ruleset defaults, so a submodule bump or a changed default fails its
-replay test until the fixture is regenerated (`cargo test -p cna-game --
---ignored regenerate_setup_fixture` and `... regenerate_graziani_short_fixture`,
-then pin the hash the latter prints).
+replay test until the fixture is regenerated (the steps are under *Bumping
+`vendor/cna`* in [`AGENTS.md`](AGENTS.md)).
 
 ## Probes
 
