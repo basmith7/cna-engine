@@ -4,7 +4,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
         with: { components: clippy, targets: wasm32-unknown-unknown }
@@ -14,22 +14,22 @@ jobs:
       - run: cargo check -p cna-game --target wasm32-unknown-unknown
       - uses: taiki-e/install-action@v2
         with: { tool: wasm-pack@0.15.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24 }
       - run: wasm-pack test --node crates/cna-web
   web:
     runs-on: ubuntu-latest
     defaults:
       run: { working-directory: web }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: wasm32-unknown-unknown }
       - uses: taiki-e/install-action@v2
         with: { tool: wasm-pack@0.15.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: npm ci
       - run: npm run wasm
       - run: npm run check
@@ -39,7 +39,7 @@ jobs:
       - run: npx playwright test
         env:
           CNA_SHOTS: ${{ github.workspace }}/web/test-results/shots
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots
