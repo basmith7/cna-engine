@@ -1,3 +1,4 @@
 {
-  "extends": ["github>basmith7/workflows"]
+  "extends": ["github>basmith7/workflows"],
+  "enabledManagers": ["npm", "github-actions", "cargo"]
 }
