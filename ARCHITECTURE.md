@@ -8,10 +8,11 @@ Land Game turn), and a local browser client. It is not a
 server (none exists yet), not an AI, and not the rules themselves: `cna` owns every rule's prose,
 chart and ruling, and this repo never copies them.
 
-Verified against 2e2c9de on 2026-10-29.
+Verified against 387ee7e on 2026-10-31.
 
 Read `README.md` for setup and commands, `NOT_SIMULATED.md` for what the engine leaves out, and
-`AUTOPILOT.md` for the mission queue an unattended agent works through here.
+`AUTOPILOT.md` for the mission queue and repo specifics an unattended agent works through here
+(its shared protocol lives in `cna`'s `AUTOPILOT.md`, which a run reads first).
 
 ## Codemap
 
@@ -124,7 +125,8 @@ Things the diagram flattens:
   `Pending::Sealed` collects both players' secret combat answers (gun positions, barrage, force
   assignment) and reveals them only when both are in.
 - **Modules.** `Modules` has three switches, `abstract_supply`, `breakdown` and `construction`,
-  gating rules added after saves existed; off, an old save or log replays as it always did.
+  gating rules added after saves existed; each field is `#[serde(default)]`, so a save from
+  before a module reads it as off and replays as it always did.
   `Modules::ALL` is what new games get, in `cna-play new` and the browser alike.
 - **Most Mission 5 state is maps on `GameState`**, keyed by side, hex or piece (motorisation
   points, wrecks, repaired points, prisoners, fortifications, minefields), not fields on `Piece`.
@@ -132,8 +134,8 @@ Things the diagram flattens:
 ## Interfaces
 
 **There is no HTTP or WebSocket server in this repo.** The multiplayer server (queue row 4 in
-`AUTOPILOT.md`) is a spec awaiting Brian's review and none of it is built. Today the engine is
-driven three ways, all by `Order` JSON in and events/state JSON out.
+`AUTOPILOT.md`) has a spec Brian approved on 2026-10-29 (PR #25, not yet merged) and none of it
+is built. Today the engine is driven three ways, all by `Order` JSON in and events/state JSON out.
 
 **WebAssembly API** (`crates/cna-web/src/lib.rs`, the `Game` class, wrapped in `web/src/engine.ts`):
 `scenarios()` (the embedded scenarios as `[{slug, name}]`), `newGame(scenario, seed)`, `load(json)` and `save()` (the state JSON is the save format; `load` refuses
@@ -156,8 +158,8 @@ build-time embedded copy in the browser): `map/` (hexes, sheets, hexsides, place
 (terrain, CP, weather, stacking, combat charts, morale, weapons, unit characteristics, schedule,
 and so on), `oa/` (order-of-appearance sheets), `scenarios/<slug>.json`, `errata/`. Those five
 directories are exactly what `cna-web/build.rs` embeds. `cna_data::rules_commit()` asks git for the
-submodule's HEAD, which is stamped into probes, saves and logs. `rulings/` is read by a test
-that checks every ruling has a switch or a row in `NOT_SIMULATED.md`.
+submodule's HEAD, which is stamped into probes, saves and logs. `vendor/cna/rulings/` (outside
+`data/`) is read by a test that checks every ruling has a switch or a row in `NOT_SIMULATED.md`.
 
 ## Features
 
@@ -183,8 +185,9 @@ What is playable, honestly. `NOT_SIMULATED.md` is the authority on gaps.
   commit; hostile or hand-edited saves are errors, not panics.
 - **Planned, not built:** patrols (phase L), the LRDG raid, the Commonwealth fleet, the Logistics
   Game, the Air Game, AI players, and the multiplayer server with accounts, lobby and real hidden
-  information (Mission 4, spec PR #25 awaiting Brian). Until the server, **secrecy is hot-seat
-  only**: the state in the page and the autosave hold everything, dummy supply and minefields too.
+  information (Mission 4, next; spec PR #25 approved, not yet merged). Until the server,
+  **secrecy is hot-seat only**: the state in the page and the autosave hold everything, dummy
+  supply and minefields too.
 - **Not goals:** hosting anything; the UI enforcing a rule (it holds none).
 
 ## Flows
@@ -220,11 +223,17 @@ browser, `cna-web/build.rs` embeds the same files at compile time, so `Data` is 
 - **Do not edit `vendor/cna`.** Missing or ambiguous rules go in *Requests for cna* in
   `docs/autopilot/PROGRESS.md`.
 - **New rules go behind `Modules`** (or a `Ruleset` switch) so old saves and logs still replay.
+- **No front end picks a ruleset yet.** `GameState::with_modules` sets `Ruleset::default()`, and
+  neither `cna-play new` nor `newGame` takes one; a switch's other options are reached by tests,
+  probes, or a hand-edited log.
 - **Generated blocks:** the crate graph above is written by `tools/archdoc`; do not hand-edit it.
 - **A ruling needs a home.** Adding or changing a ruling in `cna` fails the all-rulings test until
   it has a switch, a "decided" row, or a "no switch" row in `NOT_SIMULATED.md`.
 - **Autopilot is working in this repo.** Check open PRs and `docs/autopilot/PROGRESS.md` before
-  large edits; keep changes small and additive.
+  large edits; keep changes small and additive. Its goal, pick-up, working rules and hand-off live
+  once in `cna`'s `AUTOPILOT.md` (read from `cna`'s `main` via `gh api`, not from `vendor/cna`);
+  this repo's `AUTOPILOT.md` holds only the queue, parts, requests, limits and gates, and wins
+  where the two differ. Change shared rules there, not here.
 - **`NOT_SIMULATED.md` lags in places:** its combat table still says no ammunition or fuel is
   deducted, its Rail row says combat units do not ride (#79 added that), and its Organisation row
   predates replacements and R-141's 19.3-chart shells. Trust the land-turn spec's Status first.
