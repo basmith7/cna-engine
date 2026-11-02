@@ -11,13 +11,13 @@
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use cna_embed::data;
-use cna_game::combat::SealedStep;
 use cna_game::data::Data;
 use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
 use cna_game::reach::Purpose;
-use cna_game::state::{GameState, Modules, Pending};
+use cna_game::state::{GameState, Modules};
+use cna_game::view::{Aliases, view_for};
 use serde_json::{Value, json};
 
 #[derive(Debug)]
@@ -63,149 +63,18 @@ impl Game {
         self.state.to_json()
     }
 
-    /// What the UI draws: the state minus `log` and `rng`, plus `to_act`
-    /// and, per piece, `unit_type` from the characteristics chart (null
-    /// for supply units and ID codes the chart lacks) and the OA unit's
-    /// `name` and `abbreviation` (null for supply units), and `shell: true`
-    /// on a formation that is a shell (9.26);
-    /// `assaults_to_resolve`, the hexes the phasing player still has to
-    /// assault in the close assault step. While a sealed step is
-    /// pending, the answers already given to it by sides other than
-    /// `to_act` are redacted (spec, *Secrecy*): their `combat.plots` or
-    /// `combat.assignments` entry, and for gun positions their pieces in
-    /// the shared `combat.forward` set.
+    /// What the UI draws (`cna_game::view::view_for`), seen by the side
+    /// to act with open information: hot-seat players share a screen, so
+    /// only the sealed answers and the owner's secrets (3.61) of the side
+    /// not to act are hidden, and no ids are aliased.
     pub fn view(&self) -> Result<Value> {
-        let mut v = serde_json::to_value(&self.state)?;
-        let obj = v.as_object_mut().context("state is an object")?;
-        obj.remove("log");
-        obj.remove("rng");
-        obj.insert("to_act".into(), json!(self.state.to_act()));
-        obj.insert(
-            "assaults_to_resolve".into(),
-            json!(self.state.assaults_to_resolve()),
-        );
-        if let Some(Pending::Sealed { step, .. }) = &self.state.pending
-            && let Some(acting) = self.state.to_act()
-        {
-            let combat = v["combat"].as_object_mut().context("combat")?;
-            let others: Vec<String> = [Side::Axis, Side::Cw]
-                .into_iter()
-                .filter(|s| *s != acting)
-                .map(|s| serde_json::to_value(s).map(|x| x.as_str().unwrap_or_default().to_owned()))
-                .collect::<Result<_, _>>()?;
-            let key = match step {
-                SealedStep::GunPositions => None,
-                SealedStep::Barrage => Some("plots"),
-                SealedStep::AssignForces => Some("assignments"),
-            };
-            match key {
-                Some(key) => {
-                    if let Some(map) = combat.get_mut(key).and_then(Value::as_object_mut) {
-                        for s in &others {
-                            map.remove(s);
-                        }
-                    }
-                }
-                None => {
-                    if let Some(forward) = combat.get_mut("forward").and_then(Value::as_array_mut) {
-                        forward.retain(|id| {
-                            self.state
-                                .pieces
-                                .values()
-                                .find(|p| Some(p.id.as_str()) == id.as_str())
-                                .is_some_and(|p| p.side == acting)
-                        });
-                    }
-                }
-            }
-        }
-        // 3.61: loads, motorisation points (pooled or attached),
-        // repaired points waiting as replacements and what a project
-        // builds are the owner's secret.
-        if let Some(acting) = self.state.to_act() {
-            let other = serde_json::to_value(acting.other())?
-                .as_str()
-                .unwrap_or_default()
-                .to_owned();
-            for key in ["motorisation", "repaired"] {
-                if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
-                    m.remove(&other);
-                }
-            }
-            // Whether the other side's unrevealed minefields are real (26.1x).
-            if let Some(m) = v.get_mut("minefields").and_then(Value::as_object_mut) {
-                for field in m.values_mut().filter_map(Value::as_object_mut) {
-                    let theirs = field.get("side").and_then(Value::as_str) == Some(other.as_str());
-                    let revealed = field.get("revealed").and_then(Value::as_bool) == Some(true);
-                    if theirs && !revealed {
-                        field.remove("real");
-                    }
-                }
-            }
-            // What the other side builds (3.61); its projects still show.
-            if let Some(m) = v.get_mut("projects").and_then(Value::as_object_mut) {
-                for project in m.values_mut().filter_map(Value::as_object_mut) {
-                    if project.get("side").and_then(Value::as_str) == Some(other.as_str()) {
-                        project.remove("item");
-                    }
-                }
-            }
-            if let Some(m) = v
-                .get_mut("pending_motorisation")
-                .and_then(Value::as_object_mut)
-            {
-                m.retain(|id, _| {
-                    self.state
-                        .pieces
-                        .values()
-                        .any(|p| p.id.as_str() == id && p.side == acting)
-                });
-            }
-            for p in self.state.pieces.values().filter(|p| p.side != acting) {
-                if let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() {
-                    o.remove("load");
-                    o.remove("motorised");
-                    o.remove("escorted");
-                }
-            }
-        }
-        let labels: Vec<(String, Value)> = self
-            .state
-            .pieces
-            .values()
-            .map(|p| {
-                let unit_type = p
-                    .nation
-                    .zip(p.id_code.as_deref())
-                    .and_then(|(nation, code)| self.data.chars.row(nation, code))
-                    .map(|row| row.unit_type.clone());
-                let oa = p.id.unit().and_then(|id| self.data.oa.unit(&id));
-                let labels = json!({
-                    "unit_type": unit_type,
-                    "name": oa.map(|u| u.name.clone()),
-                    "abbreviation": oa.and_then(|u| u.abbreviation.clone()),
-                });
-                (p.id.as_str().to_owned(), labels)
-            })
-            .collect();
-        // Shells (9.26) are worked out from what both sides see (attachments
-        // and TOE are not redacted), so every piece carries the flag.
-        let shells: Vec<String> = self
-            .state
-            .pieces
-            .values()
-            .filter(|p| self.state.is_shell(self.data, &p.id))
-            .map(|p| p.id.as_str().to_owned())
-            .collect();
-        for id in shells {
-            v["pieces"][&id]["shell"] = json!(true);
-        }
-        for (id, labels) in labels {
-            for (k, val) in labels.as_object().context("labels")? {
-                v["pieces"][&id][k] = val.clone();
-            }
-        }
-        Ok(v)
+        view_for(
+            &self.state,
+            self.data,
+            &Aliases::new([0; 32]),
+            self.state.to_act(),
+            true,
+        )
     }
 
     /// The hexes `place` would accept for a pending piece of the side
@@ -307,6 +176,8 @@ impl Game {
 mod tests {
     use super::*;
     use cna_embed::{DEFAULT_SCENARIO as SCENARIO, RULES_COMMIT};
+    use cna_game::combat::SealedStep;
+    use cna_game::state::Pending;
 
     fn graziani() -> &'static Data {
         data(SCENARIO).unwrap()
@@ -1011,7 +882,6 @@ mod tests {
             .unwrap();
         // The combat steps, answered with nothing (as the scripted games do).
         while reserve_release.clock.segment != Some(cna_game::clock::Segment::ReserveRelease) {
-            use cna_game::combat::SealedStep;
             let player = reserve_release.to_act().unwrap();
             let order = match &reserve_release.pending {
                 Some(Pending::Sealed {
