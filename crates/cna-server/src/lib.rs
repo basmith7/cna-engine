@@ -45,6 +45,14 @@ impl Config {
     }
 }
 
+/// The schema in `migrations/`, compiled in.
+pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
+
+/// Brings the database up to this build's schema; run at start.
+pub async fn migrate(pool: &PgPool) -> Result<()> {
+    MIGRATOR.run(pool).await.context("migrating the database")
+}
+
 /// The routes, over a pool.
 pub fn router(pool: PgPool) -> Router {
     Router::new()
@@ -97,6 +105,35 @@ mod tests {
     async fn healthz_is_503_when_the_database_is_gone(pool: PgPool) {
         pool.close().await;
         assert_eq!(get_healthz(pool).await.0, StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[sqlx::test(migrations = false)]
+    #[cfg_attr(
+        not(feature = "db-tests"),
+        ignore = "needs Postgres: --features db-tests"
+    )]
+    async fn migrating_twice_is_a_no_op(pool: PgPool) {
+        async fn tables(pool: &PgPool) -> Vec<String> {
+            sqlx::query_scalar(
+                "SELECT table_name::text FROM information_schema.tables \
+                 WHERE table_schema = 'public' ORDER BY 1",
+            )
+            .fetch_all(pool)
+            .await
+            .unwrap()
+        }
+        migrate(&pool).await.unwrap();
+        let once = tables(&pool).await;
+        for t in ["accounts", "games", "seats", "orders", "snapshots"] {
+            assert!(once.contains(&t.to_owned()), "{t} in {once:?}");
+        }
+        migrate(&pool).await.unwrap();
+        assert_eq!(tables(&pool).await, once);
+        let applied: i64 = sqlx::query_scalar("SELECT count(*) FROM _sqlx_migrations")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(applied as usize, MIGRATOR.iter().count());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use cna_server::{Config, router};
+use cna_server::{Config, migrate, router};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::trace::TraceLayer;
 
@@ -16,6 +16,7 @@ async fn main() -> Result<()> {
         .connect(&config.database_url)
         .await
         .context("connecting to the database")?;
+    migrate(&pool).await?;
     let app = router(pool).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(config.bind)
         .await
