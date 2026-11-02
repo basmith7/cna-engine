@@ -153,8 +153,10 @@ async fn a_game_is_shown_only_to_its_seats_each_its_own_view(pool: PgPool) {
     assert_ne!(axis["view"], cw["view"], "each side its own view");
     let (s, _) = call(&app, "GET", &uri, Some(OUTSIDER), None).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
+    // No game at all looks like a game you are not in: an outsider
+    // cannot tell real ids from missing ones, nor make us load them.
     let (s, _) = call(&app, "GET", "/api/games/999999", Some(AXIS), None).await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
+    assert_eq!(s, StatusCode::FORBIDDEN);
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]

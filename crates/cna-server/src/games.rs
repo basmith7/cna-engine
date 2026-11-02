@@ -148,6 +148,69 @@ pub(crate) fn side_str(side: Side) -> &'static str {
     }
 }
 
+/// Inserts a new game of `scenario`, waiting for its seats.
+async fn insert_game(
+    tx: &mut sqlx::PgConnection,
+    scenario: &str,
+    created_by: AccountId,
+    open: bool,
+    seed: u64,
+) -> Result<GameId, GameError> {
+    let data = cna_embed::data(scenario)?;
+    // Every module on, as the browser plays (`cna-web`'s new game).
+    let state = GameState::with_modules(data, seed, Modules::ALL)?;
+    // The alias key is its own random value, not the seed's: knowing
+    // the dice must tell nothing about which alias is which.
+    let mut key = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
+    let id: GameId = sqlx::query_scalar(
+        "INSERT INTO games (scenario, ruleset, modules, open_information, seed, \
+         alias_key, rules_commit, created_by, to_act) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+    )
+    .bind(scenario)
+    .bind(Json(state.ruleset))
+    .bind(Json(state.modules))
+    .bind(open)
+    .bind(seed as i64)
+    .bind(&key[..])
+    .bind(RULES_COMMIT)
+    .bind(created_by)
+    .bind(state.to_act().map(side_str))
+    .fetch_one(&mut *tx)
+    .await?;
+    Ok(id)
+}
+
+/// Seats `account` as `side` inside `tx`, the game row locked first so
+/// two joins at once cannot both see one seat and leave it `open`.
+async fn seat_in(
+    tx: &mut sqlx::PgConnection,
+    game: GameId,
+    side: Side,
+    account: AccountId,
+) -> Result<(), GameError> {
+    sqlx::query("SELECT id FROM games WHERE id = $1 FOR UPDATE")
+        .bind(game)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("INSERT INTO seats (game_id, side, account_id) VALUES ($1, $2, $3)")
+        .bind(game)
+        .bind(side_str(side))
+        .bind(account)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query(
+        "UPDATE games SET status = 'active', updated_at = now() \
+         WHERE id = $1 AND status = 'open' \
+         AND (SELECT count(*) FROM seats WHERE game_id = $1) = 2",
+    )
+    .bind(game)
+    .execute(&mut *tx)
+    .await?;
+    Ok(())
+}
+
 fn parse_side(s: &str) -> anyhow::Result<Side> {
     serde_json::from_value(serde_json::Value::String(s.to_owned()))
         .with_context(|| format!("side {s:?}"))
@@ -191,29 +254,25 @@ impl Games {
         open: bool,
         seed: u64,
     ) -> Result<GameId, GameError> {
-        let data = cna_embed::data(scenario)?;
-        // Every module on, as the browser plays (`cna-web`'s new game).
-        let state = GameState::with_modules(data, seed, Modules::ALL)?;
-        // The alias key is its own random value, not the seed's: knowing
-        // the dice must tell nothing about which alias is which.
-        let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
-        let id: GameId = sqlx::query_scalar(
-            "INSERT INTO games (scenario, ruleset, modules, open_information, seed, \
-             alias_key, rules_commit, created_by, to_act) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
-        )
-        .bind(scenario)
-        .bind(Json(state.ruleset))
-        .bind(Json(state.modules))
-        .bind(open)
-        .bind(seed as i64)
-        .bind(&key[..])
-        .bind(RULES_COMMIT)
-        .bind(created_by)
-        .bind(state.to_act().map(side_str))
-        .fetch_one(&self.pool)
-        .await?;
+        let mut tx = self.pool.begin().await?;
+        let id = insert_game(&mut tx, scenario, created_by, open, seed).await?;
+        tx.commit().await?;
+        Ok(id)
+    }
+
+    /// A new game with its creator already in `side`'s seat, in one
+    /// transaction: the open-games list never shows it without them.
+    pub async fn create_as(
+        &self,
+        scenario: &str,
+        created_by: AccountId,
+        side: Side,
+        open: bool,
+    ) -> Result<GameId, GameError> {
+        let mut tx = self.pool.begin().await?;
+        let id = insert_game(&mut tx, scenario, created_by, open, OsRng.next_u64()).await?;
+        seat_in(&mut tx, id, side, created_by).await?;
+        tx.commit().await?;
         Ok(id)
     }
 
@@ -226,20 +285,7 @@ impl Games {
         account: AccountId,
     ) -> Result<(), GameError> {
         let mut tx = self.pool.begin().await?;
-        sqlx::query("INSERT INTO seats (game_id, side, account_id) VALUES ($1, $2, $3)")
-            .bind(game)
-            .bind(side_str(side))
-            .bind(account)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query(
-            "UPDATE games SET status = 'active', updated_at = now() \
-             WHERE id = $1 AND status = 'open' \
-             AND (SELECT count(*) FROM seats WHERE game_id = $1) = 2",
-        )
-        .bind(game)
-        .execute(&mut *tx)
-        .await?;
+        seat_in(&mut tx, game, side, account).await?;
         tx.commit().await?;
         Ok(())
     }
@@ -273,16 +319,11 @@ impl Games {
         order: &Order,
         seq: i64,
     ) -> Result<Vec<Event>, GameError> {
-        let mut live = self.get(game).await?;
-        let held: Option<String> =
-            sqlx::query_scalar("SELECT side FROM seats WHERE game_id = $1 AND account_id = $2")
-                .bind(game)
-                .bind(account)
-                .fetch_optional(&self.pool)
-                .await?;
-        if held.as_deref() != Some(side_str(side)) {
+        // The seat first: a caller with none must not make us load the game.
+        if self.seat_of(game, account).await? != Some(side) {
             return Err(GameError::NotYourSeat);
         }
+        let mut live = self.get(game).await?;
         if seq != live.seq() {
             return Err(GameError::Conflict { seq: live.seq() });
         }
@@ -311,36 +352,48 @@ impl Games {
             }
         };
 
-        let mut tx = self.pool.begin().await?;
-        sqlx::query(r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4)"#)
-            .bind(game)
-            .bind(seq)
-            .bind(side_str(side))
-            .bind(Json(&stored))
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query(
-            "UPDATE games SET to_act = $2, updated_at = now(), \
-             status = CASE WHEN $3 THEN 'over' ELSE status END WHERE id = $1",
-        )
-        .bind(game)
-        .bind(next.to_act().map(side_str))
-        .bind(next.is_over())
-        .execute(&mut *tx)
-        .await?;
-        if next.log.len() % SNAPSHOT_EVERY == 0 {
+        // Once the INSERT is sent, a failure may still have committed it
+        // (the connection lost after COMMIT): drop the cached game so the
+        // next request reloads it from the database instead of trying
+        // this seq again for ever.
+        let stored_ok: Result<(), GameError> = async {
+            let mut tx = self.pool.begin().await?;
+            sqlx::query(r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4)"#)
+                .bind(game)
+                .bind(seq)
+                .bind(side_str(side))
+                .bind(Json(&stored))
+                .execute(&mut *tx)
+                .await?;
             sqlx::query(
-                "INSERT INTO snapshots (game_id, seq, rules_commit, state) VALUES ($1, $2, $3, $4) \
-                 ON CONFLICT DO NOTHING",
+                "UPDATE games SET to_act = $2, updated_at = now(), \
+                 status = CASE WHEN $3 THEN 'over' ELSE status END WHERE id = $1",
             )
             .bind(game)
-            .bind(next.log.len() as i64)
-            .bind(&next.rules_commit)
-            .bind(next.to_json()?)
+            .bind(next.to_act().map(side_str))
+            .bind(next.is_over())
             .execute(&mut *tx)
             .await?;
+            if next.log.len() % SNAPSHOT_EVERY == 0 {
+                sqlx::query(
+                    "INSERT INTO snapshots (game_id, seq, rules_commit, state) VALUES ($1, $2, $3, $4) \
+                     ON CONFLICT DO NOTHING",
+                )
+                .bind(game)
+                .bind(next.log.len() as i64)
+                .bind(&next.rules_commit)
+                .bind(next.to_json()?)
+                .execute(&mut *tx)
+                .await?;
+            }
+            tx.commit().await?;
+            Ok(())
         }
-        tx.commit().await?;
+        .await;
+        if let Err(e) = stored_ok {
+            *live.0 = None;
+            return Err(e);
+        }
 
         live.state = next;
         // No subscribers is not an error.

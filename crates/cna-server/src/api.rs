@@ -104,11 +104,12 @@ async fn seated(
     id: GameId,
     account: CurrentAccount,
 ) -> Result<(Side, LiveGuard), ApiError> {
-    let live = games.get(id).await?;
+    // The seat first: a caller with none must not make us load the game.
     let side = games
         .seat_of(id, account.0)
         .await?
         .ok_or_else(ApiError::forbidden)?;
+    let live = games.get(id).await?;
     Ok((side, live))
 }
 
@@ -209,8 +210,7 @@ async fn create(
     if cna_embed::data(scenario).is_err() {
         return Err(bad(format!("no scenario {scenario:?}")));
     }
-    let id = games.create(scenario, account.0, b.open).await?;
-    games.seat(id, b.side, account.0).await?;
+    let id = games.create_as(scenario, account.0, b.side, b.open).await?;
     Ok((StatusCode::CREATED, Json(json!({ "id": id }))))
 }
 
