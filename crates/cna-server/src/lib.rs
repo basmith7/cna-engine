@@ -6,6 +6,7 @@ pub mod accounts;
 pub mod api;
 pub mod auth;
 pub mod games;
+pub mod stream;
 
 use anyhow::{Context, Result};
 use axum::Router;

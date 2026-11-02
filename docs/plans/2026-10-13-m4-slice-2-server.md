@@ -88,7 +88,7 @@ this slice; Discord comes in slice 3.
 
 ### Task 6: SSE
 
-- [ ] `GET /games/{id}/stream`: `axum::response::sse` with keep-alive;
+- [x] `GET /games/{id}/stream`: `axum::response::sse` with keep-alive;
   each message `id: <seq>`, data `{seq, events, view}` for the caller's
   side; on connect with `Last-Event-ID` (or `?after=`) the server first
   sends one catch-up message (the events since, from the stored orders,

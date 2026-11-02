@@ -88,6 +88,7 @@ pub fn routes() -> Router<Games> {
         .route("/games/{id}", get(game))
         .route("/games/{id}/join", post(join))
         .route("/games/{id}/events", get(events))
+        .route("/games/{id}/stream", get(crate::stream::stream))
         .route("/games/{id}/orders", post(orders))
         .route("/games/{id}/placements", get(placements))
         .route("/games/{id}/reachable", get(reachable))

@@ -28,6 +28,7 @@ serde.workspace = true
 serde_json.workspace = true
 rand_core = { workspace = true, features = ["getrandom"] }
 axum = "0.8"
+futures-util = { version = "0.3", default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
 sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "macros", "json"] }
 tower-http = { version = "0.7", features = ["trace"] }

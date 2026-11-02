@@ -138,6 +138,7 @@ impl DerefMut for LiveGuard {
 pub struct Games {
     pool: PgPool,
     live: Arc<std::sync::Mutex<HashMap<GameId, Slot>>>,
+    streams: crate::stream::Streams,
 }
 
 pub(crate) fn side_str(side: Side) -> &'static str {
@@ -157,11 +158,17 @@ impl Games {
         Games {
             pool,
             live: Default::default(),
+            streams: Default::default(),
         }
     }
 
     pub fn pool(&self) -> &PgPool {
         &self.pool
+    }
+
+    /// The open live streams, counted against their caps.
+    pub fn streams(&self) -> &crate::stream::Streams {
+        &self.streams
     }
 
     /// A new game of `scenario` with a seed from the OS, waiting for
