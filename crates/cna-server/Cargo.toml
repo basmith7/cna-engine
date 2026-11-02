@@ -19,6 +19,7 @@ db-tests = []
 cna-data = { path = "../cna-data" }
 cna-game = { path = "../cna-game" }
 cna-embed = { path = "../cna-embed" }
+cna-rules = { path = "../cna-rules" }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

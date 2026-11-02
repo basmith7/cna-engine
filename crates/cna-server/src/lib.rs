@@ -2,6 +2,9 @@
 //! record) and in memory (a `GameState` per live game), orders taken
 //! over HTTP from the seat holders.
 
+pub mod accounts;
+pub mod games;
+
 use anyhow::{Context, Result};
 use axum::Router;
 use axum::extract::State;
