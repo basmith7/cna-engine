@@ -488,3 +488,9 @@ Done: #78 merged. #79 ready: combat units and HQs ride the railway, 2 SP a run, 
 In flight: #79 CI.
 Next: merge #79 on green CI; then the plan's remaining tasks (carry attached units, one stack each way, phase J for units alone with a golden re-pin).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-11-02 14:10 MST — autopilot/m4-slice-1-view
+Done: Feedback approved Mission 4 (2026-10-29): #25 merged with main, header marked approved. #92 (slice 1): cna-embed (2bd…), Aliases as keyed hashes (stable as supply units come and go; deviation from the plan's numbered permutation), view_for (allow-list for enemy pieces), events_for (73 variants, subagent), refusal_for + leaks, leak test over graziani-m5 and setup, dice-safe preview (subagent), golden hashes in tests/games/*.sha256. PROGRESS on main (4c47768) with a 3.61 request for cna.
+In flight: #92 gates/CI.
+Next: merge #92 on green CI; then slice 2 (`docs/plans/2026-10-13-m4-slice-2-server.md`), re-checking its names against main. #80 (Mission 5 rail stacks, draft) waits.
+Blocked: none.
