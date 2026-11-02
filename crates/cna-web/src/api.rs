@@ -154,11 +154,20 @@ impl Game {
     /// What `apply` would answer `order` from `side` with, on a copy,
     /// the game untouched: the same `{"ok": [Event]}` or
     /// `{"illegal": ...}`, except that an order whose apply rolls dice
-    /// answers `{"hidden": "dice"}`. The dice are the game's next rolls,
-    /// so showing them would tell a player the future.
+    /// answers `{"hidden": "dice"}` (the dice are the game's next rolls,
+    /// so showing them would tell a player the future), and any order
+    /// while a sealed step is pending answers `{"hidden": "sealed"}`.
     pub fn preview(&self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
+        // A sealed answer's events reveal the other side's answer when
+        // it completes the step: previewing one would show it early.
+        if matches!(
+            self.state.pending,
+            Some(cna_game::state::Pending::Sealed { .. })
+        ) {
+            return Ok(json!({ "hidden": "sealed" }));
+        }
         let mut copy = self.state.clone();
         let r = copy.apply(self.data, side, order);
         // A refusal is answered as one even if dice were drawn: it
@@ -1207,8 +1216,25 @@ mod tests {
     /// though `apply` still rolls them.
     #[test]
     fn preview_of_an_order_that_rolls_dice_hides_its_events() {
-        let (mut game, log) = golden_before(67);
-        let o = &log.orders[67];
+        // The golden game's first order outside a sealed step whose apply
+        // rolls dice.
+        let (_, log) = golden_before(0);
+        let mut live = Game::with_modules(SCENARIO, log.seed, log.modules).unwrap();
+        live.state.ruleset = log.ruleset;
+        let n = log
+            .orders
+            .iter()
+            .position(|o| {
+                let sealed = matches!(live.state.pending, Some(Pending::Sealed { .. }));
+                let before = live.state.rng.draws();
+                live.state
+                    .apply(live.data, o.player, o.order.clone())
+                    .unwrap();
+                !sealed && live.state.rng.draws() != before
+            })
+            .unwrap();
+        let (game, _) = golden_before(n);
+        let o = &log.orders[n];
         let side = serde_json::to_value(o.player).unwrap();
         let side = side.as_str().unwrap();
         let order = serde_json::to_string(&o.order).unwrap();
@@ -1218,14 +1244,20 @@ mod tests {
             json!({ "hidden": "dice" })
         );
         assert_eq!(game.save().unwrap(), saved, "a preview changes nothing");
-        let applied = game.apply(side, &order).unwrap();
-        assert!(
-            applied["ok"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|e| e.get("die-rolled").is_some()),
-            "{applied}"
+    }
+
+    #[test]
+    fn preview_during_a_sealed_step_reveals_no_answer() {
+        // Order 68: the Commonwealth's barrage plot, which completes the
+        // step and would show the Axis plot's results.
+        let (game, log) = golden_before(67);
+        let o = &log.orders[67];
+        assert!(matches!(game.state.pending, Some(Pending::Sealed { .. })));
+        let side = serde_json::to_value(o.player).unwrap();
+        let order = serde_json::to_string(&o.order).unwrap();
+        assert_eq!(
+            game.preview(side.as_str().unwrap(), &order).unwrap(),
+            json!({ "hidden": "sealed" })
         );
     }
 }
