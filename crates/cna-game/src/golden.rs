@@ -22,20 +22,28 @@ mod tests {
     use sha2::{Digest, Sha256};
     use std::path::PathBuf;
 
-    /// SHA-256 of the final state's JSON (`GameState::to_json`).
-    const FINAL_STATE_SHA256: &str =
-        "964c0f52e66791c168803a2c691d80492e455be622230ff04d10ad587731716e";
-
-    /// The same final state's hash with the abstract supply module on.
-    const M5_FINAL_STATE_SHA256: &str =
-        "825ebf2090117ae78d578a48dac08f9a91d606672cd3ca3dbba46b0f43e40728";
-
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
     }
 
     fn m5_fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-m5.json")
+    }
+
+    /// SHA-256 of a fixture's final state's JSON (`GameState::to_json`),
+    /// pinned beside it as `<name>.sha256` so other crates (the server)
+    /// can check the same value.
+    fn pinned(fixture: &std::path::Path) -> String {
+        std::fs::read_to_string(fixture.with_extension("sha256"))
+            .unwrap()
+            .trim()
+            .to_owned()
+    }
+
+    fn pin(fixture: &std::path::Path, state: &GameState) {
+        let hash = sha256(&state.to_json().unwrap());
+        std::fs::write(fixture.with_extension("sha256"), format!("{hash}\n")).unwrap();
+        println!("{}: {hash}", fixture.display());
     }
 
     fn pid(s: &str) -> PieceId {
@@ -386,7 +394,7 @@ mod tests {
         let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
         std::fs::write(fixture(), json).unwrap();
         println!("orders: {}", state.log.len());
-        println!("FINAL_STATE_SHA256 = {}", sha256(&state.to_json().unwrap()));
+        pin(&fixture(), &state);
         println!("{:#?}", state.over);
     }
 
@@ -397,10 +405,7 @@ mod tests {
         let state = script(&data, Modules::ALL);
         let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
         std::fs::write(m5_fixture(), json).unwrap();
-        println!(
-            "M5_FINAL_STATE_SHA256 = {}",
-            sha256(&state.to_json().unwrap())
-        );
+        pin(&m5_fixture(), &state);
     }
 
     // The old orders with the module on (Mission 5), now with loads and
@@ -419,7 +424,7 @@ mod tests {
         let replayed = replay(&data, &log).unwrap();
         let json = replayed.to_json().unwrap();
         assert_eq!(json, live.to_json().unwrap());
-        assert_eq!(sha256(&json), M5_FINAL_STATE_SHA256);
+        assert_eq!(sha256(&json), pinned(&m5_fixture()));
         for unit in ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"] {
             assert_eq!(replayed.pieces[&pid(unit)].hex(), None, "{unit}");
         }
@@ -452,7 +457,7 @@ mod tests {
         let replayed = replay(&data, &log).unwrap();
         let json = replayed.to_json().unwrap();
         assert_eq!(json, live.to_json().unwrap());
-        assert_eq!(sha256(&json), FINAL_STATE_SHA256);
+        assert_eq!(sha256(&json), pinned(&fixture()));
         assert_eq!(replayed.clock, Clock::start(7));
         assert_eq!(replayed.to_act(), None);
         // The scripted fight: 1 KRRC was barraged, Halfaya Pass assaulted
