@@ -2,9 +2,9 @@
 
 **Date:** 2026-10-13 (revision 1)
 **Mission:** 4 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** spec, **awaiting Brian's review** (the queue marks this
-mission for it). Nothing below is built until **Feedback** in
-`docs/autopilot/PROGRESS.md` approves it.
+**Status:** spec, **approved** by Brian under **Feedback** on 2026-10-29
+(all three questions take the defaults below). Building starts with
+slice 1.
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 technical decision below is Claude's, is cheap to reverse, and can be
@@ -17,22 +17,22 @@ scenario plus its orders, the `web/` UI gaining a network engine beside
 the hot-seat one, and the ship path of Brian's own apps, with every
 outside step left to Brian's checklist.
 
-**Checked against the code.** Every name, type and path below is the
+**Checked against the code.** Every name, type and path below was the
 merged code on `origin/main` at `cec9776` (Missions 2 and 3 complete).
+Mission 5 has landed much since (all nine scenarios set up, the browser's
+scenario picker, many new `Event` variants and per-piece state maps), so
+each slice re-checks its names against `main` when it starts; where they
+differ, the code wins and the slice says so in its PR.
 
-**Questions for Brian** (the spec picks an answer for each; say if you
-want the other):
+**Questions for Brian, answered 2026-10-29: the defaults.**
 
-1. **How the bot reaches a player's DMs.** Discord only lets a bot DM a
-   user it shares a server with (and the user may block DMs from server
-   members). The spec asks for the `guilds.join` scope at sign-in and
-   adds each player to a small "CNA" Discord server the bot lives in;
-   the sign-in page says so, and turning alerts off leaves the server.
-   The alternative is `identify` only and alerts that work only for
-   people already in a server with the bot (for example Brian's own).
-2. **Host port 3240** on Tower (free in `Infrastructure.md` today).
-3. **The image name** `ghcr.io/basmith7/cna` (public: the repo is
-   open source and the image holds no secrets).
+1. **How the bot reaches a player's DMs:** the `guilds.join` scope at
+   sign-in, and each player is added to a small "CNA" Discord server the
+   bot lives in; the sign-in page says so, and turning alerts off leaves
+   the server. (Discord only lets a bot DM a user it shares a server
+   with.)
+2. **Host port 3240** on Tower.
+3. **The image name** `ghcr.io/basmith7/cna` (public).
 
 ## Goal
 
