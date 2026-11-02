@@ -31,9 +31,9 @@
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
 //! | `scuttled`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board |
-//! | `pieces` | `ENEMY_PIECE_KEEPS` only; a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
+//! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
 //! | `pending` | as is, aliased; `forced-retreat.raw` (a function of TOE) only for the side retreating |
-//! | `combat` | `forward`, `pinned`, `retreated`, `barrage_involved`, `barraged`, `assaults` as is (on the board, or totals); `plots`, `assignments` own only; `charged`, `probing` own entries only (CP spent, judgments on TOE) |
+//! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
 //! | `rng`, `log` | never (layer 1) |
 //! | `pieces.*.unit_type`, `name`, `abbreviation` (added) | as is: the counter face |
 //! | `pieces.*.shell` (added) | own only: a shell is a judgment on composition |
@@ -152,16 +152,15 @@ const STATE_FILTERS: &[&str] = &[
 ];
 
 #[cfg(test)]
-const COMBAT_KEEPS: &[&str] = &[
-    "forward",
-    "pinned",
-    "retreated",
-    "barrage_involved",
-    "barraged",
-    "assaults",
-];
+const COMBAT_KEEPS: &[&str] = &["forward", "pinned", "retreated", "barraged", "assaults"];
 #[cfg(test)]
-const COMBAT_FILTERS: &[&str] = &["plots", "assignments", "charged", "probing"];
+const COMBAT_FILTERS: &[&str] = &[
+    "plots",
+    "assignments",
+    "charged",
+    "probing",
+    "barrage_involved",
+];
 
 /// What `viewer` may see of `state` (`None`: a spectator, to whom both
 /// sides are the enemy). `open`: the game is played with open
@@ -332,8 +331,10 @@ pub fn view_for(
         if let Some(m) = combat.get_mut("charged").and_then(Value::as_object_mut) {
             m.retain(|id, _| !enemy_piece(id));
         }
-        if let Some(a) = combat.get_mut("probing").and_then(Value::as_array_mut) {
-            a.retain(|id| !id.as_str().is_some_and(enemy_piece));
+        for key in ["probing", "barrage_involved"] {
+            if let Some(a) = combat.get_mut(key).and_then(Value::as_array_mut) {
+                a.retain(|id| !id.as_str().is_some_and(enemy_piece));
+            }
         }
     }
 
@@ -559,6 +560,35 @@ mod tests {
             "no aliases when open"
         );
         assert!(v["motorisation"].get("axis").is_none());
+    }
+
+    #[test]
+    fn the_enemy_does_not_learn_which_units_fired_a_barrage() {
+        let data = data();
+        let s = golden(&data, 68);
+        let fired: Vec<_> = s
+            .combat
+            .barrage_involved
+            .iter()
+            .filter(|id| s.pieces[*id].side == Side::Axis)
+            .collect();
+        assert!(!fired.is_empty(), "an Axis unit barraged by order 68");
+        let v = view_for(&s, &data, &a(), Some(Side::Cw), false).unwrap();
+        for id in fired {
+            assert!(
+                !v["combat"]["barrage_involved"]
+                    .to_string()
+                    .contains(id.as_str()),
+                "{id}"
+            );
+        }
+        let own = view_for(&s, &data, &a(), Some(Side::Axis), false).unwrap();
+        let own = own["combat"]["barrage_involved"].to_string();
+        for id in s.combat.barrage_involved.iter() {
+            if s.pieces[id].side == Side::Axis {
+                assert!(own.contains(id.as_str()), "{id}");
+            }
+        }
     }
 
     #[test]

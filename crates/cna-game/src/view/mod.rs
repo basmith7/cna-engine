@@ -42,16 +42,16 @@ mod tests {
                 );
             }
             let events = s.apply(&data, o.player, o.order.clone()).unwrap();
-            if s.is_over() {
-                break;
-            }
             for viewer in [Side::Axis, Side::Cw] {
-                let v = view_for(&s, &data, &aliases, Some(viewer), false).unwrap();
-                let found = leaks(&s, &v, viewer.other());
-                assert!(
-                    found.is_empty(),
-                    "{name} after order {i}, {viewer} sees {found:?}"
-                );
+                // A finished game's view hides nothing; its events still do.
+                if !s.is_over() {
+                    let v = view_for(&s, &data, &aliases, Some(viewer), false).unwrap();
+                    let found = leaks(&s, &v, viewer.other());
+                    assert!(
+                        found.is_empty(),
+                        "{name} after order {i}, {viewer} sees {found:?}"
+                    );
+                }
                 let e = Value::from(events_for(&s, &aliases, &events, Some(viewer), false));
                 let found = leaks(&s, &e, viewer.other());
                 assert!(
