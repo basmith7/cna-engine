@@ -18,7 +18,7 @@ writes is **Feedback**.
 
 **MISSION 4** (the multiplayer server) is under way: spec merged
 (#25, approved 2026-10-29). **Slice 1, per-side knowledge in the
-engine, is PR #92:** `crates/cna-embed` (the data compiled in, shared
+engine, merged as #92 (2026-11-02):** `crates/cna-embed` (the data compiled in, shared
 by the browser and the server; `CNA_RULES_COMMIT` for a Docker build),
 `cna_game::view` with `view_for` (the state as one side may see it,
 3.61), `events_for` (all 73 event kinds classified), `refusal_for`,
@@ -27,7 +27,13 @@ shared `leaks` predicate and a test that replays the golden game and
 finds nothing either side may not know; `preview` now refuses to show
 events that rolled dice. The hot-seat browser is unchanged (it plays
 with open information). Golden hashes now live beside their fixtures
-(`tests/games/*.sha256`), written by the regenerate tests.
+(`tests/games/*.sha256`), written by the regenerate tests. Its
+choices ledger is `docs/plans/2026-10-13-m4-choices.md`. **Slice 2,
+the server headless, is draft PR #93:** `crates/cna-server` (axum,
+sqlx on Postgres 18), health, schema, the game registry, applying
+orders in one transaction with snapshots, restart by replay, and old
+games moved to new rules or marked stale; the HTTP API, SSE, the
+golden game over HTTP and CI follow.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -104,9 +110,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: slice 1 (#92)
-  merges on green CI, then slice 2 (the server, headless), per
-  `docs/plans/2026-10-13-m4-slice-2-server.md`. The outside steps
+- Nothing waits on Brian. Mission 4 goes on unattended: finish slice 2
+  (#93: HTTP API, SSE, the golden game over HTTP, CI), then slices 3–6.
+- One provisional call to glance at, ledger entry 1.3 in
+  `docs/plans/2026-10-13-m4-choices.md`: a game with open information
+  still hides the owner's secrets the hot-seat view hid (loads,
+  motorisation, minefields, project items). The outside steps
   (Discord application, Tower, Pangolin) stay on the spec's checklist
   for after slice 6.
 - Slice 1 took stricter readings of 3.61 where the code had more than
