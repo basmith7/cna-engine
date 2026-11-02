@@ -22,12 +22,13 @@ use tower::ServiceExt;
 )]
 async fn golden_game_over_http(pool: PgPool) {
     let (games, id, _, _) = seated(&pool).await;
-    let app = cna_server::router(games);
+    let app = common::router(games);
     let send = |method: &str, uri: String, who: &str, body: Body| {
         let req = Request::builder()
             .method(method)
             .uri(uri)
             .header("x-cna-test-account", who)
+            .header("origin", PUBLIC_URL)
             .header("content-type", "application/json")
             .body(body)
             .unwrap();

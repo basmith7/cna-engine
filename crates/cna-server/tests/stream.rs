@@ -26,6 +26,7 @@ async fn send(app: &Router, method: &str, uri: &str, who: &str, body: Option<Val
         .method(method)
         .uri(uri)
         .header("x-cna-test-account", who)
+        .header("origin", PUBLIC_URL)
         .header("content-type", "application/json")
         .body(body.map_or(Body::empty(), |b| Body::from(b.to_string())))
         .unwrap();
@@ -161,7 +162,7 @@ async fn cw_leaks(games: &Games, id: GameId, body: &Value) -> Vec<String> {
 )]
 async fn each_seat_streams_only_its_own_side_of_an_order(pool: PgPool) {
     let (games, id, _, _) = seated(&pool).await;
-    let app = cna_server::router(games.clone());
+    let app = common::router(games.clone());
     let (s, axis) = open(&app, id, AXIS, None).await;
     assert_eq!(s, StatusCode::OK);
     let (s, cw) = open(&app, id, CW, None).await;
@@ -206,7 +207,7 @@ async fn each_seat_streams_only_its_own_side_of_an_order(pool: PgPool) {
 async fn a_reconnecting_stream_first_catches_up(pool: PgPool) {
     let (games, id, axis, cw) = seated(&pool).await;
     play(&games, id, axis, cw, 3).await;
-    let app = cna_server::router(games.clone());
+    let app = common::router(games.clone());
 
     let (s, cw_stream) = open(&app, id, CW, Some("0")).await;
     assert_eq!(s, StatusCode::OK);
@@ -236,7 +237,7 @@ async fn a_reconnecting_stream_first_catches_up(pool: PgPool) {
 )]
 async fn streams_are_capped_per_game_and_per_account(pool: PgPool) {
     let (games, id, axis, _) = seated(&pool).await;
-    let app = cna_server::router(games.clone());
+    let app = common::router(games.clone());
     let mut held = Vec::new();
     for _ in 0..4 {
         let (s, b) = open(&app, id, AXIS, None).await;

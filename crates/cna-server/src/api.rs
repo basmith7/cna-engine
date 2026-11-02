@@ -5,6 +5,7 @@
 //! `refusal_for` for that seat, so a client swaps engines without
 //! reshaping data and never sees what 3.61 hides from it.
 
+use crate::App;
 use crate::auth::CurrentAccount;
 use crate::games::{GameError, GameId, Games, LiveGuard};
 use axum::extract::{Path, Query, State};
@@ -82,8 +83,9 @@ type ApiResult = Result<Json<Value>, ApiError>;
 /// The largest request body taken (an order is a few hundred bytes).
 pub const MAX_BODY: usize = 64 * 1024;
 
-pub fn routes() -> Router<Games> {
+pub fn routes() -> Router<App> {
     Router::new()
+        .route("/me", get(me))
         .route("/games", get(list).post(create))
         .route("/games/{id}", get(game))
         .route("/games/{id}/join", post(join))
@@ -96,6 +98,24 @@ pub fn routes() -> Router<Games> {
         .route("/games/{id}/preview", post(preview))
         .route("/games/{id}/save", get(save))
         .layer(axum::extract::DefaultBodyLimit::max(MAX_BODY))
+}
+
+/// The caller's account: `{id, discord_id, name, avatar, alerts, admin}`.
+async fn me(State(app): State<App>, account: CurrentAccount) -> ApiResult {
+    let (discord_id, name, avatar, alerts): (String, String, Option<String>, bool) =
+        sqlx::query_as("SELECT discord_id, name, avatar, alerts FROM accounts WHERE id = $1")
+            .bind(account.0)
+            .fetch_one(app.games.pool())
+            .await?;
+    let admin = app.auth.admins.contains(&discord_id);
+    Ok(Json(json!({
+        "id": account.0,
+        "discord_id": discord_id,
+        "name": name,
+        "avatar": avatar,
+        "alerts": alerts,
+        "admin": admin,
+    })))
 }
 
 /// The caller's seat in `id` (403 without one) and the game, locked.

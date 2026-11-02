@@ -28,14 +28,18 @@ async fn call(
     who: Option<&str>,
     body: Option<Value>,
 ) -> (StatusCode, Value) {
-    let mut req = Request::builder().method(method).uri(uri);
+    let mut req = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("origin", PUBLIC_URL);
+    if method != "GET" {
+        req = req.header("content-type", "application/json");
+    }
     if let Some(who) = who {
         req = req.header("x-cna-test-account", who);
     }
     let req = match body {
-        Some(b) => req
-            .header("content-type", "application/json")
-            .body(Body::from(b.to_string())),
+        Some(b) => req.body(Body::from(b.to_string())),
         None => req.body(Body::empty()),
     }
     .unwrap();
@@ -59,7 +63,7 @@ async fn cw_leaks(games: &Games, id: GameId, body: &Value) -> Vec<String> {
 async fn app(pool: &PgPool) -> (Router, Games, GameId) {
     let (games, id, _, _) = seated(pool).await;
     accounts::insert(pool, OUTSIDER, "Outsider").await.unwrap();
-    (cna_server::router(games.clone()), games, id)
+    (common::router(games.clone()), games, id)
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]
@@ -71,7 +75,7 @@ async fn a_game_is_made_listed_and_joined_once_per_seat(pool: PgPool) {
     for (d, n) in [("10", "A"), ("11", "B"), ("12", "C")] {
         accounts::insert(&pool, d, n).await.unwrap();
     }
-    let app = cna_server::router(Games::new(pool.clone()));
+    let app = common::router(Games::new(pool.clone()));
     let (s, _) = call(
         &app,
         "POST",

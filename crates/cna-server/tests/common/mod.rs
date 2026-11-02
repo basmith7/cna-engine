@@ -72,3 +72,44 @@ pub async fn status(pool: &PgPool, id: GameId) -> String {
         .await
         .unwrap()
 }
+
+/// The public URL the test servers are configured with: the `Origin`
+/// their state-changing requests carry.
+pub const PUBLIC_URL: &str = "http://localhost:3240";
+
+/// A server config for tests, `vars` over the defaults (a client id, a
+/// client secret made at run time, `PUBLIC_URL`).
+pub fn config(vars: &[(&str, &str)]) -> cna_server::Config {
+    let secret = format!(
+        "{:016x}",
+        rand_core::RngCore::next_u64(&mut rand_core::OsRng)
+    );
+    let defaults = [
+        ("DATABASE_URL", "postgres://unused"),
+        ("CNA_PUBLIC_URL", PUBLIC_URL),
+        ("CNA_DISCORD_CLIENT_ID", "test-client"),
+        ("CNA_DISCORD_CLIENT_SECRET", secret.as_str()),
+    ];
+    cna_server::Config::from_vars(|k| {
+        vars.iter()
+            .chain(defaults.iter())
+            .find(|(n, _)| *n == k)
+            .map(|(_, v)| (*v).to_owned())
+    })
+    .unwrap()
+}
+
+/// The routes over `games` with `config`, every request from 127.0.0.1.
+pub fn router_with(games: Games, config: &cna_server::Config) -> axum::Router {
+    cna_server::router(cna_server::App::new(games, config).unwrap()).layer(
+        axum::extract::connect_info::MockConnectInfo(std::net::SocketAddr::from((
+            [127, 0, 0, 1],
+            40000,
+        ))),
+    )
+}
+
+/// The routes over `games` with the test config.
+pub fn router(games: Games) -> axum::Router {
+    router_with(games, &config(&[]))
+}
