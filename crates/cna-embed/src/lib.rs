@@ -1,4 +1,5 @@
-//! The data compiled in: a `Source` over the files `build.rs` embedded.
+//! `vendor/cna/data` compiled in: a `Source` over the files `build.rs`
+//! embedded, shared by the browser (`cna-web`) and the server.
 
 use anyhow::{Context, Result};
 use cna_data::source::Source;
@@ -39,7 +40,7 @@ impl Source for Embedded {
 }
 
 /// A scenario's `Data`, built from the embedded files on first use and
-/// kept for the page's life (one per scenario, so leaked). An unknown
+/// kept for the process's life (one per scenario, so leaked). An unknown
 /// slug is an `Err`; the files are compiled in and the native tests
 /// load them, so any other failure is a build bug.
 pub fn data(slug: &str) -> Result<&'static Data> {

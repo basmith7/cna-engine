@@ -8,9 +8,9 @@
 //! `axis` or `cw`, JSON that is not an `Order`) is an `Err`, not an
 //! illegal order: it is a client bug, not a rules question.
 
-use crate::embedded::data;
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
+use cna_embed::data;
 use cna_game::combat::SealedStep;
 use cna_game::data::Data;
 use cna_game::event::Event;
@@ -306,7 +306,7 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedded::{DEFAULT_SCENARIO as SCENARIO, RULES_COMMIT};
+    use cna_embed::{DEFAULT_SCENARIO as SCENARIO, RULES_COMMIT};
 
     fn graziani() -> &'static Data {
         data(SCENARIO).unwrap()
@@ -895,7 +895,7 @@ mod tests {
 
     #[test]
     fn every_offered_scenario_starts_waiting_on_a_set_up() {
-        for (slug, _) in crate::embedded::scenarios().unwrap() {
+        for (slug, _) in cna_embed::scenarios().unwrap() {
             let view = Game::new(&slug, 7).unwrap().view().unwrap();
             assert_eq!(view["scenario"], slug.as_str());
             assert!(

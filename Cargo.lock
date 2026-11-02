@@ -152,6 +152,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cna-embed"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cna-data",
+ "cna-game",
+ "serde_json",
+]
+
+[[package]]
 name = "cna-game"
 version = "0.1.0"
 dependencies = [
@@ -206,6 +216,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cna-data",
+ "cna-embed",
  "cna-game",
  "serde_json",
  "sha2",
