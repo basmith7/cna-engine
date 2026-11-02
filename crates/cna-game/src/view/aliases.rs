@@ -1,7 +1,4 @@
-//! What each side may know (3.61, limited intelligence): the engine, not a
-//! host, decides it, so the browser and the server show the same thing.
-//!
-//! This first part is the supply aliases. A dummy supply unit's id
+//! The supply aliases. A dummy supply unit's id
 //! (`supply:<side>:dummy-<n>`) gives it away, and a real one's number
 //! tells its age, so an enemy's supply ids reach a viewer only as aliases
 //! `supply:<side>:s<hex>`, a keyed hash of the real id under a per-game
