@@ -3,7 +3,7 @@
 // becomes. Pure functions; the engine alone judges the points.
 import { sideName } from "./clock";
 import { formatEvent, type Namer } from "./format";
-import type { Allocation, Assignment, ApplyResult, Committer, Fire, Firer, HexId, Order, PieceId, RetreatReason } from "./types";
+import type { Allocation, Assignment, Committer, Fire, Firer, HexId, Order, PieceId, PreviewResult, RetreatReason } from "./types";
 
 /** One row of the barrage panel: a firer's points at a target, as typed. */
 export interface FireRow {
@@ -64,7 +64,8 @@ export function committed(rows: RoleRow[], piece: PieceId): number {
  * preview of it: the shortfall and losses it would take, a surrender,
  * nothing at all, or a refusal. Each as the panel's line and its button.
  */
-export function passConsequence(preview: ApplyResult, name: Namer): { text: string; button: string } {
+export function passConsequence(preview: PreviewResult, name: Namer): { text: string; button: string } {
+  if ("hidden" in preview) return { text: "Can't preview Pass: it rolls dice.", button: "Pass" };
   if ("illegal" in preview) {
     return { text: `Pass would be refused: ${preview.illegal.reason} (${preview.illegal.case}).`, button: "Pass" };
   }

@@ -27,7 +27,7 @@
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { ApplyResult, HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
+  import type { PreviewResult, HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -98,7 +98,7 @@
     return "ok" in r ? r : { ok: null, illegal: r.illegal };
   });
   /** The engine's preview of Pass while a forced retreat is pending: what standing still costs (spec, *Interrupts*). */
-  const passPreview: ApplyResult | null = $derived.by(() => {
+  const passPreview: PreviewResult | null = $derived.by(() => {
     if (!engine || !view || !view.to_act || !view.pending || !("forced-retreat" in view.pending)) return null;
     return engine.preview(view.to_act, "pass");
   });

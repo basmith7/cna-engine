@@ -2,7 +2,7 @@
 // parsed into the types of `types.ts`. The engine state is the only game
 // state; the UI reads `view()` whole after every accepted order.
 import init, { Game } from "./pkg/cna_web.js";
-import type { ApplyResult, HexId, Order, PieceId, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
+import type { ApplyResult, HexId, Order, PieceId, PreviewResult, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
 
 /** A scenario a new game can start (`Game.scenarios()`). */
 export type Scenario = { slug: string; name: string };
@@ -73,9 +73,9 @@ export class Engine {
     return JSON.parse(this.game.sealedOptions(side)) as SealedOptionsResult;
   }
 
-  /** What `apply` would answer `order` with, the game untouched (dice included: exactly the order's events). */
-  preview(side: Side, order: Order): ApplyResult {
-    return JSON.parse(this.game.preview(side, JSON.stringify(order))) as ApplyResult;
+  /** What `apply` would answer `order` with, the game untouched; `hidden` if it rolls dice, which are the game's next rolls. */
+  preview(side: Side, order: Order): PreviewResult {
+    return JSON.parse(this.game.preview(side, JSON.stringify(order))) as PreviewResult;
   }
 
   apply(side: Side, order: Order): ApplyResult {

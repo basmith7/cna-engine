@@ -151,15 +151,22 @@ impl Game {
         Ok(Self::answer(self.state.apply(self.data, side, order)))
     }
 
-    /// What `apply` would answer `order` from `side` with, on a copy:
-    /// the same `{"ok": [Event]}` or `{"illegal": ...}`, the game
-    /// untouched. Dice included, so the events are exactly the order's.
+    /// What `apply` would answer `order` from `side` with, on a copy,
+    /// the game untouched: the same `{"ok": [Event]}` or
+    /// `{"illegal": ...}`, except that an order whose apply rolls dice
+    /// answers `{"hidden": "dice"}`. The dice are the game's next rolls,
+    /// so showing them would tell a player the future.
     pub fn preview(&self, side: &str, order: &str) -> Result<Value> {
         let side = Self::side(side)?;
         let order: Order = serde_json::from_str(order).context("parsing the order")?;
-        Ok(Self::answer(
-            self.state.clone().apply(self.data, side, order),
-        ))
+        let mut copy = self.state.clone();
+        let r = copy.apply(self.data, side, order);
+        // A refusal is answered as one even if dice were drawn: it
+        // carries no roll. (`apply` validates first, so none are.)
+        if r.is_ok() && copy.rng.draws() != self.state.rng.draws() {
+            return Ok(json!({ "hidden": "dice" }));
+        }
+        Ok(Self::answer(r))
     }
 
     fn answer(r: std::result::Result<Vec<Event>, cna_game::event::Illegal>) -> Value {
@@ -1193,5 +1200,32 @@ mod tests {
         let view = game.view().unwrap();
         assert!(view["pending"].is_null(), "{}", view["pending"]);
         assert_eq!(view["to_act"], "axis");
+    }
+
+    /// Golden order 68 is the second side's sealed barrage plot, which
+    /// resolves the barrages with dice: its preview must not show them,
+    /// though `apply` still rolls them.
+    #[test]
+    fn preview_of_an_order_that_rolls_dice_hides_its_events() {
+        let (mut game, log) = golden_before(67);
+        let o = &log.orders[67];
+        let side = serde_json::to_value(o.player).unwrap();
+        let side = side.as_str().unwrap();
+        let order = serde_json::to_string(&o.order).unwrap();
+        let saved = game.save().unwrap();
+        assert_eq!(
+            game.preview(side, &order).unwrap(),
+            json!({ "hidden": "dice" })
+        );
+        assert_eq!(game.save().unwrap(), saved, "a preview changes nothing");
+        let applied = game.apply(side, &order).unwrap();
+        assert!(
+            applied["ok"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|e| e.get("die-rolled").is_some()),
+            "{applied}"
+        );
     }
 }

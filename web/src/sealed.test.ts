@@ -77,6 +77,7 @@ describe("the forced retreat panel", () => {
       text: "Pass would be refused: the stack must retreat the full 3 hexes (R-012) (15.82).",
       button: "Pass",
     });
+    expect(passConsequence({ hidden: "dice" }, name)).toEqual({ text: "Can't preview Pass: it rolls dice.", button: "Pass" });
   });
   it("puts the order in words", () => {
     expect(retreatOrderWords({ side: "cw", hexes: 2, from: ["C4021", "C4021"], reason: "assault-result" })).toBe("Commonwealth must retreat 2 hexes from C4021 for the assault result.");
