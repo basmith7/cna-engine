@@ -7,3 +7,6 @@ pub use aliases::Aliases;
 mod state;
 
 pub use state::{ENEMY_PIECE_KEEPS, ENEMY_PIECE_REMOVES, view_for};
+mod leaks;
+
+pub use leaks::{leaks, refusal_for};
