@@ -5,6 +5,8 @@
 pub mod accounts;
 pub mod api;
 pub mod auth;
+#[cfg(feature = "fake")]
+pub mod fake_discord;
 pub mod games;
 pub mod stream;
 
