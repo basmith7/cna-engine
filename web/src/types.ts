@@ -53,16 +53,21 @@ export type OffMapPlace = "tunis" | "gabes" | "tripoli" | "tripolitania" | "nofi
 
 export type Country = "libya" | "egypt";
 
-/** A free placement (cna-data `Placement`): exactly one locator key, then the narrowing fields. */
+/** A free placement (cna-data `Placement`): one or more locator keys (a hex meets every one), then the narrowing fields. */
 export interface Placement {
   hexes?: HexId[];
-  place?: string;
+  place?: string | string[];
   box?: OffMapBox;
   within?: { of: HexId; hexes: number };
   region?: Country;
   sheets?: string[];
+  west_of?: HexId;
   air_facility?: boolean;
+  /** A hex holding a unit of this kind once the rest is placed (R-135, Rommel). */
+  stacked_with?: "german-unit";
   not_within?: { of: string; hexes: number } | null;
+  /** The whole block goes into one hex. */
+  together?: boolean;
   /** Prose the engine cannot check; the owner honours it (59.2). */
   constraint?: string | null;
 }
@@ -74,7 +79,7 @@ export type Location =
   | { pending: Placement }
   | "eliminated";
 
-export type PieceKind = "combat" | "hq" | "supply-unit" | "dummy-supply-unit";
+export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit";
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
@@ -85,6 +90,10 @@ export interface Piece {
   nation: Nation | null;
   id_code: string | null;
   parent: string | null;
+  /** The unit this one is merged into (19.1x); absent when it stands alone. */
+  attached_to?: string;
+  /** A formation too depleted to count whole: it stacks one level smaller (9.26). */
+  shell?: true;
   toe: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
@@ -93,6 +102,8 @@ export interface Piece {
   status: "in-training" | "broken-down" | null;
   equivalent: Equivalent | null;
   garrison_of?: HexId;
+  /** CPA Rommel lends it this OpStage (31.0, R-137); absent when none. */
+  rommel_cpa?: number;
   location: Location;
   cp_spent: number;
   cp_enemy_half: number;
@@ -102,6 +113,12 @@ export interface Piece {
   reserve?: Reserve;
   released?: Reserve;
   landed?: boolean;
+  /** Breakdown points collected this OpStage, in halves (21.2x); absent for none. */
+  breakdown_halves?: number;
+  /** Motorisation points attached to a supply unit (32.31); absent for none. */
+  motorised?: number;
+  /** A supply unit's ammunition and fuel (32.1x); only on the side to act's own. */
+  load?: { ammo: number; fuel: number };
   /** Added by `view()`: the characteristics chart's unit type, null off the chart. */
   unit_type: string | null;
   /** Added by `view()`: the OA unit's name and abbreviation, null for supply units. */
@@ -110,7 +127,7 @@ export interface Piece {
 }
 
 export type SealedStep = "gun-positions" | "barrage" | "assign-forces";
-export type RetreatReason = "assault-result" | "withheld" | "must-attack";
+export type RetreatReason = "assault-result" | "withheld" | "must-attack" | "rommel-alone";
 
 export type Pending =
   | { "set-up": { side: Side } }
@@ -149,8 +166,9 @@ export interface Assignment {
 
 export type Order =
   | { place: { piece: PieceId; hex: HexId } }
+  | { unplace: { piece: PieceId } }
   | { "declare-initiative": { player_a: Side } }
-  | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean } }
+  | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
   | { "declare-zoc": { exerting: HexId[] } }
   | { "move-off-map": { pieces: PieceId[]; to: OffMapPlace } }
@@ -163,7 +181,41 @@ export type Order =
   | { "designate-reserve": { pieces: PieceId[] } }
   | { "release-reserve": { pieces: PieceId[] } }
   | "end-segment"
+  | { "destroy-supply": { hex: HexId } }
+  | { attach: { piece: PieceId; to: PieceId } }
+  | { detach: { piece: PieceId } }
+  | { "attach-motorisation": { piece: PieceId } }
+  | { "detach-motorisation": { piece: PieceId } }
+  | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+  | { rail: { pieces: PieceId[]; path: HexId[] } }
+  | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
+  | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
+  | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
+  | { absorb: { piece: PieceId; weapon: string; points: number } }
+  | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
+  | { "detail-guards": { piece: PieceId; points: number } }
+  | { "release-guards": { piece: PieceId; points: number } }
   | "pass";
+
+/** What a construction project builds (24.1x). */
+export type BuildItem = "fortification" | "real-minefield" | "dummy-minefield" | "clear-minefield";
+
+/** A project under way in a hex (24.1x): its builders and the stages counted so far. */
+export interface Project {
+  side: Side;
+  /** The owner's secret (3.61): absent from the other side's view. */
+  item?: BuildItem;
+  builders: PieceId[];
+  stages?: number;
+}
+
+/** Broken-down TOE points of one weapon system in a hex (21.4x). */
+export interface Wreck {
+  side: Side;
+  nation?: string | null;
+  weapon: string;
+  points: number;
+}
 
 export type VictoryLevel = string;
 
@@ -183,6 +235,16 @@ export interface VictoryReport {
   cw: VictoryLevel | null;
   checked: Condition[];
   unchecked: string[];
+  /** A points victory's places (absent for a levels victory). */
+  scored?: Scored[];
+  points?: { axis: number; cw: number };
+}
+
+export interface Scored {
+  objective: string;
+  hexes: HexId[];
+  holder: Side | null;
+  points: number;
 }
 
 export type BarrageResult = "no-effect" | "pinned" | { lose: number } | "unresolved";
@@ -197,7 +259,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 38 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 46 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -206,7 +268,9 @@ export type Event =
   | { "initiative-declared": { player_a: Side } }
   | { "weather-set": { weather: Weather } }
   | { placed: { piece: PieceId; hex: HexId } }
+  | { unplaced: { piece: PieceId } }
   | "set-up-complete"
+  | "rommel-recalled"
   | { arrived: { pieces: PieceId[]; at: Location } }
   | { "moved-off-map": { piece: PieceId; location: Location } }
   | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost: number } }
@@ -254,6 +318,39 @@ export type Event =
   | { "retreat-ordered": { pieces: PieceId[]; hexes: number; reason: RetreatReason } }
   | { "retreat-bought-out": { pieces: PieceId[]; short: number } }
   | { losses: { piece: PieceId; points: number; toe: number } }
+  | { "fuel-spent": { piece: PieceId; from: PieceId; fuel: number } }
+  | { "ammunition-spent": { piece: PieceId; from: PieceId; ammo: number } }
+  | { "ammunition-short": { piece: PieceId } }
+  | { "supply-unit-spent": { piece: PieceId } }
+  | { "supply-destroyed": { piece: PieceId } }
+  | { attached: { piece: PieceId; to: PieceId } }
+  | { detached: { piece: PieceId; from: PieceId } }
+  | { "motorisation-attached": { piece: PieceId; points: number } }
+  | { "motorisation-detached": { piece: PieceId; points: number } }
+  | { "supply-planned": { side: Side; die: number; units: number; arrives: number } }
+  | { "motorisation-lost": { side: Side; percent: number; of: number; points: number } }
+  | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+  | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
+  | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from: PieceId } }
+  | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
+  | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
+  | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
+  | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
+  | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
+  | { "prisoners-left-map": { side: Side; points: number; stages: number } }
+  | { "convoy-bombed": { lane: number; bomb_points: number; reading: number; percent: number; units: number; sunk: number } }
+  | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
+  | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
+  | { "fortification-built": { side: Side; hex: HexId; level: number } }
+  | { "minefield-laid": { side: Side; hex: HexId } }
+  | { "minefield-revealed": { hex: HexId; real: boolean } }
+  | { "minefield-removed": { hex: HexId } }
+  | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
+  | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
+  | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
+  | { "prisoners-freed": { side: Side; hex: HexId; points: number } }
+  | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
+  | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
@@ -269,10 +366,12 @@ export interface Illegal {
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
 /** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
-export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat";
+export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat" | "rail";
 
 /** A hex a stack can end in (`cna_game::reach::Reach`). */
 export interface Reach {
+  /** The fuel the move owes under abstract supply, the whole stack's (32.22); 0 with the module off. */
+  fuel: number;
   hex: HexId;
   /** What the stack pays in all, breaking off included. */
   cp: number;
@@ -302,6 +401,9 @@ export interface Firer {
   points: number;
   forward: boolean;
   targets: PieceId[];
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** A unit that may commit TOE points in step 4 (`cna_game::combat::options::Committer`). */
@@ -312,6 +414,9 @@ export interface Committer {
   anti_armour_targets: HexId[];
   close_assault_targets: HexId[];
   one_assault: boolean;
+  /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
+  ammo: number;
+  ammo_short: boolean;
 }
 
 /** What the side to act may answer the pending sealed step with (`cna_game::combat::options::SealedOptions`). */
@@ -348,6 +453,30 @@ export interface View {
     [k: string]: unknown;
   };
   over: VictoryReport | null;
+  /** Abstract supply: motorisation points by hex id (or box), the side to act's own only. */
+  motorisation?: Partial<Record<Side, Record<string, number>>>;
+  /** Breakdown: broken-down vehicles by hex (21.4x), both sides', in the open. */
+  broken_down?: Record<HexId, Wreck[]>;
+  /** Prisoner points by captor and hex (28.1x): open to both sides. */
+  prisoners?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Prisoner points each captor has sent out of play (28.15). */
+  prisoners_out?: Partial<Record<Side, number>>;
+  /** Fortification levels changed from the map's (25.1x); a major city absent here is at its own. */
+  fortifications?: Record<HexId, number>;
+  /** Minefields by hex (26.1x); `real` is absent from the other side's until revealed. */
+  minefields?: Record<HexId, { side: Side; real?: boolean; revealed?: boolean }>;
+  /** Projects under way by hex (24.1x): open. */
+  projects?: Record<HexId, Project>;
+  /** Guard points by owner and hex (28.21): open. */
+  guards?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Escapees by their own side and hex (28.25): open. */
+  escapees?: Partial<Record<Side, Record<HexId, number>>>;
+  /** Prisoner points each side has had back by escape or liberation (28.24). */
+  escaped?: Partial<Record<Side, number>>;
+  /** Hexes prisoners marched into this phase H: they go no further (28.13). */
+  marched?: HexId[];
+  /** Repaired points by hex and weapon system waiting for a unit there to absorb them (22.5, 20.41), the side to act's own only. */
+  repaired?: Partial<Record<Side, Record<HexId, Record<string, number>>>>;
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];

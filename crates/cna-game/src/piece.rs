@@ -60,8 +60,17 @@ impl fmt::Display for PieceId {
 pub enum PieceKind {
     Combat,
     Hq,
+    /// Rommel (31.0, R-135): moves, stacks free, never fights.
+    Commander,
     SupplyUnit,
     DummySupplyUnit,
+}
+
+impl PieceKind {
+    /// A supply unit, real or dummy (32.1x).
+    pub fn is_supply(self) -> bool {
+        matches!(self, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +87,24 @@ pub enum Location {
     /// A free set-up the owner has yet to make (59.2).
     Pending(Placement),
     Eliminated,
+}
+
+impl Location {
+    /// The key motorisation points are filed under: the hex id or the
+    /// box's name; none where points cannot stand (32.5x).
+    pub fn key(&self) -> Option<String> {
+        match self {
+            Location::Hex(h) => Some(h.to_string()),
+            Location::Box(b) => Some(
+                serde_json::to_value(b)
+                    .expect("a box serialises")
+                    .as_str()
+                    .expect("as a string")
+                    .to_owned(),
+            ),
+            _ => None,
+        }
+    }
 }
 
 /// The two reserve states (18.1x): I may shift a hex and be released at
@@ -98,6 +125,26 @@ impl fmt::Display for Reserve {
     }
 }
 
+/// What a real supply unit carries (32.1x, 60.92): secret to its owner
+/// (3.61).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Load {
+    pub ammo: u32,
+    pub fuel: u32,
+}
+
+/// The most ammunition and fuel one supply unit carries (32.1x).
+pub const MAX_AMMO: u32 = 40;
+pub const MAX_FUEL: u32 = 60;
+
+/// One entry of an `apart` set-up block: a listed unit with everything it
+/// brings (R-136).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Entry {
+    pub block: u32,
+    pub index: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Piece {
     pub id: PieceId,
@@ -110,6 +157,10 @@ pub struct Piece {
     /// The unit this one is under: the OA parent, or the unit the set-up
     /// attached or assigned it to.
     pub parent: Option<UnitId>,
+    /// The unit this one is attached to, merged into its counter (19.1x):
+    /// usually `parent`, and always standing where this one does.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attached_to: Option<UnitId>,
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,
@@ -128,7 +179,24 @@ pub struct Piece {
     /// The hex this garrison unit takes no stacking space in (9.16).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub garrison_of: Option<HexId>,
+    /// A set-up block that goes into one hex (`together` in cna's
+    /// placement): every piece of the block has the same group.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<u32>,
+    /// Which entry of which set-up block this piece came from, for a block
+    /// whose entries go `apart` (R-136); none for every other piece.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entry: Option<Entry>,
     pub location: Location,
+    /// A real supply unit's ammunition and fuel, with the abstract
+    /// supply module on (32.1x); none for everything else.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub load: Option<Load>,
+    /// The CPA Rommel lends it this OpStage: his `escort_cpa_bonus` if it
+    /// stood in his hex as the stage began and has not left him since,
+    /// else 0 (31.0, R-137).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub rommel_cpa: u32,
     /// CP spent this OpStage, both halves (6.14).
     #[serde(default)]
     pub cp_spent: Cp,
@@ -155,10 +223,45 @@ pub struct Piece {
     /// rest of the stage, and the combat limits slice 5 reads.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub released: Option<Reserve>,
+    /// Released and has since made its one offensive close assault (or
+    /// probe) this OpStage (18.23, 18.24).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub released_assaulted: bool,
     /// Arrived as a reinforcement this OpStage (20.1x): its first hex is
     /// free, and it may not leave the box it landed in (8.8x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub landed: bool,
+    /// Paid fuel for a land move this OpStage (32.22); a second move
+    /// pays nothing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fuelled: bool,
+    /// Paid again for spending past its CPA this OpStage (32.22).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fuelled_over: bool,
+    /// Motorisation points attached to this supply unit (32.31): 30 for
+    /// a real one, 6 for a dummy, or none.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub motorised: u32,
+    /// A supply unit that moved with a combat unit in G this OpStage:
+    /// it may not move again in H (32.31).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub escorted: bool,
+    /// Breakdown points collected this OpStage, in halves: every
+    /// chart figure is a whole or half point (21.2x).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub breakdown_halves: u32,
+    /// The (unshifted) column of this OpStage's last breakdown check: the
+    /// next is due only in a higher one (21.2x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub breakdown_checked: Option<u8>,
+    /// Flown in phase C this OpStage (32.37): it stays put until the
+    /// next, though it may be drawn upon.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub flown: bool,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 impl Piece {

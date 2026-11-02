@@ -6,11 +6,9 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceKind};
+
 use crate::state::{GameState, Weather};
 use cna_data::cp::Cp;
-use cna_data::initiative::AxisSituation;
-use cna_data::oa::Nation;
 use cna_data::scenario::Side;
 use cna_data::time::GameTime;
 use cna_data::weather::WeatherKind;
@@ -45,7 +43,23 @@ impl GameState {
     /// Nothing more this phase (F or G).
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
-            Phase::ReserveDesignation | Phase::MovementCombat => {}
+            Phase::ReserveDesignation
+            | Phase::MovementCombat
+            | Phase::TruckConvoy
+            | Phase::Rail
+            | Phase::Repair => {}
+            Phase::Organisation => {
+                // Player A hands phase C to Player B; B's pass ends it.
+                if !self.organised {
+                    self.organised = true;
+                    return Ok(Vec::new());
+                }
+                self.organised = false;
+                let mut events = Vec::new();
+                self.clock = self.clock.next();
+                self.advance(data, &mut events);
+                return Ok(events);
+            }
             Phase::InitiativeDeclaration => {
                 return Err(Illegal::new(
                     "7.1x",
@@ -64,6 +78,12 @@ impl GameState {
         }
         let mut events = Vec::new();
         self.before_leaving_g(data, &mut events)?;
+        if self.clock.phase == Phase::TruckConvoy {
+            self.escape_unguarded(data, &mut events);
+        }
+        if self.clock.phase == Phase::MovementCombat {
+            self.lift_revealed_dummies(&mut events);
+        }
         self.cycle = 0;
         self.continuing.clear();
         self.clock = self.clock.end_phase();
@@ -84,7 +104,13 @@ impl GameState {
             }
             match clock.phase {
                 Phase::InitiativeDeclaration => {
+                    self.count_construction(data, events);
                     self.start_stage();
+                    if clock.stage == 1 {
+                        self.roll_rommel_recall(data, events);
+                        self.naval_convoy_stage(data, events);
+                    }
+                    self.mark_rommel_escort(data);
                     self.determine_initiative(data, events);
                     events.push(Event::PhaseStarted { clock });
                     return;
@@ -104,6 +130,36 @@ impl GameState {
                         events.push(Event::PhaseSkipped { clock });
                     }
                 }
+                // Phase C opens for supply under the module, and for
+                // repaired points waiting to be absorbed (20.41).
+                Phase::Organisation
+                    if self.modules.abstract_supply
+                        || self.modules.construction
+                        || !self.repaired.is_empty() =>
+                {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::TruckConvoy
+                    if {
+                        self.marched.clear();
+                        if let Some(side) = self.phasing() {
+                            self.prisoners_off_map_on(data, side, events);
+                        }
+                        self.trucks_to_move() || self.prisoners_to_handle()
+                    } =>
+                {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::Rail if self.rail_to_move(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::Repair if self.repairs_to_try(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -119,6 +175,9 @@ impl GameState {
     /// unit that spent none rests (6.24), reserve ends (18.2x), and
     /// engaged markers come off (15.81).
     fn start_stage(&mut self) {
+        self.railed.clear();
+        self.field_rolled.clear();
+        self.rail_east = None;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
                 p.cohesion.rest();
@@ -127,7 +186,14 @@ impl GameState {
             p.cp_enemy_half = Cp::ZERO;
             p.reserve = None;
             p.released = None;
+            p.released_assaulted = false;
             p.landed = false;
+            p.flown = false;
+            p.fuelled = false;
+            p.escorted = false;
+            p.breakdown_halves = 0;
+            p.breakdown_checked = None;
+            p.fuelled_over = false;
             p.engaged = false;
         }
     }
@@ -159,10 +225,7 @@ impl GameState {
         if now.opstage != 1 && !grant_just_ended && self.initiative.is_some() {
             return;
         }
-        let axis_rating = data
-            .initiative
-            .axis(self.axis_situation())
-            .expect("initiative-ratings.json has every situation");
+        let axis_rating = self.axis_initiative_rating(data);
         let cw_rating = data
             .initiative
             .commonwealth(now.game_turn)
@@ -189,22 +252,6 @@ impl GameState {
             holder,
             rolled: true,
         });
-    }
-
-    /// German land combat units on the map, holding boxes excepted
-    /// (7.1x). Rommel is not on any OA sheet yet, so his row is never
-    /// reached.
-    fn axis_situation(&self) -> AxisSituation {
-        let germans = self.pieces.values().any(|p| {
-            p.nation == Some(Nation::De)
-                && p.kind == PieceKind::Combat
-                && matches!(p.location, Location::Hex(_))
-        });
-        if germans {
-            AxisSituation::GermanLandCombatUnitsNoRommel
-        } else {
-            AxisSituation::NoGermanCombatUnits
-        }
     }
 
     /// Phase B (29.6): two dice read sequentially on the season's row;

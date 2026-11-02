@@ -51,13 +51,14 @@ pub enum OffMapBox {
     Crete,
 }
 
-/// Where a block may go: exactly one of the schema's locators.
+/// One of the schema's locators. A placement holds one or more; a hex
+/// must satisfy every one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Locator {
     /// Any of these hexes, divided as the owner likes (59.2).
     Hexes(Vec<HexId>),
-    /// A `places.json` id.
-    Place(String),
+    /// `places.json` ids: any of them, divided as the owner likes.
+    Place(Vec<String>),
     Box(OffMapBox),
     Within {
         of: HexId,
@@ -65,7 +66,20 @@ pub enum Locator {
     },
     Region(Country),
     Sheets(Vec<char>),
+    /// West of this hex: an earlier sheet, or its sheet with a lower
+    /// column (a column bound; the same column is not west).
+    WestOf(HexId),
     AirFacility,
+    /// A hex holding a unit of this kind once the rest of the side's
+    /// set-up is placed (R-135, Rommel).
+    StackedWith(StackedWith),
+}
+
+/// What a `stacked_with` locator stacks with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StackedWith {
+    GermanUnit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,14 +89,49 @@ pub struct NotWithin {
     pub hexes: u32,
 }
 
-/// A placement: a locator, narrowed by `not_within` and by `constraint`,
-/// a sentence the grammar cannot check.
+/// A placement: one or more locators (a hex must satisfy every one, in
+/// schema order), narrowed by `not_within`, by `apart`, by `together` and
+/// by `constraint`, a sentence the grammar cannot check.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "PlacementRaw", into = "PlacementRaw")]
 pub struct Placement {
-    pub locator: Locator,
+    pub locators: Vec<Locator>,
     pub not_within: Option<NotWithin>,
+    /// Each entry of the block (a listed unit with everything it brings)
+    /// at least this many hexes from every other entry (R-136).
+    pub apart: Option<u32>,
+    /// Every unit, dump or supply unit of the block goes into one hex.
+    pub together: bool,
     pub constraint: Option<String>,
+}
+
+impl Placement {
+    /// A placement with a single locator and nothing narrowing it.
+    pub fn of(locator: Locator) -> Placement {
+        Placement {
+            locators: vec![locator],
+            not_within: None,
+            apart: None,
+            together: false,
+            constraint: None,
+        }
+    }
+
+    /// The only locator, where there is exactly one.
+    pub fn sole(&self) -> Option<&Locator> {
+        match self.locators.as_slice() {
+            [l] => Some(l),
+            _ => None,
+        }
+    }
+}
+
+/// A place locator: one id or a choice of several.
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum PlaceRaw {
+    One(String),
+    Any(Vec<String>),
 }
 
 /// The JSON shape: locator keys side by side with the narrowing fields.
@@ -92,7 +141,7 @@ struct PlacementRaw {
     #[serde(skip_serializing_if = "Option::is_none")]
     hexes: Option<Vec<HexId>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    place: Option<String>,
+    place: Option<PlaceRaw>,
     #[serde(rename = "box", skip_serializing_if = "Option::is_none")]
     off_map_box: Option<OffMapBox>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,9 +151,17 @@ struct PlacementRaw {
     #[serde(skip_serializing_if = "Option::is_none")]
     sheets: Option<Vec<char>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    west_of: Option<HexId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     air_facility: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    stacked_with: Option<StackedWith>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     not_within: Option<NotWithin>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apart: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    together: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     constraint: Option<String>,
 }
@@ -126,7 +183,14 @@ impl TryFrom<PlacementRaw> for Placement {
             found.push(Locator::Hexes(h));
         }
         if let Some(p) = r.place {
-            found.push(Locator::Place(p));
+            let ids = match p {
+                PlaceRaw::One(id) => vec![id],
+                PlaceRaw::Any(ids) if ids.len() >= 2 => ids,
+                PlaceRaw::Any(ids) => {
+                    bail!("placement: a place list needs two or more, has {ids:?}")
+                }
+            };
+            found.push(Locator::Place(ids));
         }
         if let Some(b) = r.off_map_box {
             found.push(Locator::Box(b));
@@ -146,15 +210,23 @@ impl TryFrom<PlacementRaw> for Placement {
             }
             found.push(Locator::Sheets(s));
         }
+        if let Some(h) = r.west_of {
+            found.push(Locator::WestOf(h));
+        }
         if r.air_facility == Some(true) {
             found.push(Locator::AirFacility);
         }
-        if found.len() != 1 {
-            bail!("placement: needs exactly one locator, has {}", found.len());
+        if let Some(w) = r.stacked_with {
+            found.push(Locator::StackedWith(w));
+        }
+        if found.is_empty() {
+            bail!("placement: needs a locator");
         }
         Ok(Placement {
-            locator: found.pop().expect("one"),
+            locators: found,
             not_within: r.not_within,
+            apart: r.apart,
+            together: r.together == Some(true),
             constraint: r.constraint,
         })
     }
@@ -164,17 +236,29 @@ impl From<Placement> for PlacementRaw {
     fn from(p: Placement) -> PlacementRaw {
         let mut r = PlacementRaw {
             not_within: p.not_within,
+            apart: p.apart,
+            together: p.together.then_some(true),
             constraint: p.constraint,
             ..PlacementRaw::default()
         };
-        match p.locator {
-            Locator::Hexes(h) => r.hexes = Some(h),
-            Locator::Place(p) => r.place = Some(p),
-            Locator::Box(b) => r.off_map_box = Some(b),
-            Locator::Within { of, hexes } => r.within = Some(Within { of, hexes }),
-            Locator::Region(c) => r.region = Some(c),
-            Locator::Sheets(s) => r.sheets = Some(s),
-            Locator::AirFacility => r.air_facility = Some(true),
+        for l in p.locators {
+            match l {
+                Locator::Hexes(h) => r.hexes = Some(h),
+                Locator::Place(mut ids) => {
+                    r.place = Some(if ids.len() == 1 {
+                        PlaceRaw::One(ids.remove(0))
+                    } else {
+                        PlaceRaw::Any(ids)
+                    })
+                }
+                Locator::Box(b) => r.off_map_box = Some(b),
+                Locator::Within { of, hexes } => r.within = Some(Within { of, hexes }),
+                Locator::Region(c) => r.region = Some(c),
+                Locator::Sheets(s) => r.sheets = Some(s),
+                Locator::WestOf(h) => r.west_of = Some(h),
+                Locator::AirFacility => r.air_facility = Some(true),
+                Locator::StackedWith(w) => r.stacked_with = Some(w),
+            }
         }
         r
     }
@@ -298,12 +382,17 @@ fn one() -> u32 {
 }
 
 /// A supply block: `count` dumps or supply units of one kind in one place.
+/// Unless `pooled`, `ammo`, `fuel`, `stores` and `water` are each dump's
+/// or supply unit's own (scenario schema, `supplyBlock.count`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SupplyBlock {
     pub placement: Placement,
     #[serde(default = "one")]
     pub count: u32,
     pub kind: Option<SupplyKind>,
+    /// The figures are one pool for the whole block.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pooled: bool,
     pub ammo: Option<u32>,
     pub fuel: Option<u32>,
     pub stores: Option<u32>,
@@ -345,7 +434,30 @@ pub struct Abstraction {
     pub replaces: BTreeMap<Side, SideOverride>,
     #[serde(default)]
     pub adds: BTreeMap<Side, SideOverride>,
-    pub motorisation: Option<String>,
+    pub motorisation: Option<Motorisation>,
+}
+
+/// A truck class (59.63).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TruckClass {
+    Light,
+    Medium,
+    Heavy,
+}
+
+/// How truck points become motorisation points (32.5, 59.63): each truck
+/// point of a class in `from` is one motorisation point.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Motorisation {
+    pub from: Vec<TruckClass>,
+    /// Printed unattached starting points; they replace the second-line
+    /// truck blocks. Kept as JSON: no scenario the engine plays has them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unattached: Vec<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -600,7 +712,7 @@ mod tests {
         assert_eq!(axis_strategic.all_of.len(), 1);
         assert!(axis_strategic.all_of[0].any_hex);
         assert!(matches!(
-            &axis_strategic.all_of[0].hold.locator,
+            &axis_strategic.all_of[0].hold.locators[0],
             Locator::Hexes(h) if h.len() == 7
         ));
         assert_eq!(
@@ -619,8 +731,8 @@ mod tests {
         assert_eq!(cw_tactical.all_of.len(), 3);
         assert!(!cw_tactical.all_of[0].any_hex);
         assert_eq!(
-            cw_tactical.all_of[0].hold.locator,
-            Locator::Place("sollum".into())
+            cw_tactical.all_of[0].hold.locators[0],
+            Locator::Place(vec!["sollum".into()])
         );
         assert_eq!(
             cw_tactical.supply_trace,
@@ -639,9 +751,21 @@ mod tests {
         // Rommel's Arrival: a hold the grammar cannot check carries its sentence.
         let r = Scenario::load("rommels-arrival").unwrap().victory.unwrap();
         let region = &r.levels[2].all_of[3].hold;
-        assert_eq!(region.locator, Locator::Region(Country::Egypt));
+        assert_eq!(region.locators[0], Locator::Region(Country::Egypt));
         assert!(region.constraint.is_some());
         assert_eq!(r.levels[2].supply_trace, None);
+    }
+
+    #[test]
+    fn the_italian_divisions_go_two_hexes_apart() {
+        // 61.41 by R-136: the hexes between Ras el Ali and Nofilia, listed.
+        let s = Scenario::load("rommels-arrival").unwrap();
+        let p = &s.side(Side::Axis).deployments[2].placement;
+        assert_eq!(p.apart, Some(2));
+        let Some(Locator::Hexes(hexes)) = p.sole() else {
+            panic!("{p:?}")
+        };
+        assert!(hexes.len() > 20, "{hexes:?}");
     }
 
     #[test]
@@ -681,8 +805,11 @@ mod tests {
         assert_eq!(count(cw, SupplyKind::SupplyUnit), 15);
         assert_eq!(count(cw, SupplyKind::DummySupplyUnit), 3);
         // The two `adds` blocks come last.
-        assert!(matches!(cw[4].placement.locator, Locator::Hexes(ref h) if h.len() == 2));
-        assert_eq!(cw[5].placement.locator, Locator::Place("cairo".into()));
+        assert!(matches!(cw[4].placement.locators[0], Locator::Hexes(ref h) if h.len() == 2));
+        assert_eq!(
+            cw[5].placement.locators[0],
+            Locator::Place(vec!["cairo".into()])
+        );
         // Everything else is untouched.
         assert_eq!(
             s.sides[&Side::Axis].deployments,
@@ -697,31 +824,57 @@ mod tests {
         let mut seen = std::collections::HashSet::new();
         for side in [Side::Axis, Side::Cw] {
             for d in &s.side(side).deployments {
-                seen.insert(std::mem::discriminant(&d.placement.locator));
+                seen.insert(std::mem::discriminant(&d.placement.locators[0]));
             }
         }
         assert_eq!(seen.len(), 6, "hexes, place, box, within, region, sheets");
         let axis = &s.side(Side::Axis).deployments;
         assert_eq!(
-            axis[22].placement.locator,
+            axis[22].placement.locators[0],
             Locator::Within {
                 of: HexId::parse("C0716").unwrap(),
                 hexes: 3
             }
         );
-        assert_eq!(axis[21].placement.locator, Locator::Region(Country::Libya));
-        assert_eq!(axis[23].placement.locator, Locator::Sheets(vec!['A', 'B']));
         assert_eq!(
-            axis[25].placement.locator,
+            axis[21].placement.locators[0],
+            Locator::Region(Country::Libya)
+        );
+        assert_eq!(
+            axis[23].placement.locators[0],
+            Locator::Sheets(vec!['A', 'B'])
+        );
+        assert_eq!(
+            axis[25].placement.locators[0],
             Locator::Box(OffMapBox::Tripolitania)
         );
         let dump = &s.side(Side::Axis).supply[5];
         assert_eq!(dump.placement.not_within.as_ref().unwrap().hexes, 4);
+        // Typed now (cna bd108b6): the Libyan part of sheet C.
         assert_eq!(
-            dump.placement.constraint.as_deref(),
-            Some("Libyan part of sheet C only")
+            dump.placement.locators,
+            vec![Locator::Region(Country::Libya), Locator::Sheets(vec!['C'])]
         );
+        assert_eq!(dump.placement.constraint, None);
         assert_eq!(dump.kind, Some(SupplyKind::Dump));
+        // A supply-unit group in one hex, west of Mersa Matruh.
+        let land = s.land_only();
+        let west = land
+            .side(Side::Cw)
+            .supply
+            .iter()
+            .find(|b| {
+                b.placement
+                    .locators
+                    .contains(&Locator::WestOf(HexId::parse("D3714").unwrap()))
+            })
+            .expect("a west-of block");
+        assert!(west.placement.together);
+        assert!(
+            west.placement
+                .locators
+                .contains(&Locator::Sheets(vec!['D']))
+        );
     }
 
     #[test]
@@ -736,8 +889,8 @@ mod tests {
         assert_eq!(aus.status, Some(Status::InTraining));
         assert_eq!(aus.less.len(), 3);
         assert_eq!(
-            cw[12].placement.constraint.as_deref(),
-            Some("or Helwan (E1430)")
+            cw[12].placement.locators,
+            vec![Locator::Place(vec!["cairo".into(), "helwan".into()])]
         );
         let nz = &cw[11].units[0];
         assert!(nz.alone);
@@ -753,16 +906,32 @@ mod tests {
     #[test]
     fn placement_round_trips_through_json() {
         let p = Placement {
-            locator: Locator::Sheets(vec!['C']),
+            locators: vec![
+                Locator::Place(vec!["a".into(), "b".into()]),
+                Locator::Region(Country::Libya),
+                Locator::Sheets(vec!['C']),
+                Locator::WestOf(HexId::parse("C3714").unwrap()),
+            ],
             not_within: Some(NotWithin {
                 of: "enemy-unit".into(),
                 hexes: 4,
             }),
+            apart: Some(2),
+            together: true,
             constraint: Some("x".into()),
         };
         let json = serde_json::to_string(&p).unwrap();
         assert_eq!(serde_json::from_str::<Placement>(&json).unwrap(), p);
-        assert!(serde_json::from_str::<Placement>(r#"{"place":"a","box":"tripoli"}"#).is_err());
+        let one = serde_json::from_str::<Placement>(r#"{"place":"a"}"#).unwrap();
+        assert_eq!(one, Placement::of(Locator::Place(vec!["a".into()])));
+        assert_eq!(serde_json::to_string(&one).unwrap(), r#"{"place":"a"}"#);
+        let rommel =
+            serde_json::from_str::<Placement>(r#"{"stacked_with":"german-unit"}"#).unwrap();
+        assert_eq!(
+            rommel,
+            Placement::of(Locator::StackedWith(StackedWith::GermanUnit))
+        );
+        assert!(serde_json::from_str::<Placement>(r#"{"place":["a"]}"#).is_err());
         assert!(serde_json::from_str::<Placement>(r#"{"constraint":"x"}"#).is_err());
     }
 }

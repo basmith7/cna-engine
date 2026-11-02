@@ -6,6 +6,8 @@ Rust. Every ruling in the [`cna`](https://github.com/basmith7/cna) repo's
 chosen option per ruling. The rules data is read directly from `cna`, which
 is a git submodule at `vendor/cna`.
 
+Agents: read [`AGENTS.md`](AGENTS.md) first, for the invariants and gotchas the code doesn't show.
+
 On top of the core sit *probes*: small programs that measure how a ruling's
 options differ in play (expected losses, how often a case comes up) and
 write the result to `probes/<id>.json` for the `cna` decision board. See
@@ -47,7 +49,8 @@ is also autosaved to the browser's `localStorage` after every order.
 
 **Secrecy is hot-seat only.** The screen avoids *showing* the other side's
 sealed combat answers until both are in, and a curtain asks for the
-keyboard to change hands; but the autosave, a downloaded save and (in
+keyboard to change hands (and comes down when a save or the autosave is
+opened); but the autosave, a downloaded save and (in
 test builds) `window.__cna` hold the whole state. Real hidden information
 waits for the server.
 
@@ -78,6 +81,17 @@ cargo run -p cna-play -- log state.json -o log.json
 cargo run -p cna-play -- replay log.json -o replayed.json
 ```
 
+The rest of the Land Game turn (Mission 5) comes as three modules, on in
+every new game and each switched off by a `cna-play new` flag
+(`--no-abstract-supply`, `--no-breakdown`, `--no-construction`): §32's
+abstract supply (supply units with loads and motorisation points, fuel
+and ammunition spent from them, arrivals by the planning tables and Axis
+convoys that can be bombed, rail, the air lift, capture), §21's breakdown
+and field repair, and §24–26's fortifications and minefields. Attachment
+and detachment (§19, with 19.5's limits and 9.26's shells) and prisoners
+with their guards (§28) need no module.
+Older saves load with the modules off and play as they did.
+
 A log is the scenario, the ruleset, the seed, the `vendor/cna` commit and
 the accepted orders; it replays to the same state byte for byte on the same
 commit. `tests/games/` holds scripted games the tests replay:
@@ -86,9 +100,8 @@ commit. `tests/games/` holds scripted games the tests replay:
 and a close assault, then passes to the end; its final state's SHA-256 and
 victory report are pinned). A scripted game pins the commit and the
 ruleset defaults, so a submodule bump or a changed default fails its
-replay test until the fixture is regenerated (`cargo test -p cna-game --
---ignored regenerate_setup_fixture` and `... regenerate_graziani_short_fixture`,
-then pin the hash the latter prints).
+replay test until the fixture is regenerated (the steps are under *Bumping
+`vendor/cna`* in [`AGENTS.md`](AGENTS.md)).
 
 ## Probes
 

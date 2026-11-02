@@ -8,7 +8,7 @@ import type { Equivalent, HexId, OffMapBox, Piece, PieceId, PieceKind, Side, Vie
 export const COUNTER = 0.8 * W;
 
 /** The branch glyph in the NATO frame, keyed from the characteristics chart's `unit_type`. */
-export type Glyph = "infantry" | "armour" | "artillery" | "hq" | "recce" | "engineer" | "anti-tank" | "anti-air" | "supply" | "other";
+export type Glyph = "infantry" | "armour" | "artillery" | "hq" | "recce" | "engineer" | "anti-tank" | "anti-air" | "supply" | "commander" | "other";
 
 /**
  * The chart's unit types are prose ("Infantry Bn-Eq", "Reconnaissance
@@ -28,6 +28,7 @@ const BY_WORD: [RegExp, Glyph][] = [
 
 export function glyphFor(kind: PieceKind, unitType: string | null): Glyph {
   if (kind === "supply-unit" || kind === "dummy-supply-unit") return "supply";
+  if (kind === "commander") return "commander";
   if (unitType) {
     for (const [re, glyph] of BY_WORD) if (re.test(unitType)) return glyph;
   }
@@ -57,8 +58,8 @@ export function label(p: Piece): { short: string; long: string } {
   return { short: p.abbreviation ?? p.id_code ?? p.id, long: p.name ?? p.id };
 }
 
-/** HQs on top, then combat units, then supply; ties by id so a stack is stable. */
-const KIND_ORDER: Record<PieceKind, number> = { hq: 0, combat: 1, "supply-unit": 2, "dummy-supply-unit": 2 };
+/** Rommel on top, then HQs, combat units and supply; ties by id so a stack is stable. */
+const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, "supply-unit": 3, "dummy-supply-unit": 3 };
 
 /**
  * Supply units tie-break on a hash of the id, not the id itself: a dummy's
@@ -107,6 +108,24 @@ export function stacks(view: View): Map<HexId, Piece[]> {
       })
       .map(([h, ps]) => [h, topFirst(ps)]),
   );
+}
+
+/**
+ * A stack's pieces for the stack panel: each unit followed by the units
+ * attached to it (19.1x), depth-first, with how deep each sits. A unit
+ * whose parent is not in the list stands at the top level; the order
+ * among siblings is the input order.
+ */
+export function nested(pieces: Piece[]): { piece: Piece; depth: number }[] {
+  const here = new Set(pieces.map((p) => p.id));
+  const out: { piece: Piece; depth: number }[] = [];
+  const walk = (p: Piece, depth: number) => {
+    out.push({ piece: p, depth });
+    if (depth > 4) return;
+    for (const q of pieces) if (q.attached_to === p.id && q.id !== p.id) walk(q, depth + 1);
+  };
+  for (const p of pieces) if (!p.attached_to || !here.has(p.attached_to)) walk(p, 0);
+  return out;
 }
 
 export const OFF_MAP_BOXES: OffMapBox[] = ["tripoli", "tunisia", "tripolitania", "malta", "italy-sicily", "crete"];

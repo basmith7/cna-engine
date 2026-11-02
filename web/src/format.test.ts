@@ -15,7 +15,9 @@ const cases: [Event, string][] = [
   [{ "initiative-declared": { player_a: "cw" } }, "Commonwealth declares itself Player A."],
   [{ "weather-set": { weather: { sandstorm: { sheets: ["C", "D"] } } } }, "Weather: sandstorm on C, D."],
   [{ placed: { piece: "u:a", hex: "C0101" } }, "A placed at C0101."],
+  [{ unplaced: { piece: "u:a" } }, "A taken back, to be placed again."],
   ["set-up-complete", "Set-up complete; play begins."],
+  ["rommel-recalled", "Rommel is recalled to Germany for this Game-Turn."],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
@@ -40,12 +42,42 @@ const cases: [Event, string][] = [
     { assault: { target: "C4130", attackers: ["u:a"], probe: false, attacker_raw: 12, defender_raw: 6, basic: 2, shifts: 1, column: "2:1", attacker: roll, defender: { ...roll, retreat: 2 } } },
     "Assault on C4130 by A: 12 v 6 raw, differential +2, +1 shifts, column 2:1; attacker rolls 4 and loses 10% (1 TOE), defender rolls 4 and loses 10% (1 TOE), retreats 2.",
   ],
-  [{ prisoners: { side: "axis", points: 3 } }, "Axis takes 3 prisoner points."],
+  [{ prisoners: { side: "axis", points: 3 } }, "3 points of the Axis losses are prisoners."],
+  [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
+  [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
+  [{ "convoy-bombed": { lane: 2, bomb_points: 201, reading: 45, percent: 20, units: 3, sunk: 1 } }, "The Axis convoy on lane 2 is bombed at 201 points: 45, 20 %; 1 of 3 supply units sunk."],
+  [{ "prisoners-left-map": { side: "axis", points: 4, stages: 3 } }, "4 Axis prisoner points leave the map; they reach the Tripolitania box in 3 truck convoy phases."],
+  [{ "prisoners-gone": { side: "cw", hex: "E3613", points: 5 } }, "5 Commonwealth prisoner points leave play at E3613."],
+  [{ "construction-begun": { side: "axis", item: "dummy-minefield", hex: "B1010", builders: ["u:a"] } }, "Axis begins a dummy minefield in B1010."],
+  [{ "construction-lost": { side: "axis", item: "fortification", hex: "B1010" } }, "Axis loses its fortification project in B1010: a builder left."],
+  [{ "fortification-built": { side: "axis", hex: "B1010", level: 1 } }, "Axis fortifies B1010 to level 1."],
+  [{ "minefield-laid": { side: "cw", hex: "C3923" } }, "Commonwealth lays a minefield in C3923."],
+  [{ "minefield-revealed": { hex: "C3923", real: false } }, "The minefield in C3923 is a dummy."],
+  [{ "minefield-removed": { hex: "C3923" } }, "The minefield in C3923 is taken off."],
+  [{ "guards-detailed": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 3 } }, "unit:it:iim-tank-bn details 3 guard points in C4021."],
+  [{ "guards-released": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 1 } }, "1 guard points rejoin unit:it:iim-tank-bn in C4021."],
+  [{ "prisoners-escaped": { side: "axis", hex: "E2020", rejoined: 0, escapees: 6 } }, "Axis prisoners escape in E2020: 6 wait there as escapees."],
+  [{ "prisoners-escaped": { side: "axis", hex: "C3920", rejoined: 4, escapees: 0 } }, "Axis prisoners escape in C3920: 4 rejoin their side."],
+  [{ "prisoners-freed": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth frees 5 of its men held prisoner in C3923."],
+  [{ absorbed: { piece: "unit:it:iim-tank-bn", weapon: "M11/39", points: 3, cp: 2 } }, "unit:it:iim-tank-bn absorbs 3 repaired M11/39 points for 2 CP."],
   [{ surrendered: { pieces: ["u:b"] } }, "B surrender."],
   [{ engaged: { pieces: ["u:a", "u:b"] } }, "A, B are engaged."],
   [{ "retreat-ordered": { pieces: ["u:b"], hexes: 1, reason: "must-attack" } }, "B must retreat 1 hex (must attack or retreat)."],
   [{ "retreat-bought-out": { pieces: ["u:b"], short: 2 } }, "B stand 2 hexes short of the ordered retreat and pay for it."],
   [{ losses: { piece: "u:b", points: 2, toe: 4 } }, "B loses 2 points, TOE now 4."],
+  [{ "fuel-spent": { piece: "u:a", from: "u:s", fuel: 2 } }, "A burns 2 fuel from S."],
+  [{ "ammunition-spent": { piece: "u:a", from: "u:s", ammo: 3 } }, "A fires 3 ammunition from S."],
+  [{ "ammunition-short": { piece: "u:b" } }, "B has no ammunition in range and does not defend."],
+  [{ "supply-unit-spent": { piece: "u:s" } }, "S is empty and removed."],
+  [{ "supply-destroyed": { piece: "u:s" } }, "S destroyed by its own side."],
+  [{ attached: { piece: "u:b", to: "u:s" } }, "B attaches to S."],
+  [{ detached: { piece: "u:b", from: "u:s" } }, "B detaches from S."],
+  [{ "motorisation-attached": { piece: "u:s", points: 30 } }, "S takes 30 motorisation points."],
+  [{ "motorisation-detached": { piece: "u:s", points: 6 } }, "S gives up its 6 motorisation points."],
+  [{ "load-transferred": { from: "u:s", to: "u:a", ammo: 5, fuel: 10 } }, "5 ammunition and 10 fuel move from S to A."],
+  [{ railed: { pieces: ["u:s", "u:a"], from: "E3613", to: "D3715" } }, "S, A by rail E3613 → D3715."],
+  [{ "wrecks-captured": { by: "u:b", hex: "C3920", points: 2 } }, "B captures 2 broken-down vehicle points at C3920."],
+  [{ "broke-down": { piece: "u:b", weapon: "CV33", reading: 64, percent: 33, points: 3 } }, "B breakdown check, CV33: 64 → 33 %, 3 broken down."],
   [{ eliminated: { piece: "u:b" } }, "B eliminated."],
   [
     { "forces-assigned": { side: "axis", assignments: [{ piece: "u:a", anti_armour: [{ target: "C4130", points: 2 }], close_assault: [{ points: 4 }] }] } },
@@ -57,13 +89,13 @@ const cases: [Event, string][] = [
   [{ "game-over": { report } }, "Game over. Axis: no level; Commonwealth: marginal."],
 ];
 
-const names: Record<string, string> = { "u:a": "A", "u:b": "B" };
+const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 38 variants", () => {
+  it("covers all 69 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(38);
+    expect(tags.size).toBe(69);
   });
 
   it.each(cases)("%j", (event, line) => {

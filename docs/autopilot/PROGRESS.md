@@ -7,6 +7,7 @@ writes is **Feedback**.
 
 ## Feedback
 
+- 2026-10-29 (Brian): **Mission 4 spec approved (PR #25).** Take the spec's defaults for all three questions: `guilds.join` at sign-in plus a small CNA Discord server for DMs, host port 3240 on Tower, and the public image `ghcr.io/basmith7/cna`. Resolve #25's conflicts with main, merge it, and start Mission 4.
 
 ## Addressed
 
@@ -14,6 +15,55 @@ writes is **Feedback**.
 - 2026-10-12 (Brian) approved the Mission 2 spec, PR #5, in an interactive session → merged 2026-10-12; that session builds slices 1–6 and holds the autopilot lock while it does.
 
 ## Status
+
+**MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
+on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
+bar a short list (`docs/designs/2026-10-13-land-turn-design.md`, Status).
+Merged through 2026-10-26: supply, spending, supply movement, arrivals,
+the air lift, breakdown and repair, attachment, prisoners, guards,
+replacements, construction, convoy bombing, gun losses, shells, the
+stack panel's organisation, formations in the size table, every
+scenario smoke-tested, points victories, the browser's scenario picker
+(#31–#64), Rommel as a commander piece and replacement counters at
+set-up (#65), 31.0's initiative, recall and morale (#66). **On
+2026-10-26, fourth run:** cna answered both requests (R-136, R-137).
+#67 bumps `vendor/cna` to fc78330 and places `apart` blocks, so
+Rommel's Arrival and both campaigns set up: all nine scenarios now set
+up and play a Game-Turn, and the browser offers every one. #68 builds
+the rest of 31.0 bar the LRDG raid: the +5 CPA escort (R-137), his
+reactions, and his free retreat through enemy ZOC (merged). #69
+(merged) lets a side take back a piece during its set-up. **Fifth
+run:** cna answered the lone-Rommel request (R-138); #70 (merged) bumps
+`vendor/cna` to fcf8ea7 and builds it: the mover's own ZOC no longer
+bars his reaction, and alone in an enemy ZOC with no escape left he is
+captured. New requests: whose ZOC 8.53 means for every unit, which
+19.3 chart components count toward a shell, and Rommel after his stack
+is destroyed. #71 (merged) adds the last assignment tests; #72 (merged)
+makes the reach search 3x faster under wasm (Mission 3's slow shading).
+**Sixth run:** cna answered all three requests (R-139, R-140, R-141).
+#73, #74 and #75 are merged. #73 bumps `vendor/cna` to eafa8a3 and builds R-139: a reaction is barred
+only by an enemy ZOC the unit stood in before the mover arrived, so the
+mover's own ZOC no longer pins. #74 (R-140): Rommel whose stack an
+assault destroys retreats alone at once, captured if he stops short of
+safety. #75 (R-141): shells are judged against the 19.3 chart's counted
+components; in Graziani's Offensive the 2nd NZ Division and the
+Trivioli tank regiment now start as shells. **Seventh run
+(2026-10-27):** #77 (merged): a combat unit entering a hex of lone
+enemy supply captures it (32.1x). #78 (merged): reactions and every retreat pay
+fuel (32.22); a unit that cannot pay does not react or retreat before
+assault, and a stack ordered to retreat stands and pays (R-120). The
+module-on golden game changes with it: 4 RHA has no fuel to react on
+GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
+on a cna request (below). #79 (merged) builds combat units and HQs by rail,
+2 SP a run (8.7x), the first task of its plan.
+Mission 4 resumes first the moment **Feedback** approves #25.
+
+**MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
+slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
+built until **Feedback** approves it. The spec asks three questions, each
+with a default: how the bot reaches DMs (`guilds.join` and a small CNA
+Discord server), host port 3240, and the image name
+`ghcr.io/basmith7/cna`.
 
 **MISSION 3 COMPLETE** (2026-10-13): a minimal browser UI for Graziani's
 Offensive in `web/` on `cna-game` compiled to WebAssembly (`crates/cna-web`,
@@ -34,45 +84,53 @@ sequence of play, movement, combat, victory. Two scripted games in
 report are pinned. The spec is `docs/designs/2026-10-08-game-state-design.md`
 (Status: built).
 
-Nonblocking combat follow-ups from PR #12's review stay open for a later
-slice (listed in the journal entry of 2026-10-12 and PR #15's body): rule
-tests for 15.36, 6.26, 13.1, 15.1x and 13.2x; the retreat-short 10 % taken
-after rounding rather than folded in (15.83); a must-attack `Pass`
-surrendering a stack that has a path (10.36); attacking forward guns and
-artillery in the anti-armour role (15.84, 14.14); a released unit's later
-combat segments (18.2x); a malformed save with an empty sealed `waiting`
-panics.
+PR #12's review follow-ups are all closed: 15.84/14.14 gun losses (#54),
+18.2x's released units (#53 and earlier), 10.36's must-attack Pass (#27),
+the rule tests (15.36, 6.26, 13.1, 12.44 and 12.1x already had them;
+#71, merged, adds 15.1x and 13.28).
 
 **MISSION 1 COMPLETE** (2026-09-26): rules core with switches for R-001,
 R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Mission 4, Part 0**: the multiplayer server (`AUTOPILOT.md` queue,
-  row 4, Brian's direction of 2026-10-13) needs its spec on
-  `autopilot/m4-spec`, in the shape of the Mission 2 and 3 designs:
-  server architecture, the redacted per-side view, accounts and Discord
-  OAuth, the lobby, Discord DM alerts, persistence, deployment, the
-  slices, and Brian's checklist of outside steps. Mark the PR
-  `needs-brian` and build nothing until **Feedback** approves it. The
-  rest of the Land Game turn is now row 5.
+- **Review the Mission 4 spec: PR #25.** Approve (or ask for changes)
+  under **Feedback**, answering its three questions if the defaults are
+  wrong. Building starts with slice 1 once approved.
 - Mission 3's accepted residue, for a polish slice when it matters: the
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
   non-goal); ticks are offered in a sealed step though nothing moves;
-  selecting an uncapped motorised stack takes ~0.6 s to shade; at 390 px
+  at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- From PR #23's review, for the same polish slice: `check_invariants`
-  stops at the plan's list, so a hostile save can still panic the engine
-  later (a combat plot naming a ghost piece, a piece on a hex that does
-  not exist, a duplicate side in `waiting`, a reaction whose eligible
-  piece is the other side's); extend it to every piece and hex reference
-  in `combat`, `moved`/`continuing`/`shifted`/`zoc` and piece locations.
-  A Load or Continue opens with no curtain, so whoever loads sees
-  `to_act`'s (redacted) view; consider dropping the curtain on load.
+- The rest of #79's plan (`docs/plans/2026-10-27-m5-rail-units.md`): attached
+  units carried by rail, one stack each way, phase J opening for units
+  alone (re-pins the module-on golden, as #78 did).
+- Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
+  (ports as destinations, 56.15, 55.17, a new player order); combat
+  units by rail; substitution (19.x) once cna maps counters to chart
+  slots; or the desert raiders (§27) that the raid on Rommel needs, which want
+  hidden movement and so Mission 4's per-side views.
+- Mission 3's slow shading is closed: after #72, an uncapped motorised
+  stack (11 Hussars, 3,614 hexes) paints in ~200 ms from pointer-down
+  (198–227 ms, timed in the page in a Playwright test build; the engine
+  is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
+  wait reads ~0.5 s because of its selector polling, not the app.
+- #75's ledger item 1 checked (2026-10-27): real. The shell share is
+  matched by stacking equivalent, not chart slot, and some counted
+  slots are not one counter of that equivalent (15th Panzer's
+  `artillery-group`, the Polish brigade's MG slot). Fix waits on the
+  cna request below (counter to chart slot), which substitution needs
+  too.
+- Look at #75's two new starting shells (2nd NZ Division, the Trivioli
+  tank regiment at Bardia): they follow the OA and the 19.3 chart, but
+  change Graziani's opening.
+- PR #23's review follow-ups are all merged: hostile saves refused
+  (#26), the curtain on Load and Continue (#28), and 10.36's must-attack
+  Pass (#27); #30 fixed the flaky wheel-zoom budget in `map.spec.ts`.
 - Since Mission 2: #13, #14 (review follow-ups), #16 (14.34 anti-armour
   bans), #17 (seam `up`, R-117, R-118, R-119) merged; `vendor/cna` is at
-  cna 4184683.
+  cna fcf8ea7.
 
 ## Requests for cna
 
@@ -80,27 +138,23 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Typed set-up constraints for Graziani's Offensive.** The scenario's
-  free placements carry `constraint` sentences the engine cannot check
-  and the UI can only show (`cna-game::place`, `web/src/SetupPanel.svelte`):
-  "Libyan part of sheet C only" and "Libyan part of sheet C; all units of
-  the group in one hex" (Axis supply, `sheets: ["C"]`, 59.2); "on sheet C
-  or D" (Commonwealth supply, `region: egypt`); "any one hex of map D that
-  lies west of Mersa Matruh (D3714); all three units in that one hex
-  (60.92)" (Commonwealth supply, `sheets: ["D"]`); and "or Helwan (E1430)"
-  on a fixed placement at Cairo, which the engine never offers. Wanted as
-  data an engine can check: a country filter on an area (`sheets` and
-  `region` together, or a `country` key), "the group in one hex"
-  (`together: true` or a group id), "west of a hex" (a column bound), and
-  an alternative to a fixed place (`place: ["cairo", "helwan"]` or a
-  second locator). Until then the engine trusts the owner, the UI shows
-  the prose as "also: …", and Helwan is never offered. Not blocking:
-  Mission 3 slice 3 ships with the prose.
-- **Which loss base governs for withheld defenders?** `rules/60-combat.md`
-  under 15.1x says withheld TOE points count in the defender's loss base;
-  under 15.83 (percentage losses) the defender adds withheld units only in
-  an overrun. The engine follows 15.83 (`cna-game::combat::assault`). Not
-  blocking; Mission 2's follow-ups.
+- **Which 19.3 chart slot each counter fills** (Mission 5: 9.26 shells
+  by slot, and 19.x substitution). `formation-organisation.json` names
+  its components by slugs (`infantry-battalion`, `artillery-group`,
+  `anti-tank-regiment`, ...) but nothing maps an OA unit or a
+  characteristics row to those slugs, so the engine counts a shell's
+  share by stacking equivalent instead, and gets it wrong where a slot
+  is not one counter of that equivalent: the 15th Panzer Division's
+  counted `artillery-group` is "any three 1 SP artillery units" (its
+  33 and 140 artillery regiments are battalion-equivalent counters the
+  division share never counts); the Polish brigade's counted
+  `light-aa-unit|machinegun-battalion` slot is held by a company-
+  equivalent counter (kopanski-mg); the 1st Free French brigade has 8
+  battalion-equivalents assigned against 5 counted slots, so its share
+  can pass with the wrong units. Wanted: for each OA unit (or each
+  characteristics row, if that is exact), the `units` slug(s) it can
+  fill, and how many counters fill a slot where it is more than one
+  (`artillery-group`, `artillery-regiment`'s "up to three battalions").
 
 ## Runs and quota
 
@@ -218,3 +272,18 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-12 10:53 | 0 | 64→64 | 22→22 | $0.35 | 6 | Brian, nothing got built this run. The Mission 2 spec in PR #5 still has no approval under **Feedback**, and the standing orders don't allow any Mission 2 work  |
 | 2026-10-12 13:53 | 0 | 65→65 | 3→3 | $0.32 | 4 | I built nothing this run. The Mission 2 spec (PR #5) is still waiting for your review, and the standing orders don't allow any Mission 2 work until you approve  |
 | 2026-10-12 16:53 | 0 | 66→? | 0→? | $0.31 | 4 | I built nothing this run: the Mission 2 spec (PR #5) still needs your review, and the standing orders don't allow any Mission 2 work until you approve it under  |
+| 2026-10-13 08:53 | 29 | 1→4 | 10→68 | $4.03 | 3 | Brian, the Mission 4 spec is up as **PR #25**, labelled `needs-brian`, and nothing for Mission 4 will be built until you approve it under **Feedback**. **What's |
+| 2026-10-13 12:53 | 11 | 6→7 | 93→100 | $2.51 | 1 | You've hit your session limit · resets 1:30pm (America/Phoenix) |
+| 2026-10-24 08:53 | 67 | 20→21 | 0→4 | $15.17 | 246 | Mission 5 slice 2 is merged (PR #32). Slice 3 (supply movement) is about half built on draft PR #34. Everything is pushed and the gates pass locally: clippy, `c |
+| 2026-10-24 10:53 | 75 | 21→22 | 4→11 | $18.97 | 3 | Rule 21.41 is done and pushed on PR #35 (fd815bb). If a unit's move began next to an enemy brigade-sized unit, or two hexes from one across an open hex, half of |
+| 2026-10-25 16:53 | 69 | 27→29 | 0→10 | $16.44 | 3 | All three steps were already done in the last turn, about 20 minutes before the 01:23Z deadline: - **Playwright on #37:** `/tmp/pw-s4.txt` shows 33 passed (8.7m |
+| 2026-10-25 20:53 | 71 | 30→31 | 18→2 | $13.68 | 2 | Both CI runs for #44's last commit have now finished green (test and web in each). That covers the duplicate run that was still pending when I merged, so the me |
+| 2026-10-25 22:53 | 66 | 31→33 | 3→13 | $12.34 | 197 | Two Mission 5 slices merged this run, #45 and #46. The third, slice 8, is planned on draft PR #47 but nothing is built for it yet. - **#45, slice 6b (prisoners, |
+| 2026-10-26 00:53 | 82 | 33→34 | 15→18 | $13.53 | 209 | Four PRs merged this run: slice 8 (prisoner guards and escape) and all three parts of slice 9 (fortifications and minefields). Mission 5 keeps moving while Miss |
+| 2026-10-26 02:53 | 85 | 34→35 | 0→7 | $14.67 | 201 | Ten PRs merged this run (#51–#58, #60). Main passes the full Rust suite after the last merge. The only open autopilot PR besides the Mission 4 spec is draft #59 |
+| 2026-10-26 04:53 | 82 | 35→35 | 7→12 | $9.19 | 157 | I merged five PRs this run (#59, #61, #62, #63, #64) and nothing is open at handoff. On the merged `main`, clippy and 511 tests passed locally; #62's later chan |
+| 2026-10-26 06:53 | 68 | 35→? | 12→? | $9.88 | 4 | The Last Chance now sets up and plays in the engine and the browser, which makes six of the nine scenarios playable. Rommel is in the game with his initiative,  |
+| 2026-10-26 09:53 | 74 | 36→37 | 4→11 | $10.94 | 3 | This run merged three Mission 5 PRs (#67, #68, #69). All nine scenarios now set up and play a Game-Turn, and the browser offers every one of them. - **#67:** cn |
+| 2026-10-26 11:53 | 61 | 38→39 | 16→5 | $11.62 | 206 | I merged three PRs this run: the new Rommel ruling, two missing rule tests, and a 3× faster move search. Mission 4 is still waiting on your review of the spec,  |
+| 2026-10-26 16:53 | 75 | 40→? | 7→? | $10.41 | 3 | cna answered all three of this repo's open rulings requests (R-139, R-140, R-141). All three are now built and merged into the engine, with the docs updated. Yo |
+| 2026-10-26 18:53 | 59 | 41→42 | 9→13 | $13.25 | 5 | I merged three PRs this run (#77, #78, #79), plus `PROGRESS.md` updates on `main`. Each one passed clippy, `cargo test` and `cna-probe check` locally and was gr |

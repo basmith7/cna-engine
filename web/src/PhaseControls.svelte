@@ -5,16 +5,38 @@
   // While something is pending its own panel holds the answers, Pass
   // included, so the controls stand down.
   import { sideName } from "./clock";
-  import type { PieceId, Side, View } from "./types";
+  import { label } from "./counters";
+  import type { HexId, Location, PieceId, Side, View } from "./types";
 
   let {
     view,
     ticked,
+    hex = null,
+    flying = null,
+    onfly,
     onorder,
   }: {
     view: View;
     ticked: PieceId[];
-    onorder: (o: "end-segment" | "pass" | { "declare-initiative": { player_a: Side } } | { "designate-reserve": { pieces: PieceId[] } } | { "release-reserve": { pieces: PieceId[] } }) => void;
+    /** The selected hex, for orders about a whole hex. */
+    hex?: HexId | null;
+    /** The supply unit armed to fly: the next hex clicked is its destination (32.37). */
+    flying?: PieceId | null;
+    onfly?: (piece: PieceId | null) => void;
+    onorder: (
+      o:
+        | "end-segment"
+        | "pass"
+        | { "declare-initiative": { player_a: Side } }
+        | { "designate-reserve": { pieces: PieceId[] } }
+        | { "release-reserve": { pieces: PieceId[] } }
+        | { "attach-motorisation": { piece: PieceId } }
+        | { "detach-motorisation": { piece: PieceId } }
+        | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
+        | { "destroy-supply": { hex: HexId } }
+        | { "air-lift": { piece: PieceId; to: Location } }
+        | { repair: { hex: HexId; weapon: string } },
+    ) => void;
   } = $props();
 
   const c = $derived(view.clock);
@@ -23,6 +45,31 @@
   const release = $derived(c.phase === "movement-combat" && c.segment === "reserve-release");
   const endSegment = $derived(c.phase === "movement-combat" && (c.segment === "movement" || c.segment === "close-assault" || c.segment === "reserve-release"));
   const n = $derived(ticked.length);
+  // Phase C under abstract supply: the first ticked supply unit takes or gives up its motorisation points (32.31).
+  const organise = $derived(c.phase === "organisation");
+  const supply = $derived(ticked.find((id) => view.pieces[id]?.kind === "supply-unit" || view.pieces[id]?.kind === "dummy-supply-unit") ?? null);
+  const motorised = $derived(supply ? (view.pieces[supply].motorised ?? 0) > 0 : false);
+  // With no supply unit ticked, the first ticked combat unit: a foot unit takes a point per TOE point (32.54, R-123); the engine refuses the rest.
+  const unit = $derived(supply === null ? (ticked.find((id) => view.pieces[id]?.kind === "combat") ?? null) : null);
+  // Points short of its TOE (none, or a unit reinforced since) leave it walking: it may top up, and any it has it may give back.
+  const unitPoints = $derived(unit ? (view.pieces[unit].motorised ?? 0) : 0);
+  const riding = $derived(unit ? unitPoints >= view.pieces[unit].toe : false);
+  // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
+  const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
+  // The movement segment: the selected hex holds the side to act's supply units, which it may destroy before moving anything (32.1x).
+  const scuttle = $derived(
+    c.phase === "movement-combat" && c.segment === "movement" && view.moved.length === 0 && hex !== null
+      ? Object.values(view.pieces).some((p) => p.side === view.to_act && (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex)
+      : false,
+  );
+  // Phase K: one field-repair roll per broken-down type of the side to act's in the selected hex (22.2x).
+  const repairs = $derived(
+    c.phase === "repair" && hex !== null
+      ? [...new Set((view.broken_down?.[hex] ?? []).filter((w) => w.side === view.to_act).map((w) => w.weapon))]
+      : [],
+  );
+  let ammo = $state(0);
+  let fuel = $state(0);
 </script>
 
 {#if view.pending === null && view.to_act}
@@ -38,6 +85,49 @@
     {#if release}
       <button type="button" data-order="release-reserve" onclick={() => onorder({ "release-reserve": { pieces: ticked } })}>Release reserve ({n} ticked)</button>
     {/if}
+    {#if organise}
+      {#if supply === null && unit !== null}
+        {#if !riding}
+          <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: unit } })}>Motorise {label(view.pieces[unit]).short}</button>
+        {/if}
+        {#if unitPoints > 0}
+          <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: unit } })}>Dismount {label(view.pieces[unit]).short}</button>
+        {/if}
+      {:else if supply === null}
+        <span class="hint" data-testid="organise-hint">Tick a supply unit to attach or detach its motorisation points (32.31), or a foot unit to motorise it (32.54).</span>
+      {:else if motorised}
+        <button type="button" data-order="detach-motorisation" onclick={() => onorder({ "detach-motorisation": { piece: supply } })}>Detach motorisation</button>
+      {:else}
+        <button type="button" data-order="attach-motorisation" onclick={() => onorder({ "attach-motorisation": { piece: supply } })}>Attach motorisation</button>
+        {#if flying === supply}
+          <span class="hint" data-testid="fly-hint">Click the hex to fly {label(view.pieces[supply]).short} to (32.37).</span>
+          {#if view.to_act === "axis"}
+            {#each ["tripoli", "tunisia"] as const as box (box)}
+              <button type="button" data-order="air-lift-box" data-box={box} onclick={() => { onfly?.(null); onorder({ "air-lift": { piece: supply, to: { box } } }); }}>Fly to the {box} box</button>
+            {/each}
+          {/if}
+          <button type="button" data-order="air-lift-cancel" onclick={() => onfly?.(null)}>Cancel flight</button>
+        {:else}
+          <button type="button" data-order="air-lift" onclick={() => onfly?.(supply)}>Fly…</button>
+        {/if}
+      {/if}
+      {#if loaded.length >= 2}
+        <span class="transfer" data-testid="transfer">
+          <input type="number" min="0" bind:value={ammo} aria-label="Ammunition to move" data-transfer-ammo />
+          <input type="number" min="0" bind:value={fuel} aria-label="Fuel to move" data-transfer-fuel />
+          <button type="button" data-order="transfer-load" onclick={() => onorder({ "transfer-load": { from: loaded[0], to: loaded[1], ammo, fuel } })}>Move ammo/fuel {label(view.pieces[loaded[0]]).short} → {label(view.pieces[loaded[1]]).short}</button>
+        </span>
+      {/if}
+    {/if}
+    {#if scuttle && hex}
+      <button type="button" data-order="destroy-supply" onclick={() => onorder({ "destroy-supply": { hex } })}>Destroy supply at {hex}</button>
+    {/if}
+    {#if c.phase === "repair" && repairs.length === 0}
+      <span class="hint" data-testid="repair-hint">Select a hex with your broken-down vehicles to try field repair (22.2x).</span>
+    {/if}
+    {#each repairs as weapon (weapon)}
+      <button type="button" data-order="repair" data-weapon={weapon} onclick={() => hex && onorder({ repair: { hex, weapon } })}>Repair {weapon} at {hex}</button>
+    {/each}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>
     {/if}
@@ -51,6 +141,15 @@
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-bottom: 0.6rem;
+  }
+  .transfer input {
+    width: 4rem;
+    font: 13px system-ui, sans-serif;
+  }
+  .hint {
+    font: 12px system-ui, sans-serif;
+    color: #555;
+    align-self: center;
   }
   button {
     font: 14px system-ui, sans-serif;

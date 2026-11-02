@@ -9,7 +9,7 @@ use cna_game::data::Data;
 use cna_game::log::{Log, replay};
 use cna_game::order::LoggedOrder;
 use cna_game::piece::Location;
-use cna_game::state::GameState;
+use cna_game::state::{GameState, Modules};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -27,6 +27,17 @@ enum Cmd {
         scenario: String,
         #[arg(long, default_value_t = 1)]
         seed: u64,
+        /// Play without the abstract supply module (§32): supply units
+        /// carry nothing and no motorisation points exist.
+        #[arg(long)]
+        no_abstract_supply: bool,
+        /// Play without the breakdown module (§21): vehicles never
+        /// break down.
+        #[arg(long)]
+        no_breakdown: bool,
+        /// Play without construction (§24): engineers build nothing.
+        #[arg(long)]
+        no_construction: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -145,10 +156,18 @@ fn main() -> Result<()> {
         Cmd::New {
             scenario,
             seed,
+            no_abstract_supply,
+            no_breakdown,
+            no_construction,
             output,
         } => {
             let data = Data::load(&scenario)?;
-            let state = GameState::new(&data, seed)?;
+            let modules = Modules {
+                abstract_supply: !no_abstract_supply,
+                breakdown: !no_breakdown,
+                construction: !no_construction,
+            };
+            let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
             println!("{}", show(&state));
         }

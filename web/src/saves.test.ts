@@ -3,8 +3,9 @@ import { describeSave, parseSeed, randomSeed, saveName } from "./saves";
 
 describe("saveName", () => {
   it("names the file after the clock at the moment of saving", () => {
-    expect(saveName({ clock: { game_turn: 1, stage: 1, phase: "initiative-declaration", half: null, segment: null } })).toBe("graziani-gt1-os1.json");
-    expect(saveName({ clock: { game_turn: 7, stage: 3, phase: "movement-combat", half: "B", segment: "barrage" } })).toBe("graziani-gt7-os3.json");
+    expect(saveName({ scenario: "grazianis-offensive", clock: { game_turn: 1, stage: 1, phase: "initiative-declaration", half: null, segment: null } })).toBe("graziani-gt1-os1.json");
+    expect(saveName({ scenario: "grazianis-offensive", clock: { game_turn: 7, stage: 3, phase: "movement-combat", half: "B", segment: "barrage" } })).toBe("graziani-gt7-os3.json");
+    expect(saveName({ scenario: "operation-crusader", clock: { game_turn: 1, stage: 1, phase: "initiative-declaration", half: null, segment: null } })).toBe("operation-crusader-gt1-os1.json");
   });
 });
 

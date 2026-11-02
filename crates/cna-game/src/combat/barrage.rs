@@ -2,8 +2,7 @@
 //! target, rolled, and applied together after the last roll.
 
 use super::cp::{NON_PHASING_CEILING, PHASING_CEILING};
-use super::strength::Kind;
-use super::terrain::hex_shift;
+use super::strength::{Class, Kind};
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::PieceId;
@@ -12,6 +11,7 @@ use cna_data::map::HexId;
 use cna_data::oa::Nation;
 use cna_rules::barrage::{BarrageResult, resolve, terrain_shift};
 use cna_rules::strength::actual;
+use cna_rules::supply::Role;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// One barrage: the fires pooled against one target.
@@ -35,8 +35,21 @@ impl GameState {
         let mut losses: Vec<(PieceId, u32)> = Vec::new();
         for side in [phasing, phasing.other()] {
             // Key: the target, and the firing hex where fire is not pooled.
+            // Ammunition (32.21): paid at the roll by each firer, as
+            // the plot was checked to be payable when it was sealed.
+            let plots = self.combat.plots.get(&side).cloned().unwrap_or_default();
+            let firers: Vec<PieceId> = plots
+                .iter()
+                .map(|f| f.piece.clone())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            // R-120: a firer out of ammunition cannot barrage; sealing
+            // refused any plot that could not be paid.
+            let plan = self.plan_ammo(data, &firers, Role::Barrage, side == phasing);
+            self.spend_ammo(plan.payments, events);
             let mut pools: BTreeMap<(PieceId, Option<HexId>), Pool> = BTreeMap::new();
-            for f in self.combat.plots.get(&side).cloned().unwrap_or_default() {
+            for f in plots {
                 let firer = &self.pieces[&f.piece];
                 let Some(hex) = firer.hex().cloned() else {
                     continue;
@@ -58,12 +71,13 @@ impl GameState {
                     continue;
                 };
                 let points = actual(pool.raw);
+                let class = self.class_of(data, &self.pieces[&target]);
                 let shift = terrain_shift(
                     &self.ruleset,
-                    hex_shift(data, &hex, Kind::Barrage).unwrap_or(0),
+                    self.in_hex_shift(data, &hex, Kind::Barrage, class == Class::Armour)
+                        .unwrap_or(0),
                     side == phasing,
                 );
-                let class = self.class_of(data, &self.pieces[&target]);
                 let reading = self.rng.two_dice_sequential();
                 events.push(Event::DieRolled {
                     purpose: format!("barrage at {target}"),
@@ -71,7 +85,10 @@ impl GameState {
                 });
                 let result = resolve(&data.barrage, class.key(), points, shift, reading);
                 match result {
-                    BarrageResult::Pinned if !self.is_gun_unit(data, &self.pieces[&target]) => {
+                    BarrageResult::Pinned
+                        if !self.is_gun_unit(data, &self.pieces[&target])
+                            && !self.ignores_pins(data, &hex) =>
+                    {
                         self.combat.pinned.insert(target.clone());
                     }
                     BarrageResult::Lose(n) => losses.push((target.clone(), n)),

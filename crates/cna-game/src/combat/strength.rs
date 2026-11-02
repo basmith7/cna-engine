@@ -324,7 +324,7 @@ mod tests {
             .map(|p| p.id.clone())
             .collect();
         for id in others {
-            state.pieces.get_mut(&id).unwrap().location = crate::piece::Location::Eliminated;
+            state.put(&id, crate::piece::Location::Eliminated);
         }
         assert_eq!(state.raw_of(&data, &h, Kind::Defence), h.toe);
     }

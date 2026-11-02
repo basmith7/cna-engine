@@ -184,6 +184,13 @@ pub struct Unit {
     pub abbreviation: Option<String>,
     pub id_code: Option<String>,
     pub parent: Option<UnitId>,
+    /// An HQ's level (R-124): none for a unit that is not an HQ.
+    #[serde(default)]
+    pub echelon: Option<Echelon>,
+    /// A recce unit's vehicles for breakdown (R-125): none off the
+    /// Recce and Reconnaissance rows.
+    #[serde(default)]
+    pub vehicle: Option<ReconVehicle>,
     #[serde(default)]
     pub toe: Vec<ToeEntry>,
     pub arrives: Option<Arrival>,
@@ -192,8 +199,85 @@ pub struct Unit {
     pub morale: Option<i32>,
     /// Only where the characteristics row says `by-unit`.
     pub equivalent: Option<Equivalent>,
+    /// An HQ's Maximum Attachment Chart rows (19.5, R-130), keys of
+    /// `max-attachments.json`; the row whose turns hold the current turn
+    /// applies. Empty for a non-HQ unit (its nation's battalion row).
+    #[serde(default)]
+    pub attachment_parent: Vec<String>,
+    /// An HQ's Formation Organisation Chart row (19.3); none where the
+    /// O/A notes govern or for a non-HQ unit.
+    #[serde(default)]
+    pub organisation: Option<String>,
+    /// The counter this one replaces in a historical reorganisation:
+    /// at this one's arrival it takes the other's hex, TOE and units
+    /// (R-096's scenarios start with the replacement made).
+    #[serde(default)]
+    pub replaces: Option<UnitId>,
+    /// With `replaces`: units from other sheets assigned to this counter
+    /// when the replacement is made.
+    #[serde(default)]
+    pub assigns: Vec<UnitId>,
+    /// Rommel's counter only (31.0, R-135): a piece of its own, neither
+    /// HQ nor combat unit, whose values stand in for a characteristics
+    /// row.
+    #[serde(default)]
+    pub commander: Option<Commander>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// 31.0's values for Rommel (R-135).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Commander {
+    pub cpa: u32,
+    /// A truck row (`truck-characteristics.json`) for movement and
+    /// breakdown.
+    pub moves_as: String,
+    pub combat_ratings: bool,
+    /// Added to the morale of every unit in his hex in combat.
+    pub stack_morale_bonus: i32,
+    /// Added to the CPA of a unit he starts and spends a whole OpStage
+    /// with.
+    pub escort_cpa_bonus: u32,
+    /// The two-dice total at a Game-Turn's start that recalls him.
+    pub recall_roll: u32,
+    pub initiative_while_recalled: i32,
+}
+
+/// An HQ's organisational level (R-124, 9.22): a regiment HQ is a
+/// brigade equivalent; battle groups (19.73) are their own class.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Echelon {
+    Corps,
+    Division,
+    Brigade,
+    BattleGroup,
+}
+
+/// What a reconnaissance unit's TOE points break down as (R-125, 21.1x):
+/// keyed into `breakdown-adjustments.json`; camels and motorcycles are
+/// exempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReconVehicle {
+    ArmouredCar,
+    ArmouredRecce,
+    Truck,
+    #[serde(rename = "none")]
+    Exempt,
+}
+
+impl ReconVehicle {
+    /// The adjustment row's and the wreck's name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ReconVehicle::ArmouredCar => "armoured-car",
+            ReconVehicle::ArmouredRecce => "armoured-recce",
+            ReconVehicle::Truck => "truck",
+            ReconVehicle::Exempt => "none",
+        }
+    }
 }
 
 /// A unit printed on one sheet but attached to an HQ of another.
@@ -346,13 +430,31 @@ mod tests {
     }
 
     #[test]
+    fn hqs_carry_their_echelon_r_124() {
+        let oa = Oa::load_all().unwrap();
+        let echelon = |id: &str| oa.unit(&UnitId::parse(id).unwrap()).unwrap().echelon;
+        assert_eq!(
+            echelon("unit:cw:7th-armored-div-hq"),
+            Some(Echelon::Division)
+        );
+        assert_eq!(
+            echelon("unit:cw:4th-armored-bde-hq"),
+            Some(Echelon::Brigade)
+        );
+        assert_eq!(echelon("unit:cw:6-rtr"), None);
+        assert!(oa.units().any(|u| u.echelon == Some(Echelon::BattleGroup)));
+        assert!(oa.units().any(|u| u.echelon == Some(Echelon::Corps)));
+    }
+
+    #[test]
     fn counts_per_nation() {
         let oa = Oa::load_all().unwrap();
         let count = |n| oa.units().filter(|u| u.id.nation() == n).count();
         assert_eq!(count(Nation::It), 436);
         assert_eq!(count(Nation::Cw), 436);
-        assert_eq!(count(Nation::De), 148);
-        assert_eq!(oa.units().count(), 1020);
+        // 149 with Rommel's own counter (R-135).
+        assert_eq!(count(Nation::De), 149);
+        assert_eq!(oa.units().count(), 1021);
     }
 
     #[test]

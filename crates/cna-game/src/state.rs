@@ -85,19 +85,172 @@ impl Pending {
     }
 }
 
+/// Rules modules a game opts into. Off, a game plays as it did before
+/// the module existed, so older logs and saves replay unchanged.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Modules {
+    /// Supply units carry loads and motorisation points exist (§32, 60.92).
+    #[serde(default)]
+    pub abstract_supply: bool,
+    /// Vehicles collect breakdown points as they move (§21).
+    #[serde(default)]
+    pub breakdown: bool,
+    /// Engineers build in phase C (§24).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub construction: bool,
+}
+
+impl Modules {
+    /// Every module on: what a new game of the app plays.
+    pub const ALL: Modules = Modules {
+        abstract_supply: true,
+        breakdown: true,
+        construction: true,
+    };
+
+    pub(crate) fn is_default(&self) -> bool {
+        *self == Modules::default()
+    }
+}
+
+/// Replacement points from repair by side, hex and weapon system.
+pub type Repaired = BTreeMap<Side, BTreeMap<HexId, BTreeMap<String, u32>>>;
+
+/// `GameState.repaired`, or nothing for a save from when the points were
+/// pooled by side with no hex.
+fn repaired_by_hex<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Repaired, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Shape {
+        ByHex(Repaired),
+        /// Anything else: the old pooled shape.
+        Pooled(#[allow(dead_code)] serde::de::IgnoredAny),
+    }
+    Ok(match Shape::deserialize(d)? {
+        Shape::ByHex(mut r) => {
+            // Empty entries would open phase C for nothing.
+            for hexes in r.values_mut() {
+                hexes.retain(|_, weapons| {
+                    weapons.retain(|_, n| *n > 0);
+                    !weapons.is_empty()
+                });
+            }
+            r.retain(|_, hexes| !hexes.is_empty());
+            r
+        }
+        Shape::Pooled(_) => Repaired::new(),
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameState {
     pub scenario: String,
     /// The `vendor/cna` commit the game was made from.
     pub rules_commit: String,
     pub ruleset: Ruleset,
+    #[serde(default, skip_serializing_if = "Modules::is_default")]
+    pub modules: Modules,
     pub clock: Clock,
+    /// Each side's motorisation points by where they stand: a hex id or
+    /// a box name (32.5x). Secret to their owner (3.61).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub motorisation: BTreeMap<Side, BTreeMap<String, u32>>,
+    /// Points of a free-placement deployment, by its first piece: they
+    /// join `motorisation` in the hex that piece is placed in.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub pending_motorisation: BTreeMap<PieceId, u32>,
     /// Who holds initiative this Game-Turn (7.1x).
     pub initiative: Option<Side>,
+    /// Rommel recalled to Germany for this Game-Turn (31.0).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rommel_recalled: bool,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
+    /// Supply units planned and on their way (32.4x).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub planned: Vec<crate::convoy::Planned>,
+    /// Supply units their side tried to destroy this movement segment
+    /// (32.1x: one attempt each).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub scuttled: BTreeSet<PieceId>,
+    /// Units detached this movement segment, with the parent they left:
+    /// both stop unless they go on together (19.4x).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub split: BTreeMap<PieceId, PieceId>,
+    /// Broken-down vehicles by hex (21.4x): what each marker stands for.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
+    /// Broken-down vehicle types tried in the field this OpStage, by
+    /// side, hex and weapon system (22.23: one roll each per phase K).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub field_rolled: BTreeSet<(Side, HexId, String)>,
+    /// Repaired TOE points by side, hex and weapon system: replacement
+    /// points waiting where they were repaired for a unit to absorb them
+    /// (22.5, 20.41). A save from before they stood in a hex loses them.
+    #[serde(
+        default,
+        skip_serializing_if = "BTreeMap::is_empty",
+        deserialize_with = "repaired_by_hex"
+    )]
+    pub repaired: Repaired,
+    /// Supply units that rode the railway this OpStage (32.3x: two).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub railed: BTreeSet<PieceId>,
+    /// The Game-Turn each side last flew a supply unit (32.37).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub air_lifted: BTreeMap<Side, u8>,
+    /// Prisoner points by captor and hex (28.1x): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Prisoner points each captor has sent out of play (28.15).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners_out: BTreeMap<Side, u32>,
+    /// Axis prisoner points on their way off map A to the Tripolitania
+    /// box (R-132): points and the captor's phase Hs still to go.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prisoners_off_map: BTreeMap<Side, Vec<(u32, u8)>>,
+    /// Fortification levels changed from what the map gives (25.1x):
+    /// built, reduced or rebuilt. A major city absent here is at its own.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fortifications: BTreeMap<HexId, u8>,
+    /// Minefields by hex (26.1x); whether one is real is its owner's
+    /// secret until revealed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub minefields: BTreeMap<HexId, crate::construction::Minefield>,
+    /// Projects under way by hex (24.1x): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub projects: BTreeMap<HexId, crate::construction::Project>,
+    /// Guard points by owner and hex (28.21): open information.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub guards: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Escapees by their own side and hex (28.25): too far from friends
+    /// to rejoin, waiting to be recaptured.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escapees: BTreeMap<Side, BTreeMap<HexId, u32>>,
+    /// Prisoner points each side has had back by escape or liberation
+    /// (28.24).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escaped: BTreeMap<Side, u32>,
+    /// Hexes prisoners marched into this phase H: they go no further
+    /// (28.13).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub marched: BTreeSet<HexId>,
+    /// Which way this OpStage's rail runs went: east or not (32.3x).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail_east: Option<bool>,
+    /// Phase C under abstract supply: Player A has passed and Player B
+    /// is organising.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub organised: bool,
+    /// Whether pieces' `attached_to` is kept (slice 6); a save from
+    /// before it reads its units stacked with their parent as attached.
+    #[serde(default)]
+    pub attachment_tracked: bool,
     pub weather: Weather,
     pub pieces: BTreeMap<PieceId, Piece>,
+    /// A search's index of `pieces` by hex (`occupancy`); never saved.
+    #[serde(skip)]
+    pub(crate) hex_index: crate::occupancy::HexIndex,
     pub pending: Option<Pending>,
     /// Movement segments completed in the current phase G (8.2x).
     #[serde(default)]
@@ -107,6 +260,10 @@ pub struct GameState {
     /// 9.31).
     #[serde(default)]
     pub moved: BTreeSet<PieceId>,
+    /// This movement segment's escorts: the combat units each supply
+    /// unit has moved with (32.31).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub escorts: BTreeMap<PieceId, BTreeSet<PieceId>>,
     /// The non-phasing player's ZOC declarations this movement segment,
     /// by its hex (10.16).
     #[serde(default)]
@@ -136,7 +293,32 @@ impl GameState {
     /// free pieces first (our choice: 59 and 60 do not say who sets up
     /// first), then the Commonwealth; then GT1 OpStage 1 phase A.
     pub fn new(data: &Data, seed: u64) -> Result<GameState> {
-        let setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map)?;
+        GameState::with_modules(data, seed, Modules::default())
+    }
+
+    /// `new` with the rules modules named.
+    pub fn with_modules(data: &Data, seed: u64, modules: Modules) -> Result<GameState> {
+        let mut setup = setup::expand(&data.scenario, &data.oa, &data.chars, &data.map, modules)?;
+        if modules.abstract_supply {
+            setup::thin_anti_air(&mut setup, &data.weapons)?;
+        }
+        let mut motorisation: BTreeMap<Side, BTreeMap<String, u32>> = BTreeMap::new();
+        let mut pending_motorisation = BTreeMap::new();
+        for m in setup.motorisation {
+            match (m.location.key(), m.pieces.into_iter().next()) {
+                (Some(key), _) => {
+                    *motorisation
+                        .entry(m.side)
+                        .or_default()
+                        .entry(key)
+                        .or_default() += m.points
+                }
+                (None, Some(anchor)) => {
+                    pending_motorisation.insert(anchor, m.points);
+                }
+                (None, None) => {}
+            }
+        }
         let pieces = setup
             .pieces
             .into_iter()
@@ -146,14 +328,41 @@ impl GameState {
             scenario: data.slug().to_owned(),
             rules_commit: data.rules_commit.clone(),
             ruleset: Ruleset::default(),
+            modules,
             clock: Clock::opening(data.scenario.start),
+            motorisation,
+            pending_motorisation,
             initiative: None,
+            rommel_recalled: false,
             player_a: None,
+            organised: false,
+            attachment_tracked: false,
+            planned: Vec::new(),
+            scuttled: BTreeSet::new(),
+            split: BTreeMap::new(),
+            broken_down: BTreeMap::new(),
+            field_rolled: BTreeSet::new(),
+            repaired: BTreeMap::new(),
+            railed: BTreeSet::new(),
+            prisoners: BTreeMap::new(),
+            prisoners_out: BTreeMap::new(),
+            prisoners_off_map: BTreeMap::new(),
+            fortifications: BTreeMap::new(),
+            projects: BTreeMap::new(),
+            minefields: BTreeMap::new(),
+            guards: BTreeMap::new(),
+            escapees: BTreeMap::new(),
+            escaped: BTreeMap::new(),
+            marched: BTreeSet::new(),
+            air_lifted: BTreeMap::new(),
+            rail_east: None,
             weather: Weather::Normal,
             pieces,
+            hex_index: Default::default(),
             pending: None,
             cycle: 0,
             moved: BTreeSet::new(),
+            escorts: BTreeMap::new(),
             zoc: BTreeMap::new(),
             continuing: BTreeSet::new(),
             shifted: BTreeSet::new(),
@@ -163,6 +372,7 @@ impl GameState {
             log: Vec::new(),
         };
         state.check_weapons(data)?;
+        state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {
             state.start_play(data);
@@ -181,6 +391,11 @@ impl GameState {
         }
         if let Some(p) = &self.pending {
             return Some(p.side());
+        }
+        if self.clock.phase == crate::clock::Phase::Organisation {
+            return self
+                .player_a
+                .map(|a| if self.organised { a.other() } else { a });
         }
         match self.clock.half {
             None => self.initiative,
@@ -208,7 +423,8 @@ impl GameState {
             }
             Some(_) => {}
         }
-        let events = self.apply_checked(data, player, &order)?;
+        let mut events = self.apply_checked(data, player, &order)?;
+        self.part_from_rommel(&mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)
     }
@@ -252,6 +468,9 @@ impl GameState {
             (Some(Pending::SetUp { .. }), Order::Place { piece, hex }) => {
                 self.place(data, player, piece, hex)
             }
+            (Some(Pending::SetUp { .. }), Order::Unplace { piece }) => {
+                self.unplace(data, player, piece)
+            }
             (Some(Pending::SetUp { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
                 self.declare_zoc(data, player, exerting)
@@ -263,10 +482,10 @@ impl GameState {
             (Some(Pending::Reaction { .. }), Order::React { pieces, path }) => {
                 self.react(data, player, pieces, path)
             }
-            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction()),
+            (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction(data)),
             (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
-            (None, Order::Place { .. }) => {
+            (None, Order::Place { .. } | Order::Unplace { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
             (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {
@@ -310,13 +529,70 @@ impl GameState {
                     pieces,
                     path,
                     assault,
+                    fuel_from,
                 },
-            ) => self.move_pieces(data, player, pieces, path, *assault),
+            ) => self.move_pieces(data, player, pieces, path, *assault, fuel_from.as_ref()),
             (None, Order::MoveOffMap { pieces, to }) => {
                 self.move_off_map(data, player, pieces, *to)
             }
             (None, Order::DesignateReserve { pieces }) => self.designate_reserve(player, pieces),
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
+            (None, Order::Attach { piece, to }) => self.attach(data, player, piece, to),
+            (None, Order::Detach { piece }) => self.detach(player, piece),
+            (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
+            (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
+            (
+                None,
+                Order::TransferLoad {
+                    from,
+                    to,
+                    ammo,
+                    fuel,
+                },
+            ) => self.transfer_load(player, from, to, *ammo, *fuel),
+            (
+                None,
+                Order::AirLift {
+                    piece,
+                    to,
+                    fuel_from,
+                },
+            ) => self.air_lift(data, player, piece, to, fuel_from.as_ref()),
+            (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
+            (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
+            (
+                None,
+                Order::Repair {
+                    hex,
+                    weapon,
+                    fuel_from,
+                },
+            ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (None, Order::MarchPrisoners { from, path, points }) => {
+                self.march_prisoners(data, player, from, path, *points)
+            }
+            (
+                None,
+                Order::Build {
+                    item,
+                    hex,
+                    builders,
+                },
+            ) => self.build(data, player, *item, hex, builders),
+            (None, Order::DetailGuards { piece, points }) => {
+                self.detail_guards(data, player, piece, *points)
+            }
+            (None, Order::ReleaseGuards { piece, points }) => {
+                self.release_guards(data, player, piece, *points)
+            }
+            (
+                None,
+                Order::Absorb {
+                    piece,
+                    weapon,
+                    points,
+                },
+            ) => self.absorb_replacements(data, player, piece, weapon, *points),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }
@@ -341,12 +617,16 @@ pub(crate) mod test_support {
         let map = &data.map;
         let mut v = crate::place::area(data, p);
         // The `constraint` sentences the grammar cannot check, honoured by
-        // hand: Axis supply on sheet C stays in Libya; the Commonwealth's
-        // on sheet D goes next to Mersa Matruh (D3714).
-        if piece.side == Side::Axis {
+        // hand: Axis supply on sheet C stays in Libya where it can (later
+        // scenarios set the Axis up in Egypt); the Commonwealth's on sheet
+        // D goes next to Mersa Matruh (D3714).
+        if piece.side == Side::Axis
+            && v.iter()
+                .any(|h| map.country(h) == Some(cna_data::map::Country::Libya))
+        {
             v.retain(|h| map.country(h) == Some(cna_data::map::Country::Libya));
         }
-        if piece.side == Side::Cw && matches!(&p.locator, Locator::Sheets(s) if s == &['D']) {
+        if piece.side == Side::Cw && p.locators.contains(&Locator::Sheets(vec!['D'])) {
             let matruh = HexId::parse("D3714").unwrap();
             v.retain(|h| map.adjacent(h, &matruh));
         }
@@ -465,6 +745,139 @@ mod tests {
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
+    }
+
+    // 32.8x: without the Air Game the Commonwealth loses every AA unit
+    // and AA point; the Italians their AA units (ss, tt, uu), the AA
+    // points of emplaced guns (pp) and the heavy AA of artillery that may
+    // hold it (kk). Light AA on kk artillery and on other units stays.
+    #[test]
+    fn anti_air_is_thinned_at_set_up() {
+        let data = graziani();
+        let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let old = GameState::new(&data, 1).unwrap();
+        let unit = |s: &str| -> PieceId {
+            serde_json::from_value(serde_json::json!(format!("unit:{s}"))).unwrap()
+        };
+        for gone in [
+            "cw:15-laa",
+            "cw:57-laa",
+            "cw:9-haa",
+            "it:tobruk-light-aa-bn",
+            "it:xvii-anti-air-group",
+            "it:vii-coastal-defense-arty-aa-group",
+            "it:xv-coastal-def-aa-group",
+            "it:benina-aa-battery",
+            "it:giariabub-oasis-anti-air-bty",
+        ] {
+            assert!(old.pieces.contains_key(&unit(gone)), "{gone}");
+            assert!(!state.pieces.contains_key(&unit(gone)), "{gone}");
+        }
+        let aa = |st: &GameState, id: &str| -> Vec<String> {
+            st.pieces[&unit(id)]
+                .weapons
+                .iter()
+                .map(|w| w.weapon.clone())
+                .filter(|w| w.contains("AA"))
+                .collect()
+        };
+        // Emplaced guns lose all their AA; kk artillery its heavy AA only.
+        for id in [
+            "it:2nd-tobruk-cd-arty-group",
+            "it:4th-tobruk-cd-arty-group",
+            "it:201st-artillery-regt",
+        ] {
+            assert!(!aa(&old, id).is_empty(), "{id}");
+            assert!(aa(&state, id).is_empty(), "{id}");
+            let lost: u32 = old.pieces[&unit(id)]
+                .weapons
+                .iter()
+                .filter(|w| w.weapon.contains("AA"))
+                .map(|w| w.points)
+                .sum();
+            assert_eq!(
+                state.pieces[&unit(id)].toe,
+                old.pieces[&unit(id)].toe - lost,
+                "{id}"
+            );
+        }
+        for id in ["it:203rd-artillery-regt", "it:saharan-artillery-battery"] {
+            assert_eq!(aa(&state, id), aa(&old, id), "{id}");
+            assert!(!aa(&state, id).is_empty(), "{id}");
+        }
+        // The Italian machine-gun battalions share German AA's bb code.
+        assert!(state.pieces.contains_key(&unit("it:201st-machinegun-bn")));
+        state.check_invariants(&data).unwrap();
+    }
+
+    // 60.92, 32.5x: each side starts with its medium truck points as
+    // motorisation points, where the deployments stood; light and heavy
+    // give none; a game without the module has none.
+    #[test]
+    fn medium_trucks_become_motorisation_points_where_they_stand() {
+        let data = graziani();
+        for side in [Side::Axis, Side::Cw] {
+            let medium: u32 = data
+                .scenario
+                .side(side)
+                .deployments
+                .iter()
+                .filter_map(|d| d.trucks)
+                .map(|t| t.medium)
+                .sum();
+            let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+            let held: u32 = state.motorisation[&side].values().sum();
+            let pending: u32 = state
+                .pending_motorisation
+                .keys()
+                .filter(|id| state.pieces[*id].side == side)
+                .map(|id| state.pending_motorisation[id])
+                .sum();
+            assert_eq!(held + pending, medium, "{side}");
+        }
+        let state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let axis = &state.motorisation[&Side::Axis];
+        assert_eq!(axis["C4120"], 45); // medium 45, heavy 5
+        assert_eq!(axis["C4218"], 25); // light and heavy ignored
+        let bardia = data.map.place("bardia").unwrap().hex.to_string();
+        assert_eq!(axis[&bardia], 20);
+        assert_eq!(state.motorisation[&Side::Cw]["C3922"], 15);
+        // The Alexandria deployment (E3613 or E3714, the owner's choice)
+        // waits for its pieces to be placed.
+        assert_eq!(state.pending_motorisation.values().sum::<u32>(), 15);
+        assert!(GameState::new(&data, 1).unwrap().motorisation.is_empty());
+    }
+
+    // 59.2: the points of a free-placement deployment follow its pieces.
+    #[test]
+    fn pending_points_land_with_the_piece_placed() {
+        let data = graziani();
+        let mut state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let piece = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.is_pending())
+            .unwrap()
+            .id
+            .clone();
+        state.pending_motorisation.insert(piece.clone(), 7);
+        let at = state.placements(&data, &piece)[0].clone();
+        let before = state.motorisation[&Side::Axis]
+            .get(&at.to_string())
+            .copied()
+            .unwrap_or(0);
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Place {
+                    piece: piece.clone(),
+                    hex: at.clone(),
+                },
+            )
+            .unwrap();
+        assert!(!state.pending_motorisation.contains_key(&piece));
+        assert_eq!(state.motorisation[&Side::Axis][&at.to_string()], before + 7);
     }
 
     fn pid(s: &str) -> PieceId {
@@ -626,9 +1039,22 @@ mod tests {
             hex: hex(h),
         };
         let before = serde_json::to_string(&state).unwrap();
-        let err = state.apply(&data, Side::Axis, near("C3922")).unwrap_err();
+        // The nearest Libyan hex to the Commonwealth: in the area, but
+        // within 4 hexes of an enemy unit.
+        let libyan_near = data
+            .map
+            .within(&hex("C3922"), 4)
+            .into_iter()
+            .find(|h| data.map.country(h) == Some(cna_data::map::Country::Libya))
+            .expect("Libya within 4 of C3922");
+        let err = state
+            .apply(&data, Side::Axis, near(libyan_near.as_str()))
+            .unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(err.reason.contains("enemy"), "{}", err.reason);
+        // Egypt is outside the area (the Libyan part of sheet C).
+        let err = state.apply(&data, Side::Axis, near("C3922")).unwrap_err();
+        assert!(err.reason.contains("outside"), "{}", err.reason);
         let err = state.apply(&data, Side::Axis, near("C3722")).unwrap_err();
         assert_eq!(err.case, "59.2");
         assert!(data.map.within(&hex("C3922"), 4).contains(&hex("C3722")));
@@ -641,10 +1067,26 @@ mod tests {
     fn a_place_on_a_hex_with_no_ceiling_is_illegal() {
         let data = graziani();
         let mut state = GameState::new(&data, 1).unwrap();
-        // Axis supply may go anywhere on sheet C; C5001 is sea (8.37: no
-        // stacking column), and far from the Commonwealth.
-        let supply = PieceId::supply(Side::Axis, 16);
-        assert_eq!(data.map.hex(&hex("C5001")).unwrap().terrain.name(), "sea");
+        // Axis units on sheets A or B; A5001's sea has no stacking column
+        // (8.37), and is far from the Commonwealth.
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && matches!(&p.location, Location::Pending(pl)
+                        if pl.locators == [cna_data::scenario::Locator::Sheets(vec!['A', 'B'])])
+            })
+            .expect("an Axis piece for sheets A or B")
+            .id
+            .clone();
+        let sea = data
+            .map
+            .hexes()
+            .find(|h| h.id.sheet() == 'A' && h.terrain.name() == "sea")
+            .expect("sea on sheet A")
+            .id
+            .clone();
         let before = serde_json::to_string(&state).unwrap();
         let err = state
             .apply(
@@ -652,7 +1094,7 @@ mod tests {
                 Side::Axis,
                 Order::Place {
                     piece: supply,
-                    hex: hex("C5001"),
+                    hex: sea,
                 },
             )
             .unwrap_err();

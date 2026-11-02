@@ -8,9 +8,10 @@ import type { View } from "./types";
 /** The `localStorage` key the autosave sits under. */
 export const AUTOSAVE_KEY = "cna:autosave";
 
-/** The file a Save downloads: `graziani-gt<N>-os<M>.json`, the clock at the moment of saving. */
-export function saveName(view: Pick<View, "clock">): string {
-  return `graziani-gt${view.clock.game_turn}-os${view.clock.stage}.json`;
+/** The file a Save downloads: `<scenario>-gt<N>-os<M>.json`, the clock at the moment of saving (`graziani` for Graziani's Offensive, else the slug). */
+export function saveName(view: Pick<View, "clock" | "scenario">): string {
+  const prefix = view.scenario === "grazianis-offensive" ? "graziani" : view.scenario;
+  return `${prefix}-gt${view.clock.game_turn}-os${view.clock.stage}.json`;
 }
 
 /** A seed for a new game: a whole number under 2^32, shown in the field so the game can be repeated. */

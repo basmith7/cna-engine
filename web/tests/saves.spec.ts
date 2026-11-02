@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { clickHex, expectDomMatchesView, here, newGame, openStart, shoot as shootInto, shotsDir } from "./helpers.ts";
+import { clickHex, throughCurtain, expectDomMatchesView, here, newGame, openStart, shoot as shootInto, shotsDir } from "./helpers.ts";
 
 // Slice 6's proving screenshots.
 const shots = shotsDir("slice-6");
@@ -53,6 +53,8 @@ test("a new game shows its seed; Save downloads the state as graziani-gt<N>-os<M
   await shoot(page, "start-continue.png");
   await page.getByTestId("continue").click();
   await page.locator("[data-stack]").first().waitFor();
+  // Whoever continues may not be the side to act: the curtain is down.
+  await throughCurtain(page, "axis");
   expect(await save(page)).toBe(saved);
   await expect(page.locator('[data-where="tray-axis"] [data-unit]')).toHaveCount(35);
   await expectDomMatchesView(page);
@@ -100,6 +102,8 @@ test("a refused file is shown and the current game kept; a good one loads", asyn
   // The game-over fixture loads: the error goes, the clock is the file's.
   await loadText(page, "game", "game-over.json", readFileSync(here("fixtures/game-over.json"), "utf8"));
   await expect(page.getByTestId("to-act")).toHaveText("Game over");
+  // Nobody is to act in a finished game, so no curtain.
+  await expect(page.getByTestId("curtain")).toHaveCount(0);
   await expect(page.getByTestId("end-dialog")).toBeVisible();
   await expect(error).toHaveCount(0);
   await expect(page.getByTestId("log-entries").locator("li.event")).toHaveCount(0);
@@ -113,6 +117,7 @@ test("a save loads from the start screen, and a refused one is shown there", asy
   await expect(page.getByTestId("start")).toBeVisible();
   await loadText(page, "start", "combat-start.json", readFileSync(here("fixtures/combat-start.json"), "utf8"));
   await page.locator("[data-stack]").first().waitFor();
+  await throughCurtain(page, "axis");
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · G · movement and combat · Player A · gun positions");
   await expect(page.getByTestId("pending")).toContainText("Sealed gun positions · Axis");
   await expectDomMatchesView(page);

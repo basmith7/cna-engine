@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { assignOrder, barrageOrder, committed, fireRowFor, passConsequence, retreatOrderWords, roleRowFor } from "./sealed";
 import type { Committer, Firer, PieceId } from "./types";
 
-const gun: Firer = { piece: "u:gun", points: 6, forward: true, targets: ["u:krrc", "u:cldgds"] };
-const bn: Committer = { piece: "u:bn", points: 5, anti_armour: false, anti_armour_targets: [], close_assault_targets: ["C3922"], one_assault: false };
-const tanks: Committer = { piece: "u:tanks", points: 4, anti_armour: true, anti_armour_targets: ["C3922"], close_assault_targets: ["C3922", "C3921"], one_assault: true };
+const gun: Firer = { piece: "u:gun", points: 6, forward: true, targets: ["u:krrc", "u:cldgds"], ammo: 0, ammo_short: false };
+const bn: Committer = { piece: "u:bn", points: 5, anti_armour: false, anti_armour_targets: [], close_assault_targets: ["C3922"], one_assault: false, ammo: 0, ammo_short: false };
+const tanks: Committer = { piece: "u:tanks", points: 4, anti_armour: true, anti_armour_targets: ["C3922"], close_assault_targets: ["C3922", "C3921"], one_assault: true, ammo: 0, ammo_short: false };
 
 describe("the barrage panel", () => {
   it("starts a firer's row at its whole TOE and first target, and sends the rows as fires", () => {

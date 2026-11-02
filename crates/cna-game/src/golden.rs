@@ -15,8 +15,8 @@ mod tests {
     use crate::log::{Log, replay};
     use crate::order::{Allocation, Assignment, Fire, Order};
     use crate::piece::PieceId;
-    use crate::state::GameState;
     use crate::state::test_support::{auto_place, pass_stage};
+    use crate::state::{GameState, Modules};
     use cna_data::map::HexId;
     use cna_data::scenario::{Side, VictoryLevel};
     use sha2::{Digest, Sha256};
@@ -24,10 +24,18 @@ mod tests {
 
     /// SHA-256 of the final state's JSON (`GameState::to_json`).
     const FINAL_STATE_SHA256: &str =
-        "4f74be58169d973ad7e7b4de437975a9280faf0b8097859583c479dd0e4264e8";
+        "964c0f52e66791c168803a2c691d80492e455be622230ff04d10ad587731716e";
+
+    /// The same final state's hash with the abstract supply module on.
+    const M5_FINAL_STATE_SHA256: &str =
+        "825ebf2090117ae78d578a48dac08f9a91d606672cd3ca3dbba46b0f43e40728";
 
     fn fixture() -> PathBuf {
         cna_data::repo_root().join("tests/games/graziani-short.json")
+    }
+
+    fn m5_fixture() -> PathBuf {
+        cna_data::repo_root().join("tests/games/graziani-m5.json")
     }
 
     fn pid(s: &str) -> PieceId {
@@ -82,6 +90,14 @@ mod tests {
         events
     }
 
+    /// Phase C with the abstract supply module: both players pass.
+    fn organise(data: &Data, state: &mut GameState) {
+        while state.clock.phase == crate::clock::Phase::Organisation {
+            let side = state.to_act().unwrap();
+            state.apply(data, side, Order::Pass).unwrap();
+        }
+    }
+
     /// The script. GT1 OpStage 1: the 1st Libyan Division goes up the
     /// coast road from C4020 to Sollum (C4021), 4 RHA reacts out of
     /// Halfaya Pass (C3922) to C3923, the 2nd Libyan Division closes up to
@@ -91,8 +107,8 @@ mod tests {
     /// the 62nd Marmarica Division follows the road to C3920 and the
     /// artillery barrages the Coldstream Guards. Then both sides pass to
     /// the end of Game-Turn 6.
-    fn script(data: &Data) -> GameState {
-        let mut state = GameState::new(data, 7).unwrap();
+    fn script(data: &Data, modules: Modules) -> GameState {
+        let mut state = GameState::with_modules(data, 7, modules).unwrap();
         auto_place(data, &mut state);
         let div1 = stack(&state, "C4020");
         let div2 = stack(&state, "C3920");
@@ -109,22 +125,38 @@ mod tests {
             pieces,
             path: path.iter().map(|h| hex(h)).collect(),
             assault,
+            fuel_from: None,
         };
         // GT1 OpStage 1, Axis half.
         play(
             data,
             &mut state,
+            vec![(Axis, Order::DeclareInitiative { player_a: Axis })],
+        );
+        organise(data, &mut state);
+        // 4 RHA pulls back from the Libyans' advance; with the module on
+        // it has no fuel in range and cannot (R-120).
+        let reaction = if modules.abstract_supply {
+            vec![]
+        } else {
+            vec![(
+                Cw,
+                Order::React {
+                    pieces: vec![pid("unit:cw:4-rha")],
+                    path: vec![hex("C3923")],
+                },
+            )]
+        };
+        play(
+            data,
+            &mut state,
+            vec![(Axis, Order::Pass), (Axis, none(div1, &["C4021"], true))],
+        );
+        play(data, &mut state, reaction);
+        play(
+            data,
+            &mut state,
             vec![
-                (Axis, Order::DeclareInitiative { player_a: Axis }),
-                (Axis, Order::Pass),
-                (Axis, none(div1, &["C4021"], true)),
-                (
-                    Cw,
-                    Order::React {
-                        pieces: vec![pid("unit:cw:4-rha")],
-                        path: vec![hex("C3923")],
-                    },
-                ),
                 (Cw, Order::Pass),
                 (Axis, none(div2, &["C4020"], false)),
                 (Axis, Order::EndSegment),
@@ -167,19 +199,62 @@ mod tests {
                         target: hex("C3922"),
                     },
                 ),
-                (Axis, Order::Pass),
-                (Axis, Order::Pass),
             ],
         );
-        // GT1 OpStage 1, Commonwealth half.
+        if !modules.abstract_supply {
+            // The Libyans assault under their whole division (15.55) and
+            // push Halfaya's defenders back a hex; they stand and pay for
+            // it instead (15.82, R-012). With the module on they surrender.
+            play(data, &mut state, vec![(Cw, Order::Pass)]);
+        }
         play(
             data,
             &mut state,
+            vec![(Axis, Order::Pass), (Axis, Order::Pass)],
+        );
+        if modules.abstract_supply {
+            // Phase H: Halfaya's 12 infantry points are the Axis's
+            // prisoners at C4021; three guards take them west (28.13).
+            play(
+                data,
+                &mut state,
+                vec![
+                    // Three guards for the twelve (28.17, E-029).
+                    (
+                        Axis,
+                        Order::DetailGuards {
+                            piece: pid("unit:it:ix-libyan-bn"),
+                            points: 3,
+                        },
+                    ),
+                    (
+                        Axis,
+                        Order::MarchPrisoners {
+                            from: hex("C4021"),
+                            path: vec![hex("C4020"), hex("C4120")],
+                            points: 12,
+                        },
+                    ),
+                    (Axis, Order::Pass),
+                ],
+            );
+        }
+        // GT1 OpStage 1, Commonwealth half. With the supply module on 4 RHA
+        // (gun-class) owes fuel for the return and no supply unit is in
+        // range (32.22), so the module-on script leaves it at C3923.
+        // Likewise 7 Med's barrage owes 4 ammunition (32.21) and nothing
+        // is in range, so the module-on script plots no fire.
+        let shell = if modules.abstract_supply {
+            Order::Barrage { fires: vec![] }
+        } else {
+            fire("unit:cw:7-med", "unit:it:ix-libyan-bn")
+        };
+        // With the module on Halfaya Pass has surrendered (R-120), 7 Medium
+        // with it, so the Commonwealth has no guns to place.
+        let guns = if modules.abstract_supply {
+            vec![]
+        } else {
             vec![
-                (Cw, Order::Pass),
-                (Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)),
-                (Axis, Order::Pass),
-                (Cw, Order::EndSegment),
                 (
                     Cw,
                     Order::GunPositions {
@@ -187,33 +262,68 @@ mod tests {
                     },
                 ),
                 (Axis, Order::GunPositions { forward: vec![] }),
-                (Cw, fire("unit:cw:7-med", "unit:it:ix-libyan-bn")),
-                (Axis, Order::Barrage { fires: vec![] }),
-                (Axis, Order::Pass),
-                (
-                    Cw,
-                    Order::AssignForces {
-                        assignments: vec![],
-                    },
-                ),
-                (
-                    Axis,
-                    Order::AssignForces {
-                        assignments: vec![],
-                    },
-                ),
-                (Cw, Order::Pass),
-            ],
+            ]
+        };
+        let mut back = vec![(Cw, Order::Pass)];
+        if !modules.abstract_supply {
+            back.push((Cw, none(vec![pid("unit:cw:4-rha")], &["C3922"], false)));
+            back.push((Axis, Order::Pass));
+        }
+        play(
+            data,
+            &mut state,
+            [
+                back,
+                vec![(Cw, Order::EndSegment)],
+                guns,
+                vec![
+                    (Cw, shell),
+                    (Axis, Order::Barrage { fires: vec![] }),
+                    (Axis, Order::Pass),
+                    (
+                        Cw,
+                        Order::AssignForces {
+                            assignments: vec![],
+                        },
+                    ),
+                    (
+                        Axis,
+                        Order::AssignForces {
+                            assignments: vec![],
+                        },
+                    ),
+                    (Cw, Order::Pass),
+                ],
+            ]
+            .concat(),
         );
+        if modules.abstract_supply {
+            // Phase J: the supply at Mersa Matruh could ride the railway
+            // east (32.3x); it stays.
+            play(data, &mut state, vec![(Cw, Order::Pass)]);
+        }
         // GT1 OpStage 2, Axis half.
         play(
             data,
             &mut state,
+            vec![(Axis, Order::DeclareInitiative { player_a: Axis })],
+        );
+        organise(data, &mut state);
+        play(
+            data,
+            &mut state,
             vec![
-                (Axis, Order::DeclareInitiative { player_a: Axis }),
                 (Axis, Order::Pass),
                 (Axis, none(marmarica, &["C3919", "C3920"], false)),
                 (Axis, Order::EndSegment),
+            ],
+        );
+        // With the module on the Coldstream Guards surrendered at Halfaya
+        // in OpStage 1 and nothing else is in range: no gun positions, no fire.
+        let second = if modules.abstract_supply {
+            vec![(Axis, Order::Barrage { fires: vec![] })]
+        } else {
+            vec![
                 (
                     Axis,
                     Order::GunPositions {
@@ -223,8 +333,23 @@ mod tests {
                 (Cw, Order::GunPositions { forward: vec![] }),
                 (
                     Axis,
-                    fire("unit:it:1st-libyan-artillery-regt", "unit:cw:3-cldgds"),
+                    // 15.84: the regiment lost a forward gun point in the
+                    // stage 1 assault on Halfaya; it fires what is left.
+                    Order::Barrage {
+                        fires: vec![Fire {
+                            piece: pid("unit:it:1st-libyan-artillery-regt"),
+                            points: state.pieces[&pid("unit:it:1st-libyan-artillery-regt")].toe,
+                            target: pid("unit:cw:3-cldgds"),
+                        }],
+                    },
                 ),
+            ]
+        };
+        play(data, &mut state, second);
+        play(
+            data,
+            &mut state,
+            vec![
                 (Cw, Order::Barrage { fires: vec![] }),
                 (Cw, Order::Pass),
                 (
@@ -257,7 +382,7 @@ mod tests {
     #[ignore]
     fn regenerate_graziani_short_fixture() {
         let data = Data::load("grazianis-offensive").unwrap();
-        let state = script(&data);
+        let state = script(&data, Modules::default());
         let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
         std::fs::write(fixture(), json).unwrap();
         println!("orders: {}", state.log.len());
@@ -266,11 +391,63 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+    fn regenerate_graziani_m5_fixture() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = script(&data, Modules::ALL);
+        let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
+        std::fs::write(m5_fixture(), json).unwrap();
+        println!(
+            "M5_FINAL_STATE_SHA256 = {}",
+            sha256(&state.to_json().unwrap())
+        );
+    }
+
+    // The old orders with the module on (Mission 5), now with loads and
+    // motorisation in the state. 4 RHA has no fuel in range and cannot
+    // react; Halfaya Pass's defenders have no ammunition in range, so
+    // the hex surrenders to the assault (R-120) and the Commonwealth no
+    // longer holds it; neither side reaches a level either way.
+    #[test]
+    fn the_golden_game_with_abstract_supply_replays_to_its_pinned_end() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let text = std::fs::read_to_string(m5_fixture()).unwrap();
+        let log: Log = serde_json::from_str(&text).unwrap();
+        assert!(log.modules.abstract_supply);
+        let live = script(&data, Modules::ALL);
+        assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
+        let replayed = replay(&data, &log).unwrap();
+        let json = replayed.to_json().unwrap();
+        assert_eq!(json, live.to_json().unwrap());
+        assert_eq!(sha256(&json), M5_FINAL_STATE_SHA256);
+        for unit in ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:7-med"] {
+            assert_eq!(replayed.pieces[&pid(unit)].hex(), None, "{unit}");
+        }
+        // Their infantry are the Axis's prisoners, marched west under
+        // three guards, who keep them from escaping (28.1x, 28.2x).
+        assert_eq!(replayed.prisoners[&Side::Axis][&hex("C4120")], 12);
+        assert_eq!(replayed.guards[&Side::Axis][&hex("C4120")], 3);
+        assert!(replayed.escapees.is_empty() && replayed.escaped.is_empty());
+        let report = replayed.over.as_ref().unwrap();
+        assert_eq!((report.axis, report.cw), (None, None));
+        let halfaya = report
+            .checked
+            .iter()
+            .find(|c| c.side == Side::Cw && c.objective == "C3922")
+            .unwrap();
+        assert!(!halfaya.met);
+        let old = script(&data, Modules::default());
+        assert_ne!(replayed.over, old.over);
+        assert!(replayed.pieces.values().any(|p| p.load.is_some()));
+        assert!(!replayed.motorisation.is_empty());
+    }
+
+    #[test]
     fn the_golden_game_replays_to_its_pinned_end() {
         let data = Data::load("grazianis-offensive").unwrap();
         let text = std::fs::read_to_string(fixture()).unwrap();
         let log: Log = serde_json::from_str(&text).unwrap();
-        let live = script(&data);
+        let live = script(&data, Modules::default());
         assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
         let replayed = replay(&data, &log).unwrap();
         let json = replayed.to_json().unwrap();

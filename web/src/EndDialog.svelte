@@ -28,6 +28,23 @@
       <div class="level side-axis" data-level="axis"><span class="who">Axis</span><span class="what">{level(report.axis)}</span></div>
       <div class="level side-cw" data-level="cw"><span class="who">Commonwealth</span><span class="what">{level(report.cw)}</span></div>
     </div>
+    {#if report.points}
+      <p class="clock" data-testid="points">Points: Axis {report.points.axis}, Commonwealth {report.points.cw}.</p>
+      <table data-testid="scored">
+        <thead>
+          <tr><th>Objective</th><th>Held by</th><th>Points</th></tr>
+        </thead>
+        <tbody>
+          {#each report.scored ?? [] as s, i (i)}
+            <tr>
+              <td>{s.objective}</td>
+              <td>{s.holder ? sideName(s.holder) : "–"}</td>
+              <td>{s.points}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
     {#if report.checked.length > 0}
       <table data-testid="conditions">
         <thead>

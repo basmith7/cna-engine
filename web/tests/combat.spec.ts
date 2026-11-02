@@ -8,7 +8,7 @@ import { clickHex, expectDomMatchesView, here, openFixture, shoot as shootInto, 
 const shots = shotsDir("slice-5");
 const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
-/** `cna-play replay` of golden orders 0–76, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
+/** `cna-play replay` of golden orders 0–78, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current`). */
 const combatDone = readFileSync(here("fixtures/combat-done.sha256"), "utf8").trim();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -30,14 +30,14 @@ async function expectNoAxisAnswer(page: Page, step: "gun-positions" | "barrage" 
   if (step === "gun-positions") await expect(page.locator(".marker.forward")).toHaveCount(0);
 }
 
-test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, assignments, the assault on Halfaya, the passes", async ({ page }) => {
+test("golden orders 65–78 by clicks: gun positions, the barrage on 1 KRRC, assignments, the assault on Halfaya, guards and the prisoners' march, the passes", async ({ page }) => {
   test.setTimeout(180_000);
   await openFixture(page, "combat-start");
   await expect(page.getByTestId("clock")).toHaveText("Game-Turn 1 · OpStage 1 · G · movement and combat · Player A · gun positions");
   await expect(page.getByTestId("to-act")).toHaveText("Axis to act");
   await expect(page.getByTestId("phase-controls")).toHaveCount(0);
 
-  // 66: the Axis stands its Libyan artillery forward; the panel offers
+  // 65: the Axis stands its Libyan artillery forward; the panel offers
   // only gun-class units, the ones next to the enemy first.
   await expect(pending(page)).toHaveAttribute("data-kind", "sealed");
   await expect(pending(page)).toContainText("Sealed gun positions · Axis");
@@ -53,7 +53,7 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await throughCurtain(page, "cw");
   await expectNoAxisAnswer(page, "gun-positions");
 
-  // 67: the Commonwealth stands nobody forward; both positions are revealed.
+  // 66: the Commonwealth stands nobody forward; both positions are revealed.
   await expect(pending(page)).toContainText("Sealed gun positions · Commonwealth");
   await sealed(page).locator('[data-order="gun-positions"]').click();
   await expect(log(page).filter({ hasText: "Axis guns forward: 1st Libyan Artillery Regt." })).toHaveCount(1);
@@ -62,7 +62,7 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await clickHex(page, "C4021");
   await expect(page.getByTestId("stack-panel").locator(`[data-unit="${AXIS_GUN}"] .marker.forward`)).toHaveCount(1);
 
-  // 68: the Axis barrage: 6 points from the artillery at 1 KRRC. The
+  // 67: the Axis barrage: 6 points from the artillery at 1 KRRC. The
   // proving screenshot, mid-entry.
   await expect(pending(page)).toContainText("Sealed barrage · Axis");
   await sealed(page).locator(`[data-add-fire="${AXIS_GUN}"]`).click();
@@ -88,17 +88,17 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await expect(pending(page)).toContainText("Sealed barrage · Commonwealth");
   await shoot(page, "sealed-other-side.png");
 
-  // 69: the Commonwealth fires nothing; the barrage is revealed and rolled.
+  // 68: the Commonwealth fires nothing; the barrage is revealed and rolled.
   await sealed(page).locator('[data-order="barrage"]').click();
   await expect(log(page).filter({ hasText: "Axis barrage plotted: 1st Libyan Artillery Regt 6 at 1st KRRC." })).toHaveCount(1);
   await expect(log(page).filter({ hasText: /^Axis barrage on 1st KRRC by 1st Libyan Artillery Regt: \d+ points/ })).toHaveCount(1);
-  // 70: retreat before assault is the Commonwealth's; it passes.
+  // 69: retreat before assault is the Commonwealth's; it passes.
   await expect(page.getByTestId("curtain")).toHaveCount(0);
   await expect(pending(page)).toHaveAttribute("data-kind", "retreat-before-assault");
   await pending(page).locator('[data-order="pass"]').click();
   await throughCurtain(page, "axis");
 
-  // 71: the Axis assigns four Libyan battalions, 5 points each, to
+  // 70: the Axis assigns four Libyan battalions, 5 points each, to
   // assault Halfaya (C3922); the phasing side names the hex.
   await expect(pending(page)).toContainText("Sealed force assignment · Axis");
   for (const bn of ["viii", "ix", "x", "xi"]) {
@@ -114,7 +114,7 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await throughCurtain(page, "cw");
   await expectNoAxisAnswer(page, "assign-forces");
 
-  // 72: the Commonwealth commits 1 KRRC and 3 Coldstream Guards in full
+  // 71: the Commonwealth commits 1 KRRC and 3 Coldstream Guards in full
   // to the defence; no hex is named. Revealed, anti-armour resolves,
   // and the close assault step waits on the Axis.
   await expect(pending(page)).toContainText("Sealed force assignment · Commonwealth");
@@ -129,49 +129,111 @@ test("golden orders 66–76 by clicks: gun positions, the barrage on 1 KRRC, ass
   await expect(log(page).filter({ hasText: "Commonwealth forces assigned: 1st KRRC: 6 assault; 3rd Coldstream Guards: 6 assault." })).toHaveCount(1);
   await throughCurtain(page, "axis");
 
-  // 73: the assault itself: Halfaya is outlined, a click resolves it, the
-  // result and its losses are in the log. Pass is refused while it waits.
+  // 72: the assault itself: Halfaya is outlined, a click resolves it, and
+  // the log shows its losses. Pass is refused while it waits. Its
+  // defenders have no ammunition in range, so the hex surrenders (R-120).
   await expect(page.getByTestId("assault-panel")).toContainText("Close assault · 1 to resolve");
   await expect(page.locator('polygon.mark[data-hex="C3922"]')).toBeAttached();
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("toast")).toContainText("Illegal (15.2x)");
   await page.getByTestId("toast").getByLabel("Dismiss").click();
   await clickHex(page, "C3922");
-  await expect(log(page).filter({ hasText: /^Assault on C3922 by .*: \d+ v \d+ raw/ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^1st KRRC has no ammunition in range and does not defend\./ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^1st KRRC, 3rd Coldstream Guards, 4th Ryl Horse Arty, 7th Medium Artillery Regt surrender\./ })).toHaveCount(1);
   await expect(log(page).filter({ hasText: /loses \d+ points, TOE now \d+\./ }).first()).toBeAttached();
   await expect(page.getByTestId("assault-panel")).toHaveCount(0);
   await expect(page.locator("polygon.mark")).toHaveCount(0);
   await expectDomMatchesView(page);
 
-  // 74–76: the step and the Axis half end; the Commonwealth passes its
-  // reserve designation. The state is `replay`'s.
+  // 73–74: the step and the Axis movement and combat phase end. The
+  // surrendered infantry are the Axis's 12 prisoner points, standing
+  // with the assaulting stack at C4021 (28.1x).
   const controls = page.getByTestId("phase-controls");
   await controls.locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).toContainText("Player A · reserve release");
   await controls.locator('[data-order="pass"]').click();
+  await expect(page.getByTestId("clock")).toContainText("H · truck convoy · Player A");
+  await clickHex(page, "C4021");
+  await expect(page.getByTestId("prisoners")).toHaveText("12 prisoner points held by the Axis");
+
+  // 75: phase H opens for them. Twelve on the march need three guards
+  // (28.17, E-029): the IX Libyan battalion details them.
+  const guards = page.getByTestId("guard-controls");
+  await guards.getByLabel("Unit for guards").selectOption("unit:it:ix-libyan-bn");
+  await guards.getByLabel("Guard points").fill("3");
+  await guards.locator('[data-order="detail-guards"]').click();
+  await expect(log(page).filter({ hasText: "details 3 guard points in C4021." })).toHaveCount(1);
+  await expect(page.getByTestId("guards")).toHaveText("3 guard points of the Axis");
+
+  // 76: the Axis marches all 12 west by clicks (28.13), the guards with
+  // them, and the hex they reach is done for the phase.
+  const march = page.getByTestId("march-panel");
+  await expect(march).toContainText("C4021");
+  await march.getByTestId("march-arm").click();
+  await clickHex(page, "C4020");
+  await clickHex(page, "C4120");
+  await expect(march).toContainText("Marching 12 from C4021: C4020 → C4120");
+  await march.getByTestId("march-send").click();
+  await expect(log(page).filter({ hasText: "Axis marches 12 prisoner points C4021 → C4120 (2 CP)." })).toHaveCount(1);
+  await expect(march).toHaveCount(0);
+
+  await clickHex(page, "C4120");
+  await expect(page.getByTestId("guards")).toHaveText("3 guard points of the Axis");
+
+  // 77–78: the Axis passes phase H, and nobody escapes; the Commonwealth
+  // passes its reserve designation. The state is `replay`'s.
+  await controls.locator('[data-order="pass"]').click();
   await throughCurtain(page, "cw");
+  await expect(log(page).filter({ hasText: "escape" })).toHaveCount(0);
   await expect(page.getByTestId("clock")).toContainText("F · reserve designation · Player B");
   await controls.locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).toContainText("Player B · movement");
   expect(sha256(await page.evaluate(() => window.__cna.save()))).toBe(combatDone);
 });
 
-test("a retreat before assault goes along a reachable path from the panel", async ({ page }) => {
+test("a retreat before assault goes along a reachable path from the panel, and is refused without fuel", async ({ page }) => {
   await openFixture(page, "retreat-before-assault");
   await expect(pending(page)).toHaveAttribute("data-kind", "retreat-before-assault");
   await expect(pending(page)).toContainText("Retreat before assault · Commonwealth");
   await expect(page.getByTestId("phase-controls")).toHaveCount(0);
-  // 4 RHA at C3923, alone: the overlay shows where it may pull back to.
-  await clickHex(page, "C3923");
+  // Halfaya's stack: 4 RHA alone ticked, the overlay shows where it might
+  // pull back to, but it owes fuel nothing in range can pay (32.22, R-120).
+  await clickHex(page, "C3922");
+  const stack = page.getByTestId("stack-panel");
+  const only = async (keep: string) => {
+    for (const id of ["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:4-rha", "unit:cw:7-med"]) {
+      const tick = stack.locator(`[data-unit="${id}"] input.tick`);
+      if (id === keep) await tick.check();
+      else await tick.uncheck();
+    }
+  };
+  await only("unit:cw:4-rha");
+  await expect(page.getByTestId("retreat-count")).toContainText(/^\d+ hexes to retreat to for the 1 ticked\./);
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "retreat-before-assault");
   await expect(page.getByTestId("move-panel")).toContainText("Retreat before assault");
   await expect(page.getByTestId("assault")).toHaveCount(0);
   const reaches = page.locator("polygon.reach");
   expect(await reaches.count()).toBeGreaterThan(0);
+  // A shaded, empty hex next to Halfaya, on screen.
+  const near = () =>
+    page.evaluate(() =>
+      ["C3822", "C3823", "C3821", "C3921", "C3923", "C4022"].find((h) => document.querySelector(`polygon.reach[data-hex="${h}"]`) && !document.querySelector(`[data-stack="${h}"]`)),
+    );
+  const before = await page.evaluate(() => window.__cna.save());
+  const back = (await near())!;
+  expect(back).toBeTruthy();
+  await page.locator(`polygon.hex[data-hex="${back}"]`).click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.22)");
+  expect(await page.evaluate(() => window.__cna.save())).toBe(before);
+  await page.getByTestId("toast").getByLabel("Dismiss").click();
+  // 3 Coldstream Guards march on foot and owe nothing: they go.
+  await clickHex(page, "C3922");
+  await only("unit:cw:3-cldgds");
   await expect(page.getByTestId("retreat-count")).toContainText(/^\d+ hexes to retreat to for the 1 ticked\./);
-  const to = (await reaches.first().getAttribute("data-hex"))!;
+  const to = (await near())!;
+  expect(to).toBeTruthy();
   await page.locator(`polygon.hex[data-hex="${to}"]`).click();
-  await expect(log(page).filter({ hasText: `4th Ryl Horse Arty retreat before assault to ${to}.` })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: `3rd Coldstream Guards retreat before assault to ${to}.` })).toHaveCount(1);
   await expect(page.getByTestId("curtain")).toHaveCount(0);
   await expect(pending(page)).toHaveAttribute("data-kind", "retreat-before-assault");
   await expectDomMatchesView(page);
@@ -179,13 +241,13 @@ test("a retreat before assault goes along a reachable path from the panel", asyn
   await expect(pending(page)).toContainText("Sealed force assignment · Axis");
 });
 
-test("a forced retreat shows the order, says what standing costs as the engine then charges it, and takes a reachable hex", async ({ page }) => {
+test("a forced retreat shows the order, says what standing costs as the engine then charges it, and shades nothing without fuel", async ({ page }) => {
   await openFixture(page, "forced-retreat");
   await expect(pending(page)).toHaveAttribute("data-kind", "forced-retreat");
   await expect(page.getByTestId("retreat-order")).toHaveText("Commonwealth must retreat 3 hexes from C4021 for committing nothing.");
-  await expect(pending(page).locator("li[data-unit]")).toHaveCount(3);
+  await expect(pending(page).locator("li[data-unit]")).toHaveCount(4);
   // The ordered stack is ticked by itself, the map has come to it and the overlay is up.
-  await expect(page.getByTestId("stack-panel").locator("input.tick:checked")).toHaveCount(3);
+  await expect(page.getByTestId("stack-panel").locator("input.tick:checked")).toHaveCount(4);
   await expect(page.getByTestId("hex")).toHaveText("hex C3922");
   await expect(page.locator('[data-stack="C3922"]')).toBeInViewport();
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
@@ -215,19 +277,11 @@ test("a forced retreat shows the order, says what standing costs as the engine t
   await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
   await expectDomMatchesView(page);
 
-  // Or the retreat is made: an empty hex the full distance away (a hex
-  // of one's own would be selected, not retreated to).
+  // The retreat itself cannot be made: 4 RHA and 7 Medium owe fuel that
+  // nothing in range can pay, so no hex is shaded (R-120).
   await openFixture(page, "forced-retreat");
   await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "forced-retreat");
-  const to = await page.evaluate(() =>
-    [...document.querySelectorAll('polygon.reach[data-short="0"]')].map((p) => p.getAttribute("data-hex")!).find((h) => !document.querySelector(`[data-stack="${h}"]`)),
-  );
-  expect(to).toBeTruthy();
-  await clickHex(page, to!);
-  await expect(log(page).filter({ hasText: `→ ${to} for` })).toHaveCount(1);
-  expect(await page.evaluate(() => window.__cna.view().pieces["unit:cw:1-krrc"].location)).toEqual({ hex: to });
-  await expect(page.locator('[data-testid="pending"][data-kind="forced-retreat"]')).toHaveCount(0);
-  await expectDomMatchesView(page);
+  await expect(page.locator("polygon.reach")).toHaveCount(0);
 });
 
 test("the forced retreat panel reads whole at a phone width", async ({ page }) => {

@@ -6,10 +6,11 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::order::LoggedOrder;
-use crate::piece::PieceId;
-use crate::state::{GameState, Pending};
+use crate::piece::{Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+use crate::state::{GameState, Modules, Pending};
 use anyhow::{Context, Result, bail};
 use cna_data::map::HexId;
+use cna_data::scenario::{Locator, OffMapBox, Side};
 use cna_rules::ruleset::Ruleset;
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,8 @@ pub struct Log {
     pub scenario: String,
     pub rules_commit: String,
     pub ruleset: Ruleset,
+    #[serde(default, skip_serializing_if = "Modules::is_default")]
+    pub modules: Modules,
     pub seed: u64,
     pub orders: Vec<LoggedOrder>,
 }
@@ -29,6 +32,7 @@ impl GameState {
             scenario: self.scenario.clone(),
             rules_commit: self.rules_commit.clone(),
             ruleset: self.ruleset,
+            modules: self.modules,
             seed: self.rng.seed(),
             orders: self.log.clone(),
         }
@@ -43,7 +47,10 @@ impl GameState {
     /// invariant `apply` relies on (`check_invariants`): a hostile or
     /// hand-edited save is an error, never a panic.
     pub fn from_json(json: &str, data: &Data) -> Result<GameState> {
-        let state: GameState = serde_json::from_str(json).context("parsing the state")?;
+        let mut state: GameState = serde_json::from_str(json).context("parsing the state")?;
+        if !state.attachment_tracked {
+            state.attach_where_stacked(None);
+        }
         state.check(data)?;
         state.check_invariants(data)?;
         Ok(state)
@@ -52,8 +59,10 @@ impl GameState {
     /// What serde cannot check: the clock's shape (an OpStage of 1–3,
     /// `half` exactly in phases F–L, `segment` exactly in phase G) and
     /// a pending that names someone (a sealed step with nobody waiting
-    /// panicked in `Pending::side`) and only pieces and hexes that
-    /// exist.
+    /// panicked in `Pending::side`), and every piece and hex the state
+    /// names (locations, the per-piece and per-hex sets, the combat
+    /// record, the pending) existing, with reaction and retreat pieces
+    /// of the side asked.
     pub fn check_invariants(&self, data: &Data) -> Result<()> {
         let c = &self.clock;
         if !(1..=3).contains(&c.stage) {
@@ -73,35 +82,134 @@ impl GameState {
                 c.phase.letter()
             );
         }
-        let piece = |id: &PieceId| -> Result<()> {
-            if self.pieces.contains_key(id) {
-                Ok(())
-            } else {
-                bail!("the pending names a piece that does not exist: {id}")
+        let ids = Ids { state: self, data };
+        for (key, p) in &self.pieces {
+            if *key != p.id {
+                bail!("the piece filed under {key} says it is {}", p.id);
             }
-        };
-        let hex = |h: &HexId| -> Result<()> {
-            if data.map.hex(h).is_some() {
-                Ok(())
-            } else {
-                bail!("the pending names a hex that is not on the map: {h}")
+            match &p.location {
+                Location::Hex(h) => ids.hex("a piece's location", h)?,
+                Location::Transit { from, to, done } => {
+                    if from == to || *done == 0 || *done == u8::MAX {
+                        bail!(
+                            "the transit of {key} is from {from} to {to}, {done} done: not a journey"
+                        );
+                    }
+                }
+                Location::Pending(p) => {
+                    for l in &p.locators {
+                        match l {
+                            Locator::Hexes(hs) => hs
+                                .iter()
+                                .try_for_each(|h| ids.hex("a pending placement", h))?,
+                            Locator::WestOf(h) => ids.hex("a pending placement", h)?,
+                            _ => {}
+                        }
+                    }
+                }
+                Location::Box(_) | Location::Eliminated => {}
             }
-        };
+            if let Some(h) = &p.garrison_of {
+                ids.hex("a garrison", h)?;
+            }
+            if let Some(parent) = &p.attached_to {
+                ids.piece("an attachment", &PieceId::from(parent))?;
+            }
+            // 32.1x: only real supply units carry loads, and only with
+            // the module on.
+            match (
+                &p.load,
+                self.modules.abstract_supply && p.kind == PieceKind::SupplyUnit,
+            ) {
+                (Some(l), true) if l.ammo > MAX_AMMO || l.fuel > MAX_FUEL => bail!(
+                    "{key}: a load of {} ammunition and {} fuel is over {MAX_AMMO}/{MAX_FUEL}",
+                    l.ammo,
+                    l.fuel
+                ),
+                (Some(_), true) | (None, false) => {}
+                (Some(_), false) => bail!("{key} has a load but is not a supply unit with one"),
+                (None, true) => bail!("the supply unit {key} has no load"),
+            }
+        }
+        for (unit, parent) in &self.split {
+            ids.pieces("a detachment this segment", [unit, parent])?;
+        }
+        // 32.5x: points stand in a hex or a box, with the module on.
+        if !self.modules.abstract_supply
+            && !(self.motorisation.is_empty() && self.pending_motorisation.is_empty())
+        {
+            bail!("motorisation points exist without the abstract supply module");
+        }
+        for key in self.motorisation.values().flat_map(|m| m.keys()) {
+            let box_name = serde_json::from_value::<OffMapBox>(key.as_str().into()).is_ok();
+            if !box_name {
+                ids.hex("the motorisation", &HexId::parse(key)?)?;
+            }
+        }
+        for id in self.pending_motorisation.keys() {
+            ids.piece("the pending motorisation", id)?;
+            if !self.pieces[id].is_pending() {
+                bail!("the pending motorisation names {id}, which is not waiting to be placed");
+            }
+        }
+        ids.pieces("moved", &self.moved)?;
+        ids.pieces("continuing", &self.continuing)?;
+        ids.pieces("shifted", &self.shifted)?;
+        self.zoc.keys().try_for_each(|h| ids.hex("the zoc", h))?;
+        let c = &self.combat;
+        ids.pieces("forward", &c.forward)?;
+        ids.pieces("probing", &c.probing)?;
+        ids.pieces("pinned", &c.pinned)?;
+        ids.pieces("retreated", &c.retreated)?;
+        ids.pieces("barrage_involved", &c.barrage_involved)?;
+        c.charged
+            .keys()
+            .try_for_each(|id| ids.piece("charged", id))?;
+        c.barraged.keys().try_for_each(|h| ids.hex("barraged", h))?;
+        c.assaults.keys().try_for_each(|h| ids.hex("assaults", h))?;
+        for fire in c.plots.values().flatten() {
+            ids.piece("a barrage plot", &fire.piece)?;
+            ids.piece("a barrage plot", &fire.target)?;
+        }
+        for a in c.assignments.values().flatten() {
+            ids.piece("an assignment", &a.piece)?;
+            for al in a.anti_armour.iter().chain(&a.close_assault) {
+                if let Some(h) = &al.target {
+                    ids.hex("an assignment", h)?;
+                }
+            }
+        }
         match &self.pending {
             None | Some(Pending::SetUp { .. }) | Some(Pending::RetreatBeforeAssault { .. }) => {}
             Some(Pending::Sealed { waiting, .. }) => {
                 if waiting.is_empty() {
                     bail!("a sealed step is pending with nobody waiting to answer it");
                 }
-                if waiting.len() > 1 && waiting[0] == waiting[1] {
-                    bail!("a sealed step names {} twice", waiting[0]);
+                if let Some(s) = waiting
+                    .iter()
+                    .enumerate()
+                    .find_map(|(i, s)| waiting[..i].contains(s).then_some(s))
+                {
+                    bail!("a sealed step names {s} twice");
                 }
             }
-            Some(Pending::DeclareZoc { hexes, .. }) => hexes.iter().try_for_each(hex)?,
-            Some(Pending::Reaction { eligible, .. }) => eligible.iter().try_for_each(piece)?,
-            Some(Pending::ForcedRetreat { pieces, from, .. }) => {
-                pieces.iter().try_for_each(piece)?;
-                from.iter().try_for_each(hex)?;
+            Some(Pending::DeclareZoc { hexes, .. }) => {
+                hexes.iter().try_for_each(|h| ids.hex("the pending", h))?
+            }
+            Some(Pending::Reaction { side, eligible }) => {
+                for id in eligible {
+                    ids.piece("the pending", id)?;
+                    ids.of_side("the reaction", id, *side)?;
+                }
+            }
+            Some(Pending::ForcedRetreat {
+                side, pieces, from, ..
+            }) => {
+                for id in pieces {
+                    ids.piece("the pending", id)?;
+                    ids.of_side("the forced retreat", id, *side)?;
+                }
+                from.iter().try_for_each(|h| ids.hex("the pending", h))?;
             }
         }
         Ok(())
@@ -111,6 +219,43 @@ impl GameState {
     /// `vendor/cna` commit.
     pub fn check(&self, data: &Data) -> Result<()> {
         check(&self.scenario, &self.rules_commit, data)
+    }
+}
+
+/// What a state's ids may refer to: its pieces and the map's hexes.
+struct Ids<'a> {
+    state: &'a GameState,
+    data: &'a Data,
+}
+
+impl Ids<'_> {
+    fn piece(&self, what: &str, id: &PieceId) -> Result<()> {
+        if self.state.pieces.contains_key(id) {
+            Ok(())
+        } else {
+            bail!("{what} names a piece that does not exist: {id}")
+        }
+    }
+
+    fn pieces<'p>(&self, what: &str, ids: impl IntoIterator<Item = &'p PieceId>) -> Result<()> {
+        ids.into_iter().try_for_each(|id| self.piece(what, id))
+    }
+
+    fn hex(&self, what: &str, h: &HexId) -> Result<()> {
+        if self.data.map.hex(h).is_some() {
+            Ok(())
+        } else {
+            bail!("{what} names a hex that is not on the map: {h}")
+        }
+    }
+
+    /// `id` is a piece of `side` (it exists: checked first).
+    fn of_side(&self, what: &str, id: &PieceId, side: Side) -> Result<()> {
+        if self.state.pieces[id].side == side {
+            Ok(())
+        } else {
+            bail!("{what} of {side} names a piece of the other side: {id}")
+        }
     }
 }
 
@@ -130,7 +275,7 @@ fn check(scenario: &str, commit: &str, data: &Data) -> Result<()> {
 /// Rebuilds the state a log describes by applying its orders afresh.
 pub fn replay(data: &Data, log: &Log) -> Result<GameState> {
     check(&log.scenario, &log.rules_commit, data)?;
-    let mut state = GameState::new(data, log.seed)?;
+    let mut state = GameState::with_modules(data, log.seed, log.modules)?;
     state.ruleset = log.ruleset;
     for (i, o) in log.orders.iter().enumerate() {
         state
@@ -233,6 +378,72 @@ mod tests {
         state.to_json().unwrap()
     }
 
+    // 32.1x: a real supply unit's load is within 40 ammunition and 60
+    // fuel, a dummy (or any other piece) has none, and a game without the
+    // module has no loads at all.
+    #[test]
+    fn a_supply_unit_with_a_hostile_load_is_refused() {
+        use crate::piece::Load;
+        let data = graziani();
+        let on = |edit: &dyn Fn(&mut GameState)| {
+            let mut s = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+            test_support::auto_place(&data, &mut s);
+            edit(&mut s);
+            s.to_json().unwrap()
+        };
+        let real = PieceId::supply(Side::Axis, 1);
+        let dummy = PieceId::dummy_supply(Side::Axis, 1);
+        assert!(GameState::from_json(&on(&|_| {}), &data).is_ok());
+        let cases = [
+            ("ammo", &real, Some(Load { ammo: 41, fuel: 0 })),
+            ("fuel", &real, Some(Load { ammo: 0, fuel: 61 })),
+            ("no load", &real, None),
+            ("dummy", &dummy, Some(Load { ammo: 1, fuel: 1 })),
+        ];
+        for (what, id, load) in cases {
+            let json = on(&|s| s.pieces.get_mut(id).unwrap().load = load);
+            let err = GameState::from_json(&json, &data).unwrap_err().to_string();
+            assert!(err.contains("load"), "{what}: {err}");
+        }
+        // Module off: a load is out of place.
+        let mut s = GameState::new(&data, 1).unwrap();
+        s.pieces.get_mut(&real).unwrap().load = Some(Load { ammo: 1, fuel: 1 });
+        let err = GameState::from_json(&s.to_json().unwrap(), &data).unwrap_err();
+        assert!(err.to_string().contains("load"), "{err}");
+    }
+
+    // 32.5x: motorisation points stand somewhere real, with the module on.
+    #[test]
+    fn hostile_motorisation_is_refused() {
+        let data = graziani();
+        let edit = |f: &dyn Fn(&mut GameState), modules| {
+            let mut s = GameState::with_modules(&data, 1, modules).unwrap();
+            f(&mut s);
+            s.to_json().unwrap()
+        };
+        let axis = |s: &mut GameState, key: &str| {
+            s.motorisation
+                .entry(Side::Axis)
+                .or_default()
+                .insert(key.into(), 1);
+        };
+        assert!(GameState::from_json(&edit(&|s| axis(s, "tripoli"), Modules::ALL), &data).is_ok());
+        for key in ["Z9999", "mars"] {
+            let json = edit(&|s| axis(s, key), Modules::ALL);
+            assert!(GameState::from_json(&json, &data).is_err(), "{key}");
+        }
+        let json = edit(&|s| axis(s, "tripoli"), Modules::default());
+        assert!(GameState::from_json(&json, &data).is_err());
+        let json = edit(
+            &|s| {
+                s.pending_motorisation
+                    .insert(PieceId::supply(Side::Cw, 1), 1);
+            },
+            Modules::ALL,
+        );
+        assert!(GameState::from_json(&json, &data).is_err());
+    }
+
     #[test]
     fn a_sealed_pending_with_nobody_waiting_is_refused_not_a_panic() {
         let data = graziani();
@@ -318,6 +529,208 @@ mod tests {
         });
         let err = GameState::from_json(&json, &data).unwrap_err().to_string();
         assert!(err.contains("C9999"), "{err}");
+    }
+
+    /// A real save (the placed set-up) with one field corrupted by `edit`
+    /// on its JSON; what `from_json` says, which must be an error.
+    fn corrupted(edit: impl FnOnce(&mut serde_json::Value)) -> String {
+        let data = graziani();
+        let json = malformed(&data, |_| {});
+        let mut v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        edit(&mut v);
+        GameState::from_json(&v.to_string(), &data)
+            .expect_err("a corrupted save must be refused")
+            .to_string()
+    }
+
+    fn first_piece(v: &serde_json::Value) -> String {
+        v["pieces"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .next()
+            .unwrap()
+            .clone()
+    }
+
+    const GHOST: &str = "unit:cw:nobody";
+    const NOWHERE: &str = "C9999";
+
+    #[test]
+    fn a_piece_on_a_hex_off_the_map_is_refused() {
+        let err = corrupted(|v| {
+            let id = first_piece(v);
+            v["pieces"][&id]["location"] = serde_json::json!({ "hex": NOWHERE });
+        });
+        assert!(err.contains(NOWHERE) && err.contains("location"), "{err}");
+    }
+
+    #[test]
+    fn a_transit_that_goes_nowhere_or_has_not_started_is_refused() {
+        for (from, to, done) in [("tunis", "tunis", 1), ("tunis", "gabes", 0)] {
+            let err = corrupted(|v| {
+                let id = first_piece(v);
+                v["pieces"][&id]["location"] =
+                    serde_json::json!({ "transit": { "from": from, "to": to, "done": done } });
+            });
+            assert!(err.contains("transit"), "{err}");
+        }
+    }
+
+    #[test]
+    fn a_piece_filed_under_another_pieces_id_is_refused() {
+        let err = corrupted(|v| {
+            let id = first_piece(v);
+            let piece = v["pieces"][&id].clone();
+            v["pieces"]
+                .as_object_mut()
+                .unwrap()
+                .insert(GHOST.into(), piece);
+        });
+        assert!(err.contains(GHOST), "{err}");
+    }
+
+    #[test]
+    fn a_garrison_of_a_hex_off_the_map_is_refused() {
+        let err = corrupted(|v| {
+            let id = first_piece(v);
+            v["pieces"][&id]["garrison_of"] = NOWHERE.into();
+        });
+        assert!(err.contains(NOWHERE), "{err}");
+    }
+
+    #[test]
+    fn a_piece_set_naming_a_ghost_is_refused() {
+        for field in ["moved", "continuing", "shifted"] {
+            let err = corrupted(|v| v[field] = serde_json::json!([GHOST]));
+            assert!(err.contains(GHOST) && err.contains(field), "{field}: {err}");
+        }
+        for field in [
+            "forward",
+            "probing",
+            "pinned",
+            "retreated",
+            "barrage_involved",
+        ] {
+            let err = corrupted(|v| v["combat"][field] = serde_json::json!([GHOST]));
+            assert!(err.contains(GHOST) && err.contains(field), "{field}: {err}");
+        }
+    }
+
+    #[test]
+    fn a_charged_map_naming_a_ghost_is_refused() {
+        let err = corrupted(|v| v["combat"]["charged"] = serde_json::json!({ GHOST: 4 }));
+        assert!(err.contains(GHOST) && err.contains("charged"), "{err}");
+    }
+
+    #[test]
+    fn a_hex_map_naming_a_hex_off_the_map_is_refused() {
+        let err = corrupted(|v| v["zoc"] = serde_json::json!({ NOWHERE: true }));
+        assert!(err.contains(NOWHERE) && err.contains("zoc"), "{err}");
+        let err = corrupted(|v| v["combat"]["barraged"] = serde_json::json!({ NOWHERE: 3 }));
+        assert!(err.contains(NOWHERE) && err.contains("barraged"), "{err}");
+        let record = serde_json::json!({ "probe": false, "basic": 0, "column": "1:1" });
+        let err = corrupted(|v| v["combat"]["assaults"] = serde_json::json!({ NOWHERE: record }));
+        assert!(err.contains(NOWHERE) && err.contains("assaults"), "{err}");
+    }
+
+    #[test]
+    fn a_barrage_plot_naming_a_ghost_firer_or_target_is_refused() {
+        for (firer, target) in [(GHOST.to_string(), None), (String::new(), Some(GHOST))] {
+            let err = corrupted(|v| {
+                let id = first_piece(v);
+                let fire = serde_json::json!({
+                    "piece": if firer.is_empty() { id.clone() } else { firer.clone() },
+                    "points": 1,
+                    "target": target.unwrap_or(&id),
+                });
+                v["combat"]["plots"] = serde_json::json!({ "axis": [fire] });
+            });
+            assert!(err.contains(GHOST) && err.contains("plot"), "{err}");
+        }
+    }
+
+    #[test]
+    fn an_assignment_naming_a_ghost_piece_or_a_missing_hex_is_refused() {
+        let err = corrupted(|v| {
+            v["combat"]["assignments"] = serde_json::json!({ "axis": [{ "piece": GHOST }] });
+        });
+        assert!(err.contains(GHOST) && err.contains("assignment"), "{err}");
+        for key in ["anti_armour", "close_assault"] {
+            let err = corrupted(|v| {
+                let id = first_piece(v);
+                v["combat"]["assignments"] = serde_json::json!({
+                    "axis": [{ "piece": id, key: [{ "target": NOWHERE, "points": 1 }] }]
+                });
+            });
+            assert!(
+                err.contains(NOWHERE) && err.contains("assignment"),
+                "{key}: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_sealed_pending_naming_a_side_twice_is_refused_in_any_position() {
+        // (Two sides only exist, so three waiting must repeat one.)
+        let err = corrupted(|v| {
+            v["pending"] = serde_json::json!(
+                { "sealed": { "step": "barrage", "waiting": ["axis", "cw", "axis"] } }
+            );
+        });
+        assert!(err.contains("twice"), "{err}");
+    }
+
+    #[test]
+    fn a_reaction_with_a_piece_of_the_other_side_is_refused() {
+        let err = corrupted(|v| {
+            let (id, side) = foreign_piece(v);
+            v["pending"] = serde_json::json!({ "reaction": { "side": side, "eligible": [id] } });
+        });
+        assert!(err.contains("reaction") && err.contains("side"), "{err}");
+    }
+
+    #[test]
+    fn a_forced_retreat_with_a_piece_of_the_other_side_is_refused() {
+        let err = corrupted(|v| {
+            let (id, side) = foreign_piece(v);
+            v["pending"] = serde_json::json!({ "forced-retreat": {
+                "side": side, "pieces": [id], "hexes": 1, "from": [],
+                "reason": "assault-result"
+            } });
+        });
+        assert!(err.contains("retreat") && err.contains("side"), "{err}");
+    }
+
+    /// A piece id, and the side that is not its owner's.
+    fn foreign_piece(v: &serde_json::Value) -> (String, &'static str) {
+        let id = first_piece(v);
+        let other = if v["pieces"][&id]["side"] == "axis" {
+            "cw"
+        } else {
+            "axis"
+        };
+        (id, other)
+    }
+
+    #[test]
+    fn every_state_along_the_golden_game_loads() {
+        let data = graziani();
+        let text =
+            std::fs::read_to_string(cna_data::repo_root().join("tests/games/graziani-short.json"))
+                .unwrap();
+        let log: Log = serde_json::from_str(&text).unwrap();
+        let mut state = GameState::new(&data, log.seed).unwrap();
+        state.ruleset = log.ruleset;
+        for (i, o) in log.orders.iter().enumerate() {
+            state.apply(&data, o.player, o.order.clone()).unwrap();
+            if i % 10 == 0 || i + 1 == log.orders.len() {
+                let json = state.to_json().unwrap();
+                let back = GameState::from_json(&json, &data)
+                    .unwrap_or_else(|e| panic!("after order {}: {e}", i + 1));
+                assert_eq!(back, state);
+            }
+        }
     }
 
     #[test]
