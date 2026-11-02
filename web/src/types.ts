@@ -365,6 +365,9 @@ export interface Illegal {
 
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
 
+/** A preview's answer: `apply`'s, or `hidden` when the order rolls dice, which would be the game's next rolls. */
+export type PreviewResult = ApplyResult | { hidden: "dice" };
+
 /** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
 export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat" | "rail";
 
