@@ -17,6 +17,26 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 24 }
       - run: wasm-pack test --node crates/cna-web
+  server:
+    # cna-server's database tests; the `test` job runs them ignored.
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:18
+        env: { POSTGRES_USER: cna, POSTGRES_PASSWORD: cna, POSTGRES_DB: cna }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cna" --health-interval 2s
+          --health-timeout 5s --health-retries 30
+    env:
+      DATABASE_URL: postgres://cna:cna@localhost:5432/cna
+    steps:
+      - uses: actions/checkout@v7
+        with: { submodules: true }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - run: cargo clippy -p cna-server --all-targets --features db-tests,test-auth -- -D warnings
+      - run: cargo test -p cna-server --features db-tests,test-auth
   web:
     runs-on: ubuntu-latest
     defaults:
