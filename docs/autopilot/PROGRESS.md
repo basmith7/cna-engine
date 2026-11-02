@@ -7,14 +7,27 @@ writes is **Feedback**.
 
 ## Feedback
 
-- 2026-10-29 (Brian): **Mission 4 spec approved (PR #25).** Take the spec's defaults for all three questions: `guilds.join` at sign-in plus a small CNA Discord server for DMs, host port 3240 on Tower, and the public image `ghcr.io/basmith7/cna`. Resolve #25's conflicts with main, merge it, and start Mission 4.
 
 ## Addressed
 
+- 2026-10-29 (Brian) approved the Mission 4 spec, PR #25, with the defaults for all three questions → #25 merged 2026-11-02 (main merged in, the spec's header marked approved, the answers written in); slice 1 under way as PR #92.
 - 2026-10-13 (Brian, interactive session) asked for a multiplayer server with real accounts and many games, ahead of the rest of the Land Game turn; chose Discord sign-in, open sign-up and turn alerts by Discord DM → queue row 4, land rules moved to row 5.
 - 2026-10-12 (Brian) approved the Mission 2 spec, PR #5, in an interactive session → merged 2026-10-12; that session builds slices 1–6 and holds the autopilot lock while it does.
 
 ## Status
+
+**MISSION 4** (the multiplayer server) is under way: spec merged
+(#25, approved 2026-10-29). **Slice 1, per-side knowledge in the
+engine, is PR #92:** `crates/cna-embed` (the data compiled in, shared
+by the browser and the server; `CNA_RULES_COMMIT` for a Docker build),
+`cna_game::view` with `view_for` (the state as one side may see it,
+3.61), `events_for` (all 73 event kinds classified), `refusal_for`,
+keyed supply aliases (a dummy's id no longer gives it away), the
+shared `leaks` predicate and a test that replays the golden game and
+finds nothing either side may not know; `preview` now refuses to show
+events that rolled dice. The hot-seat browser is unchanged (it plays
+with open information). Golden hashes now live beside their fixtures
+(`tests/games/*.sha256`), written by the regenerate tests.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -56,14 +69,11 @@ module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
 on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
-Mission 4 resumes first the moment **Feedback** approves #25.
+Mission 5's open PR #80 (rail: one stack each way) waits while Mission 4 goes first.
 
-**MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
-slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
-built until **Feedback** approves it. The spec asks three questions, each
-with a default: how the bot reaches DMs (`guilds.join` and a small CNA
-Discord server), host port 3240, and the image name
-`ghcr.io/basmith7/cna`.
+**MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
+`docs/designs/2026-10-13-multiplayer-server-design.md` and six slice
+plans (#25).
 
 **MISSION 3 COMPLETE** (2026-10-13): a minimal browser UI for Graziani's
 Offensive in `web/` on `cna-game` compiled to WebAssembly (`crates/cna-web`,
@@ -94,9 +104,17 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Review the Mission 4 spec: PR #25.** Approve (or ask for changes)
-  under **Feedback**, answering its three questions if the defaults are
-  wrong. Building starts with slice 1 once approved.
+- Nothing waits on Brian. Mission 4 goes on unattended: slice 1 (#92)
+  merges on green CI, then slice 2 (the server, headless), per
+  `docs/plans/2026-10-13-m4-slice-2-server.md`. The outside steps
+  (Discord application, Tower, Pangolin) stay on the spec's checklist
+  for after slice 6.
+- Slice 1 took stricter readings of 3.61 where the code had more than
+  the spec named (#92's body lists them): an enemy's losses,
+  disorganisation and combat CP are not shown to the other side at all;
+  barrage points against a hex are (12.0), anti-armour numbers are not.
+  POW and guard numbers are now their owner's, though `GameState`'s
+  docs called them open information.
 - Mission 3's accepted residue, for a polish slice when it matters: the
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
@@ -138,6 +156,19 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **3.61's per-event details** (Mission 4, slice 1: what a networked
+  player is shown; not blocking, the engine takes the stricter reading
+  meanwhile). The *Limited intelligence* table leaves these open:
+  (1) does a side learn that an enemy unit took losses or was
+  disorganised, as a bare fact with no numbers (now: no); (2) after an
+  Axis convoy is bombed (56.x), does the Commonwealth learn how many
+  supply units sailed and how many sank (now: no); (3) 12.0 states the
+  actual barrage points against a target while 3.61 says only totals,
+  never the units behind them: is the target side told the points
+  total but not the firers (now: yes); (4) the escape and liberation of
+  prisoners: are those numbers known to both sides (now: yes), given
+  "POWs, camps, guards: numbers secret". Wanted: a ruling or a line in
+  the 3.61 table for each.
 - **Which 19.3 chart slot each counter fills** (Mission 5: 9.26 shells
   by slot, and 19.x substitution). `formation-organisation.json` names
   its components by slugs (`infantry-battalion`, `artillery-group`,
