@@ -32,8 +32,9 @@ choices ledger is `docs/plans/2026-10-13-m4-choices.md`. **Slice 2,
 the server headless, is draft PR #93:** `crates/cna-server` (axum,
 sqlx on Postgres 18), health, schema, the game registry, applying
 orders in one transaction with snapshots, restart by replay, and old
-games moved to new rules or marked stale; the HTTP API, SSE, the
-golden game over HTTP and CI follow.
+games moved to new rules or marked stale, the HTTP API (a test-only
+sign-in header until slice 3) and the SSE live channel; the golden
+game over HTTP and CI follow.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -111,7 +112,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 ## Next steps
 
 - Nothing waits on Brian. Mission 4 goes on unattended: finish slice 2
-  (#93: HTTP API, SSE, the golden game over HTTP, CI), then slices 3–6.
+  (#93: the golden game over HTTP, CI), then slices 3–6.
 - One provisional call to glance at, ledger entry 1.3 in
   `docs/plans/2026-10-13-m4-choices.md`: a game with open information
   still hides the owner's secrets the hot-seat view hid (loads,
@@ -327,3 +328,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-26 11:53 | 61 | 38→39 | 16→5 | $11.62 | 206 | I merged three PRs this run: the new Rommel ruling, two missing rule tests, and a 3× faster move search. Mission 4 is still waiting on your review of the spec,  |
 | 2026-10-26 16:53 | 75 | 40→? | 7→? | $10.41 | 3 | cna answered all three of this repo's open rulings requests (R-139, R-140, R-141). All three are now built and merged into the engine, with the docs updated. Yo |
 | 2026-10-26 18:53 | 59 | 41→42 | 9→13 | $13.25 | 5 | I merged three PRs this run (#77, #78, #79), plus `PROGRESS.md` updates on `main`. Each one passed clippy, `cargo test` and `cna-probe check` locally and was gr |
+| 2026-11-02 13:44 | 81 | 36→39 | none→none | $19.65 | 1 | That notification is only the 22:05 timer I set, and nothing has changed since my last summary. The run is wrapped up: the work is pushed, the hand-off is writt |
