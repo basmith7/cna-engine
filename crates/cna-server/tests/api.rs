@@ -228,6 +228,26 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     assert_eq!(s, StatusCode::CONFLICT, "no save while the game runs");
     for (i, o) in log.orders.iter().enumerate() {
         let who = if o.player == Side::Axis { AXIS } else { CW };
+        let sealed_step = matches!(
+            games.get(id).await.unwrap().state.pending,
+            Some(cna_game::state::Pending::Sealed { .. })
+        );
+        if sealed_step {
+            // Previewing a sealed answer would show the other side's.
+            let (s, p) = call(
+                &app,
+                "POST",
+                &format!("/api/games/{id}/preview"),
+                Some(who),
+                Some(json!({"order": o.order})),
+            )
+            .await;
+            assert_eq!(
+                (s, p),
+                (StatusCode::OK, json!({"hidden": "sealed"})),
+                "order {i}"
+            );
+        }
         let body = json!({"side": o.player, "order": o.order, "seq": i});
         let (s, answer) = call(&app, "POST", &orders, Some(who), Some(body)).await;
         assert_eq!(s, StatusCode::OK, "order {i}: {answer}");

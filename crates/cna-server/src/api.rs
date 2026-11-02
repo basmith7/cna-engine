@@ -394,7 +394,9 @@ struct PreviewBody {
 
 /// What `orders` would answer, on a copy: `{"ok": events}` /
 /// `{"illegal"}`, or `{"hidden": "dice"}` when the order rolls (the
-/// dice are the game's next rolls).
+/// dice are the game's next rolls), and `{"hidden": "sealed"}` for any
+/// order while a sealed step is pending (completing the step would show
+/// the other side's answer), as the wasm `preview` does.
 async fn preview(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -402,6 +404,12 @@ async fn preview(
     Json(b): Json<PreviewBody>,
 ) -> ApiResult {
     let (side, live) = seated(&games, id, account).await?;
+    if matches!(
+        live.state.pending,
+        Some(cna_game::state::Pending::Sealed { .. })
+    ) {
+        return Ok(Json(json!({ "hidden": "sealed" })));
+    }
     let real = live
         .aliases
         .unalias_order(&live.state, side, &b.order)
