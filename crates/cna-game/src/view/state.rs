@@ -25,7 +25,8 @@
 //! | Field | Enemy sees |
 //! |---|---|
 //! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_east` | as is |
-//! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `guards`, `prisoners`, `prisoners_out`, `prisoners_off_map`, `escapees`, `escaped`, `marched`, `zoc`, `air_lifted` | as is: open information or on the board |
+//! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `escaped`, `marched`, `zoc`, `air_lifted` | as is: on the board, or known to both |
+//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards` | own only: 3.61 keeps POW and guard numbers secret |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
@@ -116,10 +117,6 @@ const STATE_KEEPS: &[&str] = &[
     "fortifications",
     "projects",
     "minefields",
-    "guards",
-    "prisoners",
-    "prisoners_out",
-    "prisoners_off_map",
     "escapees",
     "escaped",
     "marched",
@@ -136,6 +133,10 @@ const STATE_KEEPS: &[&str] = &[
 /// Top-level fields with an enemy's part removed (by this module's code).
 #[cfg(test)]
 const STATE_FILTERS: &[&str] = &[
+    "prisoners",
+    "prisoners_out",
+    "prisoners_off_map",
+    "guards",
     "motorisation",
     "repaired",
     "pending_motorisation",
@@ -300,6 +301,13 @@ pub fn view_for(
             wrecks.retain(|w| !w.as_object().is_some_and(side_is_enemy));
         }
         m.retain(|_, w| w.as_array().is_none_or(|a| !a.is_empty()));
+    }
+    for key in ["prisoners", "prisoners_out", "prisoners_off_map", "guards"] {
+        if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
+            names.iter().for_each(|s| {
+                m.remove(s);
+            });
+        }
     }
     if let Some(m) = v.get_mut("split").and_then(Value::as_object_mut) {
         m.retain(|id, _| !enemy_piece(id));
@@ -551,6 +559,23 @@ mod tests {
             "no aliases when open"
         );
         assert!(v["motorisation"].get("axis").is_none());
+    }
+
+    #[test]
+    fn pow_and_guard_numbers_are_their_owner_s() {
+        let data = data();
+        let mut s = golden(&data, 70);
+        let h = cna_data::map::HexId::parse("C4807").unwrap();
+        for side in [Side::Axis, Side::Cw] {
+            s.prisoners.entry(side).or_default().insert(h.clone(), 3);
+            s.guards.entry(side).or_default().insert(h.clone(), 1);
+            s.prisoners_out.insert(side, 2);
+        }
+        let v = view_for(&s, &data, &a(), Some(Side::Cw), false).unwrap();
+        for key in ["prisoners", "guards", "prisoners_out"] {
+            assert!(v[key].get("axis").is_none(), "{key}");
+            assert!(v[key].get("cw").is_some(), "{key}");
+        }
     }
 
     #[test]

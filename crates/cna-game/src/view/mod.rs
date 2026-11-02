@@ -2,14 +2,14 @@
 //! host, decides it, so the browser and the server show the same thing.
 
 mod aliases;
-
-pub use aliases::Aliases;
+mod events;
+mod leaks;
 mod state;
 
-pub use state::{ENEMY_PIECE_KEEPS, ENEMY_PIECE_REMOVES, view_for};
-mod leaks;
-
+pub use aliases::Aliases;
+pub use events::events_for;
 pub use leaks::{leaks, refusal_for};
+pub use state::{ENEMY_PIECE_KEEPS, ENEMY_PIECE_REMOVES, view_for};
 
 #[cfg(test)]
 mod tests {
@@ -18,9 +18,10 @@ mod tests {
     use crate::log::Log;
     use crate::state::GameState;
     use cna_data::scenario::Side;
+    use serde_json::Value;
 
     /// Replays a scripted game order by order; after each, neither side's
-    /// view says what 3.61 hides about the other, and each order tried by
+    /// view nor its events say what 3.61 hides about the other, and each order tried by
     /// the wrong side is refused in words that say nothing either.
     fn check(name: &str) {
         let data = Data::load("grazianis-offensive").unwrap();
@@ -40,7 +41,7 @@ mod tests {
                     "{name} order {i}"
                 );
             }
-            s.apply(&data, o.player, o.order.clone()).unwrap();
+            let events = s.apply(&data, o.player, o.order.clone()).unwrap();
             if s.is_over() {
                 break;
             }
@@ -50,6 +51,12 @@ mod tests {
                 assert!(
                     found.is_empty(),
                     "{name} after order {i}, {viewer} sees {found:?}"
+                );
+                let e = Value::from(events_for(&s, &aliases, &events, Some(viewer), false));
+                let found = leaks(&s, &e, viewer.other());
+                assert!(
+                    found.is_empty(),
+                    "{name} order {i}'s events, {viewer} sees {found:?}"
                 );
             }
         }
