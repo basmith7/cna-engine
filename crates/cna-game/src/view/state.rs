@@ -40,7 +40,7 @@
 use super::Aliases;
 use crate::combat::SealedStep;
 use crate::data::Data;
-use crate::piece::PieceKind;
+use crate::piece::{PieceId, PieceKind};
 use crate::state::{GameState, Pending};
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
@@ -197,8 +197,7 @@ pub fn view_for(
     let enemy_piece = |id: &str| {
         state
             .pieces
-            .values()
-            .find(|p| p.id.as_str() == id)
+            .get(&PieceId::from(id.to_owned()))
             .is_none_or(|p| is_enemy(p.side))
     };
     let names: Vec<String> = enemies.iter().map(|s| s.to_string()).collect();
@@ -364,7 +363,6 @@ fn label(state: &GameState, data: &Data, v: &mut Value) -> Result<()> {
 mod tests {
     use super::*;
     use crate::log::{Log, replay};
-    use crate::piece::PieceId;
     use std::collections::BTreeSet;
 
     fn data() -> Data {

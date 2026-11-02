@@ -14,6 +14,7 @@ use crate::piece::PieceKind;
 use crate::state::GameState;
 use cna_data::scenario::Side;
 use serde_json::{Value, json};
+use std::collections::BTreeSet;
 
 /// `illegal` as `viewer` may read it: `{"case", "reason"}` with every
 /// enemy supply id in the reason aliased unless information is open.
@@ -49,11 +50,17 @@ pub fn leaks(state: &GameState, json: &Value, about: Side) -> Vec<String> {
             }
         }
     }
-    walk(state, json, about, "", &mut found);
+    let units: BTreeSet<&str> = state
+        .pieces
+        .values()
+        .filter(|p| p.side == about && !p.kind.is_supply())
+        .map(|p| p.id.as_str())
+        .collect();
+    walk(&units, json, about, "", &mut found);
     found
 }
 
-fn walk(state: &GameState, v: &Value, about: Side, at: &str, found: &mut Vec<String>) {
+fn walk(units: &BTreeSet<&str>, v: &Value, about: Side, at: &str, found: &mut Vec<String>) {
     match v {
         Value::String(s) => {
             if names_real_supply(s, about) {
@@ -62,7 +69,7 @@ fn walk(state: &GameState, v: &Value, about: Side, at: &str, found: &mut Vec<Str
         }
         Value::Array(items) => {
             for (i, item) in items.iter().enumerate() {
-                walk(state, item, about, &format!("{at}[{i}]"), found);
+                walk(units, item, about, &format!("{at}[{i}]"), found);
             }
         }
         Value::Object(map) => {
@@ -86,21 +93,16 @@ fn walk(state: &GameState, v: &Value, about: Side, at: &str, found: &mut Vec<Str
                     found.push(format!("{at}.location"));
                 }
             }
-            let names_unit = map.values().any(|x| {
-                x.as_str().is_some_and(|s| {
-                    state
-                        .pieces
-                        .values()
-                        .any(|p| p.side == about && !p.kind.is_supply() && p.id.as_str() == s)
-                })
-            });
+            let names_unit = map
+                .values()
+                .any(|x| x.as_str().is_some_and(|s| units.contains(s)));
             if names_unit && !is_about_piece {
                 for k in INTERNALS.iter().filter(|k| map.contains_key(**k)) {
                     found.push(format!("{at}.{k}"));
                 }
             }
             for (k, x) in map {
-                walk(state, x, about, &format!("{at}.{k}"), found);
+                walk(units, x, about, &format!("{at}.{k}"), found);
             }
         }
         _ => {}
