@@ -3,6 +3,8 @@
 //! over HTTP from the seat holders.
 
 pub mod accounts;
+pub mod api;
+pub mod auth;
 pub mod games;
 
 use anyhow::{Context, Result};
@@ -56,16 +58,17 @@ pub async fn migrate(pool: &PgPool) -> Result<()> {
     MIGRATOR.run(pool).await.context("migrating the database")
 }
 
-/// The routes, over a pool.
-pub fn router(pool: PgPool) -> Router {
+/// The routes, over the game registry.
+pub fn router(games: games::Games) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
-        .with_state(pool)
+        .nest("/api", api::routes())
+        .with_state(games)
 }
 
 /// 200 `ok` when the database answers, 503 when it does not.
-async fn healthz(State(pool): State<PgPool>) -> (StatusCode, &'static str) {
-    match sqlx::query("SELECT 1").execute(&pool).await {
+async fn healthz(State(games): State<games::Games>) -> (StatusCode, &'static str) {
+    match sqlx::query("SELECT 1").execute(games.pool()).await {
         Ok(_) => (StatusCode::OK, "ok"),
         Err(e) => {
             tracing::warn!("healthz: {e}");
@@ -82,7 +85,7 @@ mod tests {
     use tower::ServiceExt;
 
     async fn get_healthz(pool: PgPool) -> (StatusCode, String) {
-        let res = router(pool)
+        let res = router(games::Games::new(pool))
             .oneshot(Request::get("/healthz").body(Body::empty()).unwrap())
             .await
             .unwrap();

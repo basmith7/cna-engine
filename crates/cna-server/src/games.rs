@@ -476,6 +476,67 @@ impl Games {
         Ok((moved, stale))
     }
 
+    /// The side `account` holds in `game`, if any.
+    pub async fn seat_of(
+        &self,
+        game: GameId,
+        account: AccountId,
+    ) -> Result<Option<Side>, GameError> {
+        let held: Option<String> =
+            sqlx::query_scalar("SELECT side FROM seats WHERE game_id = $1 AND account_id = $2")
+                .bind(game)
+                .bind(account)
+                .fetch_optional(&self.pool)
+                .await?;
+        Ok(held.as_deref().map(parse_side).transpose()?)
+    }
+
+    /// The orders after `after` (every order when `None`) with the
+    /// engine's events for each, unredacted, rebuilt by replaying the
+    /// game from its seed: events are not stored.
+    pub async fn applied_after(
+        &self,
+        game: GameId,
+        after: Option<i64>,
+    ) -> Result<Vec<Applied>, GameError> {
+        let seed: i64 = sqlx::query_scalar("SELECT seed FROM games WHERE id = $1")
+            .bind(game)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or(GameError::NotFound)?;
+        let live = self.get(game).await?;
+        let data = live.data;
+        let (ruleset, modules) = (live.state.ruleset, live.state.modules);
+        let orders = live.state.log.clone();
+        drop(live);
+        let first = after.map_or(0, |a| a.saturating_add(1).max(0)) as usize;
+        let replayed = tokio::task::spawn_blocking(move || {
+            catch_unwind(AssertUnwindSafe(|| -> anyhow::Result<Vec<Applied>> {
+                let mut s = GameState::with_modules(data, seed as u64, modules)?;
+                s.ruleset = ruleset;
+                let mut out = Vec::new();
+                for (i, o) in orders.iter().enumerate() {
+                    let events = s
+                        .apply(data, o.player, o.order.clone())
+                        .map_err(|e| anyhow::anyhow!("order {i} is refused: {e}"))?;
+                    if i >= first {
+                        out.push(Applied {
+                            seq: i as i64,
+                            side: o.player,
+                            events,
+                        });
+                    }
+                }
+                Ok(out)
+            }))
+        })
+        .await;
+        match replayed {
+            Ok(Ok(r)) => Ok(r?),
+            _ => Err(GameError::Panicked),
+        }
+    }
+
     /// Games held in memory.
     pub fn live_count(&self) -> usize {
         self.live.lock().unwrap_or_else(|e| e.into_inner()).len()

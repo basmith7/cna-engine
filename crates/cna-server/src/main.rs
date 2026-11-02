@@ -20,14 +20,13 @@ async fn main() -> Result<()> {
         .await
         .context("connecting to the database")?;
     migrate(&pool).await?;
-    // Not yet routed (the HTTP API is the next task), but the start-up
-    // duties are the registry's: games under older rules are moved or
+    // At start, games under older rules are moved or
     // marked stale, and idle games leave memory.
     let games = Games::new(pool.clone());
     let (moved, stale) = games.recheck_rules().await?;
     tracing::info!("rules {RULES_COMMIT}: {moved} games moved, {stale} stale");
     games.spawn_evictor(Duration::from_secs(60), MAX_IDLE);
-    let app = router(pool).layer(TraceLayer::new_for_http());
+    let app = router(games).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(config.bind)
         .await
         .with_context(|| format!("binding {}", config.bind))?;

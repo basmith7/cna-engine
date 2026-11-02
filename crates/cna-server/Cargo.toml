@@ -14,6 +14,9 @@ path = "src/main.rs"
 # without it, so they are ignored unless this is on and a plain
 # `cargo test` at the workspace root needs no database.
 db-tests = []
+# The `X-Cna-Test-Account` sign-in (`auth::test_auth`). Debug builds only:
+# a release build with it refuses to compile.
+test-auth = []
 
 [dependencies]
 cna-data = { path = "../cna-data" }
