@@ -7,14 +7,15 @@ use super::store::ACCOUNT;
 use crate::App;
 use crate::accounts;
 use axum::Router;
-use axum::extract::{Query, State};
-use axum::http::{StatusCode, header};
+use axum::extract::{ConnectInfo, Query, State};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::{get, post};
 use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use tower_sessions::Session;
 
 /// The session key holding a sign-in in progress.
@@ -59,8 +60,21 @@ fn failed(e: impl std::fmt::Display) -> Response {
 }
 
 /// 302 to Discord's consent page, the `state` and PKCE verifier kept in
-/// the session.
-async fn start(State(app): State<App>, session: Session) -> Response {
+/// the session; 429 past the per-IP limit.
+async fn start(
+    State(app): State<App>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    session: Session,
+) -> Response {
+    let ip = crate::limits::client_ip(&headers, peer, app.auth.trust_proxy);
+    if !app.limits.sign_in(ip) {
+        return page(
+            StatusCode::TOO_MANY_REQUESTS,
+            "Too many sign-ins",
+            "Too many sign-ins from here. Wait a minute and try again.",
+        );
+    }
     let (challenge, verifier) = PkceCodeChallenge::new_random_sha256();
     let (url, state) = app
         .auth

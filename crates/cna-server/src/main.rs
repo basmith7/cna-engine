@@ -27,7 +27,21 @@ async fn main() -> Result<()> {
     let (moved, stale) = games.recheck_rules().await?;
     tracing::info!("rules {RULES_COMMIT}: {moved} games moved, {stale} stale");
     games.spawn_evictor(Duration::from_secs(60), MAX_IDLE);
-    let app = router(App::new(games, &config)?).layer(TraceLayer::new_for_http());
+    let app = App::new(games, &config)?;
+    {
+        let (limits, store) = (app.limits.clone(), app.auth.store.clone());
+        tokio::spawn(async move {
+            let mut every = tokio::time::interval(Duration::from_secs(600));
+            loop {
+                every.tick().await;
+                limits.prune();
+                if let Err(e) = store.delete_expired().await {
+                    tracing::warn!("deleting expired sessions: {e}");
+                }
+            }
+        });
+    }
+    let app = router(app).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(config.bind)
         .await
         .with_context(|| format!("binding {}", config.bind))?;

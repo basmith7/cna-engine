@@ -22,7 +22,7 @@ use tower::ServiceExt;
 )]
 async fn golden_game_over_http(pool: PgPool) {
     let (games, id, _, _) = seated(&pool).await;
-    let app = common::router(games);
+    let app = router_for_play(games);
     let send = |method: &str, uri: String, who: &str, body: Body| {
         let req = Request::builder()
             .method(method)

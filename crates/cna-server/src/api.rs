@@ -8,6 +8,7 @@
 use crate::App;
 use crate::auth::CurrentAccount;
 use crate::games::{GameError, GameId, Games, LiveGuard};
+use crate::limits::Limiters;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -21,6 +22,7 @@ use cna_game::reach::Purpose;
 use cna_game::view::{events_for, refusal_for, view_for};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 /// An error answer: a status and `{"error": message}`, or a body of
 /// its own (`{"illegal": ...}`, a stale `seq`).
@@ -132,6 +134,14 @@ async fn seated(
     Ok((side, live))
 }
 
+/// 429: past a per-account rate limit.
+fn too_many(what: &str) -> ApiError {
+    ApiError::new(
+        StatusCode::TOO_MANY_REQUESTS,
+        format!("too many {what}: wait and try again"),
+    )
+}
+
 fn bad(e: impl std::fmt::Display) -> ApiError {
     ApiError::new(StatusCode::BAD_REQUEST, e)
 }
@@ -222,9 +232,24 @@ struct CreateBody {
 /// A new game with the caller in `side`'s seat: `{"id"}`, 201.
 async fn create(
     State(games): State<Games>,
+    State(limits): State<Arc<Limiters>>,
     account: CurrentAccount,
     Json(b): Json<CreateBody>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
+    if !limits.create_game(account.0) {
+        return Err(too_many("games made"));
+    }
+    let open: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM games WHERE created_by = $1 AND status = 'open'")
+            .bind(account.0)
+            .fetch_one(games.pool())
+            .await?;
+    if open >= limits.limits.open_games {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "you have too many games waiting for a player",
+        ));
+    }
     let scenario = b.scenario.as_deref().unwrap_or(cna_embed::DEFAULT_SCENARIO);
     if cna_embed::data(scenario).is_err() {
         return Err(bad(format!("no scenario {scenario:?}")));
@@ -326,10 +351,14 @@ struct OrderBody {
 /// `{"illegal"}` (422), 409 on a stale `seq`, 403 for the other side.
 async fn orders(
     State(games): State<Games>,
+    State(limits): State<Arc<Limiters>>,
     account: CurrentAccount,
     Path(id): Path<GameId>,
     Json(b): Json<OrderBody>,
 ) -> ApiResult {
+    if !limits.order(account.0) {
+        return Err(too_many("orders"));
+    }
     match games.apply(id, account.0, b.side, &b.order, b.seq).await {
         Ok(events) => {
             let live = games.get(id).await?;

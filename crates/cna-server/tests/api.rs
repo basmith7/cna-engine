@@ -63,7 +63,7 @@ async fn cw_leaks(games: &Games, id: GameId, body: &Value) -> Vec<String> {
 async fn app(pool: &PgPool) -> (Router, Games, GameId) {
     let (games, id, _, _) = seated(pool).await;
     accounts::insert(pool, OUTSIDER, "Outsider").await.unwrap();
-    (common::router(games.clone()), games, id)
+    (router_for_play(games.clone()), games, id)
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]
@@ -75,7 +75,7 @@ async fn a_game_is_made_listed_and_joined_once_per_seat(pool: PgPool) {
     for (d, n) in [("10", "A"), ("11", "B"), ("12", "C")] {
         accounts::insert(&pool, d, n).await.unwrap();
     }
-    let app = common::router(Games::new(pool.clone()));
+    let app = router(Games::new(pool.clone()));
     let (s, _) = call(
         &app,
         "POST",

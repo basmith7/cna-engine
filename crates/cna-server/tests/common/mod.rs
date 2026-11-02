@@ -113,3 +113,11 @@ pub fn router_with(games: Games, config: &cna_server::Config) -> axum::Router {
 pub fn router(games: Games) -> axum::Router {
     router_with(games, &config(&[]))
 }
+
+/// `router`, for tests playing whole games: hundreds of orders in
+/// seconds, past the per-account order limit.
+pub fn router_for_play(games: Games) -> axum::Router {
+    let mut config = config(&[]);
+    config.limits.orders_per_minute = 10_000;
+    router_with(games, &config)
+}

@@ -8,6 +8,7 @@ pub mod auth;
 #[cfg(feature = "fake")]
 pub mod fake_discord;
 pub mod games;
+pub mod limits;
 pub mod stream;
 
 use anyhow::{Context, Result};
@@ -50,6 +51,8 @@ pub struct Config {
     pub trust_proxy: bool,
     /// `CNA_ADMINS`: comma-separated Discord ids of the admins.
     pub admins: BTreeSet<String>,
+    /// The abuse limits: the spec's, not read from the environment.
+    pub limits: limits::Limits,
 }
 
 impl Config {
@@ -82,6 +85,7 @@ impl Config {
                 .filter(|s| !s.is_empty())
                 .map(str::to_owned)
                 .collect(),
+            limits: limits::Limits::default(),
         })
     }
 }
@@ -99,6 +103,7 @@ pub async fn migrate(pool: &PgPool) -> Result<()> {
 pub struct App {
     pub games: games::Games,
     pub auth: Arc<auth::Auth>,
+    pub limits: Arc<limits::Limiters>,
 }
 
 impl App {
@@ -107,7 +112,14 @@ impl App {
         Ok(App {
             games,
             auth: Arc::new(auth),
+            limits: Arc::new(limits::Limiters::new(config.limits.clone())),
         })
+    }
+}
+
+impl FromRef<App> for Arc<limits::Limiters> {
+    fn from_ref(app: &App) -> Arc<limits::Limiters> {
+        app.limits.clone()
     }
 }
 
@@ -125,6 +137,11 @@ pub fn router(app: App) -> Router {
         .nest("/api", api::routes())
         .merge(auth::routes())
         .layer(app.auth.session_layer())
+        .layer(axum::middleware::from_fn_with_state(
+            app.clone(),
+            limits::csrf,
+        ))
+        .layer(tower_http::limit::RequestBodyLimitLayer::new(api::MAX_BODY))
         .with_state(app)
 }
 
