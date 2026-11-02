@@ -37,6 +37,13 @@ impl PieceId {
     }
 }
 
+/// Any string, as a piece id deserialises from one (a host's input).
+impl From<String> for PieceId {
+    fn from(s: String) -> PieceId {
+        PieceId(s)
+    }
+}
+
 impl From<UnitId> for PieceId {
     fn from(id: UnitId) -> PieceId {
         PieceId(id.as_str().to_owned())

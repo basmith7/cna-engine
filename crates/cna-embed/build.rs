@@ -1,7 +1,7 @@
 //! Embeds `vendor/cna/data` in the crate: every file directly inside the
 //! directories `cna_game::data::Data` reads, as `include_str!`s, and the
 //! submodule's commit as `RULES_COMMIT`, so a save made in the browser
-//! names the data it was played on.
+//! or on the server names the data it was played on.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -43,9 +43,14 @@ fn main() {
     std::fs::write(dest, out).unwrap();
 }
 
+/// `CNA_RULES_COMMIT` when set (a Docker build has no `.git`), else
 /// `git -C vendor/cna rev-parse HEAD`, as `cna_data::rules_commit` does
-/// natively. Re-run when the submodule's checkout moves.
+/// natively. Re-run when either moves.
 fn rules_commit(root: &Path) -> String {
+    println!("cargo:rerun-if-env-changed=CNA_RULES_COMMIT");
+    if let Ok(commit) = std::env::var("CNA_RULES_COMMIT") {
+        return commit;
+    }
     if let Ok(dir) = std::process::Command::new("git")
         .arg("-C")
         .arg(root)

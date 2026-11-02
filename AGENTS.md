@@ -41,9 +41,8 @@ they're regenerated. In one commit:
 
 1. Move the submodule (`git -C vendor/cna checkout <sha>`) and stage `vendor/cna`.
 2. `cargo run -p cna-probe -- run`.
-3. `cargo test -p cna-game -- --ignored regenerate_ --nocapture`, then paste the two hashes
-   it prints into `FINAL_STATE_SHA256` and `M5_FINAL_STATE_SHA256` in
-   `crates/cna-game/src/golden.rs`.
+3. `cargo test -p cna-game -- --ignored regenerate_` rewrites the scripted games in
+   `tests/games/` and the final-state hashes pinned beside them (`*.sha256`).
 4. `cargo test -p cna-web -- --ignored regenerate_e2e_fixtures` rewrites the Playwright
    fixtures and their `.sha256` pins in `web/tests/fixtures/`.
 5. Run the gates and the `web/` checks, with `cargo test --no-fail-fast` (plain

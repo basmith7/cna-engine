@@ -1,10 +1,9 @@
 //! `cna-game` for the browser. Every scenario's data is compiled in
-//! (`embedded`), the API is plain JSON over Rust (`api`), and the
+//! (`cna-embed`), the API is plain JSON over Rust (`api`), and the
 //! `wasm-bindgen` `Game` below only passes strings through, so the
 //! native tests and the page see byte-identical output.
 
 pub mod api;
-pub mod embedded;
 
 use wasm_bindgen::prelude::*;
 
@@ -28,7 +27,7 @@ impl Game {
 
     /// The scenarios a new game can start, as `[{slug, name}]` JSON.
     pub fn scenarios() -> Result<String, JsError> {
-        let v: Vec<_> = embedded::scenarios()
+        let v: Vec<_> = cna_embed::scenarios()
             .map_err(js)?
             .into_iter()
             .map(|(slug, name)| serde_json::json!({ "slug": slug, "name": name }))
@@ -112,6 +111,6 @@ impl Game {
     /// The `vendor/cna` commit the embedded data came from.
     #[wasm_bindgen(js_name = rulesCommit)]
     pub fn rules_commit() -> String {
-        embedded::RULES_COMMIT.to_owned()
+        cna_embed::RULES_COMMIT.to_owned()
     }
 }
