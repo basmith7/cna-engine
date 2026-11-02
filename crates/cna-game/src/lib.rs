@@ -42,4 +42,5 @@ pub mod setup;
 pub mod state;
 mod supply;
 pub mod victory;
+pub mod view;
 pub mod zoc;
