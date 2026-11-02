@@ -317,6 +317,13 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
             .map(|n| json!(n))
             .collect::<Vec<_>>()
     );
+    // Rebuilt from the snapshot at 450, the tail's events are those the
+    // replay from the seed gives.
+    assert_eq!(
+        tail.as_array().unwrap()[..],
+        stream.as_array().unwrap()[456..],
+        "events after a snapshot"
+    );
     let (s, _) = call(
         &app,
         "GET",

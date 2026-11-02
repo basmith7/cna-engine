@@ -553,7 +553,8 @@ impl Games {
 
     /// The orders after `after` (every order when `None`) with the
     /// engine's events for each, unredacted, rebuilt by replaying the
-    /// game from its seed: events are not stored.
+    /// game from its last snapshot before them (else its seed): events
+    /// are not stored.
     pub async fn applied_after(
         &self,
         game: GameId,
@@ -570,12 +571,35 @@ impl Games {
         let orders = live.state.log.clone();
         drop(live);
         let first = after.map_or(0, |a| a.saturating_add(1).max(0)) as usize;
+        // Start from the latest snapshot at or before `first`, so a
+        // catch-up replays at most a snapshot's span before the orders
+        // it returns, not the whole game.
+        let snapshot: Option<(i64, String)> = sqlx::query_as(
+            "SELECT seq, state FROM snapshots WHERE game_id = $1 AND rules_commit = $2 \
+             AND seq <= $3 ORDER BY seq DESC LIMIT 1",
+        )
+        .bind(game)
+        .bind(RULES_COMMIT)
+        .bind(first as i64)
+        .fetch_optional(&self.pool)
+        .await?;
         let replayed = tokio::task::spawn_blocking(move || {
             catch_unwind(AssertUnwindSafe(|| -> anyhow::Result<Vec<Applied>> {
-                let mut s = GameState::with_modules(data, seed as u64, modules)?;
-                s.ruleset = ruleset;
+                let from_snapshot = snapshot.and_then(|(n, json)| {
+                    let s = GameState::from_json(&json, data).ok()?;
+                    let n = usize::try_from(n).ok()?;
+                    (s.log.len() == n && orders.get(..n) == Some(&s.log[..])).then_some(s)
+                });
+                let mut s = match from_snapshot {
+                    Some(s) => s,
+                    None => {
+                        let mut s = GameState::with_modules(data, seed as u64, modules)?;
+                        s.ruleset = ruleset;
+                        s
+                    }
+                };
                 let mut out = Vec::new();
-                for (i, o) in orders.iter().enumerate() {
+                for (i, o) in orders.iter().enumerate().skip(s.log.len()) {
                     let events = s
                         .apply(data, o.player, o.order.clone())
                         .map_err(|e| anyhow::anyhow!("order {i} is refused: {e}"))?;
