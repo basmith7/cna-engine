@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
+use cna_embed::RULES_COMMIT;
+use cna_server::games::{Games, MAX_IDLE};
 use cna_server::{Config, migrate, router};
 use sqlx::postgres::PgPoolOptions;
+use std::time::Duration;
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -17,6 +20,13 @@ async fn main() -> Result<()> {
         .await
         .context("connecting to the database")?;
     migrate(&pool).await?;
+    // Not yet routed (the HTTP API is the next task), but the start-up
+    // duties are the registry's: games under older rules are moved or
+    // marked stale, and idle games leave memory.
+    let games = Games::new(pool.clone());
+    let (moved, stale) = games.recheck_rules().await?;
+    tracing::info!("rules {RULES_COMMIT}: {moved} games moved, {stale} stale");
+    games.spawn_evictor(Duration::from_secs(60), MAX_IDLE);
     let app = router(pool).layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(config.bind)
         .await

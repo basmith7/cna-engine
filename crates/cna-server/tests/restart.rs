@@ -106,6 +106,46 @@ async fn a_game_made_under_other_rules_is_replayed_and_moved(pool: PgPool) {
     not(feature = "db-tests"),
     ignore = "needs Postgres: --features db-tests"
 )]
+async fn on_start_every_active_game_under_other_rules_is_moved_or_stale(pool: PgPool) {
+    let (games, good, axis, cw) = seated(&pool).await;
+    play(&games, good, axis, cw, 3).await;
+    let bad = games
+        .create_seeded("grazianis-offensive", axis, false, 7)
+        .await
+        .unwrap();
+    games.seat(bad, Side::Axis, axis).await.unwrap();
+    games.seat(bad, Side::Cw, cw).await.unwrap();
+    play(&games, bad, axis, cw, 3).await;
+    drop(games);
+    sqlx::query("UPDATE games SET rules_commit = $1")
+        .bind("0".repeat(40))
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE orders SET side = 'cw' WHERE game_id = $1 AND seq = 0")
+        .bind(bad)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let games = Games::new(pool.clone());
+    assert_eq!(games.recheck_rules().await.unwrap(), (1, 1));
+    let commit: String = sqlx::query_scalar("SELECT rules_commit FROM games WHERE id = $1")
+        .bind(good)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(commit, RULES_COMMIT);
+    assert_eq!(status(&pool, good).await, "active");
+    assert_eq!(status(&pool, bad).await, "stale");
+    assert_eq!(games.live_count(), 0, "checking loads nothing to keep");
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
 async fn a_game_whose_orders_no_longer_replay_is_stale(pool: PgPool) {
     let (games, id, axis, cw) = seated(&pool).await;
     play(&games, id, axis, cw, 120).await;

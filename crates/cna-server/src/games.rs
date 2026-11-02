@@ -29,6 +29,9 @@ pub type AccountId = i64;
 /// A snapshot of the state is written every this many orders.
 pub const SNAPSHOT_EVERY: usize = 50;
 
+/// A game nobody has touched or streamed for this long leaves memory.
+pub const MAX_IDLE: Duration = Duration::from_secs(30 * 60);
+
 /// An accepted order, as sent to the game's subscribers. `events` are
 /// the engine's, unredacted: each stream passes them through
 /// `events_for` for its own side.
@@ -446,6 +449,31 @@ impl Games {
             .execute(&self.pool)
             .await?;
         Err(GameError::Stale)
+    }
+
+    /// Run at start: loads every active game made under other rules than
+    /// this build's, so each is moved to them or marked stale before a
+    /// player opens it. Returns (moved, stale). Nothing stays in memory.
+    pub async fn recheck_rules(&self) -> Result<(usize, usize), GameError> {
+        let ids: Vec<GameId> = sqlx::query_scalar(
+            "SELECT id FROM games WHERE status = 'active' AND rules_commit <> $1 ORDER BY id",
+        )
+        .bind(RULES_COMMIT)
+        .fetch_all(&self.pool)
+        .await?;
+        let (mut moved, mut stale) = (0, 0);
+        for id in ids {
+            match self.get(id).await {
+                Ok(_) => moved += 1,
+                Err(GameError::Stale) => stale += 1,
+                Err(e) => return Err(e),
+            }
+            self.live
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&id);
+        }
+        Ok((moved, stale))
     }
 
     /// Games held in memory.
