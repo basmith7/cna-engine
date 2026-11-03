@@ -24,7 +24,7 @@
 //!
 //! | Field | Enemy sees |
 //! |---|---|
-//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_east` | as is |
+//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way` | as is |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `escaped`, `marched`, `zoc`, `air_lifted` | as is: on the board, or known to both |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards` | own only: 3.61 keeps POW and guard numbers secret |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
@@ -113,7 +113,8 @@ const STATE_KEEPS: &[&str] = &[
     "over",
     "organised",
     "attachment_tracked",
-    "rail_east",
+    "rail_runs",
+    "rail_supply_way",
     "fortifications",
     "projects",
     "minefields",
@@ -403,7 +404,8 @@ mod tests {
         let data = data();
         let mut s = golden(&data, 70);
         // Fill the optional fields so they serialise.
-        s.rail_east.get_or_insert(true);
+        s.rail_supply_way.get_or_insert(crate::rail::RailWay::East);
+        s.rail_runs.insert(crate::rail::RailWay::East);
         let v = serde_json::to_value(&s).unwrap();
         let classified: BTreeSet<String> = STATE_KEEPS
             .iter()
