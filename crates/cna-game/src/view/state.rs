@@ -29,7 +29,7 @@
 //!
 //! | Field | Enemy sees |
 //! |---|---|
-//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open` | as is |
+//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open`, `blockship_fired` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
@@ -126,6 +126,7 @@ const STATE_KEEPS: &[&str] = &[
     "rail_runs",
     "rail_supply_way",
     "bizerta_open",
+    "blockship_fired",
     "fortifications",
     "projects",
     "minefields",

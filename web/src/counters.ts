@@ -71,8 +71,8 @@ export function label(p: Piece): { short: string; long: string } {
   return { short: p.abbreviation ?? p.id_code ?? p.id, long: p.name ?? p.id };
 }
 
-/** Rommel on top, then HQs, combat units and supply; ties by id so a stack is stable. */
-const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, raider: 2, "supply-unit": 3, "dummy-supply-unit": 3, ship: 4 };
+/** Rommel on top, then HQs, combat units and supply, the San Giorgio's wreck at the bottom; ties by id so a stack is stable. */
+const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, raider: 2, "supply-unit": 3, "dummy-supply-unit": 3, ship: 4, blockship: 4 };
 
 /**
  * Supply units tie-break on a hash of the id, not the id itself: a dummy's

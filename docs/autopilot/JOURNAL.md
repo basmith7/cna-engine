@@ -690,4 +690,14 @@ Blocked: none.
 Done: #121 (bump 70239b1) and #122 (R-152 for surrenders) merged. #123: 15.89 captured share split by class, vulnerability losses not captured; fresh-review fixes d8d5301 (spoils by unit type via `spoil_of`, HQ/infantry guns are prisoners, split-assault dedupe, prisoner_points under the module). Local gates green.
 In flight: CI on #123 (base main).
 Next: merge #123 on green. Fleet in new games waits on cna's first-sail request. The San Giorgio (R-151): ships never reach map C (row xx29 on map B), so only its 2-point barrage into adjacent hexes and its removal by CW engineers matter; needs a fixed Axis firer (no piece kind fits yet).
+## 2026-11-03 14:35 MST — autopilot/m5-san-giorgio
+Done: found this branch (R-151, built by the 19:21Z run) unpushed in /tmp/cna-sangiorgio; merged main (R-152), pushed, draft #124. Fresh review: the wreck retreated with its hex's stack — fixed (assault.rs whole-hex lists skip Blockship). Gates green before the fix; cna-game 521 + clippy after.
+In flight: #124 (draft); #123 (R-152 share) on CI, merge on green. /tmp/cna-fleet-all holds uncommitted work putting the fleet in Modules::ALL (branch autopilot/m5-fleet-default, unpushed) from the same earlier run.
+Next: on #124, charge the wreck's barrage ammunition as an artillery unit's (R-151 Rationale), let an Axis supply unit block its removal, add the `blockship_fired` view row and a retreat regression test; then ready and merge. Then the fleet in new games (cna's first-sail request; see /tmp/cna-fleet-all).
+Blocked: none.
+
+## 2026-11-03 14:40 MST — autopilot/m5-san-giorgio
+Done: #123 merged (R-152 complete: #121–#123). #124 re-merged with main, gates green; `blockship_fired` view row added.
+In flight: #124 draft, CI.
+Next: #124's ammunition: 32.21 charges by `equivalent` (battalion/company) and the wreck has none; read its OA entry for a size, else post a cna request and record the gap in its NOT_SIMULATED row. Then an Axis supply unit blocking removal, the sealed panel's "guns 2 · ship" label, a retreat regression test; ready and merge.
 Blocked: none.

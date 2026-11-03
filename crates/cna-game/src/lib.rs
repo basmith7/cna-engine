@@ -5,6 +5,7 @@ mod air_lift;
 mod ammo;
 mod arrival;
 mod attachment;
+mod blockship;
 pub mod breakdown;
 mod captured;
 pub mod clock;

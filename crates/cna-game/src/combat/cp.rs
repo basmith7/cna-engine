@@ -6,7 +6,7 @@
 //! barraged, together with any DP that CP earned over its CPA (6.21).
 
 use crate::event::Event;
-use crate::piece::{PieceId, PieceKind};
+use crate::piece::PieceId;
 use crate::state::GameState;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
@@ -19,11 +19,12 @@ pub const NON_PHASING_CEILING: Cp = Cp::whole(3);
 pub const BAD_ATTACK_REFUND: Cp = Cp::whole(2);
 
 impl GameState {
-    /// The pieces a combat hex charges: a ship pays no CP (30.2x).
+    /// The pieces a combat hex charges: a ship or the *San Giorgio* pays
+    /// no CP (30.2x).
     fn pieces_in(&self, hex: &HexId) -> Vec<PieceId> {
         self.pieces
             .values()
-            .filter(|p| p.hex() == Some(hex) && p.kind != PieceKind::Ship)
+            .filter(|p| p.hex() == Some(hex) && !p.kind.is_vessel())
             .map(|p| p.id.clone())
             .collect()
     }

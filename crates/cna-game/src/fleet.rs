@@ -619,22 +619,27 @@ impl GameState {
         if !self.modules.fleet {
             return false;
         }
-        self.fleet.keys().any(|id| {
-            let ship = &self.pieces[id];
-            self.pieces.values().any(|t| {
-                // What the step's opening reveals must be open to both
-                // sides (3.61): a counter's kind, not its TOE.
-                t.side != ship.side
-                    && matches!(t.kind, PieceKind::Combat | PieceKind::Hq)
-                    && t.hex()
-                        .is_some_and(|at| self.bombardment_points(data, ship, at).is_ok())
+        self.blockship_may_fire(data)
+            || self.fleet.keys().any(|id| {
+                let ship = &self.pieces[id];
+                self.pieces.values().any(|t| {
+                    // What the step's opening reveals must be open to both
+                    // sides (3.61): a counter's kind, not its TOE.
+                    t.side != ship.side
+                        && matches!(t.kind, PieceKind::Combat | PieceKind::Hq)
+                        && t.hex()
+                            .is_some_and(|at| self.bombardment_points(data, ship, at).is_ok())
+                })
             })
-        })
     }
 
-    /// The ships among a barrage plot are marked as having fired (30.25).
+    /// The ships among a barrage plot, and the *San Giorgio*, are marked
+    /// as having fired (30.25, R-151).
     pub(crate) fn ships_fired(&mut self, firers: &[PieceId]) {
         for id in firers {
+            if self.pieces.get(id).map(|p| p.kind) == Some(PieceKind::Blockship) {
+                self.blockship_fired = true;
+            }
             if let Some(r) = self.fleet.get_mut(id) {
                 r.fired = true;
             }

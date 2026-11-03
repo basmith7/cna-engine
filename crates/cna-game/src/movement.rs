@@ -288,6 +288,12 @@ impl GameState {
                     format!("{}: a ship does not move; it is placed in phase E", p.id),
                 ));
             }
+            PieceKind::Blockship => {
+                return Err(Illegal::new(
+                    "30.17",
+                    format!("{}: the San Giorgio is immobile", p.id),
+                ));
+            }
             PieceKind::Commander => {
                 if self.rommel_recalled {
                     return Err(Illegal::new(
