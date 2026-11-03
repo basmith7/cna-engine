@@ -52,6 +52,18 @@ impl GameState {
             .any(|p| p.side == Side::Axis && matches!(p.kind, PieceKind::Combat | PieceKind::Hq))
     }
 
+    /// Whether an Axis unit holds `hex` against the wreck's removal
+    /// (R-151's "no Axis unit"): a combat unit, an HQ or a supply unit.
+    fn axis_holds_wreck(&self, hex: &HexId) -> bool {
+        self.pieces_at(hex).iter().any(|p| {
+            p.side == Side::Axis
+                && matches!(
+                    p.kind,
+                    PieceKind::Combat | PieceKind::Hq | PieceKind::SupplyUnit
+                )
+        })
+    }
+
     /// The actual barrage points the blockship fires at an enemy unit in
     /// `at` (R-151): its gun rating, into an adjacent hex, once an
     /// OpStage, while an Axis land unit shares its hex.
@@ -111,7 +123,9 @@ impl GameState {
 
     /// The end of an OpStage: a blockship whose hex holds a Commonwealth
     /// engineer unit (23.1: the Commonwealth's are its HQs marked E) and
-    /// no Axis unit is removed (R-151).
+    /// no Axis unit (combat, HQ or supply) is removed (R-151). Run as the
+    /// next OpStage's initiative phase opens, so the scenario's last
+    /// stage never clears it.
     pub(crate) fn clear_blockship(&mut self, data: &Data, events: &mut Vec<Event>) {
         let cleared: Vec<PieceId> = self
             .pieces
@@ -119,7 +133,7 @@ impl GameState {
             .filter(|p| p.kind == PieceKind::Blockship)
             .filter(|p| {
                 p.hex().is_some_and(|h| {
-                    !self.axis_unit_in(h)
+                    !self.axis_holds_wreck(h)
                         && self
                             .pieces_at(h)
                             .iter()
@@ -304,9 +318,18 @@ mod tests {
         );
     }
 
+    /// Who of the Axis stays in Tobruk with the Commonwealth's `cw`.
+    #[derive(PartialEq)]
+    enum AxisLeft {
+        Nobody,
+        CombatUnit,
+        SupplyUnit,
+    }
+
     /// Graziani's set-up with the fleet, placed, Tobruk's Axis units gone
-    /// and `cw` put there; then played to the next OpStage.
-    fn tobruk_held_by(cw: &[PieceId], axis_stays: bool) -> (GameState, Vec<Event>) {
+    /// bar `axis`, and `cw` put there; then played to the next OpStage.
+    fn tobruk_held_by(cw: &[PieceId], axis: AxisLeft) -> (GameState, Vec<Event>) {
+        let axis_stays = axis == AxisLeft::CombatUnit;
         let data = graziani();
         let mut state = GameState::with_modules(&data, 7, fleet_on()).unwrap();
         auto_place(&data, &mut state);
@@ -326,6 +349,20 @@ mod tests {
             {
                 p.location = Location::Eliminated;
             }
+        }
+        if axis == AxisLeft::SupplyUnit {
+            let id = (1..)
+                .map(|n| PieceId::supply(Side::Axis, n))
+                .find(|id| !state.pieces.contains_key(id))
+                .expect("a free number");
+            let unit = crate::setup::supply_piece(
+                Side::Axis,
+                PieceKind::SupplyUnit,
+                id.clone(),
+                Location::Hex(tobruk.clone()),
+                None,
+            );
+            state.pieces.insert(id, unit);
         }
         for id in cw {
             let p = state.pieces.get_mut(id).unwrap();
@@ -369,7 +406,7 @@ mod tests {
 
     #[test]
     fn a_lone_commonwealth_engineer_removes_the_wreck_at_the_stage_end_r151() {
-        let (state, events) = tobruk_held_by(&[cw_unit(true)], false);
+        let (state, events) = tobruk_held_by(&[cw_unit(true)], AxisLeft::Nobody);
         assert_eq!(state.pieces[&pid(WRECK)].location, Location::Eliminated);
         assert!(
             events
@@ -380,15 +417,36 @@ mod tests {
 
     #[test]
     fn the_wreck_stays_without_an_engineer_or_while_an_axis_unit_holds_tobruk_r151() {
-        let (state, _) = tobruk_held_by(&[cw_unit(false)], false);
+        let (state, _) = tobruk_held_by(&[cw_unit(false)], AxisLeft::Nobody);
         assert_eq!(
             state.pieces[&pid(WRECK)].location,
             Location::Hex(hex("C4807"))
         );
-        let (state, _) = tobruk_held_by(&[cw_unit(true)], true);
+        let (state, _) = tobruk_held_by(&[cw_unit(true)], AxisLeft::CombatUnit);
         assert_eq!(
             state.pieces[&pid(WRECK)].location,
             Location::Hex(hex("C4807"))
+        );
+    }
+
+    #[test]
+    fn an_axis_supply_unit_in_tobruk_keeps_the_wreck_from_the_engineer_r151() {
+        let (state, events) = tobruk_held_by(&[cw_unit(true)], AxisLeft::SupplyUnit);
+        assert!(
+            state
+                .pieces_at(&hex("C4807"))
+                .iter()
+                .any(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit),
+            "the supply unit is still there at the check"
+        );
+        assert_eq!(
+            state.pieces[&pid(WRECK)].location,
+            Location::Hex(hex("C4807"))
+        );
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::Eliminated { piece } if *piece == pid(WRECK)))
         );
     }
 
