@@ -385,6 +385,7 @@ export type Event =
   | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from?: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "facility-repaired": { hex: HexId; weapon: string; kind: FacilityKind; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
+  | { towed: { side: Side; from: HexId; to: HexId; weapon: string; points: number } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
   | { "equipment-captured": { side: Side; hex: HexId; weapon: string; points?: number } }

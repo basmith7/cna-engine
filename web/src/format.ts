@@ -251,6 +251,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const kind = d.kind === "major" ? "Major" : "Temporary";
     return `${kind} facility repair at ${d.hex}, ${d.weapon}: ${d.die} → ${d.repaired} of ${d.attempted} repaired.`;
   }
+  if ("towed" in e) {
+    const d = e.towed;
+    return `${d.points} broken-down ${d.weapon} towed ${d.from} → ${d.to}.`;
+  }
   if ("air-lifted" in e) {
     const d = e["air-lifted"];
     return `${name(d.piece)} flown ${where(d.from)} → ${where(d.to)}, 12 fuel${d.fuel_from === undefined ? "" : ` from ${name(d.fuel_from)}`}.`;
