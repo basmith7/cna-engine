@@ -366,6 +366,7 @@ export type Event =
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
+  | { "equipment-captured": { side: Side; hex: HexId; weapon: string; points?: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points?: number; cp?: number } }
   | { "prisoners-gone": { side: Side; hex: HexId; points?: number } }
   | { "prisoners-left-map": { side: Side; points?: number; stages: number } }

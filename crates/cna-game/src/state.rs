@@ -104,6 +104,10 @@ pub struct Modules {
     /// Phase L opens for patrols (§16).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub patrols: bool,
+    /// Surrendered guns and tanks become the captor's replacement points
+    /// (28.3, R-152).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub captured_equipment: bool,
 }
 
 impl Modules {
@@ -114,6 +118,7 @@ impl Modules {
         construction: true,
         fleet: false,
         patrols: true,
+        captured_equipment: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

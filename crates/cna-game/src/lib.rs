@@ -6,6 +6,7 @@ mod ammo;
 mod arrival;
 mod attachment;
 mod blockship;
+mod captured;
 pub mod breakdown;
 pub mod clock;
 pub mod combat;

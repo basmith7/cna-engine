@@ -102,7 +102,7 @@
             <div class="row" data-fire={i}>
               {#if f.ship_points}
                 <!-- A ship fires its guns, or half of them next door: one count per target (30.2x). -->
-                <input type="number" data-points value={row.points} readonly aria-label="Points" />
+                <span class="fixed" data-points title="A ship's count is fixed by its target (30.2x)">{row.points}</span>
               {:else}
                 <input type="number" min="1" max={f.points} data-points bind:value={row.points} aria-label="Points" />
               {/if}
@@ -272,6 +272,11 @@
   input[type="number"] {
     width: 3.2em;
     font: inherit;
+  }
+  .fixed {
+    display: inline-block;
+    min-width: 3.2em;
+    font-weight: 600;
   }
   select {
     font: inherit;

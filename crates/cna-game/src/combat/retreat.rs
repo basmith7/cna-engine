@@ -362,6 +362,7 @@ impl GameState {
                     .map(|id| (id.clone(), self.pieces[id].toe))
                     .collect();
                 let prisoners = self.prisoner_points(data, &pieces);
+                let spoils = self.spoils(data, &pieces);
                 for (id, n) in toe {
                     self.take_loss(&id, n, &mut events);
                 }
@@ -371,6 +372,7 @@ impl GameState {
                 // No captor stands by: they wait where they stood (a
                 // must-attack stack short of its retreat never moved).
                 self.capture_prisoners(data, side.other(), &start, prisoners, &mut events);
+                self.capture_spoils(side.other(), &start, spoils, &mut events);
             } else if reason != RetreatReason::RommelAlone {
                 events.push(Event::RetreatBoughtOut {
                     pieces: pieces.clone(),

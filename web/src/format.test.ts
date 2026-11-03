@@ -61,6 +61,7 @@ const cases: [Event, string][] = [
   ],
   [{ prisoners: { side: "axis", points: 3 } }, "3 points of the Axis losses are prisoners."],
   [{ "prisoners-taken": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth takes 5 prisoner points in C3923."],
+  [{ "equipment-captured": { side: "cw", hex: "C3923", weapon: "captured tank", points: 4 } }, "Commonwealth captures 4 tank replacement points in C3923."],
   [{ "prisoners-marched": { side: "axis", path: ["C4021", "C4020", "C4120"], points: 12, cp: 2 } }, "Axis marches 12 prisoner points C4021 → C4120 (2 CP)."],
   [{ "convoy-bombed": { lane: 2, bomb_points: 201, reading: 45, percent: 20, units: 3, sunk: 1 } }, "The Axis convoy on lane 2 is bombed at 201 points: 45, 20 %; 1 of 3 supply units sunk."],
   [{ "convoy-lanes-set": { lanes: [6, 2] } }, "Axis convoys sail by lane 6 (Tobruk), then lane 2 (Tripoli)."],
@@ -81,6 +82,7 @@ const cases: [Event, string][] = [
   [{ "prisoners-escaped": { side: "axis", hex: "C3920", rejoined: 4, escapees: 0 } }, "Axis prisoners escape in C3920: 4 rejoin their side."],
   [{ "prisoners-freed": { side: "cw", hex: "C3923", points: 5 } }, "Commonwealth frees 5 of its men held prisoner in C3923."],
   [{ absorbed: { piece: "unit:it:iim-tank-bn", weapon: "M11/39", points: 3, cp: 2 } }, "unit:it:iim-tank-bn absorbs 3 repaired M11/39 points for 2 CP."],
+  [{ absorbed: { piece: "unit:it:iim-tank-bn", weapon: "captured tank", points: 2, cp: 1 } }, "unit:it:iim-tank-bn absorbs 2 captured tank points for 1 CP."],
   [{ surrendered: { pieces: ["u:b"] } }, "B surrender."],
   [{ engaged: { pieces: ["u:a", "u:b"] } }, "A, B are engaged."],
   [{ "retreat-ordered": { pieces: ["u:b"], hexes: 1, reason: "must-attack" } }, "B must retreat 1 hex (must attack or retreat)."],
@@ -114,9 +116,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 81 variants", () => {
+  it("covers all 82 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(81);
+    expect(tags.size).toBe(82);
   });
 
   it.each(cases)("%j", (event, line) => {
@@ -170,6 +172,7 @@ const withheld: Record<string, string[]> = {
   assault: ["attacker_raw", "defender_raw"],
   prisoners: ["points"],
   "prisoners-taken": ["points"],
+  "equipment-captured": ["points"],
   "prisoners-left-map": ["points"],
   "prisoners-gone": ["points"],
   "prisoners-marched": ["points", "cp"],

@@ -45,6 +45,10 @@ enum Cmd {
         /// Play without patrols (§16): phase L stays skipped.
         #[arg(long)]
         no_patrols: bool,
+        /// Play without captured equipment (28.3, R-152): surrendered guns
+        /// and tanks are lost, not the captor's replacement points.
+        #[arg(long)]
+        no_captured_equipment: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -169,6 +173,7 @@ fn main() -> Result<()> {
             no_construction,
             fleet,
             no_patrols,
+            no_captured_equipment,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -178,6 +183,7 @@ fn main() -> Result<()> {
                 construction: !no_construction,
                 fleet,
                 patrols: !no_patrols,
+                captured_equipment: !no_captured_equipment,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
