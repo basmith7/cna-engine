@@ -537,3 +537,9 @@ Done: Task 4 rest (9abbe00): /game/{id} on NetworkEngine (no curtain/autosave, l
 In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this branch; manual stack run + screenshots by the main session.
 Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
 Blocked: none.
+
+## 2026-11-02 20:07 MST — autopilot/m4-slice-5-alerts
+Done: #96 (draft, based on #95): guild join at sign-in (76c3793), outbox + sender (c18b651), PATCH /api/me + lobby switch and unreachable notice (9926258). Gates green here (clippy, cargo test --no-fail-fast, probe check; server DB suite with db-tests,test-auth,fake).
+In flight: none on this branch.
+Next: after #95 merges, retarget #96 to main, merge main in; Task 4's Playwright DM check in two-players.spec.ts (alice's last set-up placement with bob's page closed → fake /_sent has one DM; none with alerts off); then ready and merge; then slice 6 (ship).
+Blocked: none.
