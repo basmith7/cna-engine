@@ -401,12 +401,6 @@ impl GameState {
                 alighting.push(aboard.remove(k));
             }
             let dropped = alighting.iter().filter(|(id, _)| is_supply(id)).count();
-            if dropped > 0
-                && let Some(e) =
-                    self.supply_stack_refusal(data, PieceKind::SupplyUnit, &stop.at, dropped)
-            {
-                return Err(e);
-            }
             let mut by_start: Vec<(HexId, Vec<PieceId>)> = Vec::new();
             for (id, start) in alighting {
                 match by_start.iter_mut().find(|(s, _)| *s == start) {
@@ -430,6 +424,21 @@ impl GameState {
                     supply += 1;
                 }
                 aboard.push((id, stop.at.clone()));
+            }
+            // Supply getting on frees the room supply getting off takes.
+            let boarded = aboard
+                .iter()
+                .filter(|(id, at)| *at == stop.at && is_supply(id))
+                .count();
+            if dropped > boarded
+                && let Some(e) = self.supply_stack_refusal(
+                    data,
+                    PieceKind::SupplyUnit,
+                    &stop.at,
+                    dropped - boarded,
+                )
+            {
+                return Err(e);
             }
             let sp: u32 = aboard
                 .iter()
