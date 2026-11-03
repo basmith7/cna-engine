@@ -865,6 +865,8 @@ mod tests {
     ///   test-only Commonwealth raider hidden in an empty hex a lone Axis
     ///   combat unit may enter by a one-hex move: the move stops there and
     ///   the unit may try to spot it (27.42–27.43).
+    /// - `patrol`: the golden game at the first phase L in which the
+    ///   player to act has a unit that may patrol (16.x).
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
         let set_up_done = golden_prefix(56);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
@@ -1282,8 +1284,40 @@ mod tests {
             .expect("the mover may try to spot it");
         assert!(events.iter().any(|e| matches!(e, Event::SpotTried { .. })));
 
+        let mut patrol = golden_prefix(0);
+        for logged in &golden_log().orders {
+            let side = patrol.to_act();
+            if patrol.clock.phase == cna_game::clock::Phase::Patrol
+                && side.is_some_and(|s| !patrol.patrol_options(graziani(), s).is_empty())
+            {
+                break;
+            }
+            patrol
+                .apply(graziani(), logged.player, logged.order.clone())
+                .unwrap();
+        }
+        let side = patrol.to_act().expect("someone patrols");
+        let options = patrol.patrol_options(graziani(), side);
+        assert!(
+            !options.is_empty(),
+            "the golden game reaches a phase L with a patrol to send"
+        );
+        let mut probe = patrol.clone();
+        probe
+            .apply(
+                graziani(),
+                side,
+                Order::Patrol {
+                    sources: vec![(options[0].piece.clone(), 1)],
+                    target: options[0].targets[0].clone(),
+                    exclude: vec![],
+                },
+            )
+            .expect("an offered patrol goes out");
+
         vec![
             ("set-up-done", set_up_done),
+            ("patrol", patrol),
             ("crusader-set-up", crusader_set_up),
             ("raid-rommel", raid),
             ("spot-raider", spot),
