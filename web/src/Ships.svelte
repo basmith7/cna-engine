@@ -18,7 +18,7 @@
 <g class="ships" data-testid="ships" data-count={groups.reduce((n, [, ps]) => n + ps.length, 0)}>
   {#each groups as [hex, ships] (hex)}
     {@const [cx, cy] = centre(hex)}
-    <g class="at" data-hex={hex} transform="translate({cx} {cy - S * 0.3})">
+    <g class="at" data-hex={hex} transform="translate({cx} {cy})">
       {#each ships as p, i (p.id)}
         <g class="ship" class:fired={view.fleet?.[p.id]?.fired} data-unit={p.id} data-ship={p.id} data-hex={hex} transform="translate(0 {-i * S * 0.32})">
           <path d="M {-S * 0.45} {-S * 0.12} L {S * 0.45} {-S * 0.12} L {S * 0.32} {S * 0.14} L {-S * 0.36} {S * 0.14} Z" />
