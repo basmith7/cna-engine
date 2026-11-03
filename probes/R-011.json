@@ -2,7 +2,7 @@
   "id": "R-011",
   "kind": "line",
   "question": "Loss as a share of each side's own strength, by size ratio (column 0 before the double-strength shift)",
-  "rules_commit": "50e66bfff320df33d8d4c12275f41720d7ae3b92",
+  "rules_commit": "b142151c1d3cc071a1074842e4f549665c7acbd2",
   "engine_commit": "see git log",
   "x": {
     "label": "Raw strength, attacker:defender",

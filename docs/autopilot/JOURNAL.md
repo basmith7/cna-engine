@@ -663,3 +663,9 @@ Done: #112 (fleet plan) and #110 (patrols) merged. #111 (R-150, vendor/cna 50e66
 In flight: CI on #111, #113, #114, #115.
 Next: merge #111 (retarget #114 to main FIRST), then #114 (main merged in; re-run regenerate_ if pins conflict), #113, #115. Then fleet Tasks 2–3 when cna adds warship ratings; 28.3 captured equipment waits on a cna request.
 Blocked: none.
+
+## 2026-11-03 11:20 MST — autopilot/m5-bump-r151
+Done: #116 (draft) bumps vendor/cna to b142151 (warship ratings, R-151 as a NOT_SIMULATED row); cna-data reads gun/AA ratings and the OA `blockship`; pins regenerated (commit stamp only).
+In flight: gates on #116; subagent building fleet Task 2 (bombardment) on autopilot/m5-fleet-barrage in /tmp/cna-fleet-2 (target dir target-fleet2).
+Next: ready+merge #116 on green; review and PR the barrage branch (retarget to main after #116 merges); Task 3 (strikes, damage, repair); then delete the warship-ratings request from PROGRESS. cna #287 (captured equipment, R-152) is a draft on cna.
+Blocked: none.
