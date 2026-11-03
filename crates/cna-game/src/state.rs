@@ -168,8 +168,8 @@ pub struct GameState {
     /// in a shorter scenario.
     #[serde(default, skip_serializing_if = "crate::raiders::is_zero")]
     pub rommel_raids: u32,
-    /// Raiders and the hexes they raided this movement segment, so this
-    /// OpStage: no raider makes the same raid in a hex twice in a stage
+    /// Raiders and the hexes they raided this OpStage, cleared as phase G
+    /// ends: no raider makes the same raid in a hex twice in a stage
     /// (27.91's general notes).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub raided: BTreeSet<(PieceId, HexId)>,

@@ -350,19 +350,19 @@ impl GameState {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::movement::test_support::{moving, mv, pid};
     use crate::order::Order;
     use crate::rng::GameRng;
 
-    fn graziani() -> Data {
+    pub(crate) fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
     }
 
     /// A Commonwealth raider, hidden, at `hex`: 1 KRRC's counter made
     /// into one, as no LRDG counter is in cna's data yet.
-    fn raider(state: &mut GameState, hex: &HexId) -> PieceId {
+    pub(crate) fn raider(state: &mut GameState, hex: &HexId) -> PieceId {
         let mut p = state.pieces[&pid("unit:cw:1-krrc")].clone();
         p.id = PieceId::from("unit:cw:lrdg-test".to_owned());
         p.kind = PieceKind::Raider;
@@ -1043,6 +1043,10 @@ mod tests {
         let err = raid_dump(&mut state, &data, &id, &target).unwrap_err();
         assert_eq!(err.case, "27.91", "{err:?}");
         assert_eq!(serde_json::to_string(&state).unwrap(), before);
+        // The movement segment after reserve release is the same stage.
+        state.open_movement_segment(&data, &mut Vec::new());
+        let err = raid_dump(&mut state, &data, &id, &target).unwrap_err();
+        assert_eq!(err.case, "27.91", "{err:?}");
     }
 
     #[test]

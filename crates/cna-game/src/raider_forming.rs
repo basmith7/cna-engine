@@ -131,7 +131,7 @@ impl GameState {
     /// Every (raider counter, unit) pair `player` may form now (27.13),
     /// for the browser's phase C control.
     pub fn raider_formings(&self, data: &Data, player: Side) -> Vec<(PieceId, PieceId)> {
-        if self.clock.phase != Phase::Organisation {
+        if self.clock.phase != Phase::Organisation || self.to_act() != Some(player) {
             return Vec::new();
         }
         let raiders: Vec<PieceId> = data
@@ -168,7 +168,6 @@ impl GameState {
             .unit()
             .and_then(|u| data.oa.unit(&u))
             .expect("checked");
-        let side = player;
         let weapon = self.pieces[from]
             .weapons
             .iter()
@@ -179,13 +178,15 @@ impl GameState {
         debug_assert!(took, "a unit with two TOE points gives one");
         let mut piece = match self.pieces.get(raider) {
             Some(p) => p.clone(),
-            None => crate::setup::piece_for(side, unit, &data.chars, &data.oa),
+            None => crate::setup::piece_for(player, unit, &data.chars, &data.oa),
         };
         piece.location = Location::Hex(hex.clone());
         // Formed, it is on the map until it moves (27.31).
         piece.hidden = false;
         piece.cp_spent = Cp::ZERO;
         piece.cp_enemy_half = Cp::ZERO;
+        piece.contact = false;
+        piece.engaged = false;
         self.pieces.insert(raider.clone(), piece);
         Ok(vec![Event::RaiderFormed {
             piece: raider.clone(),
