@@ -320,6 +320,24 @@ test("phase K: field repair of broken-down tanks at Alexandria, one roll a type 
   await expect(page.getByTestId("clock")).not.toContainText("repair");
 });
 
+test("phase K: Alexandria's major facility repairs broken-down tanks on its own column (22.3x)", async ({ page }) => {
+  await openFixture(page, "repair");
+  await clickHex(page, "E3613");
+  const facility = page.getByTestId("phase-controls").locator('[data-order="facility-repair"][data-weapon="Mark VI Light"]');
+  await expect(facility).toContainText("Repair 4 Mark VI Light at the major facility");
+  await facility.click();
+  await expect(page.getByTestId("log-entries").locator("li.event", { hasText: "Major facility repair at E3613, Mark VI Light" })).toHaveCount(1);
+  const after = await page.evaluate(() => {
+    const v = window.__cna.view();
+    const left = (v.broken_down?.["E3613"] ?? []).reduce((n: number, w: { points: number }) => n + w.points, 0);
+    return { total: left + (v.repaired?.cw?.["E3613"]?.["Mark VI Light"] ?? 0), offers: v.facility_repairs ?? [] };
+  });
+  expect(after.total).toBe(4);
+  // The type has had its roll this phase: no second offer.
+  expect(after.offers).toEqual([]);
+  await expect(facility).toHaveCount(0);
+});
+
 test("phase C: the Axis names its convoy lanes in order; Greece's are shut in 1940 (32.63, 56.14)", async ({ page }) => {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");

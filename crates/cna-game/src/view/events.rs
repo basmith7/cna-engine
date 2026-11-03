@@ -89,6 +89,7 @@
 //! | `broke-down` | own | `piece` | breakdown marker contents secret |
 //! | `wrecks-captured` | public | | the captor learns the contents by taking them; the loser knew them |
 //! | `field-repaired` | own | the side whose `field_rolled` holds `(side, hex, weapon)` | replacement points secret |
+//! | `facility-repaired` | own | as `field-repaired` | replacement points secret |
 //! | `air-lifted` | reduced | `piece` | `fuel_from`: which unit paid tells it is real and loaded |
 //! | `railed` | public | | counters move (ids aliased, list sorted) |
 //! | `attached` | own | `piece` | `parent` is removed from the enemy's view of a piece |
@@ -339,7 +340,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::ConvoyLanesSet { .. } | E::ConvoyCancelled { .. } => Own(Some(Side::Axis)),
         // 32.72: the number of strikes is rolled secretly.
         E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
-        E::FieldRepaired { hex, weapon, .. } => {
+        E::FieldRepaired { hex, weapon, .. } | E::FacilityRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {
                 state
                     .field_rolled

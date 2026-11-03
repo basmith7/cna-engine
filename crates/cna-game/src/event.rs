@@ -317,6 +317,19 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// A facility-repair roll (22.3x): `repaired` of `attempted` points of
+    /// `weapon` at `hex`, on the `kind` facility's column, come back as
+    /// replacement points.
+    FacilityRepaired {
+        hex: HexId,
+        weapon: String,
+        kind: cna_data::scenario::FacilityKind,
+        attempted: u32,
+        die: u8,
+        repaired: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// A warship placed at sea for this OpStage (30.1x).
     Stationed {
         ship: PieceId,

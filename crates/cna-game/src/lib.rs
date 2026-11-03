@@ -16,6 +16,7 @@ mod cycle;
 pub mod data;
 mod determinism;
 pub mod event;
+mod facility;
 pub mod fleet;
 mod fuel;
 mod golden;

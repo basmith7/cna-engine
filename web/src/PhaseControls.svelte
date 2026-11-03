@@ -37,7 +37,8 @@
         | { "destroy-supply": { hex: HexId } }
         | { "air-lift": { piece: PieceId; to: Location } }
         | { "convoy-lanes": { lanes: number[] } }
-        | { repair: { hex: HexId; weapon: string } },
+        | { repair: { hex: HexId; weapon: string } }
+        | { "facility-repair": { hex: HexId; weapon: string } },
     ) => void;
   } = $props();
 
@@ -71,6 +72,8 @@
       ? [...new Set((view.broken_down?.[hex] ?? []).filter((w) => w.side === view.to_act).map((w) => w.weapon))]
       : [],
   );
+  // Phase K: the facility rolls the engine offers in the selected hex (22.3x).
+  const facilityRepairs = $derived(c.phase === "repair" && hex !== null ? (view.facility_repairs ?? []).filter((o) => o.hex === hex) : []);
   // Phase C, the Axis: the convoy lanes its supply sails by, filled in the order named (32.63); a click names or drops one.
   const lanes = $derived(view.convoy_lanes ?? []);
   let ammo = $state(0);
@@ -136,8 +139,11 @@
       <button type="button" data-order="destroy-supply" onclick={() => onorder({ "destroy-supply": { hex } })}>Destroy supply at {hex}</button>
     {/if}
     {#if c.phase === "repair" && repairs.length === 0}
-      <span class="hint" data-testid="repair-hint">Select a hex with your broken-down vehicles to try field repair (22.2x).</span>
+      <span class="hint" data-testid="repair-hint">Select a hex with your broken-down vehicles to try field repair (22.2x) or, at a repair facility, facility repair (22.3x).</span>
     {/if}
+    {#each facilityRepairs as o (o.weapon)}
+      <button type="button" data-order="facility-repair" data-weapon={o.weapon} onclick={() => onorder({ "facility-repair": { hex: o.hex, weapon: o.weapon } })}>Repair {o.points} {o.weapon} at the {o.kind} facility</button>
+    {/each}
     {#each repairs as weapon (weapon)}
       <button type="button" data-order="repair" data-weapon={weapon} onclick={() => hex && onorder({ repair: { hex, weapon } })}>Repair {weapon} at {hex}</button>
     {/each}

@@ -406,14 +406,33 @@ pub struct SupplyBlock {
     pub notes: Vec<String>,
 }
 
-/// One side's set-up. The air, repair and truck blocks are not read:
-/// the engine plays the Land Game only.
+/// A repair facility the scenario sets up (22.31, R-099).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FacilityKind {
+    Temporary,
+    Major,
+}
+
+/// A repair block: a facility of `kind` at `placement` (22.31).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RepairBlock {
+    pub placement: Placement,
+    pub kind: FacilityKind,
+}
+
+/// One side's set-up. The air and truck blocks are not read: the
+/// engine plays the Land Game only.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SideSetup {
     #[serde(default)]
     pub deployments: Vec<Deployment>,
     #[serde(default)]
     pub supply: Vec<SupplyBlock>,
+    /// The repair facilities that exist at the start; none listed means
+    /// 22.31's own list (R-099).
+    #[serde(default)]
+    pub repair: Vec<RepairBlock>,
     #[serde(default)]
     pub reinforcements: Vec<String>,
     #[serde(default)]
@@ -636,6 +655,7 @@ impl Scenario {
         static EMPTY: SideSetup = SideSetup {
             deployments: Vec::new(),
             supply: Vec::new(),
+            repair: Vec::new(),
             reinforcements: Vec::new(),
             special: Vec::new(),
             fleet: None,
@@ -700,6 +720,29 @@ mod tests {
         assert_eq!(entries(Side::Cw), 32);
         assert_eq!(s.side(Side::Axis).supply.len(), 10);
         assert_eq!(s.side(Side::Cw).supply.len(), 5);
+    }
+
+    #[test]
+    fn repair_blocks_name_each_side_s_facilities_22_31() {
+        let s = graziani();
+        let axis = &s.side(Side::Axis).repair;
+        assert_eq!(axis.len(), 3);
+        assert_eq!(
+            axis[0].placement.sole(),
+            Some(&Locator::Box(OffMapBox::Tripoli))
+        );
+        assert_eq!(axis[0].kind, FacilityKind::Major);
+        assert_eq!(
+            axis[1].placement.sole(),
+            Some(&Locator::Place(vec!["tobruk".into()]))
+        );
+        assert_eq!(axis[1].kind, FacilityKind::Temporary);
+        assert_eq!(s.side(Side::Cw).repair.len(), 2);
+        // Rommel's Arrival lists none for the Axis: 22.31's own list
+        // holds (R-099).
+        let rommel = Scenario::load("rommels-arrival").unwrap();
+        assert!(rommel.side(Side::Axis).repair.is_empty());
+        assert_eq!(rommel.side(Side::Cw).repair.len(), 4);
     }
 
     #[test]

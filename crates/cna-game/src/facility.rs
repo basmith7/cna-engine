@@ -1,0 +1,521 @@
+//! Phase K, facility repair (SPI §22.3x) with the `breakdown` module on:
+//! the phasing player rolls once per broken-down vehicle type in one of
+//! its repair facilities, for the points that began the OpStage there,
+//! on the Vehicle Repair Table's temporary or major column; with
+//! abstract supply each point attempted costs a fuel, paid first. What
+//! is repaired waits as replacement points (22.5), as field repair's
+//! does.
+//!
+//! The facilities are the scenario's (R-099); a side whose set-up lists
+//! none has 22.31's: Alexandria and Cairo for the Commonwealth, the
+//! Tripoli box for the Axis, Tobruk for whoever holds it. Wrecks stand
+//! only in map hexes, so the Tripoli box repairs nothing yet.
+
+use crate::clock::Phase;
+use crate::data::Data;
+use crate::event::{Event, Illegal};
+use crate::piece::{PieceId, PieceKind};
+use crate::state::GameState;
+use crate::zoc::Zoc;
+use cna_data::map::{HexId, PlaceKind};
+use cna_data::scenario::{FacilityKind, Locator, Side};
+use cna_rules::movement::Weather;
+use std::collections::BTreeMap;
+
+/// One facility-repair roll the phasing player may make now.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct FacilityOffer {
+    pub hex: HexId,
+    pub weapon: String,
+    /// Points that began the OpStage in the hex: what the roll attempts
+    /// before fuel runs short.
+    pub points: u32,
+    pub kind: FacilityKind,
+}
+
+impl GameState {
+    /// `side`'s repair facilities in map hexes (22.31, R-099): its
+    /// scenario's list, else 22.31's. A hex listed twice keeps the major.
+    /// Placements the player chooses (a village in a region) are not
+    /// resolved.
+    pub fn repair_facilities(&self, data: &Data, side: Side) -> BTreeMap<HexId, FacilityKind> {
+        let mut out: BTreeMap<HexId, FacilityKind> = BTreeMap::new();
+        let mut add = |hex: &HexId, kind: FacilityKind| {
+            let k = out.entry(hex.clone()).or_insert(kind);
+            *k = (*k).max(kind);
+        };
+        let place_hexes = |id: &str| -> Vec<HexId> {
+            data.map
+                .place(id)
+                .map(|p| p.hexes.clone())
+                .unwrap_or_default()
+        };
+        let listed = &data.scenario.side(side).repair;
+        if listed.is_empty() {
+            if side == Side::Cw {
+                for id in ["alexandria-east", "alexandria-west", "cairo"] {
+                    for h in place_hexes(id) {
+                        add(&h, FacilityKind::Major);
+                    }
+                }
+            }
+            // Tobruk serves its controller: here, a side with a unit in
+            // it and no enemy unit there.
+            for h in place_hexes("tobruk") {
+                let held_by = |s: Side| {
+                    self.pieces.values().any(|p| {
+                        p.side == s && p.hex() == Some(&h) && p.kind != PieceKind::DummySupplyUnit
+                    })
+                };
+                if held_by(side) && !held_by(side.other()) {
+                    add(&h, FacilityKind::Major);
+                }
+            }
+            return out;
+        }
+        for block in listed {
+            match block.placement.sole() {
+                Some(Locator::Hexes(hexes)) => {
+                    for h in hexes {
+                        add(h, block.kind);
+                    }
+                }
+                Some(Locator::Place(ids)) => {
+                    for id in ids {
+                        for h in place_hexes(id) {
+                            add(&h, block.kind);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        out
+    }
+
+    /// Why `side` may not repair at a facility in `hex`, if it may not:
+    /// no facility of its own there (22.31), or a temporary one under an
+    /// enemy ZOC (outside a major city) or a storm (22.13).
+    fn facility_bar(&self, data: &Data, side: Side, hex: &HexId) -> Result<FacilityKind, Illegal> {
+        let Some(kind) = self.repair_facilities(data, side).get(hex).copied() else {
+            return Err(Illegal::new(
+                "22.31",
+                format!("no repair facility of yours at {hex}"),
+            ));
+        };
+        if kind == FacilityKind::Major {
+            return Ok(kind);
+        }
+        let major_city = data
+            .map
+            .places()
+            .any(|p| p.kind == PlaceKind::MajorCity && p.hexes.contains(hex));
+        if !major_city && !matches!(self.zoc_at(data, hex, side), Zoc::Clear) {
+            return Err(Illegal::new(
+                "22.13",
+                format!("{hex} is in an enemy ZOC: its temporary facility stops"),
+            ));
+        }
+        if self.weather_at(hex) != Weather::Normal {
+            return Err(Illegal::new(
+                "22.13",
+                format!("a storm at {hex} stops its temporary facility"),
+            ));
+        }
+        Ok(kind)
+    }
+
+    /// `side`'s broken-down `weapon` points in `hex` that began the
+    /// OpStage there.
+    fn settled_points(&self, side: Side, hex: &HexId, weapon: &str) -> u32 {
+        self.broken_down
+            .get(hex)
+            .into_iter()
+            .flatten()
+            .filter(|w| w.side == side && w.weapon == weapon)
+            .map(|w| w.points - w.this_stage)
+            .sum()
+    }
+
+    /// The facility rolls the phasing player may still make this phase,
+    /// in hex and then wreck order.
+    pub fn facility_repairs(&self, data: &Data) -> Vec<FacilityOffer> {
+        let Some(side) = self.phasing() else {
+            return Vec::new();
+        };
+        if !self.modules.breakdown || self.clock.phase != Phase::Repair {
+            return Vec::new();
+        }
+        let mut out: Vec<FacilityOffer> = Vec::new();
+        for (hex, wrecks) in &self.broken_down {
+            let Ok(kind) = self.facility_bar(data, side, hex) else {
+                continue;
+            };
+            if self.modules.abstract_supply && self.repair_fuel(data, side, hex).is_empty() {
+                continue;
+            }
+            for w in wrecks.iter().filter(|w| w.side == side) {
+                let key = (side, hex.clone(), w.weapon.clone());
+                if self.field_rolled.contains(&key)
+                    || out.iter().any(|o| &o.hex == hex && o.weapon == w.weapon)
+                {
+                    continue;
+                }
+                let points = self.settled_points(side, hex, &w.weapon);
+                if points > 0 {
+                    out.push(FacilityOffer {
+                        hex: hex.clone(),
+                        weapon: w.weapon.clone(),
+                        points,
+                        kind,
+                    });
+                }
+            }
+        }
+        out
+    }
+
+    /// `Order::FacilityRepair`: one facility roll for the phasing
+    /// player's `weapon` in `hex` (22.3x), on the facility's column, for
+    /// the points that began the OpStage there; fuel as for field repair.
+    pub(crate) fn facility_repair(
+        &mut self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+        weapon: &str,
+        fuel_from: Option<&PieceId>,
+    ) -> Result<Vec<Event>, Illegal> {
+        if !self.modules.breakdown || self.clock.phase != Phase::Repair {
+            return Err(Illegal::new(
+                "22.11",
+                format!("vehicles are repaired in phase K, not at {}", self.clock),
+            ));
+        }
+        if self.phasing() != Some(player) {
+            return Err(Illegal::new("22.11", "only the phasing player repairs"));
+        }
+        let kind = self.facility_bar(data, player, hex)?;
+        let key = (player, hex.clone(), weapon.to_string());
+        if self.field_rolled.contains(&key) {
+            return Err(Illegal::new(
+                "22.23",
+                format!("{weapon} at {hex} has had its roll this phase"),
+            ));
+        }
+        let points = self.settled_points(player, hex, weapon);
+        if points == 0 {
+            return Err(Illegal::new(
+                "22.31",
+                format!("no broken-down {weapon} of yours began this OpStage at {hex}"),
+            ));
+        }
+        let (attempted, paid_by) = self.pay_repair_fuel(data, player, hex, points, fuel_from)?;
+        self.field_rolled.insert(key);
+        let die = self.rng.d6();
+        let row = data
+            .vehicle_repair
+            .row(die)
+            .expect("vehicle-repair.json has a row for every d6 roll");
+        let (column, percent) = match kind {
+            FacilityKind::Temporary => {
+                ("temporary_facility_percent", row.temporary_facility_percent)
+            }
+            FacilityKind::Major => ("major_facility_percent", row.major_facility_percent),
+        };
+        let percent = percent.expect("vehicle-repair.json has facility columns for every roll");
+        // A starred 10 % is ignored for a single point (22.8).
+        let starred = row
+            .single_point_ignores_ten_percent
+            .iter()
+            .any(|c| c == column);
+        let repaired = if attempted == 1 && starred {
+            0
+        } else {
+            (attempted * percent).div_ceil(100)
+        };
+        self.take_wrecks(hex, player, weapon, repaired, true);
+        if repaired > 0 {
+            *self
+                .repaired
+                .entry(player)
+                .or_default()
+                .entry(hex.clone())
+                .or_default()
+                .entry(weapon.to_string())
+                .or_default() += repaired;
+        }
+        Ok(vec![Event::FacilityRepaired {
+            hex: hex.clone(),
+            weapon: weapon.to_string(),
+            kind,
+            attempted,
+            die,
+            repaired,
+            fuel_from: paid_by,
+        }])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::breakdown::Wreck;
+    use crate::clock::Half;
+    use crate::order::Order;
+    use crate::piece::Location;
+    use crate::state::Modules;
+
+    /// Graziani in the Commonwealth's phase K (the Commonwealth Player
+    /// A), with four broken-down Matilda points that began the OpStage in
+    /// `hex`.
+    fn at_facility(data: &Data, modules: Modules, hex: &str) -> (GameState, HexId) {
+        let mut state = GameState::with_modules(data, 5, modules).unwrap();
+        crate::state::test_support::auto_place(data, &mut state);
+        state.player_a = Some(Side::Cw);
+        state.clock.phase = Phase::Repair;
+        state.clock.half = Some(Half::A);
+        let hex = HexId::parse(hex).unwrap();
+        state.broken_down.insert(
+            hex.clone(),
+            vec![Wreck {
+                side: Side::Cw,
+                nation: None,
+                weapon: "Matilda".into(),
+                points: 4,
+                this_stage: 0,
+            }],
+        );
+        (state, hex)
+    }
+
+    fn breakdown_only() -> Modules {
+        Modules {
+            breakdown: true,
+            ..Modules::default()
+        }
+    }
+
+    fn order(hex: &HexId) -> Order {
+        Order::FacilityRepair {
+            hex: hex.clone(),
+            weapon: "Matilda".into(),
+            fuel_from: None,
+        }
+    }
+
+    /// An Axis combat unit next to `hex`, so its ZOC covers it.
+    fn enemy_beside(data: &Data, state: &mut GameState, hex: &HexId) {
+        let axis: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .collect();
+        for next in data.map.neighbours(hex) {
+            for id in &axis {
+                let was = state.pieces[id].location.clone();
+                state.put(id, Location::Hex(next.clone()));
+                if state.zoc_at(data, hex, Side::Cw) != Zoc::Clear {
+                    return;
+                }
+                state.put(id, was);
+            }
+        }
+        panic!("no Axis unit casts a ZOC over {hex}");
+    }
+
+    #[test]
+    fn graziani_s_facilities_are_its_own_list_r_099() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = GameState::with_modules(&data, 5, Modules::ALL).unwrap();
+        let cw = state.repair_facilities(&data, Side::Cw);
+        let h = |s: &str| HexId::parse(s).unwrap();
+        assert_eq!(cw.get(&h("E3613")), Some(&FacilityKind::Major));
+        assert_eq!(cw.get(&h("D3714")), Some(&FacilityKind::Temporary));
+        // Graziani lists no Cairo facility: the scenario's list governs.
+        assert_eq!(cw.get(&h("E1730")), None);
+        let axis = state.repair_facilities(&data, Side::Axis);
+        assert_eq!(axis.get(&h("C4807")), Some(&FacilityKind::Temporary));
+        assert_eq!(axis.get(&h("A4827")), Some(&FacilityKind::Temporary));
+    }
+
+    #[test]
+    fn a_side_listing_none_has_22_31_s_facilities_r_099() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let state = GameState::new(&data, 5).unwrap();
+        // Tobruk serves the Axis only while it holds Tobruk.
+        let axis = state.repair_facilities(&data, Side::Axis);
+        assert!(axis.keys().all(|h| h.to_string() == "C4807"), "{axis:?}");
+    }
+
+    #[test]
+    fn alexandria_s_major_facility_repairs_a_matilda_in_a_sandstorm_22_3x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_facility(&data, breakdown_only(), "E3613");
+        state.weather = crate::state::Weather::Sandstorm { sheets: vec!['E'] };
+        enemy_beside(&data, &mut state, &hex);
+        let offer = FacilityOffer {
+            hex: hex.clone(),
+            weapon: "Matilda".into(),
+            points: 4,
+            kind: FacilityKind::Major,
+        };
+        assert_eq!(state.facility_repairs(&data), vec![offer]);
+        // No field repair here: no unit, and a storm.
+        assert!(state.field_repairs(&data).is_empty());
+        let events = state.apply(&data, Side::Cw, order(&hex)).unwrap();
+        let Event::FacilityRepaired {
+            die,
+            repaired,
+            attempted,
+            kind,
+            ..
+        } = events[0]
+        else {
+            panic!("{events:?}");
+        };
+        assert_eq!((attempted, kind), (4, FacilityKind::Major));
+        let pct = data
+            .vehicle_repair
+            .row(die)
+            .unwrap()
+            .major_facility_percent
+            .unwrap();
+        assert_eq!(repaired, (4 * pct).div_ceil(100));
+        assert!(
+            repaired >= 1,
+            "the major column never returns nothing on 4 points"
+        );
+        let waiting = state.repaired[&Side::Cw][&hex]["Matilda"];
+        assert_eq!(waiting, repaired);
+        let left: u32 = state
+            .broken_down
+            .get(&hex)
+            .into_iter()
+            .flatten()
+            .map(|w| w.points)
+            .sum();
+        assert_eq!(left, 4 - repaired);
+        // One roll per type per phase.
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.23"
+        );
+    }
+
+    #[test]
+    fn mersa_matruh_s_temporary_facility_stops_under_an_enemy_zoc_or_a_storm_22_13() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_facility(&data, breakdown_only(), "D3714");
+        assert_eq!(
+            state.facility_repairs(&data)[0].kind,
+            FacilityKind::Temporary
+        );
+        let mut zoc = state.clone();
+        enemy_beside(&data, &mut zoc, &hex);
+        assert!(zoc.facility_repairs(&data).is_empty());
+        assert_eq!(
+            zoc.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.13"
+        );
+        state.weather = crate::state::Weather::Rainstorm { sheets: vec!['D'] };
+        assert!(state.facility_repairs(&data).is_empty());
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.13"
+        );
+    }
+
+    #[test]
+    fn a_vehicle_that_broke_down_this_opstage_waits_22_31() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_facility(&data, breakdown_only(), "E3613");
+        state.broken_down.get_mut(&hex).unwrap()[0].this_stage = 4;
+        assert!(state.facility_repairs(&data).is_empty());
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.31"
+        );
+        // Three of the four arrived this OpStage: only one is attempted.
+        state.broken_down.get_mut(&hex).unwrap()[0].this_stage = 3;
+        let events = state.apply(&data, Side::Cw, order(&hex)).unwrap();
+        let Event::FacilityRepaired {
+            attempted,
+            repaired,
+            ..
+        } = events[0]
+        else {
+            panic!("{events:?}");
+        };
+        assert_eq!(attempted, 1);
+        let w = &state.broken_down[&hex][0];
+        assert_eq!((w.points, w.this_stage), (4 - repaired, 3));
+        // The next OpStage they have all begun there.
+        state.start_stage();
+        assert_eq!(state.broken_down[&hex][0].this_stage, 0);
+    }
+
+    #[test]
+    fn no_facility_repair_away_from_one_or_by_the_other_side_22_31() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_facility(&data, breakdown_only(), "E1730");
+        assert!(state.facility_repairs(&data).is_empty());
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.31"
+        );
+        let (mut state, hex) = at_facility(&data, breakdown_only(), "E3613");
+        assert!(state.apply(&data, Side::Axis, order(&hex)).is_err());
+    }
+
+    #[test]
+    fn with_abstract_supply_each_point_costs_a_fuel_paid_first_22_3x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex) = at_facility(&data, Modules::ALL, "E3613");
+        let source = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::SupplyUnit)
+            .map(|p| p.id.clone())
+            .expect("a Commonwealth supply unit");
+        // No fuel in reach: nothing offered.
+        if state.repair_fuel(&data, Side::Cw, &hex).is_empty() {
+            assert!(state.facility_repairs(&data).is_empty());
+        }
+        state.put(&source, Location::Hex(hex.clone()));
+        state
+            .pieces
+            .get_mut(&source)
+            .unwrap()
+            .load
+            .as_mut()
+            .unwrap()
+            .fuel = 3;
+        let fuel_before: u32 = state
+            .repair_fuel(&data, Side::Cw, &hex)
+            .iter()
+            .map(|q| state.pieces[q].load.unwrap().fuel)
+            .sum();
+        let events = state.apply(&data, Side::Cw, order(&hex)).unwrap();
+        let Event::FacilityRepaired {
+            attempted,
+            ref fuel_from,
+            ..
+        } = events[0]
+        else {
+            panic!("{events:?}");
+        };
+        assert_eq!(attempted, 4.min(fuel_before));
+        assert!(fuel_from.is_some());
+        let fuel_after: u32 = state
+            .repair_fuel(&data, Side::Cw, &hex)
+            .iter()
+            .chain(std::iter::once(&source))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .map(|q| state.pieces[q].load.unwrap().fuel)
+            .sum();
+        assert_eq!(fuel_before - fuel_after, attempted);
+    }
+}

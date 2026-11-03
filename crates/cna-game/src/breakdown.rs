@@ -21,6 +21,14 @@ pub struct Wreck {
     pub nation: Option<Nation>,
     pub weapon: String,
     pub points: u32,
+    /// How many of `points` broke down this OpStage: they did not begin
+    /// it in the hex, so no facility there repairs them yet (22.31).
+    #[serde(default, skip_serializing_if = "crate::breakdown::is_zero")]
+    pub this_stage: u32,
+}
+
+pub(crate) fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 /// A breakdown check's points: some of a piece's listed models, or a
@@ -313,12 +321,16 @@ impl GameState {
                         .iter_mut()
                         .find(|w| w.side == side && w.nation == nation && w.weapon == weapon)
                     {
-                        Some(w) => w.points += 1,
+                        Some(w) => {
+                            w.points += 1;
+                            w.this_stage += 1;
+                        }
                         None => wrecks.push(Wreck {
                             side,
                             nation,
                             weapon,
                             points: 1,
+                            this_stage: 1,
                         }),
                     }
                 }
@@ -502,6 +514,7 @@ mod tests {
                     nation: None,
                     weapon: "Mark VI Light".into(),
                     points: 2,
+                    this_stage: 0,
                 }],
             );
             let order = Order::Move {

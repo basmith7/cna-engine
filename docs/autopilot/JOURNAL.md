@@ -707,3 +707,9 @@ Done: #124 (San Giorgio) merged. #125: main merged in (87d6efb), pins regenerate
 In flight: CI on #125; subagent building facility repair (22.3x) on autopilot/m5-repair-facilities in /tmp/cna-repair (target dir target-repair).
 Next: merge #125 on green, then delete the first-sail request from PROGRESS. Review and ready the repair-facilities PR; then towing (21.6x) and destroyed tanks (14.5, 22.4x) per its plan.
 Blocked: none.
+
+## 2026-11-03 16:33 MST — autopilot/m5-repair-facilities
+Done: #124 (San Giorgio) and #125 (fleet in new games; 55591a1 web log lines for fleet-strikes-rolled/fleet-struck/ship-repaired, 6c497ee map.spec 236 pieces) merged. #126 (subagent): facility repair of broken-down vehicles (22.3x, R-099) in phase K, engine + browser; fresh review found nothing blocking (its four readings are in the PR body); #125 merged in (8de7051), gates green; design Status refreshed (309ae6b).
+In flight: CI on #126 (ready); merge on green.
+Next: towing (21.6x), then destroyed-tank markers, capture (14.5, R-014) and the Destroyed Tank Repair Table (22.4x): `docs/plans/2026-11-03-m5-repair-facilities.md`. Consider a module flag if replay of old breakdown-on logs matters (review item 1).
+Blocked: none.
