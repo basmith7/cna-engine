@@ -26,6 +26,7 @@ impl GameState {
             return;
         }
         self.plan_supply(data, events);
+        self.roll_for_bizerta(data, events);
         self.motorisation_losses(data, events);
     }
 
@@ -205,14 +206,19 @@ impl GameState {
     /// units appear loaded (40 ammunition, 60 fuel), with a dummy for
     /// every three real ones (32.4x, 32.1x). The Commonwealth's land in
     /// Cairo, one in three in Alexandria (its west hex, E3613, where the
-    /// Commonwealth's supply starts). The Axis's come by convoy to the
-    /// Tripoli box on lane 2, at most three a stage, the rest sailing with
-    /// the next turn's convoy, and may be bombed on the way (32.6x); the
-    /// dummies count only the units that land (R-128). Arrivals do not check stacking, as
-    /// reinforcements do not. True when anything arrived.
+    /// Commonwealth's supply starts). The Axis's sail by its convoy lanes
+    /// (`Order::ConvoyLanes`; the Tripoli lane if it named none), at most
+    /// three a lane, filled in the order named; what no open lane takes
+    /// waits for the next turn's convoy. A lane is open from its first
+    /// Game-Turn, Bizerta's once the Axis has rolled for it (55.17), and
+    /// not while a Commonwealth combat unit stands in its port (56.15,
+    /// the engine's reading of a captured port). Each convoy may be
+    /// bombed on the way (32.6x) and lands at its lane's port, with a
+    /// dummy for every three that land there (R-128). Arrivals do not
+    /// check stacking, as reinforcements do not. True when anything
+    /// arrived.
     pub(crate) fn supply_arrivals(&mut self, data: &Data, events: &mut Vec<Event>) -> bool {
-        use crate::piece::{Load, Location, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
-        use cna_data::scenario::OffMapBox;
+        use crate::piece::Location;
         if !self.modules.abstract_supply || self.clock.stage != 1 {
             return false;
         }
@@ -236,85 +242,206 @@ impl GameState {
                 .sum();
             self.planned
                 .retain(|p| !(p.side == side && p.arrives == turn));
-            let sailing = match side {
-                Side::Axis => due.min(LANE_SUPPLY),
-                Side::Cw => due,
+            if due == 0 {
+                continue;
+            }
+            let mut landings: Vec<(Location, u32, u32)> = Vec::new();
+            let sailed = match side {
+                Side::Cw => {
+                    let second = due / 3;
+                    landings.push((hex("alexandria-west"), second, 0));
+                    landings.push((hex("cairo"), due - second, due / 3));
+                    due
+                }
+                Side::Axis => {
+                    let mut left = due;
+                    for lane in self.convoy_lanes_in_use(data) {
+                        if left == 0 {
+                            break;
+                        }
+                        let Some(at) = self.lane_port(data, lane, events) else {
+                            continue;
+                        };
+                        let sailing = left.min(LANE_SUPPLY);
+                        left -= sailing;
+                        let landed = sailing - self.bomb_convoy(data, lane, sailing, events);
+                        landings.push((at, landed, landed / 3));
+                    }
+                    due - left
+                }
             };
-            if due > sailing {
+            if due > sailed {
                 self.planned.push(Planned {
                     side,
                     arrives: turn + 1,
-                    units: due - sailing,
+                    units: due - sailed,
                 });
             }
-            let units = match side {
-                Side::Axis if sailing > 0 => {
-                    let lane = data
-                        .convoy_lanes
-                        .to_box("tripoli")
-                        .expect("convoy-lanes.json has a Tripoli lane")
-                        .lane;
-                    sailing - self.bomb_convoy(data, lane, sailing, events)
-                }
-                _ => sailing,
-            };
-            if units == 0 {
-                continue;
-            }
-            let (main, second, to_second) = match side {
-                Side::Cw => (hex("cairo"), hex("alexandria-west"), units / 3),
-                Side::Axis => (
-                    Location::Box(OffMapBox::Tripoli),
-                    Location::Box(OffMapBox::Tripoli),
-                    0,
-                ),
-            };
-            let next = |state: &GameState, dummy: bool| {
-                (1..)
-                    .map(|n| {
-                        if dummy {
-                            PieceId::dummy_supply(side, n)
-                        } else {
-                            PieceId::supply(side, n)
-                        }
-                    })
-                    .find(|id| !state.pieces.contains_key(id))
-                    .expect("a free number")
-            };
-            let mut at_main = Vec::new();
-            let mut at_second = Vec::new();
-            for i in 0..units + units / 3 {
-                let dummy = i >= units;
-                let id = next(self, dummy);
-                let (at, list) = if !dummy && i < to_second {
-                    (second.clone(), &mut at_second)
-                } else {
-                    (main.clone(), &mut at_main)
-                };
-                let (kind, load) = if dummy {
-                    (PieceKind::DummySupplyUnit, None)
-                } else {
-                    (
-                        PieceKind::SupplyUnit,
-                        Some(Load {
-                            ammo: MAX_AMMO,
-                            fuel: MAX_FUEL,
-                        }),
-                    )
-                };
-                let mut p = crate::setup::supply_piece(side, kind, id.clone(), at, load);
-                p.landed = true;
-                self.pieces.insert(id.clone(), p);
-                list.push(id);
-            }
-            for (pieces, at) in [(at_second, second), (at_main, main)] {
+            for (at, real, dummies) in landings {
+                let pieces = self.land_supply(side, &at, real, dummies);
                 if !pieces.is_empty() {
                     events.push(Event::Arrived { pieces, at });
+                    any = true;
                 }
             }
-            any = true;
         }
         any
+    }
+
+    /// The lanes the Axis's convoys sail by this turn, in its order.
+    fn convoy_lanes_in_use(&self, data: &Data) -> Vec<u8> {
+        if self.convoy_lanes.is_empty() {
+            let tripoli = data
+                .convoy_lanes
+                .to_box("tripoli")
+                .expect("convoy-lanes.json has a Tripoli lane");
+            return vec![tripoli.lane];
+        }
+        self.convoy_lanes.clone()
+    }
+
+    /// Where a convoy on `lane` lands this turn; none if the lane is not
+    /// open, or its port is in Commonwealth hands (56.15, with an event).
+    fn lane_port(
+        &self,
+        data: &Data,
+        lane: u8,
+        events: &mut Vec<Event>,
+    ) -> Option<crate::piece::Location> {
+        use crate::piece::{Location, PieceKind};
+        let l = data.convoy_lanes.lanes.iter().find(|l| l.lane == lane)?;
+        if !self.lane_open(l) {
+            return None;
+        }
+        if let Some(b) = &l.destination.off_map_box {
+            let b = serde_json::from_value(serde_json::Value::String(b.clone())).ok()?;
+            return Some(Location::Box(b));
+        }
+        let h = HexId::parse(l.destination.hex.as_deref()?).ok()?;
+        let held = self
+            .pieces
+            .values()
+            .any(|p| p.side == Side::Cw && p.kind == PieceKind::Combat && p.hex() == Some(&h));
+        if held {
+            events.push(Event::ConvoyCancelled { lane });
+            return None;
+        }
+        Some(Location::Hex(h))
+    }
+
+    /// Whether `lane` may be used this Game-Turn (56.14, 55.17).
+    fn lane_open(&self, lane: &cna_data::convoy::Lane) -> bool {
+        lane.first_game_turn
+            .is_none_or(|t| t <= self.clock.game_turn)
+            && (!lane.activation_roll || self.bizerta_open)
+    }
+
+    /// `real` loaded supply units and `dummies` dummies of `side` at `at`.
+    fn land_supply(
+        &mut self,
+        side: Side,
+        at: &crate::piece::Location,
+        real: u32,
+        dummies: u32,
+    ) -> Vec<crate::piece::PieceId> {
+        use crate::piece::{Load, MAX_AMMO, MAX_FUEL, PieceId, PieceKind};
+        let mut out = Vec::new();
+        for i in 0..real + dummies {
+            let dummy = i >= real;
+            let id = (1..)
+                .map(|n| {
+                    if dummy {
+                        PieceId::dummy_supply(side, n)
+                    } else {
+                        PieceId::supply(side, n)
+                    }
+                })
+                .find(|id| !self.pieces.contains_key(id))
+                .expect("a free number");
+            let (kind, load) = if dummy {
+                (PieceKind::DummySupplyUnit, None)
+            } else {
+                (
+                    PieceKind::SupplyUnit,
+                    Some(Load {
+                        ammo: MAX_AMMO,
+                        fuel: MAX_FUEL,
+                    }),
+                )
+            };
+            let mut p = crate::setup::supply_piece(side, kind, id.clone(), at.clone(), load);
+            p.landed = true;
+            self.pieces.insert(id.clone(), p);
+            out.push(id);
+        }
+        out
+    }
+
+    /// The Axis's roll to open Bizerta (55.17): two dice each Game-Turn
+    /// from the lane's first, until a 12; from a stream of their own.
+    fn roll_for_bizerta(&mut self, data: &Data, events: &mut Vec<Event>) {
+        let Some(lane) = data.convoy_lanes.lanes.iter().find(|l| l.activation_roll) else {
+            return;
+        };
+        if self.bizerta_open
+            || lane
+                .first_game_turn
+                .is_some_and(|t| self.clock.game_turn < t)
+        {
+            return;
+        }
+        let salt = (u64::from(self.clock.game_turn) << 8) | 0x40;
+        let mut rng =
+            crate::rng::GameRng::new(self.rng.seed() ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15));
+        let value = rng.d6() + rng.d6();
+        events.push(Event::DieRolled {
+            purpose: "Bizerta (55.17)".into(),
+            value,
+        });
+        if value == 12 {
+            self.bizerta_open = true;
+            events.push(Event::BizertaOpened);
+        }
+    }
+
+    /// `Order::ConvoyLanes` (32.63): the Axis, in phase C, names the lanes
+    /// its convoys sail by, each one open this Game-Turn, none twice.
+    pub(crate) fn set_convoy_lanes(
+        &mut self,
+        data: &Data,
+        player: Side,
+        lanes: &[u8],
+    ) -> Result<Vec<Event>, crate::event::Illegal> {
+        use crate::clock::Phase;
+        use crate::event::Illegal;
+        let refuse = |why: String| Err(Illegal::new("32.63", why));
+        if player != Side::Axis {
+            return refuse("only the Axis sails convoys".into());
+        }
+        if self.clock.phase != Phase::Organisation || !self.modules.abstract_supply {
+            return refuse(format!(
+                "convoy lanes are named in phase C, not at {}",
+                self.clock
+            ));
+        }
+        for (i, n) in lanes.iter().enumerate() {
+            if lanes[..i].contains(n) {
+                return refuse(format!("lane {n} is named twice"));
+            }
+            let Some(l) = data.convoy_lanes.lanes.iter().find(|l| l.lane == *n) else {
+                return refuse(format!("there is no lane {n}"));
+            };
+            if !self.lane_open(l) {
+                return refuse(format!(
+                    "lane {n} ({}) is not open yet (56.14, 55.17)",
+                    l.name
+                ));
+            }
+        }
+        self.convoy_lanes = lanes.to_vec();
+        Ok(vec![Event::ConvoyLanesSet {
+            lanes: lanes.to_vec(),
+        }])
     }
 }
 
@@ -479,6 +606,118 @@ mod tests {
                 units: 2
             }]
         );
+    }
+
+    #[test]
+    fn convoys_fill_the_named_lanes_in_order_and_land_at_their_ports_32_63() {
+        use crate::piece::{Location, PieceKind};
+        use cna_data::scenario::OffMapBox;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        state.convoy_lanes = vec![6, 2];
+        axis_convoy_of(&mut state, 5);
+        let tobruk = Location::Hex(HexId::parse("C4807").unwrap());
+        let tripoli = Location::Box(OffMapBox::Tripoli);
+        let count = |s: &GameState, at: &Location, k: PieceKind| {
+            s.pieces
+                .values()
+                .filter(|p| p.kind == k && p.side == Side::Axis && &p.location == at)
+                .count()
+        };
+        let before = [&tobruk, &tripoli].map(|at| {
+            (
+                count(&state, at, PieceKind::SupplyUnit),
+                count(&state, at, PieceKind::DummySupplyUnit),
+            )
+        });
+        assert!(state.supply_arrivals(&data, &mut Vec::new()));
+        let after = [&tobruk, &tripoli].map(|at| {
+            (
+                count(&state, at, PieceKind::SupplyUnit),
+                count(&state, at, PieceKind::DummySupplyUnit),
+            )
+        });
+        // Three by lane 6 to Tobruk with a dummy, two by lane 2 without.
+        assert_eq!(after[0], (before[0].0 + 3, before[0].1 + 1));
+        assert_eq!(after[1], (before[1].0 + 2, before[1].1));
+        assert!(state.planned.iter().all(|p| p.side != Side::Axis));
+    }
+
+    #[test]
+    fn a_port_in_commonwealth_hands_takes_no_convoy_56_15() {
+        use crate::piece::{Location, PieceKind};
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        let tobruk = HexId::parse("C4807").unwrap();
+        let cw = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::Combat)
+            .unwrap()
+            .id
+            .clone();
+        state.pieces.get_mut(&cw).unwrap().location = Location::Hex(tobruk.clone());
+        state.convoy_lanes = vec![6];
+        axis_convoy_of(&mut state, 2);
+        let mut events = Vec::new();
+        assert!(!state.supply_arrivals(&data, &mut events));
+        assert!(events.contains(&Event::ConvoyCancelled { lane: 6 }));
+        assert_eq!(
+            state.planned,
+            vec![Planned {
+                side: Side::Axis,
+                arrives: 6,
+                units: 2
+            }]
+        );
+    }
+
+    #[test]
+    fn the_axis_names_only_open_lanes_in_phase_c_32_63() {
+        use crate::clock::Phase;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 5);
+        state.clock.phase = Phase::Organisation;
+        let refused = |s: &mut GameState, side, lanes: &[u8]| {
+            s.set_convoy_lanes(&data, side, lanes).unwrap_err().reason
+        };
+        assert!(refused(&mut state, Side::Cw, &[2]).contains("only the Axis"));
+        // Greece's lanes open in GT32 (56.14); Bizerta needs its roll.
+        assert!(refused(&mut state, Side::Axis, &[4]).contains("not open"));
+        assert!(refused(&mut state, Side::Axis, &[2, 2]).contains("twice"));
+        state.clock.game_turn = 40;
+        assert!(refused(&mut state, Side::Axis, &[1]).contains("not open"));
+        state.bizerta_open = true;
+        let events = state.set_convoy_lanes(&data, Side::Axis, &[1, 4]).unwrap();
+        assert_eq!(events, vec![Event::ConvoyLanesSet { lanes: vec![1, 4] }]);
+        assert_eq!(state.convoy_lanes, vec![1, 4]);
+        state.clock.phase = Phase::Arrival;
+        assert!(refused(&mut state, Side::Axis, &[2]).contains("phase C"));
+    }
+
+    #[test]
+    fn the_axis_rolls_for_bizerta_from_game_turn_35_until_a_twelve_55_17() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let rolls = |turn: u8, open: bool| {
+            let mut state = at_turn(&data, turn);
+            state.bizerta_open = open;
+            let mut events = Vec::new();
+            state.roll_for_bizerta(&data, &mut events);
+            (events, state.bizerta_open)
+        };
+        assert_eq!(rolls(34, false), (Vec::new(), false));
+        assert_eq!(rolls(50, true), (Vec::new(), true));
+        let mut opened = false;
+        for turn in 35..=111 {
+            let (events, open) = rolls(turn, false);
+            let Some(Event::DieRolled { value, .. }) = events.first() else {
+                panic!("GT{turn}: {events:?}");
+            };
+            assert_eq!(open, *value == 12, "GT{turn}");
+            assert_eq!(events.contains(&Event::BizertaOpened), open);
+            opened |= open;
+        }
+        assert!(opened, "a 12 in 77 turns");
     }
 
     #[test]

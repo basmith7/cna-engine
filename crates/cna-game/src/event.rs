@@ -255,6 +255,17 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// The Axis set the lanes its convoys sail by (32.63).
+    ConvoyLanesSet {
+        lanes: Vec<u8>,
+    },
+    /// No Axis convoy sails on `lane` this turn: its port is in
+    /// Commonwealth hands (56.15); its share waits for the next.
+    ConvoyCancelled {
+        lane: u8,
+    },
+    /// The Axis rolled 12 and may sail to Bizerta from now on (55.17).
+    BizertaOpened,
     /// A supply unit flown in phase C, `fuel_from` paying 12 fuel (32.37).
     AirLifted {
         piece: PieceId,

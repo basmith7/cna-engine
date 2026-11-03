@@ -99,6 +99,10 @@ pub enum Order {
         ammo: u32,
         fuel: u32,
     },
+    /// Phase C, abstract supply, the Axis: the convoy lanes its supply
+    /// sails by from the next convoy stage, filled in this order, three
+    /// supply units a lane (32.63, 56.1). Empty: the Tripoli lane alone.
+    ConvoyLanes { lanes: Vec<u8> },
     /// Phase C, abstract supply: the player's once-a-Game-Turn air lift
     /// of one supply unit to `to`, 12 fuel from `fuel_from` (none takes
     /// the first at the origin with enough) (32.37).

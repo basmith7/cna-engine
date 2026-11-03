@@ -256,6 +256,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::MinefieldRemoved { .. }
         | E::PrisonersEscaped { .. }
         | E::PrisonersFreed { .. }
+        | E::BizertaOpened
         | E::GameOver { .. } => Public,
         E::DieRolled { purpose, .. } => match purpose
             .strip_prefix("mines at ")
@@ -281,6 +282,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::AmmunitionSpent { from, .. }
         | E::LoadTransferred { from, .. } => Own(of(from)),
         E::SupplyPlanned { side, .. } | E::MotorisationLost { side, .. } => Own(Some(*side)),
+        // R-144: the Commonwealth learns only the lanes it bombs.
+        E::ConvoyLanesSet { .. } | E::ConvoyCancelled { .. } => Own(Some(Side::Axis)),
         E::FieldRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {
                 state
