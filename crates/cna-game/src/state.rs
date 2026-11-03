@@ -200,6 +200,13 @@ pub struct GameState {
     /// The Game-Turn each side last flew a supply unit (32.37).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub air_lifted: BTreeMap<Side, u8>,
+    /// The Axis's convoy lanes, in the order it fills them (32.63);
+    /// empty sails everything by the Tripoli lane.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub convoy_lanes: Vec<u8>,
+    /// Whether the Axis has made its roll to open Bizerta (55.17).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bizerta_open: bool,
     /// Prisoner points by captor and hex (28.1x): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub prisoners: BTreeMap<Side, BTreeMap<HexId, u32>>,
@@ -359,6 +366,8 @@ impl GameState {
             escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
             air_lifted: BTreeMap::new(),
+            convoy_lanes: Vec::new(),
+            bizerta_open: false,
             rail_runs: BTreeSet::new(),
             rail_supply_way: None,
             weather: Weather::Normal,
@@ -563,6 +572,7 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.air_lift(data, player, piece, to, fuel_from.as_ref()),
+            (None, Order::ConvoyLanes { lanes }) => self.set_convoy_lanes(data, player, lanes),
             (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
             (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
             (

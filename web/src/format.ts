@@ -3,6 +3,7 @@
 // Our own words, never the rulebook's.
 import { itemName } from "./construction";
 import { PHASE_NAMES, SEGMENT_NAMES, sideName } from "./clock";
+import { laneName } from "./supply";
 import type { BarrageResult, Event, Location, PieceId, RetreatReason, Weather } from "./types";
 
 /** How a piece is named in a line; the app passes the view's labels. */
@@ -48,6 +49,7 @@ const count = (n: number | undefined, unit: string, withheld: string) => (n === 
 export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
   if (e === "rommel-recalled") return "Rommel is recalled to Germany for this Game-Turn.";
+  if (e === "bizerta-opened") return "The Axis may now sail convoys to Bizerta (55.17).";
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;
     return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${PHASE_NAMES[c.phase]}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${SEGMENT_NAMES[c.segment]}` : ""} begins.`;
@@ -131,6 +133,11 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${sideName(d.side)} prisoners escape in ${d.hex}: ${parts.join(", ")}.`;
   }
   if ("prisoners-freed" in e) return `${sideName(e["prisoners-freed"].side)} frees ${e["prisoners-freed"].points} of its men held prisoner in ${e["prisoners-freed"].hex}.`;
+  if ("convoy-lanes-set" in e) {
+    const lanes = e["convoy-lanes-set"].lanes;
+    return lanes.length === 0 ? "Axis convoys sail by the Tripoli lane." : `Axis convoys sail by ${lanes.map(laneName).join(", then ")}.`;
+  }
+  if ("convoy-cancelled" in e) return `No convoy sails on ${laneName(e["convoy-cancelled"].lane)}: its port is in Commonwealth hands (56.15).`;
   if ("convoy-bombed" in e) {
     const c = e["convoy-bombed"];
     return `The Axis convoy on lane ${c.lane} is bombed at ${c.bomb_points} points: ${c.reading}, ${c.percent} %; ${c.sunk === undefined || c.units === undefined ? "supply units sunk" : `${c.sunk} of ${c.units} supply units sunk`}.`;

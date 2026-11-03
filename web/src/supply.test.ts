@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ammoNote, fuelSummary, loadLabel, motorisationAt, sourceLabel } from "./supply";
+import { ammoNote, fuelSummary, laneName, loadLabel, motorisationAt, sourceLabel, toggleLane } from "./supply";
 import type { Reach, View } from "./types";
 
 describe("a supply unit's load", () => {
@@ -62,5 +62,18 @@ describe("the ammunition a fire or an assault owes", () => {
   it("names the amount, and says when no supply in range can pay", () => {
     expect(ammoNote({ ammo: 4, ammo_short: false }, "fire")).toBe("firing costs 4 ammunition");
     expect(ammoNote({ ammo: 3, ammo_short: true }, "assault")).toBe("assaulting costs 3 ammunition: none in range");
+  });
+});
+
+describe("the Axis's convoy lanes (32.63)", () => {
+  it("adds a lane last and drops a named one, keeping the order", () => {
+    expect(toggleLane([], 6)).toEqual([6]);
+    expect(toggleLane([6], 2)).toEqual([6, 2]);
+    expect(toggleLane([6, 2, 3], 2)).toEqual([6, 3]);
+  });
+
+  it("names a lane by its port, and a lane cna may add by number alone", () => {
+    expect(laneName(1)).toBe("lane 1 (Bizerta)");
+    expect(laneName(9)).toBe("lane 9");
   });
 });

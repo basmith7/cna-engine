@@ -6,6 +6,7 @@
   // included, so the controls stand down.
   import { sideName } from "./clock";
   import { label } from "./counters";
+  import { LANE_PORTS, laneName, toggleLane } from "./supply";
   import type { HexId, Location, PieceId, Side, View } from "./types";
 
   let {
@@ -35,6 +36,7 @@
         | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
         | { "destroy-supply": { hex: HexId } }
         | { "air-lift": { piece: PieceId; to: Location } }
+        | { "convoy-lanes": { lanes: number[] } }
         | { repair: { hex: HexId; weapon: string } },
     ) => void;
   } = $props();
@@ -69,6 +71,8 @@
       ? [...new Set((view.broken_down?.[hex] ?? []).filter((w) => w.side === view.to_act).map((w) => w.weapon))]
       : [],
   );
+  // Phase C, the Axis: the convoy lanes its supply sails by, filled in the order named (32.63); a click names or drops one.
+  const lanes = $derived(view.convoy_lanes ?? []);
   let ammo = $state(0);
   let fuel = $state(0);
 </script>
@@ -111,6 +115,14 @@
         {:else}
           <button type="button" data-order="air-lift" onclick={() => onfly?.(supply)}>Fly…</button>
         {/if}
+      {/if}
+      {#if view.to_act === "axis"}
+        <span class="lanes" data-testid="convoy-lanes">
+          Convoys: {lanes.length === 0 ? "lane 2 (Tripoli)" : lanes.map(laneName).join(" → ")}
+          {#each Object.keys(LANE_PORTS).map(Number) as lane (lane)}
+            <button type="button" data-order="convoy-lanes" data-lane={lane} aria-pressed={lanes.includes(lane)} onclick={() => onorder({ "convoy-lanes": { lanes: toggleLane(lanes, lane) } })}>{lane} {LANE_PORTS[lane]}</button>
+          {/each}
+        </span>
       {/if}
       {#if loaded.length >= 2}
         <span class="transfer" data-testid="transfer">
