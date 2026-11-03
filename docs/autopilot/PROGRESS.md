@@ -295,6 +295,14 @@ the bullet once it lands and `vendor/cna` is bumped.
   may take them (any unit, or only units of the captor with that weapon
   type), how they count for TOE and in 19.3's chart slots, and whether
   captured wrecks (15.84/14.14, already counted as captured) qualify.
+- **When the fleet may first sail, as data** (Mission 5: fleet in new
+  games). Graziani's Offensive says in prose that no warship moves before
+  Game-Turn 2 OpStage 1 (`fleet.movement`), and Rommel's Arrival that none
+  leaves Alexandria before Game-Turn 27 OpStage 1. The engine needs it
+  structured to enforce it, e.g. `fleet.first_sail: {"game_turn": 2,
+  "op_stage": 1}` beside the prose, in every scenario that has such a
+  limit (and an explicit statement where a scenario has none). Blocks
+  turning the fleet on in new games.
 
 ## Runs and quota
 
