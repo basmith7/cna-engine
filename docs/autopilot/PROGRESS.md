@@ -207,9 +207,10 @@ by a Commonwealth engineer; its ammunition waits on cna (below). #125
 merged: the fleet is on in new games (`cna-play new --no-fleet` turns it
 off), no ship sailing before its scenario's `first_sail` (cna #288);
 CI caught the browser throwing on the Axis's first strike on GT1 (no
-log lines for the strike events), fixed there. #126 (ready, CI): facility repair of broken-down vehicles in
+log lines for the strike events), fixed there. #126 merged: facility repair of broken-down vehicles in
 phase K (22.3x) at the scenario's repair facilities (R-099), engine
-and browser; towing and destroyed tanks are planned next.
+and browser. #127 (draft): towing them toward a facility (21.6x), engine
+only so far; destroyed tanks are planned after it.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -246,8 +247,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #126 (facility repair) merges on green CI;
-  then towing (21.6x) and destroyed tanks (14.5, 22.4x) per
+- Nothing waits on Brian. #126 (facility repair) is merged; #127
+  (towing, 21.6x) needs a browser control and its web checks, then
+  destroyed tanks (14.5, 22.4x) follow per
   `docs/plans/2026-11-03-m5-repair-facilities.md`. Its review's
   readings are in #126's body: an Axis-held Tobruk counts as a major
   facility in Rommel's Arrival, and facilities never change hands
