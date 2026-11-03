@@ -147,6 +147,9 @@ pub struct Games {
     pool: PgPool,
     live: Arc<std::sync::Mutex<HashMap<GameId, Slot>>>,
     streams: crate::stream::Streams,
+    /// The seed `create_as` takes next, once (`/test/next-seed`).
+    #[cfg(feature = "test-auth")]
+    next_seed: Arc<std::sync::Mutex<Option<u64>>>,
 }
 
 pub(crate) fn side_str(side: Side) -> &'static str {
@@ -265,7 +268,28 @@ impl Games {
             pool,
             live: Default::default(),
             streams: Default::default(),
+            #[cfg(feature = "test-auth")]
+            next_seed: Default::default(),
         }
+    }
+
+    /// Makes the next lobby game's seed `seed` (tests replaying a known game).
+    #[cfg(feature = "test-auth")]
+    pub fn set_next_seed(&self, seed: u64) {
+        *self.next_seed.lock().unwrap_or_else(|e| e.into_inner()) = Some(seed);
+    }
+
+    fn lobby_seed(&self) -> u64 {
+        #[cfg(feature = "test-auth")]
+        if let Some(s) = self
+            .next_seed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+        {
+            return s;
+        }
+        OsRng.next_u64()
     }
 
     pub fn pool(&self) -> &PgPool {
@@ -322,7 +346,7 @@ impl Games {
             invite_hash: Some(&hash),
         };
         let mut tx = self.pool.begin().await?;
-        let seed = OsRng.next_u64();
+        let seed = self.lobby_seed();
         let id = insert_game(
             &mut tx,
             scenario,
