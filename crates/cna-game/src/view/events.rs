@@ -130,7 +130,8 @@ enum Seen {
 const ID_LISTS: [&str; 5] = ["pieces", "attackers", "firers", "builders", "forward"];
 
 /// Each of `events` as `viewer` may see it (3.61), in order; an *own*
-/// event of the other side is left out.
+/// event of the other side is left out, and so is any event naming one of
+/// its hidden pieces (27.31), even with open information.
 pub fn events_for(
     state: &GameState,
     aliases: &Aliases,
@@ -138,10 +139,14 @@ pub fn events_for(
     viewer: Option<Side>,
     open: bool,
 ) -> Vec<Value> {
+    let hidden = super::state::hidden_from(state, viewer);
     events
         .iter()
         .filter_map(|event| {
             let mut v = serde_json::to_value(event).expect("an event serialises");
+            if super::state::names_any(&v, &hidden) {
+                return None;
+            }
             if open {
                 return Some(v);
             }
@@ -808,6 +813,33 @@ mod tests {
         assert_eq!(seen_by(&s, &e, Some(Side::Axis)), vec![axis]);
         assert_eq!(seen_by(&s, &e, Some(Side::Cw)), vec![cw]);
         assert_eq!(seen_by(&s, &e, None), vec![neither]);
+    }
+
+    #[test]
+    fn a_hidden_piece_s_moves_reach_its_own_side_alone_27_31() {
+        let mut s = state();
+        let raider = ids(&s).enemy_unit;
+        s.pieces.get_mut(&raider).unwrap().hidden = true;
+        let e = Event::Moved {
+            pieces: vec![raider.clone()],
+            from: hex("C4807"),
+            to: hex("C4808"),
+            cost: Cp::whole(3),
+        };
+        for open in [false, true] {
+            let seen = |viewer| {
+                events_for(
+                    &s,
+                    &Aliases::new(KEY),
+                    std::slice::from_ref(&e),
+                    viewer,
+                    open,
+                )
+            };
+            assert!(seen(Some(Side::Axis)).is_empty(), "open {open}");
+            assert!(seen(None).is_empty(), "open {open}");
+            assert_eq!(seen(Some(Side::Cw)), vec![whole(&e)], "open {open}");
+        }
     }
 
     #[test]

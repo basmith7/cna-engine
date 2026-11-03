@@ -55,8 +55,12 @@ Task 3 waits on request 1.
   events; a raider that enters an enemy ZOC hex is spotted on a 6 and
   survives on 1–5; a raid on Rommel spends 10 CP and applies each row
   of the table; a fifth attempt in a campaign game is refused.
-- [ ] `PieceKind::Raider`, `hidden`, spotting, `Order::RaidRommel`, and
-  the view filtering.
+- [x] `Piece.hidden` and the view filtering: the enemy's state view and
+  events drop a hidden piece and everything naming it, open information
+  or not (`view::state::strip_hidden`). An event is judged against the
+  state after its order, so a raider that moves hidden and is revealed
+  in the same order shows that move.
+- [ ] `PieceKind::Raider`, spotting, `Order::RaidRommel`.
 - [ ] `NOT_SIMULATED.md`: R-135's row loses "the LRDG raid (27.9x)".
   New rows for the 27.5x targets and for supply calls under the abstract
   block.

@@ -172,6 +172,10 @@ pub struct Piece {
     /// `attached_to` not in play (19.4x substitution); set at each attach.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub substitute: bool,
+    /// Off the map under hidden movement (27.31): its owner alone knows
+    /// where it is, so the enemy's view drops it and everything naming it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,

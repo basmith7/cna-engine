@@ -252,6 +252,7 @@ pub(crate) fn supply_piece(
         parent: None,
         attached_to: None,
         substitute: false,
+        hidden: false,
         toe: 0,
         weapons: Vec::new(),
         cpa: None,
@@ -518,6 +519,7 @@ fn piece(
         parent,
         attached_to: None,
         substitute: false,
+        hidden: false,
         toe,
         weapons,
         cpa: match &unit.commander {
