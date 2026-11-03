@@ -2,9 +2,10 @@
 
 **Date:** 2026-10-13 (revision 1)
 **Mission:** 4 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** spec, **approved** by Brian under **Feedback** on 2026-10-29
-(all three questions take the defaults below). Building starts with
-slice 1.
+**Status:** built (slices 1–6, PRs #92–#97). Approved by Brian under
+**Feedback** on 2026-10-29 (all three questions take the defaults
+below). Nothing is hosted: the outside steps are Brian's checklist
+below.
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 technical decision below is Claude's, is cheap to reverse, and can be
@@ -282,8 +283,13 @@ One PR each, in order; each has a plan in `docs/plans/`.
 
 ## Brian's checklist (outside steps, never done unattended)
 
-Done once, after slice 6 merges; slice 6 rewrites this list with the
-exact values.
+Done once, now that slice 6 has merged. The values are the files'
+(`docker-compose.prod.yml`, `deploy/.env.example`, `.tower-deploy`).
+Slice 6 follows Brian's current tooling rather than the plan's own
+scripts: the tag build is the `basmith7/workflows` template
+(`.github/workflows/build.yml`) and the deploy is tower-deploy's
+`deploy-now`, so the repo has no `docker-publish.yml` or
+`deploy-now.sh` of its own.
 
 1. **Discord application** "Campaign for North Africa" at
    discord.com/developers (its own, not Pikachu): OAuth2 redirect
@@ -293,24 +299,35 @@ exact values.
 2. **A Discord server "CNA"** (question 1) with the bot invited with
    the *Create Instant Invite* permission, which Discord's add-member
    call needs alongside the user's `guilds.join` grant; note the guild
-   id.
-3. **Tower:** compose project `cna` in compose.manager (autostart) from
-   `deploy/compose.prod.yml`: `cna-db` (postgres:18, data
-   `/mnt/cache/appdata/cna/pg`) and `cna` (host port 3240, `/healthz`),
-   the Unraid icon labels; `.env` root 600 with `CNA_PUBLIC_URL`,
-   `CNA_DISCORD_CLIENT_ID`, `CNA_DISCORD_CLIENT_SECRET`,
-   `CNA_DISCORD_BOT_TOKEN`, `CNA_DISCORD_GUILD_ID`, `CNA_SESSION_KEY`
-   (64 random bytes, base64), `CNA_ADMINS` (Brian's Discord id),
-   `POSTGRES_PASSWORD`.
-4. **Pangolin:** an HTTP resource `cna.basmith.net` → `192.168.1.149:3240`;
+   id. (Bot token and guild id both empty = sign-in works, no alerts.)
+3. **First image:** tag `v0.1.0` on `main` (`git tag -a v0.1.0 -m
+   "Mission 4: online play"`, `git push origin v0.1.0`) and `gh run
+   watch` the Build run. Then make the GHCR package `cna` public
+   (question 3; GitHub creates it private).
+4. **Tower:** `mkdir -p /mnt/cache/appdata/cna`; a compose.manager
+   project `cna` (autostart) whose `docker-compose.yml` is the repo's
+   `docker-compose.prod.yml` (`cna-db`: postgres:18, data
+   `/mnt/cache/appdata/cna/pg`; `cna`: host port 3240, healthy on
+   `/healthz`); beside it a `.env`, root 600, from `deploy/.env.example`:
+   `POSTGRES_PASSWORD` (`openssl rand -hex 24`: it sits inside
+   `DATABASE_URL`), `CNA_DISCORD_CLIENT_ID`, `CNA_DISCORD_CLIENT_SECRET`,
+   `CNA_DISCORD_BOT_TOKEN`, `CNA_DISCORD_GUILD_ID`, `CNA_ADMINS` (Brian's
+   Discord id). `CNA_PUBLIC_URL` defaults to `https://cna.basmith.net`.
+   No session key: sessions live in Postgres. Start it once by hand;
+   from then on `deploy-now <tag>` syncs the compose file and rolls `cna`.
+5. **Pangolin:** an HTTP resource `cna.basmith.net` → `192.168.1.149:3240`;
    set `sso:false` (the API-created-resource gotcha); health check
    `/healthz`. DNS: the `*.basmith.net` wildcard already points at the
-   VPS; wait 90 s before the first HTTPS hit.
-5. **Backups:** add the `cna` Postgres to `tower-backup` (a `pg_dump`
-   into the stage directory, as SMARTDraft's nightly dump).
-6. **Ship:** tag `v0.1.0`; `scripts/deploy-now.sh`; sign in; log the
-   change in `Infrastructure.md`'s Change Log and add `cna` to *App
-   deployments*.
+   VPS; wait 90 s before the first HTTPS hit. The compose file sets
+   `CNA_TRUST_PROXY=1`, so a client on the LAN or tailnet that reaches
+   port 3240 directly can choose its own rate-limit bucket by sending
+   `X-Forwarded-For`; that is all the header decides.
+6. **Backups:** add the `cna` Postgres to `tower-backup` (a `pg_dump`
+   of `cna-db` into the stage directory, as SMARTDraft's nightly dump).
+7. **Check:** `deploy-now v0.1.0` (or `ssh tower bash
+   /boot/config/bin/deploy-app status cna`), sign in at
+   `https://cna.basmith.net`, and log the change in `Infrastructure.md`'s
+   Change Log and *Own apps* table.
 
 ## Risks
 

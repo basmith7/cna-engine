@@ -554,3 +554,9 @@ Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 al
 In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
 Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
 Blocked: none.
+
+## 2026-11-02 22:58 MST — autopilot/m4-slice-6-ship
+Done: #96 (slice 5) merged 0a59fe2. Slice 6 started: Dockerfile (fetches vendor/cna at CNA_RULES_COMMIT: the shared build-image.yml checks out without submodules), docker-compose.prod.yml + .tower-deploy (project=cna) instead of the plan's own docker-publish.yml/deploy-now.sh (Brian's tooling now: basmith7/workflows build.yml template + tower-deploy's deploy-now), deploy/smoke.sh.
+In flight: local image build + smoke run; then Task 4 docs (README, NOT_SIMULATED, spec Status + checklist, AUTOPILOT row 4 done / 5 next).
+Next: run deploy/smoke.sh, paste output in PR; docs; gates; ready; merge; MISSION 4 COMPLETE; Mission 5 continues (#80 draft, rail).
+Blocked: none.
