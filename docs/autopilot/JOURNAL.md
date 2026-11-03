@@ -584,3 +584,9 @@ Done: #80 merged c2c793a (green CI). #98 (subagent: seats SSE event on join/leav
 In flight: CI on #98's merge commit.
 Next: merge #98 on green CI; then Mission 5's next item (PROGRESS Next steps).
 Blocked: none (hosting Mission 4 is Brian's checklist).
+
+## 2026-11-03 00:37 MST — autopilot/m5-rail-en-route
+Done: #98 merged. #99 (bump vendor/cna 442a172, homes for R-142..R-145, R-145 `escaped` own-only) merged. Stack open, each green locally (cargo test, clippy, probe check): #100 shells by chart slot (R-142), #101 substitution 19.4x (independent units only, `Piece.substitute` set at attach), #102 Axis convoy lanes (engine + phase C buttons; Playwright supply.spec 14 passed), #103 draft: rail stops en route (R-005, engine only). A fresh review's 4 findings fixed (a559890..7644519). PROGRESS on main: new cna request (type IV armoured divisions vs support-group counters).
+In flight: CI on #100 (base main), #101 (base m5-r142-slots), #102, #103.
+Next: merge the stack in order, retargeting each child to main BEFORE merging its parent with --delete-branch (deleting #99's branch closed #100; reopened). Then #103 Task 2 (browser stops), then §27 raiders / LRDG.
+Blocked: none.
