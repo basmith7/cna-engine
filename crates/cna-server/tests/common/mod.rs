@@ -114,6 +114,32 @@ pub fn router_with(games: Games, config: &cna_server::Config) -> axum::Router {
     )
 }
 
+/// A bot token made at run time.
+pub fn bot_token() -> String {
+    format!(
+        "bot-{:016x}",
+        rand_core::RngCore::next_u64(&mut rand_core::OsRng)
+    )
+}
+
+/// The fake Discord on a free port, its bot endpoints wanting
+/// `bot_token` (any, for `None`): its base URL.
+#[cfg(feature = "fake")]
+pub async fn fake_discord_with(bot_token: Option<String>) -> String {
+    use cna_server::fake_discord;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        axum::serve(
+            listener,
+            fake_discord::router_with(fake_discord::default_users(), bot_token),
+        )
+        .await
+        .unwrap()
+    });
+    format!("http://{addr}")
+}
+
 /// The routes over `games` with the test config.
 pub fn router(games: Games) -> axum::Router {
     router_with(games, &config(&[]))

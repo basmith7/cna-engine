@@ -1,11 +1,16 @@
 //! Sign-in with Discord: OAuth2 authorization code with PKCE and
 //! `state`, scopes `identify guilds.join`. The first sign-in makes the
 //! account; each one refreshes its name and avatar and rotates the
-//! session id.
+//! session id. With the bot configured and the account's alerts on, it
+//! also adds the player to the bot's guild (Discord lets a bot DM only
+//! users it shares a server with); that failing does not fail sign-in.
+//! Turning alerts off later removes no one: leaving the guild is the
+//! player's.
 
 use super::store::ACCOUNT;
 use crate::App;
 use crate::accounts;
+use crate::games::AccountId;
 use axum::Router;
 use axum::extract::{ConnectInfo, Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -181,6 +186,7 @@ async fn callback(
             "This account is suspended and cannot sign in.",
         );
     }
+    join_guild(&app, id, &user.id, token.access_token().secret()).await;
     if let Err(e) = session.cycle_id().await {
         return failed(e);
     }
@@ -191,6 +197,42 @@ async fn callback(
         return failed(e);
     }
     found("/")
+}
+
+/// Adds `discord_id` to the bot's guild with the user's `access_token`
+/// (the `guilds.join` grant) if the bot is configured and `account` has
+/// alerts on. Failures are logged, not returned: sign-in goes on.
+async fn join_guild(app: &App, account: AccountId, discord_id: &str, access_token: &str) {
+    let Some((bot_token, guild)) = &app.auth.bot else {
+        return;
+    };
+    let alerts: Result<bool, _> = sqlx::query_scalar("SELECT alerts FROM accounts WHERE id = $1")
+        .bind(account)
+        .fetch_one(app.games.pool())
+        .await;
+    match alerts {
+        Ok(true) => {}
+        Ok(false) => return,
+        Err(e) => {
+            tracing::warn!("sign-in: reading account {account}'s alerts: {e}");
+            return;
+        }
+    }
+    let r = app
+        .auth
+        .http
+        .put(format!(
+            "{}/guilds/{guild}/members/{discord_id}",
+            app.auth.discord_api
+        ))
+        .header(header::AUTHORIZATION, format!("Bot {bot_token}"))
+        .json(&serde_json::json!({ "access_token": access_token }))
+        .send()
+        .await
+        .and_then(|r| r.error_for_status());
+    if let Err(e) = r {
+        tracing::warn!("sign-in: adding account {account} to the guild: {e}");
+    }
 }
 
 /// Ends the caller's session: 204.
