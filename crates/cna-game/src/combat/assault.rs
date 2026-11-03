@@ -860,6 +860,10 @@ impl GameState {
             .iter()
             .any(|c| self.plain_in_hex(data, &c.hex, Kind::Offence));
         let paren_d = !self.plain_in_hex(data, target, Kind::Defence);
+        // What guns and vehicles the assault itself takes (R-152), not
+        // the vulnerability losses after, which are gone, not captured.
+        let a_spoils_before = self.spoil_toe(data, &attacker_ids);
+        let d_spoils_before = self.spoil_toe(data, &in_hex);
         let (_, a_toe) = self.absorb(
             data,
             &mut attacker_shares,
@@ -874,6 +878,20 @@ impl GameState {
             d_lost,
             &mut events,
         );
+        let lost_spoils = |before: BTreeMap<&'static str, (u32, u32)>,
+                           after: BTreeMap<&'static str, (u32, u32)>| {
+            before
+                .into_iter()
+                .map(|(k, (toe, pts))| {
+                    let (t, p) = after.get(k).copied().unwrap_or((0, 0));
+                    (k, (toe.saturating_sub(t), pts.saturating_sub(p)))
+                })
+                .filter(|(_, (toe, _))| *toe > 0)
+                .collect::<BTreeMap<_, _>>()
+        };
+        let a_spoils = lost_spoils(a_spoils_before, self.spoil_toe(data, &attacker_ids));
+        let d_spoils = lost_spoils(d_spoils_before, self.spoil_toe(data, &in_hex));
+        let (a_assault_toe, d_assault_toe) = (a_toe, d_toe);
         // Gun losses (15.84): forward guns pay vulnerability for half the
         // raw points lost, the attacker's in the assaulting hexes whether
         // or not they joined; in an overrun the defender's back guns too.
@@ -894,9 +912,26 @@ impl GameState {
         // Prisoners (15.89).
         // The captor holds them: the defender in the assaulted hex, the
         // attacker with its stack (28.12).
-        for (side, hit, toe, held_in) in [
-            (phasing, a_roll.captured, a_toe, target.clone()),
-            (other, d_roll.captured, d_toe, captor_hex.clone()),
+        // With captured equipment (R-152) the share splits: infantry-type
+        // points are prisoners, guns and vehicles the captor's
+        // replacement points, and vulnerability losses are not captured.
+        for (side, hit, toe, assault_toe, spoils, held_in) in [
+            (
+                phasing,
+                a_roll.captured,
+                a_toe,
+                a_assault_toe,
+                a_spoils,
+                target.clone(),
+            ),
+            (
+                other,
+                d_roll.captured,
+                d_toe,
+                d_assault_toe,
+                d_spoils,
+                captor_hex.clone(),
+            ),
         ] {
             if hit && toe > 0 {
                 let die = self.rng.d6();
@@ -905,9 +940,16 @@ impl GameState {
                     value: die,
                 });
                 let pct = data.prisoners.percent(die).unwrap_or(0);
-                let points = (pct * toe).div_ceil(100);
-                events.push(Event::Prisoners { side, points });
-                self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
+                if self.modules.captured_equipment {
+                    let (points, taken) = Self::captured_share(pct, assault_toe, &spoils);
+                    events.push(Event::Prisoners { side, points });
+                    self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
+                    self.capture_spoils(side.other(), &held_in, taken, &mut events);
+                } else {
+                    let points = (pct * toe).div_ceil(100);
+                    events.push(Event::Prisoners { side, points });
+                    self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
+                }
             }
         }
         // Disorganisation (15.86).
@@ -1613,6 +1655,106 @@ mod tests {
             .iter()
             .find(|e| matches!(e, Event::Assault { .. }))
             .cloned()
+    }
+
+    /// The KRRC and RTR assault the Libyan anti-tank company at C4020,
+    /// on `seed`'s dice, with captured equipment on or off.
+    fn assault_the_anti_tank_coy(data: &Data, seed: u64, captured: bool) -> Vec<Event> {
+        let mut state = with_tanks(data);
+        state.modules.captured_equipment = captured;
+        state.rng = crate::rng::GameRng::new(seed);
+        let c4020 = Some("C4020");
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (
+                Side::Axis,
+                Order::GunPositions {
+                    forward: vec![pid("unit:it:1st-libyan-anti-tank-coy")],
+                },
+            ),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![
+                        assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)]),
+                        assign("unit:cw:1-rtr", vec![], vec![alloc(c4020, 7)]),
+                    ],
+                },
+            ),
+        ] {
+            state.apply(data, side, order).unwrap();
+        }
+        state
+            .apply(
+                data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, 2)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap()
+    }
+
+    #[test]
+    fn the_captured_share_of_lost_tanks_is_the_captor_s_replacements_r152() {
+        let data = graziani();
+        let taken = |events: &[Event], side: Side| -> Option<u32> {
+            events.iter().find_map(|e| match e {
+                Event::Prisoners { side: s, points } if *s == side => Some(*points),
+                _ => None,
+            })
+        };
+        let mut seen = false;
+        for seed in 0..20 {
+            let on = assault_the_anti_tank_coy(&data, seed, true);
+            let off = assault_the_anti_tank_coy(&data, seed, false);
+            assert!(
+                !off.iter()
+                    .any(|e| matches!(e, Event::EquipmentCaptured { .. }))
+            );
+            for side in [Side::Cw, Side::Axis] {
+                let Some(prisoners) = taken(&on, side) else {
+                    continue;
+                };
+                let kit: u32 = on
+                    .iter()
+                    .filter_map(|e| match e {
+                        Event::EquipmentCaptured {
+                            side: captor,
+                            points,
+                            ..
+                        } if *captor == side.other() => Some(*points),
+                        _ => None,
+                    })
+                    .sum();
+                // Off, the same dice made every captured point a prisoner;
+                // on, the RTR's tanks go to the Axis as tanks (one point
+                // either way for rounding each class up).
+                let all = taken(&off, side).unwrap();
+                assert!(
+                    prisoners + kit >= all && prisoners + kit <= all + 1,
+                    "seed {seed}, {side}: {prisoners} + {kit} vs {all}"
+                );
+                seen |= kit > 0;
+            }
+        }
+        assert!(seen, "no seed captured equipment");
     }
 
     #[test]

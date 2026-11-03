@@ -105,6 +105,7 @@
 //! | `combat-cp-refunded` | own | `piece` | CP and DP, status |
 //! | `captured` | public | | a board fact |
 //! | `prisoners-taken` | reduced | `side` | `points` (POW numbers secret) |
+//! | `equipment-captured` | reduced | `side` | `points` (as `prisoners-taken`: the class captured is seen, not how many, R-152) |
 //! | `prisoners-marched` | reduced | `side` | `points`, `cp` |
 //! | `prisoners-left-map` | reduced | `side` | `points` |
 //! | `prisoners-gone` | reduced | `side` | `points` |

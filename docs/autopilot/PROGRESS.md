@@ -186,6 +186,21 @@ lists a ship, its label sits in its hex, its points read as fixed).
 The fleet stays off in new games until the scripted games and
 Playwright drivers are re-pinned with phase E open.
 
+**2026-11-03, eighth run:** cna answered the captured-equipment
+request (#287, R-152). #121 (merged) bumps `vendor/cna` to 70239b1.
+#122 (merged) builds R-152 for surrenders behind a new `captured_equipment`
+module (on in new games): a surrendering gun, tank or armoured-recce
+unit's points become the captor's replacement points in its hex, by
+class, absorbed in phase C by a unit of that type; the browser logs the
+capture and offers the absorb. #123 (stacked) splits 15.89's captured
+share the same way and stops capturing vulnerability losses; a fresh
+review's four points are fixed there (spoils by unit type, so an HQ's
+and an infantry unit's guns are prisoners; split assaults counted once).
+#124 (draft): the *San Giorgio* (R-151), built by the previous run
+but left unpushed; behind the fleet module, so off in new games. A fresh
+review's retreat bug is fixed; its ammunition and removal points are
+open on the PR.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -221,11 +236,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. The fleet is built (#117–#119 merged, #120
-  on CI); next: merge #120, then put the fleet in new games
-  (re-pin the scripted games and Playwright drivers) and enforce
-  Graziani's "no warship moves before Game-Turn 2". 28.3's captured
-  equipment waits on cna (#287 there, draft).
+- Nothing waits on Brian. #123 (R-152's close-assault share) merges on
+  green CI; #124 (the *San Giorgio*) needs its ammunition charged and two
+  small review points before it is ready. Then the fleet in new games
+  waits on the first-sail request below (re-pin the scripted games and
+  Playwright drivers with phase E open).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
@@ -287,14 +302,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Captured equipment** (Mission 5: 28.3). cna restates 28.3 in one
-  sentence ("once repaired, may be used against their former owners").
-  The engine loses captured guns and tanks (`NOT_SIMULATED.md`). Wanted:
-  how captured weapons enter play under the Land Game and abstract
-  supply: which repair (field repair 22.2x or a facility), which units
-  may take them (any unit, or only units of the captor with that weapon
-  type), how they count for TOE and in 19.3's chart slots, and whether
-  captured wrecks (15.84/14.14, already counted as captured) qualify.
 - **When the fleet may first sail, as data** (Mission 5: fleet in new
   games). Graziani's Offensive says in prose that no warship moves before
   Game-Turn 2 OpStage 1 (`fleet.movement`), and Rommel's Arrival that none

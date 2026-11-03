@@ -126,7 +126,7 @@ impl GameState {
         // are unlisted, rated by the unit's ID code.
         // Captured points join the unit's own weapon of their class
         // (R-152), or its ID code's points.
-        let joins = self.captured_joins(data, p, weapon);
+        let joins = self.captured_joins(p, weapon);
         let listed = joins.is_some()
             || p.weapons.iter().any(|w| w.weapon == weapon)
             || p.nation.is_some_and(|n| {
