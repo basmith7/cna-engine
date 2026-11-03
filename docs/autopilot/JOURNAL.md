@@ -621,3 +621,9 @@ Done: #106 merged e04ecbd (vendor/cna 8e10e86). #107 ready: FormRaider (27.13/27
 In flight: CI on #107 and #108.
 Next: merge #107 on green CI (retarget #108 to main FIRST, then `gh pr merge 107 --merge --delete-branch`), then #108 on green. Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
 Blocked: none.
+
+## 2026-11-03 06:45 MST — autopilot/m5-patrols
+Done: #109 (spotting try) ready, CI test/server green, web pending at hand-off. This branch, draft #110: plan + engine (subagent, 304ba59 5c5ffaa) for patrols behind `Modules.patrols` (off by default, NOT in `Modules::ALL`, so no pins moved). Subagent's local gates: clippy clean, cargo test --no-fail-fast 0 failed, probe check up to date. PROGRESS on main dc859da.
+In flight: a fresh review of #110's engine (findings may be posted to the PR).
+Next: merge #109 if not merged (`gh pr merge 109 --merge --delete-branch`); merge main into this branch; triage the review; Task 2 browser panel, turning `patrols` on in `Modules::ALL` (regenerate pins per AGENTS.md if moved).
+Blocked: none.
