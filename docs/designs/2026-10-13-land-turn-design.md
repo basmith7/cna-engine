@@ -12,7 +12,7 @@ maps each counter to (R-142); #77 captures lone enemy supply entered
 (32.1x); #78 makes reactions and every retreat pay fuel (32.22, R-120);
 #80 rails combat units, one stack each way a stage with what is attached
 (8.7x, R-005; en-route pick-ups not built).
-#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). Graziani's land rules are complete bar the LRDG raid on Rommel (27.6x), planned with the desert raiders in `docs/plans/2026-11-03-m5-desert-raiders.md`. The
+#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). Graziani's land rules are complete bar the LRDG raid on Rommel (27.6x), planned with the desert raiders in `docs/plans/2026-11-03-m5-desert-raiders.md`. The fleet's ships, stations and port cycle (phase E, 30.1x) are built behind the `fleet` module, not yet on in new games; its bombardment, strikes and repair wait on cna's warship ratings (`docs/plans/2026-11-03-m5-fleet.md`). The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With
@@ -57,8 +57,9 @@ engine of Mission 4 serves it unchanged.
 - **The Logistics Game (§48–58) and the Air Game (§33–47).** Later rows of
   the queue; §32 is their abstract stand-in and is what this mission
   builds. The `air_and_logistics` abstraction block stays the one applied.
-- **Phase E (Commonwealth fleet, §30) and 32.7x (bombing the fleet).** The
-  fleet does nothing in a Land-only Graziani game; it stays skipped.
+- **Phase E (Commonwealth fleet, §30) and 32.7x (bombing the fleet).** First
+  written off as doing nothing in a Land-only game; now planned in
+  `docs/plans/2026-11-03-m5-fleet.md` and begun (see Status).
 - **Phase L (patrol).** Patrol points belong to the Air Game; skipped.
 - **§27 raids and §31 (Rommel).** No unit in Graziani's Offensive can use
   them (Rommel arrives after Game-Turn 6).
