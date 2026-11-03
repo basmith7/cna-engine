@@ -657,3 +657,9 @@ Done: #112 (fleet plan) merged. Fresh review of #110: no server leak beyond phas
 In flight: CI on #110 (ready); subagent building fleet Task 1 on autopilot/m5-fleet (/tmp/cna-fleet-1).
 Next: merge #110 on green CI; then merge main into #111 (r150), regenerate pins per AGENTS.md, merge.
 Blocked: none.
+
+## 2026-11-03 10:30 MST — autopilot/m5-patrol-exclude
+Done: #112 (fleet plan) and #110 (patrols) merged. #111 (R-150, vendor/cna 50e66bf) re-merged with main, pins regenerated (b7d27f9). #114 (stacked on #111): west_of compares col() (RRCC), golden CW dummies D3614→D3713, Playwright 54 passed locally. #113: fleet Task 1 (module off), fresh-review fixes (ships never ZOC-captured or bar a prisoner march). #115: patrol 16.53 skip list in the browser.
+In flight: CI on #111, #113, #114, #115.
+Next: merge #111 (retarget #114 to main FIRST), then #114 (main merged in; re-run regenerate_ if pins conflict), #113, #115. Then fleet Tasks 2–3 when cna adds warship ratings; 28.3 captured equipment waits on a cna request.
+Blocked: none.
