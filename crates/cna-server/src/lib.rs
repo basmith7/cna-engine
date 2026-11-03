@@ -3,6 +3,7 @@
 //! over HTTP from the seat holders.
 
 pub mod accounts;
+pub mod admin;
 pub mod api;
 pub mod auth;
 #[cfg(feature = "fake")]
@@ -135,6 +136,7 @@ pub fn router(app: App) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api::routes())
+        .nest("/admin", admin::routes())
         .merge(auth::routes())
         .layer(app.auth.session_layer())
         .layer(axum::middleware::from_fn_with_state(

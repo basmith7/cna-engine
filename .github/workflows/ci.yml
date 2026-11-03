@@ -35,8 +35,8 @@ jobs:
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
         with: { components: clippy }
-      - run: cargo clippy -p cna-server --all-targets --features db-tests,test-auth -- -D warnings
-      - run: cargo test -p cna-server --features db-tests,test-auth
+      - run: cargo clippy -p cna-server --all-targets --features db-tests,test-auth,fake -- -D warnings
+      - run: cargo test -p cna-server --features db-tests,test-auth,fake
   web:
     runs-on: ubuntu-latest
     defaults:
