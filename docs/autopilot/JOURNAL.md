@@ -555,6 +555,12 @@ In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged
 Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
 Blocked: none.
 
+## 2026-11-02 23:27 MST — autopilot/m4-stream-seats
+Done: follow-up from #95's review (12267cf): join and leave signal a per-game `seats` broadcast on `Live`; open streams send `event: seats` (data `{}`, no id); the web client reloads status and opponent. Server test red (30 s timeout) without the fix, green with it; vitest likewise.
+In flight: none.
+Next: slice 6 (ship). The stream still says nothing when a game ends by victory or the idle sweep (the client sees it on the next order or reload).
+Blocked: none. An "either" creator has no seat (so no stream) until someone joins; their open page, if any, still waits for a reload.
+
 ## 2026-11-02 22:58 MST — autopilot/m4-slice-6-ship
 Done: #96 (slice 5) merged 0a59fe2. Slice 6 started: Dockerfile (fetches vendor/cna at CNA_RULES_COMMIT: the shared build-image.yml checks out without submodules), docker-compose.prod.yml + .tower-deploy (project=cna) instead of the plan's own docker-publish.yml/deploy-now.sh (Brian's tooling now: basmith7/workflows build.yml template + tower-deploy's deploy-now), deploy/smoke.sh.
 In flight: local image build + smoke run; then Task 4 docs (README, NOT_SIMULATED, spec Status + checklist, AUTOPILOT row 4 done / 5 next).
@@ -572,3 +578,9 @@ Done: #97 (slice 6, ship) merged 07414ce after a fresh review's fixes (SIGTERM s
 In flight: #80 CI after this merge; #98 (stream hears join/leave, by a subagent) draft or ready.
 Next: merge #80 on green CI; finish/merge #98; then Mission 5's next item from PROGRESS Next steps (Axis convoy lanes, substitution once cna maps counters to chart slots, or §27 raiders now that per-side views exist).
 Blocked: Mission 4 hosting is Brian's checklist (spec).
+
+## 2026-11-02 23:52 MST — autopilot/m4-stream-seats
+Done: #80 merged c2c793a (green CI). #98 (subagent: seats SSE event on join/leave, server + client tests) ready; main merged in (journal conflict only).
+In flight: CI on #98's merge commit.
+Next: merge #98 on green CI; then Mission 5's next item (PROGRESS Next steps).
+Blocked: none (hosting Mission 4 is Brian's checklist).

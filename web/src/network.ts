@@ -68,6 +68,7 @@ export class NetworkEngine implements Engine {
     await e.loadOpponent();
     e.source = new EventSource(`${e.base}/stream`, { withCredentials: true });
     e.source.onmessage = (m: MessageEvent<string>) => e.receive(m.data);
+    e.source.addEventListener("seats", () => void e.seatsChanged());
     return e;
   }
 
@@ -172,6 +173,18 @@ export class NetworkEngine implements Engine {
     } catch {
       this.opponent = null;
     }
+  }
+
+  /** A player joined or left: reload the status and the opponent's name. A failed reload keeps what is shown. */
+  private async seatsChanged(): Promise<void> {
+    if (!this.source) return;
+    try {
+      await this.refresh();
+      await this.loadOpponent();
+    } catch {
+      return;
+    }
+    this.changed();
   }
 
   /** One stream message: the view replaced whole, its events logged. A message older than the view held is ignored. */
