@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { View } from "../src/types.ts";
 import { clickHex, expectDomMatchesView, openFixture, shoot as shootInto, shotsDir } from "./helpers.ts";
 
 // Desert raiders (§27), plan Task 2's proving screenshots.
@@ -17,10 +18,11 @@ test("a hidden LRDG next to Rommel raids him by clicks", async ({ page }) => {
   await expect(page.locator('[data-stack="C3518"] .marker.hidden')).toHaveCount(1);
 
   // A combat unit gets no raid button: only a lone raider does.
-  const cw = await page.evaluate(
-    () =>
-      Object.values(window.__cna.view().pieces).find((p) => p.side === "cw" && p.kind === "combat" && typeof p.location === "object" && "hex" in p.location)!.location as { hex: string },
-  );
+  const cw = await page.evaluate(() => {
+    // Inside the page the record's value type is lost; the view is the engine's.
+    const view: View = window.__cna.view();
+    return Object.values(view.pieces).find((p) => p.side === "cw" && p.kind === "combat" && typeof p.location === "object" && "hex" in p.location)!.location as { hex: string };
+  });
   await clickHex(page, cw.hex);
   await expect(page.getByTestId("move-panel")).toBeVisible();
   await expect(page.getByTestId("raid-rommel")).toHaveCount(0);

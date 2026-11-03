@@ -67,7 +67,7 @@ Task 3 waits on request 1.
 
 ### Task 2: the browser
 
-- [ ] Your own raiders are drawn with a hidden marker. Enemy raiders
+- [x] Your own raiders are drawn with a hidden marker. Enemy raiders
   show only when on the map. A *Raid Rommel* button appears in the
   move panel. A Playwright test raids Rommel.
 
