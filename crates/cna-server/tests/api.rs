@@ -157,8 +157,10 @@ async fn a_game_is_shown_only_to_its_seats_each_its_own_view(pool: PgPool) {
     assert_ne!(axis["view"], cw["view"], "each side its own view");
     let (s, _) = call(&app, "GET", &uri, Some(OUTSIDER), None).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
+    // No game at all looks like a game you are not in: an outsider
+    // cannot tell real ids from missing ones, nor make us load them.
     let (s, _) = call(&app, "GET", "/api/games/999999", Some(AXIS), None).await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
+    assert_eq!(s, StatusCode::FORBIDDEN);
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]
@@ -318,6 +320,13 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
         (456..log.orders.len())
             .map(|n| json!(n))
             .collect::<Vec<_>>()
+    );
+    // Rebuilt from the snapshot at 450, the tail's events are those the
+    // replay from the seed gives.
+    assert_eq!(
+        tail.as_array().unwrap()[..],
+        stream.as_array().unwrap()[456..],
+        "events after a snapshot"
     );
     let (s, _) = call(
         &app,

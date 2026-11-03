@@ -506,3 +506,9 @@ Done: server preview answers {"hidden":"sealed"} during sealed steps, tested ove
 In flight: nothing running. DB tests need `--features cna-server/db-tests,cna-server/test-auth` and `docker compose -f deploy/compose.dev.yml up -d db` (port 5433).
 Next: Task 7 (golden over HTTP: play graziani-m5.json, games are Modules::ALL), Task 8 (CI `server` job with `--features db-tests,test-auth`).
 Blocked: none.
+
+## 2026-11-02 16:55 MST — autopilot/m4-slice-2-server
+Done: Tasks 7–8 were already committed (ead9751, 13b8e50); #93 ready, CI green. Slice 3 Task 1 (fake-discord, 3c83825) found local-only and pushed as autopilot/m4-slice-3-accounts.
+In flight: fresh review of #93; slice 3 Tasks 2–4 by a subagent in /tmp/cna-s3.
+Next: merge #93 after review fixes; merge main into slice 3, Task 5 (compose, curl sign-in), draft PR.
+Blocked: none.
