@@ -47,7 +47,8 @@ impl GameState {
             | Phase::MovementCombat
             | Phase::TruckConvoy
             | Phase::Rail
-            | Phase::Repair => {}
+            | Phase::Repair
+            | Phase::Patrol => {}
             Phase::Organisation => {
                 // Player A hands phase C to Player B; B's pass ends it.
                 if !self.organised {
@@ -163,6 +164,10 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                Phase::Patrol if self.patrols_to_send(data) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
                 Phase::Organisation
                 | Phase::CwFleet
                 | Phase::TruckConvoy
@@ -177,9 +182,10 @@ impl GameState {
     /// The bookkeeping between OpStages: unspent CP are lost (6.16), a
     /// unit that spent none rests (6.24), reserve ends (18.2x), and
     /// engaged markers come off (15.81).
-    fn start_stage(&mut self) {
+    pub(crate) fn start_stage(&mut self) {
         self.railed.clear();
         self.field_rolled.clear();
+        self.stage_record = Default::default();
         self.rail_runs.clear();
         self.rail_supply_way = None;
         for p in self.pieces.values_mut() {

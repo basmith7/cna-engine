@@ -38,6 +38,10 @@ enum Cmd {
         /// Play without construction (§24): engineers build nothing.
         #[arg(long)]
         no_construction: bool,
+        /// Play with patrols (§16): phase L opens. Off until the browser
+        /// has a phase L panel.
+        #[arg(long)]
+        patrols: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -159,6 +163,7 @@ fn main() -> Result<()> {
             no_abstract_supply,
             no_breakdown,
             no_construction,
+            patrols,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -166,6 +171,7 @@ fn main() -> Result<()> {
                 abstract_supply: !no_abstract_supply,
                 breakdown: !no_breakdown,
                 construction: !no_construction,
+                patrols,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

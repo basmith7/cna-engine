@@ -133,6 +133,14 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase L: a patrol of `sources`' points against `target`, the
+    /// defender describing none of `exclude` (16.x).
+    Patrol {
+        sources: Vec<(PieceId, u32)>,
+        target: HexId,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        exclude: Vec<PieceId>,
+    },
     /// Phase H: `points` of the player's prisoners in `from` walk `path`
     /// (28.13).
     MarchPrisoners {
