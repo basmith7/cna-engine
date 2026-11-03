@@ -429,3 +429,60 @@ fn urlencode(s: &str) -> String {
         })
         .collect()
 }
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn alerts_are_switched_off_and_on_and_clear_unreachable(pool: PgPool) {
+    accounts::insert(&pool, "10", "A").await.unwrap();
+    let app = router(Games::new(pool.clone()));
+    let (_, me) = call(&app, "GET", "/api/me", Some("10"), None).await;
+    assert_eq!(
+        (me["alerts"].clone(), me["alerts_unreachable"].clone()),
+        (json!(true), json!(false))
+    );
+
+    sqlx::query("UPDATE accounts SET alerts_unreachable_at = now() WHERE discord_id = '10'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, me) = call(&app, "GET", "/api/me", Some("10"), None).await;
+    assert_eq!(me["alerts_unreachable"], json!(true));
+
+    let (s, me) = call(
+        &app,
+        "PATCH",
+        "/api/me",
+        Some("10"),
+        Some(json!({"alerts": false})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(
+        (me["alerts"].clone(), me["alerts_unreachable"].clone()),
+        (json!(false), json!(false))
+    );
+    let (_, me) = call(&app, "GET", "/api/me", Some("10"), None).await;
+    assert_eq!(me["alerts"], json!(false), "the switch is kept");
+
+    let (s, _) = call(
+        &app,
+        "PATCH",
+        "/api/me",
+        Some("10"),
+        Some(json!({"alerts": "yes"})),
+    )
+    .await;
+    assert!(s.is_client_error(), "a malformed body is refused: {s}");
+    let (s, _) = call(
+        &app,
+        "PATCH",
+        "/api/me",
+        None,
+        Some(json!({"alerts": true})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+}

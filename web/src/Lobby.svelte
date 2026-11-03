@@ -3,10 +3,13 @@
   // awaiting their move first; public games waiting for a player; and a
   // form to make one, whose invite link shows once.
   import { sideName } from "./clock";
-  import { type Account, type AdminAccount, type Created, type CreateSide, type MyGame, type OpenGame, accounts, createGame, freeSides, inviteLink, joinGame, myGames, openGames, setSuspended, signOut } from "./lobby";
+  import { type Account, type AdminAccount, type Created, type CreateSide, type MyGame, type OpenGame, accounts, createGame, freeSides, inviteLink, joinGame, myGames, openGames, setAlerts, setSuspended, signOut } from "./lobby";
   import type { Side } from "./types";
 
-  let { account, onback }: { account: Account; onback: () => void } = $props();
+  let { account: initial, onback }: { account: Account; onback: () => void } = $props();
+  /** The account as the last answer gave it: the alerts switch changes it. */
+  // svelte-ignore state_referenced_locally
+  let account: Account = $state(initial);
 
   let mine: MyGame[] = $state([]);
   let open: OpenGame[] = $state([]);
@@ -52,6 +55,10 @@
     });
 
   const join = (g: OpenGame, side: Side) => act(() => joinGame(g.id, side));
+  const switchAlerts = (on: boolean) =>
+    act(async () => {
+      account = await setAlerts(on);
+    });
   const suspend = (a: AdminAccount) => act(() => setSuspended(a.id, !a.suspended));
 
   const link = $derived(created ? inviteLink(location.origin, created) : "");
@@ -83,6 +90,9 @@
     </header>
 
     {#if error}<p class="error" role="alert">{error}</p>{/if}
+    {#if account.alerts && account.alerts_unreachable}
+      <p class="error" data-testid="unreachable">Discord alerts can't reach you: allow direct messages from server members of the CNA server, then switch alerts off and on.</p>
+    {/if}
 
     <h2>My games</h2>
     {#if mine.length === 0}
@@ -138,8 +148,8 @@
     {/if}
 
     <h2>Settings</h2>
-    <p><label><input type="checkbox" checked={account.alerts} disabled /> Tell me by Discord message when it is my move</label></p>
-    <p class="none">Turn alerts are not sent yet; this switch comes with them.</p>
+    <p><label><input type="checkbox" checked={account.alerts} disabled={busy} onchange={(e) => switchAlerts(e.currentTarget.checked)} /> Tell me by Discord message when it is my move</label></p>
+    <p class="none">The bot messages you once when a game waits on you. Turning this off stops every message; you stay in the CNA Discord server until you leave it.</p>
 
     {#if account.admin}
       <h2>Accounts</h2>
