@@ -3,9 +3,11 @@
   // engine offers them. Tick sources and set each one's points, click a
   // marked hex for the target, then send; the engine judges the patrol
   // (16.13's limits on points pooled from several units included).
-  // Pass, in the phase controls, ends the phase.
+  // Pass, in the phase controls, ends the phase. The enemy units this
+  // side's view shows at the target may be ticked "skip" (16.53): the
+  // engine then describes others instead.
   import { label } from "./counters";
-  import type { HexId, Order, PatrolSource, PieceId, View } from "./types";
+  import type { HexId, Order, PatrolSource, Piece, PieceId, View } from "./types";
 
   let {
     view,
@@ -23,6 +25,29 @@
 
   const options: PatrolSource[] = $derived(view.patrol_options ?? []);
   const sources = $derived(Object.entries(chosen).filter(([, n]) => n > 0) as [PieceId, number][]);
+
+  // The enemy at the target as the view shows it: no more than this side knows.
+  const atTarget: Piece[] = $derived(
+    target === null
+      ? []
+      : Object.values(view.pieces).filter((p) => p.side !== view.to_act && typeof p.location === "object" && "hex" in p.location && p.location.hex === target),
+  );
+  let skipped: PieceId[] = $state([]);
+  // A new target (or none: the app clears it after a send) starts with nothing skipped.
+  $effect(() => {
+    void target;
+    skipped = [];
+  });
+  const exclude = $derived(skipped.filter((id) => atTarget.some((p) => p.id === id)));
+
+  function skip(id: PieceId, on: boolean) {
+    skipped = on ? [...skipped, id] : skipped.filter((s) => s !== id);
+  }
+
+  function send() {
+    if (target === null) return;
+    onsend({ patrol: exclude.length > 0 ? { sources, target, exclude } : { sources, target } });
+  }
 
   function tick(o: PatrolSource, on: boolean) {
     const next = { ...chosen };
@@ -56,7 +81,19 @@
       {/each}
     </ul>
     <p data-testid="patrol-target">{target ? `Target: ${target}` : sources.length > 0 ? "Click a marked hex for the target." : "Tick a unit to see the hexes it may patrol."}</p>
-    <button type="button" data-order="patrol" disabled={sources.length === 0 || target === null} onclick={() => target && onsend({ patrol: { sources, target } })}>Send patrol</button>
+    {#if atTarget.length > 0}
+      <ul data-testid="patrol-exclude">
+        {#each atTarget as p (p.id)}
+          <li data-unit={p.id}>
+            <label>
+              <input type="checkbox" checked={skipped.includes(p.id)} onchange={(e) => skip(p.id, (e.target as HTMLInputElement).checked)} aria-label="Skip {label(p).short}" />
+              {label(p).short}: skip (already described)
+            </label>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    <button type="button" data-order="patrol" disabled={sources.length === 0 || target === null} onclick={send}>Send patrol</button>
   </section>
 {/if}
 

@@ -41,3 +41,36 @@ test("phase L: a patrol goes out by clicks, its dice in the log, and Pass ends t
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).not.toContainText("L · patrol");
 });
+
+test("a unit ticked skip at the target goes in the patrol's exclude (16.53)", async ({ page }) => {
+  await openFixture(page, "patrol");
+  const curtain = page.getByTestId("curtain");
+  if ((await curtain.count()) > 0) await throughCurtain(page, (await curtain.getAttribute("data-side")) as "axis" | "cw");
+  // A source and one of its targets where the view shows an enemy unit.
+  const { source, target, enemy } = await page.evaluate(() => {
+    const view: View = window.__cna.view();
+    for (const o of view.patrol_options!)
+      for (const t of o.targets) {
+        const p = Object.values(view.pieces).find((p) => p.side !== view.to_act && typeof p.location === "object" && "hex" in p.location && p.location.hex === t);
+        if (p) return { source: o.piece, target: t, enemy: p.id };
+      }
+    throw new Error("no target shows an enemy unit");
+  });
+  const panel = page.getByTestId("patrol-panel");
+  await panel.locator(`li[data-unit="${source}"] input[type="checkbox"]`).check();
+  await panel.locator(`li[data-unit="${source}"] [data-points]`).fill("1");
+  await expect(panel.getByTestId("patrol-exclude")).toHaveCount(0);
+  await clickHex(page, target);
+  const skip = panel.locator(`[data-testid="patrol-exclude"] li[data-unit="${enemy}"] input[type="checkbox"]`);
+  await skip.check();
+  await shoot(page, "patrol-exclude.png");
+  const before = await page.evaluate(() => window.__cna.orders());
+  await panel.locator('[data-order="patrol"]').click();
+  await expect.poll(() => page.evaluate(() => window.__cna.orders())).toBe(before + 1);
+
+  const sent = await page.evaluate(() => JSON.stringify((JSON.parse(window.__cna.save()) as { log: unknown[] }).log.at(-1)));
+  expect(sent).toContain(`"exclude":["${enemy}"]`);
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  // The send cleared the target, and with it the skip list.
+  await expect(panel.getByTestId("patrol-exclude")).toHaveCount(0);
+});
