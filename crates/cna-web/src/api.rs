@@ -1084,6 +1084,7 @@ mod tests {
                 nation: None,
                 weapon: "Mark VI Light".into(),
                 points: 4,
+                this_stage: 0,
             }],
         );
         repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();

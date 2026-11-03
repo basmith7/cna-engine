@@ -218,8 +218,9 @@ pub struct GameState {
     /// Broken-down vehicles by hex (21.4x): what each marker stands for.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
-    /// Broken-down vehicle types tried in the field this OpStage, by
-    /// side, hex and weapon system (22.23: one roll each per phase K).
+    /// Broken-down vehicle types tried in the field or at a facility this
+    /// OpStage, by side, hex and weapon system (22.23: one roll each per
+    /// phase K).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub field_rolled: BTreeSet<(Side, HexId, String)>,
     /// Repaired TOE points by side, hex and weapon system: replacement
@@ -656,6 +657,14 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (
+                None,
+                Order::FacilityRepair {
+                    hex,
+                    weapon,
+                    fuel_from,
+                },
+            ) => self.facility_repair(data, player, hex, weapon, fuel_from.as_ref()),
             (None, Order::Station { ship, hex }) => self.station(data, player, ship, hex),
             (
                 None,

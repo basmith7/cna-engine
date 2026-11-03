@@ -133,6 +133,16 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase K: one facility-repair roll for the player's broken-down
+    /// `weapon` in `hex`, a repair facility of its own (22.3x); with
+    /// abstract supply `fuel_from` pays a fuel a point attempted (none
+    /// takes the first in range).
+    FacilityRepair {
+        hex: HexId,
+        weapon: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// Phase E: the Commonwealth places `ship` at sea in `hex` for this
     /// OpStage (30.1x).
     Station { ship: PieceId, hex: HexId },

@@ -204,6 +204,9 @@ impl GameState {
     pub(crate) fn start_stage(&mut self) {
         self.railed.clear();
         self.field_rolled.clear();
+        for w in self.broken_down.values_mut().flatten() {
+            w.this_stage = 0;
+        }
         self.stage_record = Default::default();
         self.rail_runs.clear();
         self.rail_supply_way = None;

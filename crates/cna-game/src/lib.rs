@@ -13,6 +13,7 @@ pub mod combat;
 pub mod construction;
 mod convoy;
 mod cycle;
+mod facility;
 pub mod data;
 mod determinism;
 pub mod event;

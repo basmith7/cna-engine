@@ -3,9 +3,8 @@
 //! shared with a friendly unit, paying a fuel per point attempted
 //! first; what is repaired waits as replacement points (22.5).
 //!
-//! Towing (21.6x) and facility repair (22.3x) move only toward or at a
-//! repair facility, so they come with the facilities in the
-//! construction slice.
+//! Facility repair (22.3x) is in `facility.rs`; towing (21.6x) is not
+//! built.
 
 use crate::clock::Phase;
 use crate::data::Data;
@@ -82,7 +81,7 @@ impl GameState {
     /// Phase K waits on the phasing player only when it has something to
     /// try; otherwise it is skipped.
     pub(crate) fn repairs_to_try(&self, data: &Data) -> bool {
-        !self.field_repairs(data).is_empty()
+        !self.field_repairs(data).is_empty() || !self.facility_repairs(data).is_empty()
     }
 
     /// The real supply units with fuel that may pay for repairs in
@@ -154,7 +153,57 @@ impl GameState {
                 format!("no broken-down {weapon} of yours at {hex}"),
             ));
         }
-        let (attempted, paid_by) = if self.modules.abstract_supply {
+        let (attempted, paid_by) = self.pay_repair_fuel(data, player, hex, points, fuel_from)?;
+        self.field_rolled.insert(key);
+        let die = self.rng.d6();
+        let row = data
+            .vehicle_repair
+            .row(die)
+            .expect("vehicle-repair.json has a row for every d6 roll");
+        // Recce units' wrecks go by their class (R-125): armoured cars and
+        // armoured recce, and trucks, as points; anything else is a tank
+        // or gun model, as a percentage (22.8).
+        let field =
+            |n: Option<u32>| n.expect("vehicle-repair.json has a field column for every d6 roll");
+        let repaired = match weapon {
+            "armoured-car" | "armoured-recce" => field(row.field_armoured_car).min(attempted),
+            "truck" => field(row.field_truck).min(attempted),
+            _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
+        };
+        self.take_wrecks(hex, player, weapon, repaired, false);
+        if repaired > 0 {
+            *self
+                .repaired
+                .entry(player)
+                .or_default()
+                .entry(hex.clone())
+                .or_default()
+                .entry(weapon.to_string())
+                .or_default() += repaired;
+        }
+        Ok(vec![Event::FieldRepaired {
+            hex: hex.clone(),
+            weapon: weapon.to_string(),
+            attempted,
+            die,
+            repaired,
+            fuel_from: paid_by,
+        }])
+    }
+
+    /// Pays a fuel a point for up to `points` attempted at `hex` under
+    /// abstract supply, from `fuel_from` first (else the first in range)
+    /// and on across the rest (22.24, 22.3x); without it nothing is paid.
+    /// Returns the points paid for and the first source.
+    pub(crate) fn pay_repair_fuel(
+        &mut self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+        points: u32,
+        fuel_from: Option<&PieceId>,
+    ) -> Result<(u32, Option<PieceId>), Illegal> {
+        Ok(if self.modules.abstract_supply {
             let mut sources = self.repair_fuel(data, player, hex);
             if let Some(f) = fuel_from {
                 let Some(i) = sources.iter().position(|q| q == f) else {
@@ -191,47 +240,20 @@ impl GameState {
             (paid, Some(first))
         } else {
             (points, None)
-        };
-        self.field_rolled.insert(key);
-        let die = self.rng.d6();
-        let row = data
-            .vehicle_repair
-            .row(die)
-            .expect("vehicle-repair.json has a row for every d6 roll");
-        // Recce units' wrecks go by their class (R-125): armoured cars and
-        // armoured recce, and trucks, as points; anything else is a tank
-        // or gun model, as a percentage (22.8).
-        let field =
-            |n: Option<u32>| n.expect("vehicle-repair.json has a field column for every d6 roll");
-        let repaired = match weapon {
-            "armoured-car" | "armoured-recce" => field(row.field_armoured_car).min(attempted),
-            "truck" => field(row.field_truck).min(attempted),
-            _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
-        };
-        self.take_wrecks(hex, player, weapon, repaired);
-        if repaired > 0 {
-            *self
-                .repaired
-                .entry(player)
-                .or_default()
-                .entry(hex.clone())
-                .or_default()
-                .entry(weapon.to_string())
-                .or_default() += repaired;
-        }
-        Ok(vec![Event::FieldRepaired {
-            hex: hex.clone(),
-            weapon: weapon.to_string(),
-            attempted,
-            die,
-            repaired,
-            fuel_from: paid_by,
-        }])
+        })
     }
 
-    /// Removes `n` of `side`'s broken-down `weapon` points from `hex`,
+    /// Removes `n` of `side`'s broken-down `weapon` points from `hex`
+    /// (only those that began the OpStage there if `settled_only`),
     /// dropping emptied entries and an emptied hex.
-    fn take_wrecks(&mut self, hex: &HexId, side: Side, weapon: &str, mut n: u32) {
+    pub(crate) fn take_wrecks(
+        &mut self,
+        hex: &HexId,
+        side: Side,
+        weapon: &str,
+        mut n: u32,
+        settled_only: bool,
+    ) {
         let Some(wrecks) = self.broken_down.get_mut(hex) else {
             return;
         };
@@ -239,8 +261,13 @@ impl GameState {
             .iter_mut()
             .filter(|w| w.side == side && w.weapon == weapon)
         {
-            let k = n.min(w.points);
+            let k = n.min(if settled_only {
+                w.points - w.this_stage
+            } else {
+                w.points
+            });
             w.points -= k;
+            w.this_stage = w.this_stage.min(w.points);
             n -= k;
         }
         wrecks.retain(|w| w.points > 0);
@@ -283,6 +310,7 @@ mod tests {
                 nation: None,
                 weapon: "M13/40".into(),
                 points: 4,
+                this_stage: 0,
             }],
         );
         (state, hex)

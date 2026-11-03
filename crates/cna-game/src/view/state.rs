@@ -193,7 +193,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
-/// place at sea and the hexes open to them (30.1x).
+/// place at sea and the hexes open to them (30.1x); and in phase K
+/// `facility_repairs`, the phasing viewer's facility rolls (22.3x).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -234,6 +235,13 @@ pub fn view_for(
     }
     if let Some(o) = viewer.and_then(|side| state.station_options(data, side)) {
         obj.insert("station_options".into(), json!(o));
+    }
+    // Phase K: the facility rolls the viewer may make (22.3x).
+    if viewer.is_some() && viewer == state.phasing() {
+        let offers = state.facility_repairs(data);
+        if !offers.is_empty() {
+            obj.insert("facility_repairs".into(), json!(offers));
+        }
     }
     label(state, data, &mut v)?;
     if state.is_over() {
