@@ -5,8 +5,10 @@
 //! `refusal_for` for that seat, so a client swaps engines without
 //! reshaping data and never sees what 3.61 hides from it.
 
+use crate::App;
 use crate::auth::CurrentAccount;
 use crate::games::{GameError, GameId, Games, LiveGuard};
+use crate::limits::Limiters;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -20,6 +22,7 @@ use cna_game::reach::Purpose;
 use cna_game::view::{events_for, refusal_for, view_for};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 /// An error answer: a status and `{"error": message}`, or a body of
 /// its own (`{"illegal": ...}`, a stale `seq`).
@@ -82,8 +85,9 @@ type ApiResult = Result<Json<Value>, ApiError>;
 /// The largest request body taken (an order is a few hundred bytes).
 pub const MAX_BODY: usize = 64 * 1024;
 
-pub fn routes() -> Router<Games> {
+pub fn routes() -> Router<App> {
     Router::new()
+        .route("/me", get(me))
         .route("/games", get(list).post(create))
         .route("/games/{id}", get(game))
         .route("/games/{id}/join", post(join))
@@ -96,6 +100,24 @@ pub fn routes() -> Router<Games> {
         .route("/games/{id}/preview", post(preview))
         .route("/games/{id}/save", get(save))
         .layer(axum::extract::DefaultBodyLimit::max(MAX_BODY))
+}
+
+/// The caller's account: `{id, discord_id, name, avatar, alerts, admin}`.
+async fn me(State(app): State<App>, account: CurrentAccount) -> ApiResult {
+    let (discord_id, name, avatar, alerts): (String, String, Option<String>, bool) =
+        sqlx::query_as("SELECT discord_id, name, avatar, alerts FROM accounts WHERE id = $1")
+            .bind(account.0)
+            .fetch_one(app.games.pool())
+            .await?;
+    let admin = app.auth.admins.contains(&discord_id);
+    Ok(Json(json!({
+        "id": account.0,
+        "discord_id": discord_id,
+        "name": name,
+        "avatar": avatar,
+        "alerts": alerts,
+        "admin": admin,
+    })))
 }
 
 /// The caller's seat in `id` (403 without one) and the game, locked.
@@ -111,6 +133,14 @@ async fn seated(
         .ok_or_else(ApiError::forbidden)?;
     let live = games.get(id).await?;
     Ok((side, live))
+}
+
+/// 429: past a per-account rate limit.
+fn too_many(what: &str) -> ApiError {
+    ApiError::new(
+        StatusCode::TOO_MANY_REQUESTS,
+        format!("too many {what}: wait and try again"),
+    )
 }
 
 fn bad(e: impl std::fmt::Display) -> ApiError {
@@ -203,9 +233,24 @@ struct CreateBody {
 /// A new game with the caller in `side`'s seat: `{"id"}`, 201.
 async fn create(
     State(games): State<Games>,
+    State(limits): State<Arc<Limiters>>,
     account: CurrentAccount,
     Json(b): Json<CreateBody>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
+    if !limits.create_game(account.0) {
+        return Err(too_many("games made"));
+    }
+    let open: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM games WHERE created_by = $1 AND status = 'open'")
+            .bind(account.0)
+            .fetch_one(games.pool())
+            .await?;
+    if open >= limits.limits.open_games {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "you have too many games waiting for a player",
+        ));
+    }
     let scenario = b.scenario.as_deref().unwrap_or(cna_embed::DEFAULT_SCENARIO);
     if cna_embed::data(scenario).is_err() {
         return Err(bad(format!("no scenario {scenario:?}")));
@@ -306,10 +351,14 @@ struct OrderBody {
 /// `{"illegal"}` (422), 409 on a stale `seq`, 403 for the other side.
 async fn orders(
     State(games): State<Games>,
+    State(limits): State<Arc<Limiters>>,
     account: CurrentAccount,
     Path(id): Path<GameId>,
     Json(b): Json<OrderBody>,
 ) -> ApiResult {
+    if !limits.order(account.0) {
+        return Err(too_many("orders"));
+    }
     match games.apply(id, account.0, b.side, &b.order, b.seq).await {
         Ok(events) => {
             let live = games.get(id).await?;

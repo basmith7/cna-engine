@@ -9,6 +9,11 @@ description = "The multiplayer server: games in Postgres and memory, orders over
 name = "cna-server"
 path = "src/main.rs"
 
+[[bin]]
+name = "fake-discord"
+path = "src/bin/fake-discord.rs"
+required-features = ["fake"]
+
 [features]
 # The tests that need Postgres at `DATABASE_URL`. `#[sqlx::test]` panics
 # without it, so they are ignored unless this is on and a plain
@@ -17,6 +22,9 @@ db-tests = []
 # The `X-Cna-Test-Account` sign-in (`auth::test_auth`). Debug builds only:
 # a release build with it refuses to compile.
 test-auth = []
+# The `fake-discord` binary and `fake_discord` module: Discord's OAuth2
+# and bot endpoints in memory, for tests and compose. Never in release.
+fake = ["dep:base64", "dep:url"]
 
 [dependencies]
 cna-data = { path = "../cna-data" }
@@ -31,10 +39,20 @@ axum = "0.8"
 futures-util = { version = "0.3", default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
 sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "macros", "json"] }
-tower-http = { version = "0.7", features = ["trace"] }
+tower-http = { version = "0.7", features = ["trace", "limit"] }
 tracing = "0.1"
+base64 = { version = "0.22", optional = true }
+url = { version = "2", optional = true }
+sha2 = "0.10"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+oauth2 = { version = "5", default-features = false, features = ["reqwest", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tower-sessions = { version = "0.15", default-features = false, features = ["axum-core"] }
+governor = "0.10"
+tokio-util = "0.7"
+time = "0.3"
+async-trait = "0.1"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
-sha2 = "0.10"
+url = "2"

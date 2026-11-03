@@ -1,6 +1,16 @@
-# Local Postgres for cna-server's tests and dev runs:
+# Local dev stack: Postgres, the fake Discord and cna-server.
+#
+# Postgres alone, for cna-server's tests and a server run on the host:
 #   docker compose -f deploy/compose.dev.yml up -d db
 #   DATABASE_URL=postgres://cna:cna@localhost:5433/cna
+#
+# The whole stack (the first start compiles the workspace, a few minutes):
+#   docker compose -f deploy/compose.dev.yml --profile stack up
+#   then open http://localhost:3240/auth/discord and pick alice or bob.
+#
+# `fake-discord` and `server` run `cargo run` on the mounted workspace
+# rather than a dev Dockerfile stage: nothing to keep in step with the
+# release image (slice 6), and an edit is one restart away.
 services:
   db:
     image: postgres:18
@@ -13,6 +23,55 @@ services:
     volumes:
       # postgres:18 keeps PGDATA under /var/lib/postgresql/18/docker.
       - cna-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "cna"]
+      interval: 2s
+      retries: 30
+
+  fake-discord:
+    image: rust:1
+    working_dir: /src
+    command: cargo run -p cna-server --features fake --bin fake-discord
+    environment:
+      FAKE_DISCORD_BIND: 0.0.0.0:3241
+      CARGO_TARGET_DIR: /target
+    ports:
+      - "127.0.0.1:3241:3241"
+    volumes:
+      - ..:/src
+      - cna-target:/target
+      - cna-cargo:/usr/local/cargo/registry
+    profiles: [stack]
+
+  server:
+    image: rust:1
+    working_dir: /src
+    command: cargo run -p cna-server --bin cna-server
+    environment:
+      DATABASE_URL: postgres://cna:cna@db:5432/cna
+      CNA_BIND: 0.0.0.0:3240
+      CNA_DEV: "1"
+      CNA_PUBLIC_URL: http://localhost:3240
+      CNA_DISCORD_CLIENT_ID: dev
+      CNA_DISCORD_CLIENT_SECRET: dev
+      # The browser follows the consent page on the host; the server
+      # calls the API across the compose network.
+      CNA_DISCORD_AUTHORIZE: http://localhost:3241/oauth2/authorize
+      CNA_DISCORD_API: http://fake-discord:3241/api
+      CNA_ADMINS: "1001"
+      CARGO_TARGET_DIR: /target
+    ports:
+      - "127.0.0.1:3240:3240"
+    volumes:
+      - ..:/src
+      - cna-target:/target
+      - cna-cargo:/usr/local/cargo/registry
+    depends_on:
+      db: { condition: service_healthy }
+      fake-discord: { condition: service_started }
+    profiles: [stack]
 
 volumes:
   cna-db:
+  cna-target:
+  cna-cargo:

@@ -20,30 +20,41 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
 
 /// Open streams one account may hold on one game.
 pub const MAX_PER_GAME: usize = 4;
 /// Open streams one account may hold in all.
 pub const MAX_PER_ACCOUNT: usize = 32;
 
+/// One account's open streams: how many per game, and the token that
+/// closes them all.
+#[derive(Default)]
+struct AccountStreams {
+    games: HashMap<GameId, usize>,
+    close: CancellationToken,
+}
+
 /// The open streams per account and game. Cloning shares it.
 #[derive(Clone, Default)]
-pub struct Streams(Arc<Mutex<HashMap<AccountId, HashMap<GameId, usize>>>>);
+pub struct Streams(Arc<Mutex<HashMap<AccountId, AccountStreams>>>);
 
 /// One open stream, counted until it drops.
 pub struct Ticket {
     streams: Streams,
     account: AccountId,
     game: GameId,
+    /// Cancelled when the account's streams are closed.
+    pub closed: CancellationToken,
 }
 
 impl Streams {
     /// A ticket for a new stream, or `None` past a cap.
     pub fn open(&self, account: AccountId, game: GameId) -> Option<Ticket> {
         let mut map = self.0.lock().unwrap_or_else(|e| e.into_inner());
-        let games = map.entry(account).or_default();
-        let total: usize = games.values().sum();
-        let here = games.entry(game).or_default();
+        let mine = map.entry(account).or_default();
+        let total: usize = mine.games.values().sum();
+        let here = mine.games.entry(game).or_default();
         if *here >= MAX_PER_GAME || total >= MAX_PER_ACCOUNT {
             return None;
         }
@@ -52,21 +63,32 @@ impl Streams {
             streams: self.clone(),
             account,
             game,
+            closed: mine.close.clone(),
         })
+    }
+
+    /// Ends every stream `account` holds open (it was suspended).
+    pub fn close_account(&self, account: AccountId) {
+        let mut map = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(mine) = map.get_mut(&account) {
+            mine.close.cancel();
+            // Streams opened from now on get a fresh token.
+            mine.close = CancellationToken::new();
+        }
     }
 }
 
 impl Drop for Ticket {
     fn drop(&mut self) {
         let mut map = self.streams.0.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(games) = map.get_mut(&self.account) {
-            if let Some(n) = games.get_mut(&self.game) {
+        if let Some(mine) = map.get_mut(&self.account) {
+            if let Some(n) = mine.games.get_mut(&self.game) {
                 *n -= 1;
                 if *n == 0 {
-                    games.remove(&self.game);
+                    mine.games.remove(&self.game);
                 }
             }
-            if games.is_empty() {
+            if mine.games.is_empty() {
                 map.remove(&self.account);
             }
         }
@@ -87,7 +109,7 @@ struct Open {
     /// Orders up to this seq have been sent (or predate the stream).
     sent: i64,
     catch_up: Option<i64>,
-    _ticket: Ticket,
+    ticket: Ticket,
 }
 
 /// One message: `applied` as `side` may see it, with the view now.
@@ -112,10 +134,20 @@ fn sse(seq: i64, data: &Value) -> Sse {
     Sse::default().id(seq.to_string()).data(data.to_string())
 }
 
-/// The next message of `open`, or `None` to end the stream (the game
-/// failed, or the stream fell behind: the client reconnects with its
-/// `Last-Event-ID` and catches up).
-async fn next(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)> {
+/// The next message of `open`, or `None` to end the stream: its
+/// account's streams were closed, the game failed, or the stream fell
+/// behind (the client reconnects with its `Last-Event-ID` and catches
+/// up).
+async fn next(open: Open) -> Option<(Result<Sse, Infallible>, Open)> {
+    let closed = open.ticket.closed.clone();
+    tokio::select! {
+        biased;
+        _ = closed.cancelled() => None,
+        n = next_message(open) => n,
+    }
+}
+
+async fn next_message(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)> {
     if let Some(after) = open.catch_up.take() {
         let applied = match open.games.applied_after(open.id, Some(after)).await {
             Ok(a) => a,
@@ -170,6 +202,17 @@ pub async fn stream(
         .streams()
         .open(account.0, id)
         .ok_or_else(|| ApiError::new(StatusCode::TOO_MANY_REQUESTS, "too many open streams"))?;
+    // Suspension marks the account before it closes its streams, so a
+    // stream opened while a suspension lands is caught here or closed.
+    let suspended: bool =
+        sqlx::query_scalar("SELECT suspended_at IS NOT NULL FROM accounts WHERE id = $1")
+            .bind(account.0)
+            .fetch_one(games.pool())
+            .await?;
+    if suspended {
+        drop(ticket);
+        return Err(ApiError::new(StatusCode::UNAUTHORIZED, "suspended"));
+    }
     // Subscribed under the game's lock, so no order falls between the
     // catch-up and the first live message.
     let (rx, sent) = {
@@ -184,7 +227,7 @@ pub async fn stream(
         rx,
         sent: catch_up.map_or(sent, |_| -1),
         catch_up,
-        _ticket: ticket,
+        ticket,
     };
     let s: std::pin::Pin<Box<dyn Stream<Item = Result<Sse, Infallible>> + Send>> =
         Box::pin(stream::unfold(open, next));
