@@ -3,7 +3,7 @@
   // first if need be, then take a seat. The server knows which seats are
   // free; a taken one is refused with its message.
   import { sideName } from "./clock";
-  import { type Account, SIGN_IN_URL, joinGame } from "./lobby";
+  import { type Account, LobbyError, SIGN_IN_URL, joinGame } from "./lobby";
   import { RETURN_KEY } from "./route";
   import type { Side } from "./types";
 
@@ -27,7 +27,7 @@
       await joinGame(Number(id), side, invite ?? undefined);
       location.assign(`/game/${id}`);
     } catch (e) {
-      error = (e as Error).message;
+      error = e instanceof LobbyError && e.status === 409 ? `The ${sideName(side)} seat is taken: try the other one.` : (e as Error).message;
       busy = false;
     }
   }

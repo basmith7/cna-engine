@@ -1,11 +1,12 @@
 // The page's path, as the online client reads it: a game (`/game/{id}`),
-// an invite (`/join/{id}?invite=…`), or the start screen for anything
+// an invite (`/join/{id}?invite=…`), the lobby (`/lobby`), or the start screen for anything
 // else. The server answers each of these paths with the client.
 
-export type Route = { page: "start" } | { page: "game"; id: string } | { page: "join"; id: string; invite: string | null };
+export type Route = { page: "start" } | { page: "lobby" } | { page: "game"; id: string } | { page: "join"; id: string; invite: string | null };
 
 /** The route for `pathname` and `search` (`location`'s). */
 export function parseRoute(pathname: string, search: string): Route {
+  if (/^\/lobby\/?$/.test(pathname)) return { page: "lobby" };
   const m = /^\/(game|join)\/(\d+)\/?$/.exec(pathname);
   if (!m) return { page: "start" };
   if (m[1] === "game") return { page: "game", id: m[2] };
