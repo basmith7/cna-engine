@@ -29,12 +29,18 @@ events that rolled dice. The hot-seat browser is unchanged (it plays
 with open information). Golden hashes now live beside their fixtures
 (`tests/games/*.sha256`), written by the regenerate tests. Its
 choices ledger is `docs/plans/2026-10-13-m4-choices.md`. **Slice 2,
-the server headless, is draft PR #93:** `crates/cna-server` (axum,
-sqlx on Postgres 18), health, schema, the game registry, applying
-orders in one transaction with snapshots, restart by replay, and old
-games moved to new rules or marked stale, the HTTP API (a test-only
-sign-in header until slice 3) and the SSE live channel; the golden
-game over HTTP and CI follow.
+the server headless, merged as #93 (2026-11-02):** `crates/cna-server`
+(axum, sqlx on Postgres 18), health, schema, the game registry,
+orders applied in one transaction with snapshots, restart by replay,
+old games moved to new rules or marked stale, the HTTP API, the SSE
+live channel, the golden game over HTTP hashing to its pin, and a CI
+`server` job. A fresh review found no leaks; its fixes are in (a failed
+commit no longer wedges a game, seats are checked before a game loads,
+the creator is seated with the game, catch-up replays from a
+snapshot). **Slice 3, accounts, is draft PR #94:** the fake Discord,
+Discord sign-in with PKCE and sessions in Postgres, rate limits and
+CSRF checks, admins and suspension, the fake Discord and server in the
+dev compose; a curl sign-in as `alice` works. Under review.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -111,8 +117,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: finish slice 2
-  (#93: the golden game over HTTP, CI), then slices 3–6.
+- Nothing waits on Brian. Mission 4 goes on unattended: review and
+  merge slice 3 (#94), then slices 4–6 (lobby, alerts, ship).
 - One provisional call to glance at, ledger entry 1.3 in
   `docs/plans/2026-10-13-m4-choices.md`: a game with open information
   still hides the owner's secrets the hot-seat view hid (loads,
