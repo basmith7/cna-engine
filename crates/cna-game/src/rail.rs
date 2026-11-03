@@ -157,20 +157,16 @@ impl GameState {
     }
 
     /// Phase J waits on the Commonwealth only when the module is on and
-    /// it has a supply unit that may still ride the railway somewhere;
-    /// otherwise it is skipped.
+    /// it has a unit, HQ or supply unit that may still ride the railway
+    /// somewhere; otherwise it is skipped.
     pub(crate) fn rail_to_move(&self, data: &Data) -> bool {
-        if !self.modules.abstract_supply
-            || self.phasing() != Some(Side::Cw)
-            || self.railed_supply() >= RAIL_SUPPLY
-        {
+        if !self.modules.abstract_supply || self.phasing() != Some(Side::Cw) {
             return false;
         }
-        // Units ride once the phase is open; only supply opens it (for
-        // now: opening it for units adds stages to the goldens).
+        let line = railway(data);
         self.pieces
             .values()
-            .filter(|p| p.side == Side::Cw && p.kind.is_supply())
+            .filter(|p| p.side == Side::Cw && p.hex().is_some_and(|h| line.contains(h)))
             .any(|p| !self.rail_destinations(data, std::slice::from_ref(&p.id)).is_empty())
     }
 
@@ -660,6 +656,23 @@ mod tests {
         assert_eq!(p.cp_spent, Cp::ZERO);
         // It has ridden: not again this stage.
         assert!(state.rail_destinations(&data, &ids).is_empty());
+    }
+
+    #[test]
+    fn a_combat_unit_alone_opens_phase_j_8_7x() {
+        let data = graziani();
+        let (mut state, ids) = units_at_alexandria(&data, &["unit:cw:1-krrc"]);
+        // No supply left to ride: the battalion alone keeps phase J open.
+        let supply: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind.is_supply())
+            .map(|p| p.id.clone())
+            .collect();
+        state.railed.extend(supply);
+        assert!(state.rail_to_move(&data));
+        state.pieces.get_mut(&ids[0]).unwrap().cp_spent = Cp::whole(1);
+        assert!(!state.rail_to_move(&data));
     }
 
     #[test]
