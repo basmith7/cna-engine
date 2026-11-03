@@ -7,11 +7,12 @@ Slices 1–9 merged as PRs #31–#60 (organisation, shells and the stack
 panel, prisoners off map by R-132, guards, replacements, construction);
 #59 adds formations to close assault's size table (15.55). Their plans
 are in `docs/plans/`. #75 judges shells against the 19.3 chart's
-counted components (R-141); #77 captures lone enemy supply entered
+counted components (R-141), and #100 fills them by the chart slots cna
+maps each counter to (R-142); #77 captures lone enemy supply entered
 (32.1x); #78 makes reactions and every retreat pay fuel (32.22, R-120);
 #80 rails combat units, one stack each way a stage with what is attached
 (8.7x, R-005; en-route pick-ups not built).
-Still open for Graziani's: convoy lanes beyond Tripoli, substitution (waits on cna mapping counters to chart slots). The
+Still open for Graziani's: convoy lanes beyond Tripoli, substitution (19.x; cna's slot map, R-142, is now in). The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With
