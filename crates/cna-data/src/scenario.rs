@@ -295,6 +295,9 @@ pub struct UnitEntry {
     pub attached: Vec<UnitId>,
     /// The entry is the named unit and exactly these.
     pub consists_of: Option<Vec<UnitId>>,
+    /// The unit the entry's head starts under where that is not its OA
+    /// parent (a brigade a roster puts in another division).
+    pub under: Option<UnitId>,
     /// The counter only, not its subordinates.
     pub alone: bool,
     pub status: Option<Status>,
@@ -317,6 +320,7 @@ struct UnitEntryRaw {
     #[serde(default)]
     attached: Vec<UnitId>,
     consists_of: Option<Vec<UnitId>>,
+    under: Option<UnitId>,
     #[serde(default)]
     alone: bool,
     status: Option<Status>,
@@ -340,6 +344,7 @@ impl TryFrom<UnitEntryRaw> for UnitEntry {
             detached: r.detached,
             attached: r.attached,
             consists_of: r.consists_of,
+            under: r.under,
             alone: r.alone,
             status: r.status,
             toe: r.toe,
