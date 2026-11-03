@@ -100,6 +100,7 @@ pub fn routes() -> Router<App> {
         .route("/games/{id}/placements", get(placements))
         .route("/games/{id}/reachable", get(reachable))
         .route("/games/{id}/sealed-options", get(sealed_options))
+        .route("/games/{id}/fuel-sources", get(fuel_sources))
         .route("/games/{id}/preview", post(preview))
         .route("/games/{id}/save", get(save))
         .layer(axum::extract::DefaultBodyLimit::max(MAX_BODY))
@@ -491,6 +492,45 @@ async fn reachable(
         Ok(reaches) => Ok(Json(json!({ "ok": reaches }))),
         Err(illegal) => Err(refused(&live, side, &illegal)),
     }
+}
+
+/// The caller's supply units that could pay the fuel of a move by
+/// `pieces` (the order's `fuel_from` choices): `{"ok": [id]}`, empty
+/// unless the caller is to act and owns every piece, as in the wasm
+/// engine.
+async fn fuel_sources(
+    State(games): State<Games>,
+    account: CurrentAccount,
+    Path(id): Path<GameId>,
+    Query(q): Query<PiecesQuery>,
+) -> ApiResult {
+    let (side, live) = seated(&games, id, account).await?;
+    let named: Vec<PieceId> = serde_json::from_str(&q.pieces).map_err(bad)?;
+    let pieces = named
+        .iter()
+        .map(|p| live.aliases.unalias(&live.state, side, p))
+        .collect::<anyhow::Result<Vec<_>>>()
+        .map_err(|_| unknown_piece())?;
+    let own = live.state.to_act() == Some(side)
+        && pieces
+            .iter()
+            .all(|p| live.state.pieces.get(p).is_some_and(|x| x.side == side));
+    let sources: Vec<PieceId> = if own {
+        live.state
+            .fuel_sources(live.data, &pieces)
+            .iter()
+            .map(|p| live.aliases.alias(Some(side), p))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    Ok(Json(json!({ "ok": sources })))
+}
+
+#[derive(Deserialize)]
+struct PiecesQuery {
+    /// A JSON array of piece ids.
+    pieces: String,
 }
 
 /// What the caller may answer the pending sealed step with.

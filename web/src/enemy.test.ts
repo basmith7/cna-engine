@@ -14,7 +14,7 @@ const enemy: Piece = {
   id: "unit:cw:x-bn",
   side: "cw",
   kind: "combat",
-  nation: "uk",
+  nation: "cw",
   id_code: "x",
   cpa: "10",
   equivalent: "battalion",

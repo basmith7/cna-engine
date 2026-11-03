@@ -115,9 +115,11 @@ export class NetworkEngine implements Engine {
     return this.answer<ReachResult>("GET", `/reachable?${q}`);
   }
 
-  /** The server has no route for fuel sources yet: no supply unit is offered to pay a move's fuel online. */
-  async fuelSources(_side: Side, _pieces: PieceId[]): Promise<PieceId[]> {
-    return [];
+  /** The caller's supply units that could pay a move's fuel; empty unless the caller is to act. */
+  async fuelSources(_side: Side, pieces: PieceId[]): Promise<PieceId[]> {
+    const q = `pieces=${encodeURIComponent(JSON.stringify(pieces))}`;
+    const r = await this.answer<{ ok: PieceId[] }>("GET", `/fuel-sources?${q}`);
+    return r.ok ?? [];
   }
 
   async sealedOptions(_side: Side): Promise<SealedOptionsResult> {

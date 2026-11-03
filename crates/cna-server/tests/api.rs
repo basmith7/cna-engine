@@ -357,6 +357,24 @@ async fn queries_run_as_the_callers_seat(pool: PgPool) {
     let (s, _) = call(&app, "GET", &uri, Some(OUTSIDER), None).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
 
+    // Fuel sources: none for a side not to act; not for outsiders.
+    let fuel = format!("/api/games/{id}/fuel-sources?pieces={}", urlencode(&pieces));
+    let (s, f) = call(&app, "GET", &fuel, Some(CW), None).await;
+    assert_eq!((s, f), (StatusCode::OK, json!({"ok": []})));
+    let (s, _) = call(&app, "GET", &fuel, Some(OUTSIDER), None).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    let axis_pieces = serde_json::to_string(&[&axis_piece]).unwrap();
+    let fuel = format!(
+        "/api/games/{id}/fuel-sources?pieces={}",
+        urlencode(&axis_pieces)
+    );
+    let (s, _) = call(&app, "GET", &fuel, Some(CW), None).await;
+    assert_eq!(
+        s,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "a piece the caller cannot name"
+    );
+
     let (s, sealed) = call(
         &app,
         "GET",

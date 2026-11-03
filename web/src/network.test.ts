@@ -139,11 +139,12 @@ describe("NetworkEngine", () => {
     const illegal = { case: "no-move", reason: "out of supply" };
     reply("GET", `/api/games/g1/reachable?pieces=${encodeURIComponent('["a1"]')}&purpose=move`, { status: 422, json: { illegal } });
     expect(await e.reachable("axis", ["a1"], "move")).toEqual({ illegal });
+    reply("GET", `/api/games/g1/fuel-sources?pieces=${encodeURIComponent('["a1"]')}`, { status: 200, json: { ok: ["s1"] } });
+    expect(await e.fuelSources("axis", ["a1"])).toEqual(["s1"]);
     reply("GET", "/api/games/g1/placements?piece=x", { status: 403, json: { error: "not your piece" } });
     await expect(e.placements("x")).rejects.toThrow("not your piece");
     reply("GET", "/api/games/g1/save", { status: 409, json: { error: "the game is not over" } });
     await expect(e.save()).rejects.toThrow("the game is not over");
-    expect(await e.fuelSources("axis", ["a1"])).toEqual([]);
   });
 
   it("close ends the stream and its subscriptions", async () => {
