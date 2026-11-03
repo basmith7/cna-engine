@@ -554,3 +554,9 @@ Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 al
 In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
 Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
 Blocked: none.
+
+## 2026-11-02 23:08 MST — autopilot/m5-rail-stacks
+Done: merged main (30cf428) + view fix for rail_east→rail_runs/rail_supply_way (77ade20). Task 3: rail_to_move opens J for any rail-eligible CW unit/HQ/supply (74282d3, TDD); no re-pin needed (supply already on the line every golden stage; regenerate_ wrote nothing); e2e rails 2 NZ Cav by clicks (a4d2833); docs (54a8263). Local gates green: cargo test 598 passed, clippy, probe check, wasm-pack test, npm check/test/build, Playwright 47 passed.
+In flight: CI on #80 (marked ready).
+Next: merge #80 on green CI.
+Blocked: none.
