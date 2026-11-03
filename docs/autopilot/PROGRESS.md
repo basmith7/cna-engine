@@ -178,11 +178,13 @@ in Alexandria. A fresh review found ships paying combat CP and the
 step's opening reading hidden TOE; both fixed. #118 (merged): fleet
 Task 3, strikes on the fleet (32.7x), damage, the half-guns bar,
 sinking and repair; its review found the Commonwealth's preview
-showing a strike to come, fixed. #119: fleet Task 4, the browser's
+showing a strike to come, fixed. #119 (merged): fleet Task 4, the browser's
 phase E panel, ships on the map and offered in the barrage step, a
-Playwright spec by clicks. A fresh look at its screenshots found six
-display faults (in #119's body), not yet fixed. The fleet stays off in
-new games until they are and the scripted games are re-pinned.
+Playwright spec by clicks. A fresh look at its screenshots found
+display faults; #120 (ready, CI running) fixes three (the hex panel
+lists a ship, its label sits in its hex, its points read as fixed).
+The fleet stays off in new games until the scripted games and
+Playwright drivers are re-pinned with phase E open.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -219,8 +221,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. The fleet is built (#117, #118, #119 on CI);
-  next: fix #119's display faults, then put the fleet in new games
+- Nothing waits on Brian. The fleet is built (#117–#119 merged, #120
+  on CI); next: merge #120, then put the fleet in new games
   (re-pin the scripted games and Playwright drivers) and enforce
   Graziani's "no warship moves before Game-Turn 2". 28.3's captured
   equipment waits on cna (#287 there, draft).
