@@ -415,6 +415,8 @@ impl GameState {
                 probe.over_ceiling_at(data, &r.hex).is_none()
             });
         }
+        // A raider never goes past its CPA of 50 (27.38), as `apply` checks.
+        reaches.retain(|r| self.raider_cap(pieces, r.cp).is_ok());
         Ok(reaches)
     }
 
