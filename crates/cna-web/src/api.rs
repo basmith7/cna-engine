@@ -1342,7 +1342,7 @@ mod tests {
         ("set-up-done", 56),
         ("movement-done", 64),
         ("combat-done", 78),
-        ("golden-done", 458),
+        ("golden-done", 487),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`
