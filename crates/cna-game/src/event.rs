@@ -316,6 +316,15 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// A warship placed at sea for this OpStage (30.1x).
+    Stationed {
+        ship: PieceId,
+        hex: HexId,
+    },
+    /// Warships back in Alexandria, not placed this OpStage (30.1x).
+    InPort {
+        ships: Vec<PieceId>,
+    },
     /// The Axis set the lanes its convoys sail by (32.63).
     ConvoyLanesSet {
         lanes: Vec<u8>,

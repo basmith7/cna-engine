@@ -98,6 +98,9 @@ pub struct Modules {
     /// Engineers build in phase C (§24).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub construction: bool,
+    /// The Commonwealth fleet: ships arrive and phase E opens (§30).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fleet: bool,
 }
 
 impl Modules {
@@ -106,6 +109,7 @@ impl Modules {
         abstract_supply: true,
         breakdown: true,
         construction: true,
+        fleet: false,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -268,6 +272,9 @@ pub struct GameState {
     /// (28.13).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub marched: BTreeSet<HexId>,
+    /// Each warship's port record (30.1x), with the fleet module on.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fleet: BTreeMap<PieceId, crate::fleet::PortRecord>,
     /// The ways a rail stack has run this OpStage: one each (8.7x, R-005).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub rail_runs: BTreeSet<crate::rail::RailWay>,
@@ -396,6 +403,7 @@ impl GameState {
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
+            fleet: BTreeMap::new(),
             air_lifted: BTreeMap::new(),
             convoy_lanes: Vec::new(),
             bizerta_open: false,
@@ -436,6 +444,9 @@ impl GameState {
         }
         if let Some(p) = &self.pending {
             return Some(p.side());
+        }
+        if self.clock.phase == crate::clock::Phase::CwFleet {
+            return Some(Side::Cw);
         }
         if self.clock.phase == crate::clock::Phase::Organisation {
             return self
@@ -621,6 +632,7 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (None, Order::Station { ship, hex }) => self.station(data, player, ship, hex),
             (None, Order::MarchPrisoners { from, path, points }) => {
                 self.march_prisoners(data, player, from, path, *points)
             }

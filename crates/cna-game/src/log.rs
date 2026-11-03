@@ -107,7 +107,7 @@ impl GameState {
                         }
                     }
                 }
-                Location::Box(_) | Location::Eliminated => {}
+                Location::Box(_) | Location::Port(_) | Location::Eliminated => {}
             }
             if let Some(h) = &p.garrison_of {
                 ids.hex("a garrison", h)?;

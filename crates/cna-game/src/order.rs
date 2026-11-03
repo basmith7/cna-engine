@@ -133,6 +133,9 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase E: the Commonwealth places `ship` at sea in `hex` for this
+    /// OpStage (30.1x).
+    Station { ship: PieceId, hex: HexId },
     /// Phase H: `points` of the player's prisoners in `from` walk `path`
     /// (28.13).
     MarchPrisoners {

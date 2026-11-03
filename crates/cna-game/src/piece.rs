@@ -75,14 +75,18 @@ pub enum PieceKind {
     /// no ratings, no stacking points, no ZOC; never fights or breaks
     /// down.
     Raider,
+    /// A Commonwealth warship (30.1x): no stacking value, no ZOC, never
+    /// affects land movement; stationed each OpStage in phase E.
+    Ship,
 }
 
 impl PieceKind {
     /// Whether the piece holds its hex against the enemy: everything bar a
     /// raider, which an enemy may enter, attack past and retreat through
-    /// (27.32, 27.42), so a hidden one gives nothing away.
+    /// (27.32, 27.42), so a hidden one gives nothing away, and a ship,
+    /// which never affects land movement (30.1x).
     pub fn holds_ground(self) -> bool {
-        self != PieceKind::Raider
+        !matches!(self, PieceKind::Raider | PieceKind::Ship)
     }
 
     /// A supply unit, real or dummy (32.1x).
@@ -104,6 +108,8 @@ pub enum Location {
     },
     /// A free set-up the owner has yet to make (59.2).
     Pending(Placement),
+    /// A warship in port (30.1x).
+    Port(Port),
     Eliminated,
 }
 
@@ -123,6 +129,13 @@ impl Location {
             _ => None,
         }
     }
+}
+
+/// A warship's port (30.1x). Valletta waits for the Malta shuttle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Port {
+    Alexandria,
 }
 
 /// The two reserve states (18.1x): I may shift a hex and be released at
