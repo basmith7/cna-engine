@@ -38,10 +38,10 @@ enum Cmd {
         /// Play without construction (§24): engineers build nothing.
         #[arg(long)]
         no_construction: bool,
-        /// Play with the Commonwealth fleet (§30): ships arrive and phase E
-        /// opens. Off until the browser has a phase E panel.
+        /// Play without the Commonwealth fleet (§30): no ships arrive and
+        /// phase E stays skipped.
         #[arg(long)]
-        fleet: bool,
+        no_fleet: bool,
         /// Play without patrols (§16): phase L stays skipped.
         #[arg(long)]
         no_patrols: bool,
@@ -171,7 +171,7 @@ fn main() -> Result<()> {
             no_abstract_supply,
             no_breakdown,
             no_construction,
-            fleet,
+            no_fleet,
             no_patrols,
             no_captured_equipment,
             output,
@@ -181,7 +181,7 @@ fn main() -> Result<()> {
                 abstract_supply: !no_abstract_supply,
                 breakdown: !no_breakdown,
                 construction: !no_construction,
-                fleet,
+                fleet: !no_fleet,
                 patrols: !no_patrols,
                 captured_equipment: !no_captured_equipment,
             };

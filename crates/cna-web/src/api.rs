@@ -1315,11 +1315,10 @@ mod tests {
             )
             .expect("an offered patrol goes out");
 
-        // The fleet module on (it is not in `Modules::ALL` yet): the
-        // golden set-up, then its orders up to phase E, which opens
-        // with GT1/1's ships in Alexandria (30.1x, 30.59).
+        // The golden set-up, then its orders up to the first phase E,
+        // GT2/1 (Graziani's `first_sail`), with the ships in Alexandria
+        // (30.1x, 30.59).
         let mut fleet = golden_prefix(56);
-        fleet.modules.fleet = true;
         for logged in &golden_log().orders[56..] {
             if fleet.clock.phase == cna_game::clock::Phase::CwFleet {
                 break;
@@ -1408,7 +1407,7 @@ mod tests {
         ("set-up-done", 56),
         ("movement-done", 64),
         ("combat-done", 78),
-        ("golden-done", 487),
+        ("golden-done", 502),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`

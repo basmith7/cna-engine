@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "70239b12987d3f0817c719a9f46459b7ef799632",
+  "rules_commit": "25b0f1f4601f6afa62ec16cb6850eb04b0b1b470",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -18,7 +18,7 @@
     "captured_equipment": true
   },
   "clock": {
-    "game_turn": 1,
+    "game_turn": 2,
     "stage": 1,
     "phase": "cw-fleet",
     "half": null,
@@ -66,8 +66,40 @@
       "side": "cw",
       "arrives": 5,
       "units": 3
+    },
+    {
+      "side": "cw",
+      "arrives": 6,
+      "units": 3
     }
   ],
+  "broken_down": {
+    "C3920": [
+      {
+        "side": "axis",
+        "nation": "it",
+        "weapon": "CV33",
+        "points": 5
+      }
+    ]
+  },
+  "repaired": {
+    "axis": {
+      "C4021": {
+        "captured artillery": 12
+      }
+    }
+  },
+  "prisoners": {
+    "axis": {
+      "C4120": 12
+    }
+  },
+  "guards": {
+    "axis": {
+      "C4120": 3
+    }
+  },
   "fleet": {
     "ship:cw:airedale": {
       "at_sea": 0,
@@ -111,11 +143,13 @@
     },
     "ship:cw:valiant": {
       "at_sea": 0,
-      "owed": 0
+      "owed": 0,
+      "damage": 1,
+      "repairing": 2
     }
   },
   "fleet_strikes": {
-    "axis": 1
+    "axis": 0
   },
   "attachment_tracked": true,
   "weather": "hot",
@@ -854,8 +888,8 @@
         "hex": "C4321"
       },
       "load": {
-        "ammo": 10,
-        "fuel": 40
+        "ammo": 0,
+        "fuel": 33
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -882,7 +916,7 @@
         "hex": "C4321"
       },
       "load": {
-        "ammo": 10,
+        "ammo": 8,
         "fuel": 40
       },
       "cp_spent": 0.0,
@@ -1884,13 +1918,123 @@
       "nation": "cw",
       "id_code": "n",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 6,
+      "toe": 0,
       "cpa": "10+",
       "morale": 2,
       "status": null,
       "equivalent": "battalion",
+      "location": "eliminated",
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol": {
+      "id": "unit:cw:1-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
       "location": {
-        "hex": "C3922"
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol-arty": {
+      "id": "unit:cw:1-pol-arty",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "y",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 4,
+      "weapons": [
+        {
+          "weapon": "18-pounder",
+          "points": 4
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol-at": {
+      "id": "unit:cw:1-pol-at",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "dd",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "2-pounder",
+          "points": 1
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-polcv": {
+      "id": "unit:cw:1-polcv",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "ss",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 4,
+      "cpa": "45",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2511,6 +2655,31 @@
       "contact": false,
       "engaged": false
     },
+    "unit:cw:2-pol": {
+      "id": "unit:cw:2-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "unit:cw:2-qns": {
       "id": "unit:cw:2-qns",
       "side": "cw",
@@ -2697,13 +2866,36 @@
       "nation": "cw",
       "id_code": "p",
       "parent": null,
-      "toe": 6,
+      "toe": 0,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": "eliminated",
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-pol": {
+      "id": "unit:cw:3-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
       "cpa": "10",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3922"
+        "hex": "E1730"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2911,20 +3103,18 @@
       "nation": "cw",
       "id_code": "x",
       "parent": "unit:cw:7-spt-hq",
-      "toe": 6,
+      "toe": 0,
       "weapons": [
         {
           "weapon": "18/25-pounders",
-          "points": 6
+          "points": 0
         }
       ],
       "cpa": "20",
       "morale": 2,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3922"
-      },
+      "location": "eliminated",
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -3138,20 +3328,18 @@
       "nation": "cw",
       "id_code": "x",
       "parent": null,
-      "toe": 6,
+      "toe": 0,
       "weapons": [
         {
           "weapon": "60-pounder",
-          "points": 6
+          "points": 0
         }
       ],
       "cpa": "20",
       "morale": 1,
       "status": null,
       "equivalent": "battalion",
-      "location": {
-        "hex": "C3922"
-      },
+      "location": "eliminated",
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
@@ -3342,6 +3530,55 @@
       "contact": false,
       "engaged": false
     },
+    "unit:cw:kopanski-mg": {
+      "id": "unit:cw:kopanski-mg",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "w",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 1,
+      "cpa": "8",
+      "morale": 1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:polish-hq": {
+      "id": "unit:cw:polish-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "unit:cw:selby-force-the-matruh-garrison": {
       "id": "unit:cw:selby-force-the-matruh-garrison",
       "side": "cw",
@@ -3496,7 +3733,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -3552,7 +3789,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -4276,7 +4513,7 @@
       "status": null,
       "equivalent": "company",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -4307,7 +4544,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -4331,7 +4568,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -4387,7 +4624,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5310,7 +5547,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5334,7 +5571,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5365,7 +5602,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5700,7 +5937,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5826,7 +6063,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -5974,7 +6211,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6178,7 +6415,7 @@
       "status": null,
       "equivalent": "company",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6203,7 +6440,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6228,7 +6465,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6252,7 +6489,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6935,7 +7172,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -6960,7 +7197,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7213,7 +7450,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7238,7 +7475,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7441,7 +7678,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7491,7 +7728,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7516,7 +7753,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7831,18 +8068,18 @@
       "id_code": "x",
       "parent": "unit:it:1st-libyan-regt-hq",
       "attached_to": "unit:it:1st-libyan-regt-hq",
-      "toe": 5,
+      "toe": 2,
       "cpa": "10",
       "morale": -2,
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -7868,7 +8105,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7972,11 +8209,11 @@
       "id_code": "k",
       "parent": "unit:it:62nd-marmarica-div-hq",
       "attached_to": "unit:it:62nd-marmarica-div-hq",
-      "toe": 9,
+      "toe": 4,
       "weapons": [
         {
           "weapon": "CV33",
-          "points": 9
+          "points": 4
         }
       ],
       "cpa": "30",
@@ -7984,7 +8221,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3918"
+        "hex": "C3920"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8373,6 +8610,30 @@
       "contact": false,
       "engaged": false
     },
+    "unit:it:the-san-giorgio": {
+      "id": "unit:it:the-san-giorgio",
+      "side": "axis",
+      "kind": "blockship",
+      "nation": "it",
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "unit:it:trivioli-2nd-regt-hq": {
       "id": "unit:it:trivioli-2nd-regt-hq",
       "side": "axis",
@@ -8537,7 +8798,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8562,7 +8823,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8612,12 +8873,12 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8667,12 +8928,12 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8692,12 +8953,12 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
       "cohesion": {
-        "level": 0,
+        "level": 3,
         "dp_tally": 0
       },
       "contact": false,
@@ -8717,7 +8978,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8742,7 +9003,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C4020"
+        "hex": "C4021"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8767,7 +9028,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8817,7 +9078,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -8842,7 +9103,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "C3920"
+        "hex": "C4020"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -9195,7 +9456,7 @@
   "over": null,
   "rng": {
     "seed": 7,
-    "draws": 2
+    "draws": 14
   },
   "log": [
     {
@@ -9701,6 +9962,586 @@
           "hex": "D0101"
         }
       }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "move": {
+          "pieces": [
+            "unit:it:1st-libyan-anti-tank-coy",
+            "unit:it:1st-libyan-artillery-regt",
+            "unit:it:1st-libyan-infantry-hq",
+            "unit:it:1st-libyan-regt-hq",
+            "unit:it:2nd-libyan-regt-hq",
+            "unit:it:ix-libyan-bn",
+            "unit:it:viii-libyan-bn",
+            "unit:it:x-libyan-bn",
+            "unit:it:xi-libyan-bn",
+            "unit:it:xii-libyan-bn",
+            "unit:it:xiii-libyan-bn"
+          ],
+          "path": [
+            "C4021"
+          ],
+          "assault": true
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "move": {
+          "pieces": [
+            "unit:it:2nd-libyan-artillery-regt",
+            "unit:it:2nd-libyan-infantry-hq",
+            "unit:it:3rd-libyan-regt-hq",
+            "unit:it:4th-libyan-regt-hq",
+            "unit:it:ii-libyan-bn",
+            "unit:it:ixl-tank-bn",
+            "unit:it:vi-libyan-bn",
+            "unit:it:vii-libyan-bn",
+            "unit:it:xiv-libyan-bn",
+            "unit:it:xv-libyan-bn",
+            "unit:it:xvi-libyan-bn"
+          ],
+          "path": [
+            "C4020"
+          ],
+          "assault": false
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "gun-positions": {
+          "forward": [
+            "unit:it:1st-libyan-artillery-regt"
+          ]
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "gun-positions": {
+          "forward": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": [
+            {
+              "piece": "unit:it:1st-libyan-artillery-regt",
+              "points": 6,
+              "target": "unit:cw:1-krrc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": [
+            {
+              "piece": "unit:it:viii-libyan-bn",
+              "close_assault": [
+                {
+                  "target": "C3922",
+                  "points": 5
+                }
+              ]
+            },
+            {
+              "piece": "unit:it:ix-libyan-bn",
+              "close_assault": [
+                {
+                  "target": "C3922",
+                  "points": 5
+                }
+              ]
+            },
+            {
+              "piece": "unit:it:x-libyan-bn",
+              "close_assault": [
+                {
+                  "target": "C3922",
+                  "points": 5
+                }
+              ]
+            },
+            {
+              "piece": "unit:it:xi-libyan-bn",
+              "close_assault": [
+                {
+                  "target": "C3922",
+                  "points": 5
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": [
+            {
+              "piece": "unit:cw:1-krrc",
+              "close_assault": [
+                {
+                  "points": 6
+                }
+              ]
+            },
+            {
+              "piece": "unit:cw:3-cldgds",
+              "close_assault": [
+                {
+                  "points": 6
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assault": {
+          "target": "C3922"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "detail-guards": {
+          "piece": "unit:it:ix-libyan-bn",
+          "points": 3
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "march-prisoners": {
+          "from": "C4021",
+          "path": [
+            "C4020",
+            "C4120"
+          ],
+          "points": 12
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "move": {
+          "pieces": [
+            "unit:it:115th-infantry-regt-hq",
+            "unit:it:116th-infantry-regt-hq",
+            "unit:it:44th-artillery-regt",
+            "unit:it:62-anti-tank-coy",
+            "unit:it:62-engineer-bn",
+            "unit:it:62-machinegun-bn",
+            "unit:it:62nd-marmarica-div-hq",
+            "unit:it:i-115-infantry-bn",
+            "unit:it:i-116-infantry-bn",
+            "unit:it:ii-115-infantry-bn",
+            "unit:it:ii-116-infantry-bn",
+            "unit:it:iii-115-infantry-bn",
+            "unit:it:iii-116-infantry-bn",
+            "unit:it:lxiil-tank-bn"
+          ],
+          "path": [
+            "C3919",
+            "C3920"
+          ],
+          "assault": false
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "declare-initiative": {
+          "player_a": "axis"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "end-segment"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "end-segment"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "barrage": {
+          "fires": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "assign-forces": {
+          "assignments": []
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
+    },
+    {
+      "player": "cw",
+      "order": "pass"
     },
     {
       "player": "axis",
