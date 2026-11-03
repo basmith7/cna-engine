@@ -537,3 +537,9 @@ Done: Task 4 rest (9abbe00): /game/{id} on NetworkEngine (no curtain/autosave, l
 In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this branch; manual stack run + screenshots by the main session.
 Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
 Blocked: none.
+
+## 2026-11-02 20:26 MST — autopilot/m4-slice-4-lobby
+Done: Task 5 by a subagent (e5cad4d, 412deca, 605bcb8, f5482a8, 6facfba): two-player e2e by clicks, leaks + hash checked, CI Postgres. Fresh review fixes (6436420). Local: multiplayer e2e 1 passed on 6436420; hot-seat 46 passed; server DB suite and clippy green.
+In flight: CI on #95; then ready + merge, retarget #96 to main.
+Next: #96 Task 4's Playwright DM check; slice 6. Follow-ups: stream silent when a game ends/starts; e2e leak check judges against later state; enemy events with stripped fields log "undefined" (move cost, anti-armour points, prisoner points).
+Blocked: none.
