@@ -594,5 +594,6 @@ Blocked: none.
 ## 2026-11-03 01:00 MST — autopilot/m5-desert-raiders
 Done: #100, #101, #102 and #103 merged in stack order, each child retargeted to main before its parent merged. Main's gates pass locally (clippy clean, 608 tests pass with 0 failed, probe check up to date). #104 (draft) is the §27 plan: raiders, hidden movement in the enemy view, spotting, and the raid on Rommel. The other 27.5x targets are left out because they don't exist under the abstract block.
 Blocked: two cna requests in PROGRESS: raider counters are missing from the OA data (Rommel's Arrival's Jalo LRDG has `units: []`), and raider supply and dump raids under 32.11.
-Next: #104 Task 1 with a test-only raider piece. Hidden pieces must leave every per-piece map in `view/state.rs` and every event that names them.
+Also on #104 (29c0b8c): `Piece.hidden`. The enemy's view and events drop a hidden piece and everything naming it, open information or not. Gates pass locally (612 tests).
+Next: the rest of #104's Task 1: `PieceKind::Raider`, spotting on its own stream, and `Order::RaidRommel`.
 
