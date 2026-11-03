@@ -12,7 +12,7 @@ maps each counter to (R-142); #77 captures lone enemy supply entered
 (32.1x); #78 makes reactions and every retreat pay fuel (32.22, R-120);
 #80 rails combat units, one stack each way a stage with what is attached
 (8.7x, R-005; en-route pick-ups not built).
-#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). Graziani's land rules are complete bar the LRDG raid on Rommel (27.6x), planned with the desert raiders in `docs/plans/2026-11-03-m5-desert-raiders.md`. The fleet's ships, stations, port cycle (phase E, 30.1x) and off-shore bombardment (30.2x) are built behind the `fleet` module, not yet on in new games; strikes on the fleet and repair are next (`docs/plans/2026-11-03-m5-fleet.md`). The
+#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). Graziani's land rules are complete bar the LRDG raid on Rommel (27.6x), planned with the desert raiders in `docs/plans/2026-11-03-m5-desert-raiders.md`. The fleet's ships, stations, port cycle (phase E, 30.1x), off-shore bombardment (30.2x), the Axis's strikes on it (32.7x, R-032), damage, sinking and repair (30.3x) are built behind the `fleet` module, not yet on in new games; its browser panel is next (`docs/plans/2026-11-03-m5-fleet.md`). The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With

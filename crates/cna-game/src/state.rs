@@ -279,6 +279,10 @@ pub struct GameState {
     /// Each warship's port record (30.1x), with the fleet module on.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fleet: BTreeMap<PieceId, crate::fleet::PortRecord>,
+    /// Strikes on the fleet the Axis has left (32.72), once rolled: its
+    /// secret (3.61).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fleet_strikes: BTreeMap<Side, u8>,
     /// This OpStage's anti-armour fire, close assaults and barraged
     /// hexes, for patrols (16.21, 16.22).
     #[serde(default, skip_serializing_if = "crate::patrol::StageRecord::is_empty")]
@@ -412,6 +416,7 @@ impl GameState {
             escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
             fleet: BTreeMap::new(),
+            fleet_strikes: BTreeMap::new(),
             stage_record: Default::default(),
             air_lifted: BTreeMap::new(),
             convoy_lanes: Vec::new(),
