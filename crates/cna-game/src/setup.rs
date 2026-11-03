@@ -574,6 +574,13 @@ fn piece(
     }
 }
 
+/// The piece for `unit` alone, off the map until placed: a raider formed
+/// in play (27.13).
+pub(crate) fn piece_for(side: Side, unit: &Unit, chars: &Characteristics, oa: &Oa) -> Piece {
+    let entry = crate::raider_forming::alone(&unit.id);
+    piece(side, unit, None, &entry, chars, oa, Location::Eliminated)
+}
+
 /// The pieces a scheduled arrival brings (20.1x, 4.42): the named unit
 /// and its sheet subtree, less members with a later arrival of their own.
 pub fn reinforcement(

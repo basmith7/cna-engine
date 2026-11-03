@@ -73,5 +73,13 @@ Task 3 waits on request 1.
 
 ### Task 3: forming raiders (waits on cna request 1)
 
-- [ ] Forming in the organisation phase from a unit at maximum morale
+- [x] Forming in the organisation phase from a unit at maximum morale
   (27.13), and re-forming four turns after elimination (27.16, E-026).
+  `Order::FormRaider` (engine); a raider that moves is hidden again
+  (27.31). Morale training (17.3x) is not in the engine, so "at maximum
+  morale" reads as "not in training".
+- [ ] The browser: a *Form raider* control in phase C.
+
+### Task 4: raids on supply dumps (R-149)
+
+- [ ] `Order::RaidDump` on a §32 supply unit (27.55, R-149).

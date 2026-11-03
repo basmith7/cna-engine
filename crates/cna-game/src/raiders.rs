@@ -91,9 +91,8 @@ impl GameState {
             let roll = self.rng.d6();
             let eliminated = roll == SPOTTING_DIE;
             if eliminated {
-                let p = self.pieces.get_mut(id).expect("listed");
-                p.hidden = false;
-                p.location = Location::Eliminated;
+                self.pieces.get_mut(id).expect("listed").hidden = false;
+                self.lose_raider(id);
                 fell = true;
             }
             events.push(Event::RaiderSpotted {
@@ -191,11 +190,10 @@ impl GameState {
         if self.pieces[id].cp_own_half() >= Cp::whole(RAIDER_CPA) {
             lrdg_eliminated = true;
         }
-        let p = self.pieces.get_mut(id).expect("checked");
         // A raid puts the counter on the map (27.31).
-        p.hidden = false;
+        self.pieces.get_mut(id).expect("checked").hidden = false;
         if lrdg_eliminated {
-            p.location = Location::Eliminated;
+            self.lose_raider(id);
         }
         events.push(Event::RommelRaided {
             piece: id.clone(),

@@ -56,6 +56,13 @@ pub enum Event {
         /// The LRDG did not survive the result.
         lrdg_eliminated: bool,
     },
+    /// A raider counter was formed from one of `from`'s TOE points, in
+    /// its hex (27.13).
+    RaiderFormed {
+        piece: PieceId,
+        from: PieceId,
+        hex: HexId,
+    },
     /// Who is Player A this OpStage.
     InitiativeDeclared {
         player_a: Side,

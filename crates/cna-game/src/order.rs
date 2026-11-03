@@ -162,6 +162,10 @@ pub enum Order {
     /// The phasing Commonwealth player's movement segment: LRDG `piece`,
     /// next to Rommel's hex, spends 10 CP to raid him (27.6x).
     RaidRommel { piece: PieceId },
+    /// Phase C: raider counter `raider`, not in play, is formed in
+    /// `from`'s hex from one of its recce or armoured-car TOE points
+    /// (27.13, 27.16).
+    FormRaider { raider: PieceId, from: PieceId },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

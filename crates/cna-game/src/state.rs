@@ -172,6 +172,9 @@ pub struct GameState {
     /// rating at 3 through (27.92).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub axis_initiative_pinned_through: Option<u8>,
+    /// When each raider counter was last eliminated, for 27.16's wait.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub raiders_lost: BTreeMap<PieceId, cna_data::time::GameTime>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
     /// Supply units planned and on their way (32.4x).
@@ -355,6 +358,7 @@ impl GameState {
             rommel_recalled: false,
             rommel_raids: 0,
             axis_initiative_pinned_through: None,
+            raiders_lost: BTreeMap::new(),
             player_a: None,
             organised: false,
             attachment_tracked: false,
@@ -626,6 +630,9 @@ impl GameState {
                 },
             ) => self.absorb_replacements(data, player, piece, weapon, *points),
             (None, Order::RaidRommel { piece }) => self.raid_rommel(data, player, piece),
+            (None, Order::FormRaider { raider, from }) => {
+                self.form_raider(data, player, raider, from)
+            }
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

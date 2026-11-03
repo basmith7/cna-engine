@@ -159,7 +159,9 @@ pub fn events_for(
             }
             let reveals = matches!(
                 event,
-                Event::RaiderSpotted { .. } | Event::RommelRaided { .. }
+                Event::RaiderSpotted { .. }
+                    | Event::RommelRaided { .. }
+                    | Event::RaiderFormed { .. }
             );
             if !reveals && super::state::names_any(&v, &raiders) {
                 return None;
@@ -250,6 +252,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::RommelRecalled
         | E::RaiderSpotted { .. }
         | E::RommelRaided { .. }
+        | E::RaiderFormed { .. }
         | E::InitiativeDeclared { .. }
         | E::WeatherSet { .. }
         | E::Placed { .. }
