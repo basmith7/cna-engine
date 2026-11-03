@@ -140,11 +140,11 @@ armoured rosters). #104 (desert raiders) merged. #106 merged: `vendor/cna`
 to 8e10e86; Rommel's Arrival now sets up LRDG 1 at Jalo, and the Last
 Chance's 1st, 7th and 10th Armoured Divisions set up with their
 battalions (brigades placed `under` their roster's division). #107
-builds the rest of §27 for the land game: forming and re-forming raiders
+(merged) builds the rest of §27 for the land game: forming and re-forming raiders
 in phase C (a Form button in the stack panel) and raids on supply units
 as dumps (R-149, engine only). A fresh review found two faults (a hidden
 raider captured in an enemy ZOC; the dump-raid limit resetting mid-stage),
-both fixed.
+both fixed. #108 (merged) adds a Raid-the-dump button.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -181,13 +181,13 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #107 (raider forming and dump raids) merges on
-  green CI. Its body lists the two-way calls: "at maximum morale" is read
-  as "not in training", since the engine has no morale training (asked of
-  cna below), and a unit never gives up its last TOE point. Next: a
-  browser control for dump raids, then the next land gap in
-  `NOT_SIMULATED.md` a scenario sets up (§28 commandos reuse hidden
-  movement).
+- Nothing waits on Brian. #107 (raider forming and dump raids) and
+  #108 (a Raid-the-dump button) merged 2026-11-03. Two-way calls in
+  #107's body: "at maximum morale" is read as "not in training", since
+  the engine has no morale training (asked of cna below), and a unit
+  never gives up its last TOE point. Next: the enemy's 1 CP spotting try
+  (27.42–27.44), then the next land gap in `NOT_SIMULATED.md` a scenario
+  sets up (§28 commandos reuse hidden movement).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
