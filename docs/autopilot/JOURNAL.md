@@ -627,3 +627,9 @@ Done: #107 merged f32770e (FormRaider, RaidDump, review fixes), #108 merged eb79
 In flight: none; this branch only plans Task 5 (the enemy's 1 CP spotting try, 27.42–27.44) in the raiders plan.
 Next: build Task 5 on this branch (draft PR open), TDD; then §28 commandos or the next NOT_SIMULATED land gap. Watch the cna request on 27.13's "maximum morale".
 Blocked: none.
+
+## 2026-11-03 06:23 MST — autopilot/m5-spot-try
+Done: Task 5 built on #109. Engine 1d4ac5d..(review fixes), `spot_try.rs`: the move stops at a raider's hex, `RaiderAnnounced`, `Order::TrySpot`, `spot_chances`/`spot_tried`, server preview on `view::as_known_to`. Browser ff83a42 (subagent) + caption/log fix. Fresh review: 2 faults fixed (ZOC interrupt past the stop; preview refused a try). Local: cargo test --no-fail-fast 0 failed, clippy clean, probe check up to date, svelte-check 0 errors, vitest 224, Playwright 53 passed.
+In flight: CI on #109 (ready).
+Next: merge #109 on green CI (`gh pr merge 109 --merge --delete-branch`). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
+Blocked: none.
