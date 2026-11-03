@@ -713,3 +713,9 @@ Done: #124 (San Giorgio) and #125 (fleet in new games; 55591a1 web log lines for
 In flight: CI on #126 (ready); merge on green.
 Next: towing (21.6x), then destroyed-tank markers, capture (14.5, R-014) and the Destroyed Tank Repair Table (22.4x): `docs/plans/2026-11-03-m5-repair-facilities.md`. Consider a module flag if replay of old breakdown-on logs matters (review item 1).
 Blocked: none.
+
+## 2026-11-03 16:57 MST — autopilot/m5-towing
+Done: #126 (facility repair, 22.3x) merged on green CI; #127 retargeted to main first. #127 (draft, subagent): towing broken-down points toward the nearest facility in phase K (21.6x), `Order::Tow`, `Event::Towed`, `Wreck::towed`; cargo test/clippy/probe check green, vitest 242, per its report.
+In flight: #127 draft; no browser control for towing yet; svelte-check there was not run with the wasm built.
+Next: merge main into #127, build the wasm, run `npm run -s check` and a Playwright spec; add a phase K tow control (or note it in NOT_SIMULATED); ready and merge. Then Task 3: destroyed-tank markers, capture (14.5, R-014), the Destroyed Tank Repair Table (22.4x).
+Blocked: none.
