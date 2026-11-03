@@ -266,6 +266,14 @@ the bullet once it lands and `vendor/cna` is bumped.
   Wanted: a ruling on which units qualify in play (every unit at its
   basic morale, or only those trained under 17.3x, which would leave the
   engine forming none until training is built).
+- **Warship ratings for the fleet** (Mission 5: phase E, §30, 32.7x).
+  `data/tables/cw-fleet-schedule.json` names each warship and its type
+  but not its counter's **gun rating** (barrage points, also its hit
+  points, 30.1x) or **AA rating**, and nothing gives the *San Giorgio*'s
+  artillery values (it fires as an immobile artillery unit). Without
+  them the engine cannot place, fire or damage a ship, so phase E stays
+  skipped. Wanted: both ratings per ship (in the schedule or a counter
+  table), and the *San Giorgio*'s barrage, AA and vulnerability values.
 
 ## Runs and quota
 
