@@ -685,3 +685,9 @@ Done: #121 (vendor/cna 70239b1, R-152 not-yet row, pins) ready, CI. #122 (stacke
 In flight: gates/CI on #122.
 Next: merge #121 (retarget #122 to main FIRST), then #122. Then R-152's 15.89 captured share split (assault.rs ~903: needs the lost points' classes). Fleet in new games waits on cna's first-sail request.
 Blocked: none.
+
+## 2026-11-03 14:20 MST — autopilot/m5-captured-share
+Done: #121 (bump 70239b1) and #122 (R-152 for surrenders) merged. #123: 15.89 captured share split by class, vulnerability losses not captured; fresh-review fixes d8d5301 (spoils by unit type via `spoil_of`, HQ/infantry guns are prisoners, split-assault dedupe, prisoner_points under the module). Local gates green.
+In flight: CI on #123 (base main).
+Next: merge #123 on green. Fleet in new games waits on cna's first-sail request. The San Giorgio (R-151): ships never reach map C (row xx29 on map B), so only its 2-point barrage into adjacent hexes and its removal by CW engineers matter; needs a fixed Axis firer (no piece kind fits yet).
+Blocked: none.
