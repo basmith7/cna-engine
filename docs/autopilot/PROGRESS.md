@@ -168,6 +168,19 @@ Matruh" compared hex rows, not columns, so CW supply could set up south
 of Matruh; fixed, golden game re-pinned. #115 (merged): the patrol panel's skip
 list (16.53).
 
+**2026-11-03, seventh run:** cna answered the warship-ratings request
+(#286, R-151). #116 (merged) bumps `vendor/cna` to b142151: each ship's
+gun and AA ratings load, and R-151 (the *San Giorgio*) is a
+NOT_SIMULATED row until it is placed. #117 (merged): fleet Task 2,
+off-shore bombardment (30.2x): a stationed ship fires its guns in a
+barrage step, BB/CA also into an adjacent hex at half, then two stages
+in Alexandria. A fresh review found ships paying combat CP and the
+step's opening reading hidden TOE; both fixed. #118: fleet Task 3,
+strikes on the fleet (32.7x), damage, the half-guns bar, sinking and
+repair; its review found the Commonwealth's preview showing a strike
+to come, fixed. The fleet stays off in new games until the browser
+panel (Task 4) lands.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -203,11 +216,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian, and no autopilot PR is open: #110–#115 all
-  merged 2026-11-03. The fleet's bombardment, strikes and damage (Tasks 2–3) wait on cna's
-  warship ratings, and its browser panel (Task 4) on those, since ships
-  that cannot fire give phase E nothing to decide. 28.3's captured
-  equipment waits on a new cna request (below).
+- Nothing waits on Brian. The fleet's engine is built (#117, #118);
+  its browser panel (Task 4) is next, and then the module joins new
+  games. 28.3's captured equipment waits on cna (#287 there, draft).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
@@ -269,14 +280,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Warship ratings for the fleet** (Mission 5: phase E, §30, 32.7x).
-  `data/tables/cw-fleet-schedule.json` names each warship and its type
-  but not its counter's **gun rating** (barrage points, also its hit
-  points, 30.1x) or **AA rating**, and nothing gives the *San Giorgio*'s
-  artillery values (it fires as an immobile artillery unit). Without
-  them the engine cannot place, fire or damage a ship, so phase E stays
-  skipped. Wanted: both ratings per ship (in the schedule or a counter
-  table), and the *San Giorgio*'s barrage, AA and vulnerability values.
 - **Captured equipment** (Mission 5: 28.3). cna restates 28.3 in one
   sentence ("once repaired, may be used against their former owners").
   The engine loses captured guns and tanks (`NOT_SIMULATED.md`). Wanted:
