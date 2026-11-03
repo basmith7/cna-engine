@@ -67,6 +67,13 @@ impl Streams {
         })
     }
 
+    /// Whether `account` has a stream open on `game` (no alert then).
+    pub fn watching(&self, account: AccountId, game: GameId) -> bool {
+        let map = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        map.get(&account)
+            .is_some_and(|mine| mine.games.contains_key(&game))
+    }
+
     /// Ends every stream `account` holds open (it was suspended).
     pub fn close_account(&self, account: AccountId) {
         let mut map = self.0.lock().unwrap_or_else(|e| e.into_inner());

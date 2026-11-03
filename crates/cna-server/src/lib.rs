@@ -4,6 +4,7 @@
 
 pub mod accounts;
 pub mod admin;
+pub mod alerts;
 pub mod api;
 pub mod auth;
 #[cfg(feature = "fake")]
@@ -311,6 +312,7 @@ mod tests {
             "orders",
             "snapshots",
             "sessions",
+            "alerts",
         ] {
             assert!(once.contains(&t.to_owned()), "{t} in {once:?}");
         }
