@@ -167,8 +167,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
 - Nothing else waits on Brian. Next run: #104's Task 1 (`docs/plans/2026-11-03-m5-desert-raiders.md`),
-  with a test-only raider piece: hidden movement in the enemy view,
-  spotting, and the raid on Rommel. Task 3 (forming raiders) waits on
+  with a test-only raider piece: spotting and the raid on Rommel (hidden
+  pieces already leave the enemy's view and events on #104). Task 3 (forming raiders) waits on
   the cna raider-counter request.
 - #100 changes starting shells outside Graziani's (its body lists them):
   the 15th Panzer is whole in The Last Chance now, and the 7th Support
