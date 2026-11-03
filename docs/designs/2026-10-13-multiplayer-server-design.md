@@ -305,7 +305,7 @@ scripts: the tag build is the `basmith7/workflows` template
    watch` the Build run. Then make the GHCR package `cna` public
    (question 3; GitHub creates it private).
 4. **Tower:** `mkdir -p /mnt/cache/appdata/cna`; a compose.manager
-   project `cna` (autostart) whose compose file is
+   project `cna` (autostart) whose `docker-compose.yml` is the repo's
    `docker-compose.prod.yml` (`cna-db`: postgres:18, data
    `/mnt/cache/appdata/cna/pg`; `cna`: host port 3240, healthy on
    `/healthz`); beside it a `.env`, root 600, from `deploy/.env.example`:

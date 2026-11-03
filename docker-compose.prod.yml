@@ -15,7 +15,8 @@ services:
       # postgres:18 keeps PGDATA under /var/lib/postgresql/18/docker.
       - ${CNA_DATA:-/mnt/cache/appdata/cna}/pg:/var/lib/postgresql
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "cna"]
+      # Over TCP: first-boot init answers on the socket before it listens.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "cna", "-d", "cna"]
       interval: 5s
       retries: 30
     restart: unless-stopped

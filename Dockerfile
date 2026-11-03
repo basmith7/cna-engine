@@ -9,13 +9,15 @@
 FROM rust:1-trixie AS build
 ARG CNA_RULES_COMMIT
 ARG WASM_PACK_VERSION=0.15.0
+ARG WASM_PACK_SHA256=c09f971ecaed9a2efc80fdcea7a00ef6b53c7fadc8c57d1f61b53a6aa66b668a
 RUN test -n "$CNA_RULES_COMMIT" || { echo "build arg CNA_RULES_COMMIT is required" >&2; exit 1; }
 COPY --from=node:24-trixie-slim /usr/local/bin/node /usr/local/bin/node
 COPY --from=node:24-trixie-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && rustup target add wasm32-unknown-unknown \
- && curl -fsSL "https://github.com/wasm-bindgen/wasm-pack/releases/download/v${WASM_PACK_VERSION}/wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
-    | tar -xz --strip-components=1 -C /usr/local/bin "wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl/wasm-pack"
+ && curl -fsSL -o /tmp/wasm-pack.tgz "https://github.com/wasm-bindgen/wasm-pack/releases/download/v${WASM_PACK_VERSION}/wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+ && echo "${WASM_PACK_SHA256}  /tmp/wasm-pack.tgz" | sha256sum -c - \
+ && tar -xzf /tmp/wasm-pack.tgz --strip-components=1 -C /usr/local/bin "wasm-pack-v${WASM_PACK_VERSION}-x86_64-unknown-linux-musl/wasm-pack"
 WORKDIR /src
 COPY . .
 RUN git init -q vendor/cna \
