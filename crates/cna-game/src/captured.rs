@@ -91,12 +91,17 @@ fn vehicle(data: &Data, piece: &Piece) -> Option<ReconVehicle> {
 }
 
 impl GameState {
-    /// The replacement points `ids` give their captor on surrendering
-    /// (R-152, 20.3's first alternative): a point of its class for each
-    /// gun or tank point, an armoured-recce point for an armoured-recce
-    /// point and two for an armoured car's. Read before their losses.
-    pub(crate) fn spoils(&self, data: &Data, ids: &[PieceId]) -> BTreeMap<&'static str, u32> {
-        let mut out = BTreeMap::new();
+    /// The gun and vehicle TOE points of `ids` by replacement key, with
+    /// the replacement points each gives (R-152, 20.3's first
+    /// alternative): one of its class for a gun or tank point, one
+    /// armoured-recce point for an armoured-recce point and two for an
+    /// armoured car's.
+    pub(crate) fn spoil_toe(
+        &self,
+        data: &Data,
+        ids: &[PieceId],
+    ) -> BTreeMap<&'static str, (u32, u32)> {
+        let mut out: BTreeMap<&'static str, (u32, u32)> = BTreeMap::new();
         for id in ids {
             let p = &self.pieces[id];
             for part in self.parts(data, p) {
@@ -109,10 +114,45 @@ impl GameState {
                     },
                     Some(s) => (s.key(), 1),
                 };
-                *out.entry(key).or_default() += part.points * each;
+                let e = out.entry(key).or_default();
+                e.0 += part.points;
+                e.1 += part.points * each;
             }
         }
         out
+    }
+
+    /// The replacement points `ids` give their captor on surrendering
+    /// (R-152). Read before their losses.
+    pub(crate) fn spoils(&self, data: &Data, ids: &[PieceId]) -> BTreeMap<&'static str, u32> {
+        self.spoil_toe(data, ids)
+            .into_iter()
+            .map(|(k, (_, points))| (k, points))
+            .collect()
+    }
+
+    /// The captured share of close-assault losses (15.89, R-152): of
+    /// `lost` TOE points, `lost_spoils` (from `spoil_toe` before less
+    /// after) were guns and vehicles. `pct` of each class's lost points,
+    /// rounded up, is captured: the infantry-type share as prisoner
+    /// points, the rest as the captor's replacement points.
+    pub(crate) fn captured_share(
+        pct: u32,
+        lost: u32,
+        lost_spoils: &BTreeMap<&'static str, (u32, u32)>,
+    ) -> (u32, BTreeMap<&'static str, u32>) {
+        let vehicles: u32 = lost_spoils.values().map(|(toe, _)| toe).sum();
+        let prisoners = (pct * lost.saturating_sub(vehicles)).div_ceil(100);
+        let spoils = lost_spoils
+            .iter()
+            .map(|(k, (toe, points))| {
+                let taken = (pct * toe).div_ceil(100);
+                // Each lost point of the class gives `points / toe`.
+                (*k, taken * points / (*toe).max(1))
+            })
+            .filter(|(_, n)| *n > 0)
+            .collect();
+        (prisoners, spoils)
     }
 
     /// `captor` takes `spoils` in `hex` as replacement points (R-152),
@@ -351,5 +391,20 @@ mod tests {
         assert_eq!(w.points, before + 2);
         assert!(!p.weapons.iter().any(|w| w.weapon.starts_with("captured")));
         assert!(state.repaired.is_empty());
+    }
+
+    #[test]
+    fn the_15_89_share_splits_into_prisoners_and_equipment_by_class_r152() {
+        let lost = BTreeMap::from([("captured tank", (4, 4)), (ARMOURED_RECCE, (3, 6))]);
+        // 10 TOE points lost, 7 of them vehicles; 50 % of each class.
+        let (prisoners, spoils) = GameState::captured_share(50, 10, &lost);
+        assert_eq!(prisoners, 2);
+        assert_eq!(
+            spoils,
+            BTreeMap::from([("captured tank", 2), (ARMOURED_RECCE, 4)])
+        );
+        // No vehicles lost: the old count, all prisoners.
+        assert_eq!(GameState::captured_share(30, 7, &BTreeMap::new()), (3, BTreeMap::new()));
+        assert_eq!(GameState::captured_share(0, 7, &lost), (0, BTreeMap::new()));
     }
 }
