@@ -60,9 +60,6 @@ pub struct Part {
     pub protection: u32,
     /// Per point; 0 where the row prints none.
     pub vulnerability: u32,
-    /// What a captured point of these becomes for the captor (R-152);
-    /// none for infantry-type points, which are prisoners.
-    pub spoil: Option<crate::captured::Spoil>,
 }
 
 impl Part {
@@ -139,7 +136,6 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
             defence: r.close_assault_defence.clone(),
             protection,
             vulnerability: per_point(r.vulnerability.as_ref()),
-            spoil: crate::captured::Spoil::of_row(t),
         }
     };
     if unlisted > 0
@@ -171,7 +167,6 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
                 defence: r.close_assault_defence.clone(),
                 protection: per_point(r.armour_protection.as_ref()),
                 vulnerability: per_point(r.vulnerability.as_ref()),
-                spoil: Some(crate::captured::Spoil::of_class(r.class)),
             }),
             None => match data.chars.row(nation, &w.weapon) {
                 Some(r) => out.push(listed_row(w.points, &w.weapon, r)),

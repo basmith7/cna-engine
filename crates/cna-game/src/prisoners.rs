@@ -87,12 +87,21 @@ pub(crate) fn held(map: &BTreeMap<Side, BTreeMap<HexId, u32>>, side: Side, hex: 
 
 impl GameState {
     /// The prisoner points `ids` yield on surrendering (28.11): their
-    /// infantry TOE points; an HQ with none yields one (3.36). Read
-    /// before their losses are taken.
+    /// infantry TOE points; an HQ with none yields one (3.36). With
+    /// captured equipment (R-152) a gun or vehicle unit yields none (its
+    /// points are equipment) and any other unit all its points, heavy
+    /// weapons included. Read before their losses are taken.
     pub(crate) fn prisoner_points(&self, data: &Data, ids: &[PieceId]) -> u32 {
         ids.iter()
             .map(|id| {
                 let p = &self.pieces[id];
+                if self.modules.captured_equipment {
+                    return match self.spoil_of(data, p) {
+                        Some(_) => 0,
+                        None if p.toe == 0 && p.kind == PieceKind::Hq => 1,
+                        None => p.toe,
+                    };
+                }
                 let infantry: u32 = self
                     .parts(data, p)
                     .iter()

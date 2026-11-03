@@ -913,8 +913,22 @@ impl GameState {
         // points are prisoners, guns and vehicles the captor's
         // replacement points, and vulnerability losses are not captured.
         for (side, hit, toe, assault_toe, spoils, held_in) in [
-            (phasing, a_roll.captured, a_toe, a_assault_toe, a_spoils, target.clone()),
-            (other, d_roll.captured, d_toe, d_assault_toe, d_spoils, captor_hex.clone()),
+            (
+                phasing,
+                a_roll.captured,
+                a_toe,
+                a_assault_toe,
+                a_spoils,
+                target.clone(),
+            ),
+            (
+                other,
+                d_roll.captured,
+                d_toe,
+                d_assault_toe,
+                d_spoils,
+                captor_hex.clone(),
+            ),
         ] {
             if hit && toe > 0 {
                 let die = self.rng.d6();
@@ -1705,7 +1719,10 @@ mod tests {
         for seed in 0..20 {
             let on = assault_the_anti_tank_coy(&data, seed, true);
             let off = assault_the_anti_tank_coy(&data, seed, false);
-            assert!(!off.iter().any(|e| matches!(e, Event::EquipmentCaptured { .. })));
+            assert!(
+                !off.iter()
+                    .any(|e| matches!(e, Event::EquipmentCaptured { .. }))
+            );
             for side in [Side::Cw, Side::Axis] {
                 let Some(prisoners) = taken(&on, side) else {
                     continue;
@@ -1713,11 +1730,11 @@ mod tests {
                 let kit: u32 = on
                     .iter()
                     .filter_map(|e| match e {
-                        Event::EquipmentCaptured { side: captor, points, .. }
-                            if *captor == side.other() =>
-                        {
-                            Some(*points)
-                        }
+                        Event::EquipmentCaptured {
+                            side: captor,
+                            points,
+                            ..
+                        } if *captor == side.other() => Some(*points),
                         _ => None,
                     })
                     .sum();
