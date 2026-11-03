@@ -234,8 +234,22 @@ pub struct Unit {
     /// its own whose values stand in for a characteristics row.
     #[serde(default)]
     pub raider: Option<Raider>,
+    /// The *San Giorgio* only (30.17, R-151): a fixed harbour blockship
+    /// whose values stand in for a characteristics row.
+    #[serde(default)]
+    pub blockship: Option<Blockship>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// 30.17's values for the *San Giorgio* (R-151).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Blockship {
+    pub gun_rating: u32,
+    pub aa_rating: u32,
+    /// Always null: nothing on land may attack it (R-151).
+    pub vulnerability: Option<u32>,
+    pub hex: String,
 }
 
 /// 27.1x's values for a desert raider counter (R-147).

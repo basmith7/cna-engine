@@ -1,7 +1,6 @@
 //! The Commonwealth Fleet Reinforcement Schedule (`cw-fleet-schedule.json`,
 //! SPI 30.59): each warship counter, its type and the OpStage it deploys
-//! in. Names, types and arrivals only: the counters' gun and AA ratings
-//! are not in cna's data.
+//! in, and its counter's gun and AA ratings (30.12).
 
 use crate::errata::load_table;
 use crate::time::GameTime;
@@ -23,6 +22,11 @@ pub struct Ship {
     #[serde(rename = "type")]
     pub class: String,
     pub arrival: Arrival,
+    /// Printed gun rating: barrage points needing no ammunition, and the
+    /// ship's hit points (30.12–30.13).
+    pub gun_rating: u32,
+    /// Printed AA rating in AA points (30.12).
+    pub aa_rating: u32,
 }
 
 impl Ship {
@@ -64,5 +68,13 @@ mod tests {
             .filter(|r| r.arrives() == GameTime::new(1, 1))
             .count();
         assert_eq!(first, 11);
+    }
+
+    #[test]
+    fn every_ship_has_its_ratings() {
+        let s = FleetSchedule::load().unwrap();
+        let valiant = s.rows.iter().find(|r| r.ship == "valiant").unwrap();
+        assert_eq!((valiant.gun_rating, valiant.aa_rating), (6, 12));
+        assert!(s.rows.iter().all(|r| r.gun_rating >= 1 && r.aa_rating >= 1));
     }
 }
