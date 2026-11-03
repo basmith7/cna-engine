@@ -268,6 +268,12 @@ impl GameState {
             if self.rommel_recalled && self.pieces[&id].kind == PieceKind::Commander {
                 continue;
             }
+            // A raider holds no hex and is never in contact: it need not
+            // stop in an enemy ZOC, and only a spotting or a raid ends it
+            // (27.32, 27.41).
+            if self.pieces[&id].kind == PieceKind::Raider {
+                continue;
+            }
             let contact = self.zoc_at(data, &hex, side) == Zoc::Exerts;
             let p = self.pieces.get_mut(&id).expect("listed");
             p.contact = contact;
@@ -354,6 +360,32 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_hidden_raider_alone_in_an_enemy_zoc_is_not_captured_10_29() {
+        use crate::movement::test_support::moving;
+        use crate::raiders::tests::{graziani, raider};
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Axis);
+        // An empty hex an Axis combat unit's ZOC covers.
+        let near = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            .filter_map(|p| p.hex().cloned())
+            .flat_map(|h| data.map.neighbours(&h))
+            .find(|h| {
+                state.pieces_at(h).is_empty() && state.zoc_at(&data, h, Side::Cw) == Zoc::Exerts
+            })
+            .expect("a hex in Axis ZOC");
+        let id = raider(&mut state, &near);
+        let mut events = Vec::new();
+        state.fix_contact(&data, &mut events);
+        assert_eq!(state.pieces[&id].location, Location::Hex(near));
+        assert!(!state.pieces[&id].contact);
+        assert!(!events.iter().any(|e| matches!(e, Event::Captured { .. })));
+    }
+
     use crate::clock::Segment;
     use crate::movement::test_support::{hex, moving, mv, pid};
     use crate::order::Order;

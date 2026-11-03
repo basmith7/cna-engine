@@ -606,7 +606,10 @@ mod tests {
         // Before turn 92 it fills the support group slot as before.
         assert_eq!(at(80, &[bde, "unit:cw:7-spt-hq"]), 2);
         // And is itself judged by the added row: three battalions.
-        let row = data.organisation.row(Nation::Cw, "support-group", 102).unwrap();
+        let row = data
+            .organisation
+            .row(Nation::Cw, "support-group", 102)
+            .unwrap();
         assert_eq!(row.components.len(), 1);
     }
 }

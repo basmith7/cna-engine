@@ -29,14 +29,14 @@
 //!
 //! | Field | Enemy sees |
 //! |---|---|
-//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open` | as is |
+//! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted` | as is: on the board, or known to both |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped` | own only: 3.61 keeps POW and guard numbers secret, and R-145 the count of escapees back with their own side |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
-//! | `scuttled`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board |
+//! | `scuttled`, `raided`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
 //! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
 //! | `pending` | as is, aliased; `forced-retreat.raw` (a function of TOE) only for the side retreating |
 //! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
@@ -116,6 +116,7 @@ const STATE_KEEPS: &[&str] = &[
     "clock",
     "initiative",
     "rommel_recalled",
+    "raiders_lost",
     "player_a",
     "weather",
     "cycle",
@@ -133,6 +134,7 @@ const STATE_KEEPS: &[&str] = &[
     "zoc",
     "air_lifted",
     "scuttled",
+    "raided",
     "railed",
     "moved",
     "continuing",
@@ -180,7 +182,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// `assaults_to_resolve` and, per piece, `unit_type` from the
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
-/// units), and `shell: true` on a formation that is a shell (9.26).
+/// units), `shell: true` on a formation that is a shell (9.26), and in
+/// phase C `raider_formings`, the viewer's raiders it may form (27.13).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -197,6 +200,22 @@ pub fn view_for(
         "assaults_to_resolve".into(),
         json!(state.assaults_to_resolve()),
     );
+    // The viewer's raiders it may form now, and from which units (27.13).
+    let formings: Vec<Value> = viewer
+        .map(|side| state.raider_formings(data, side))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(raider, from)| {
+            let name = raider
+                .unit()
+                .and_then(|u| data.oa.unit(&u))
+                .map(|u| u.abbreviation.clone().unwrap_or_else(|| u.name.clone()));
+            json!({"raider": raider, "name": name, "from": from})
+        })
+        .collect();
+    if !formings.is_empty() {
+        obj.insert("raider_formings".into(), json!(formings));
+    }
     label(state, data, &mut v)?;
     if state.is_over() {
         return Ok(v);

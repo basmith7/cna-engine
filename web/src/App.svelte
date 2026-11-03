@@ -276,8 +276,12 @@
     illegal = null;
     flying = null;
     const before = view;
-    const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
     const next = await e.view();
+    // A piece the order brought into play (a formed raider) is named from the view after it.
+    const name = (id: PieceId) => {
+      const p = before.pieces[id] ?? next.pieces[id];
+      return p ? label(p).long : id;
+    };
     if (engine !== e) return false;
     view = next;
     // Online, the stream logs every order, this seat's own included.
@@ -535,7 +539,10 @@
       const fresh = e.log.slice(logged);
       logged = e.log.length;
       if (before && fresh.length > 0) {
-        const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
+        const name = (id: PieceId) => {
+          const p = before.pieces[id] ?? next.pieces[id];
+          return p ? label(p).long : id;
+        };
         log = withEvents(log, clockLine(before), fresh.map((ev) => formatEvent(ev, name)));
       }
       view = next;

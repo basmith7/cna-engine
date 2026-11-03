@@ -609,3 +609,9 @@ Done: Task 2 browser (eda2532..5654824, Playwright 50 passed per subagent), reac
 In flight: CI on #104 (ready).
 Next: merge #104 on green CI if not merged (`gh pr merge 104 --merge --delete-branch`); then next NOT_SIMULATED land gap a scenario sets up. Task 3 waits on cna.
 Blocked: none.
+
+## 2026-11-03 05:05 MST — autopilot/m5-form-raiders
+Done: #104 merged a37195a. #106 (bump vendor/cna 8e10e86: `raider` + `under` read, LRDG 1 placed at Jalo, R-147..R-149 homed) ready. This branch (off #106): Order::FormRaider (27.13/27.16, `raiders_lost`), raider moves re-hide (27.31).
+In flight: subagent building Order::RaidDump (R-149) on autopilot/m5-raid-dumps (off #106, not yet a PR); browser Form-raider control not started.
+Next: merge #106 on green CI; PR this branch and raid-dumps (retarget to main before merging #106 with --delete-branch); spotting/raid_dump eliminations must call `lose_raider`.
+Blocked: none.

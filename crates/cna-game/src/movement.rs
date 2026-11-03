@@ -819,7 +819,12 @@ impl GameState {
             crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
         for (to, cost) in plan.steps {
             for id in pieces {
-                self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
+                let p = self.pieces.get_mut(id).expect("checked");
+                p.location = Location::Hex(to.clone());
+                // A raider on the move is off the map again (27.31).
+                if p.kind == PieceKind::Raider {
+                    p.hidden = true;
+                }
             }
             self.collect_breakdown(data, pieces, &at, &to);
             events.push(Event::Moved {

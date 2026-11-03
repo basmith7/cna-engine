@@ -159,7 +159,10 @@ pub fn events_for(
             }
             let reveals = matches!(
                 event,
-                Event::RaiderSpotted { .. } | Event::RommelRaided { .. }
+                Event::RaiderSpotted { .. }
+                    | Event::RommelRaided { .. }
+                    | Event::RaiderFormed { .. }
+                    | Event::DumpRaided { .. }
             );
             if !reveals && super::state::names_any(&v, &raiders) {
                 return None;
@@ -250,6 +253,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::RommelRecalled
         | E::RaiderSpotted { .. }
         | E::RommelRaided { .. }
+        | E::RaiderFormed { .. }
         | E::InitiativeDeclared { .. }
         | E::WeatherSet { .. }
         | E::Placed { .. }
@@ -342,6 +346,12 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         }
         E::AirLifted { piece, .. } => Reduced(of(piece), &["fuel_from"]),
         E::ConvoyBombed { .. } => Reduced(Some(Side::Axis), &["units", "sunk"]),
+        // 27.56 reveals a dump's type and the raid its dice and survival;
+        // what a real unit held (its losses are 10 % of it) and the
+        // guards' raw strength (a function of TOE, 3.61) stay its owner's.
+        E::DumpRaided { target, .. } => {
+            Reduced(of(target), &["ammo_lost", "fuel_lost", "guard_strength"])
+        }
     }
 }
 
@@ -861,6 +871,43 @@ mod tests {
             assert_eq!(seen(Some(Side::Axis)), vec![whole(&spotted)], "open {open}");
             assert_eq!(seen(None), vec![whole(&spotted)], "open {open}");
             assert_eq!(seen(Some(Side::Cw)).len(), 2, "open {open}");
+        }
+    }
+
+    #[test]
+    fn a_dump_raid_shows_the_raider_s_side_the_dice_not_what_the_dump_held() {
+        let mut s = state();
+        let Ids { supply, .. } = ids(&s);
+        let raider = ids(&s).enemy_unit;
+        let p = s.pieces.get_mut(&raider).unwrap();
+        p.kind = PieceKind::Raider;
+        p.hidden = false;
+        let e = Event::DumpRaided {
+            piece: raider.clone(),
+            target: supply.clone(),
+            hex: hex("C4808"),
+            guard_roll: Some(9),
+            guard_strength: Some(7),
+            roll: Some(2),
+            dummy: false,
+            ammo_lost: 4,
+            fuel_lost: 5,
+            removed: false,
+            raider_eliminated: false,
+        };
+        assert_eq!(seen_by(&s, &e, Some(Side::Axis)), vec![whole(&e)]);
+        let hidden = ["ammo_lost", "fuel_lost", "guard_strength"];
+        for viewer in [Some(Side::Cw), None] {
+            let seen = seen_by(&s, &e, viewer);
+            assert_eq!(seen.len(), 1);
+            let body = &seen[0]["dump-raided"];
+            for f in hidden {
+                assert!(body.get(f).is_none(), "{f} leaks to {viewer:?}");
+            }
+            assert_eq!(body["roll"], json!(2));
+            assert_eq!(body["guard_roll"], json!(9));
+            assert_eq!(body["dummy"], json!(false));
+            assert!(!names_supply_of(&seen[0], Side::Axis), "{seen:?}");
         }
     }
 

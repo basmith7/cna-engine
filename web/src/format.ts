@@ -61,9 +61,22 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["raider-spotted"];
     return `${name(d.piece)} entering ${d.hex} rolls ${d.roll} to stay unseen: ${d.eliminated ? "spotted and eliminated" : "not spotted"}.`;
   }
+  if ("raider-formed" in e) {
+    const d = e["raider-formed"];
+    return `${name(d.piece)} is formed at ${d.hex} from a TOE point of ${name(d.from)}.`;
+  }
   if ("rommel-raided" in e) {
     const d = e["rommel-raided"];
     return `${name(d.piece)} raids Rommel at ${d.hex}: ${d.roll}, ${RAID[d.result]}; the raider ${d.lrdg_eliminated ? "is eliminated" : "survives"}.`;
+  }
+  if ("dump-raided" in e) {
+    const d = e["dump-raided"];
+    const guards = d.guard_roll === null ? null : `guards ${d.guard_roll}${d.guard_strength == null ? "" : ` against ${d.guard_strength}`}`;
+    const die = d.roll === null ? null : `die ${d.roll}`;
+    const burnt = (d.ammo_lost ?? 0) + (d.fuel_lost ?? 0) > 0 ? `${d.ammo_lost ?? 0} ammunition and ${d.fuel_lost ?? 0} fuel burnt` : null;
+    const loss = d.dummy ? "a dummy, removed" : d.removed ? [burnt, "the unit removed"].filter((x) => x !== null).join(", ") : burnt;
+    const parts = [guards, die, loss].filter((x) => x !== null);
+    return `${name(d.piece)} raids ${name(d.target)} at ${d.hex}: ${parts.join(", ")}; the raider ${d.raider_eliminated ? "is eliminated" : "survives"}.`;
   }
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;

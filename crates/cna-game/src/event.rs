@@ -56,6 +56,34 @@ pub enum Event {
         /// The LRDG did not survive the result.
         lrdg_eliminated: bool,
     },
+    /// A raider counter was formed from one of `from`'s TOE points, in
+    /// its hex (27.13).
+    RaiderFormed {
+        piece: PieceId,
+        from: PieceId,
+        hex: HexId,
+    },
+    /// A raider raided enemy supply unit `target` at `hex` as a supply
+    /// dump (27.55, R-149). Guarded (enemy combat units in the hex), two
+    /// dice `guard_roll` against the guards' raw close-assault defence
+    /// `guard_strength` first: below it the raider is eliminated and no
+    /// `roll` is made. On `roll` 1–2 a real unit loses `ammo_lost` and
+    /// `fuel_lost` (10 % of each, rounded up); a 6 at a guarded dump
+    /// eliminates the raider. A dummy is revealed (`dummy`) and removed;
+    /// a real unit left empty is removed (`removed`, 32.11).
+    DumpRaided {
+        piece: PieceId,
+        target: PieceId,
+        hex: HexId,
+        guard_roll: Option<u8>,
+        guard_strength: Option<u32>,
+        roll: Option<u8>,
+        dummy: bool,
+        ammo_lost: u32,
+        fuel_lost: u32,
+        removed: bool,
+        raider_eliminated: bool,
+    },
     /// Who is Player A this OpStage.
     InitiativeDeclared {
         player_a: Side,

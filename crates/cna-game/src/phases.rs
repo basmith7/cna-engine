@@ -86,6 +86,9 @@ impl GameState {
         }
         self.cycle = 0;
         self.continuing.clear();
+        // Once per raider and hex a stage, across both movement segments
+        // (27.91's general notes).
+        self.raided.clear();
         self.clock = self.clock.end_phase();
         self.advance(data, &mut events);
         Ok(events)
