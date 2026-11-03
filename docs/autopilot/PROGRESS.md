@@ -134,6 +134,18 @@ Rommel, engine and browser, with a Playwright raid by clicks. A fresh
 review found a hidden raider's hex leaking three ways; all fixed. With
 it Graziani's land rules are complete.
 
+**2026-11-03, fourth run:** cna answered all three requests (R-147
+raider counters, R-148/R-149 raiders under §32, the Last Chance's
+armoured rosters). #104 (desert raiders) merged. #106 merged: `vendor/cna`
+to 8e10e86; Rommel's Arrival now sets up LRDG 1 at Jalo, and the Last
+Chance's 1st, 7th and 10th Armoured Divisions set up with their
+battalions (brigades placed `under` their roster's division). #107
+builds the rest of §27 for the land game: forming and re-forming raiders
+in phase C (a Form button in the stack panel) and raids on supply units
+as dumps (R-149, engine only). A fresh review found two faults (a hidden
+raider captured in an enemy ZOC; the dump-raid limit resetting mid-stage),
+both fixed.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -169,24 +181,24 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
+- Nothing waits on Brian. #107 (raider forming and dump raids) merges on
+  green CI. Its body lists the two-way calls: "at maximum morale" is read
+  as "not in training", since the engine has no morale training (asked of
+  cna below), and a unit never gives up its last TOE point. Next: a
+  browser control for dump raids, then the next land gap in
+  `NOT_SIMULATED.md` a scenario sets up (§28 commandos reuse hidden
+  movement).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Nothing else waits on Brian. #104 (desert raiders, §27, Tasks 1–2)
-  is ready: its body lists four two-way calls to glance at (the raid on
-  Rommel made from the next hex; "campaign game" read as any campaign
-  scenario; a surviving spotting roll kept secret; the enemy's 1 CP
-  spotting try left out). Task 3 (forming raiders) waits on the cna
-  raider-counter request. Next run: merge #104 if not yet merged, then
-  the next land gap in `NOT_SIMULATED.md` that a scenario sets up.
 - #100 changes starting shells outside Graziani's (its body lists them):
   the 15th Panzer is whole in The Last Chance now, and the 7th Support
   Group, the 21st Panzer and the 1st and 7th Armoured are shells. R-146
   (#105) lets their support groups fill the turn-92 infantry brigade
-  slot, but the two divisions stay shells until cna lists their
-  battalions (request below).
+  slot, and since #106 the divisions set up with their battalions
+  (cna #284).
 - Two turn-alert calls to glance at (#96's body): a second handover
   within 15 minutes of the last alert sends nothing, as the plan says,
   so a quick reply can leave a player untold (delaying it instead is a
@@ -237,26 +249,14 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **The Last Chance's Commonwealth armoured rosters** (Mission 5: 9.26
-  shells; R-146 is in, #105). The 1st and 7th Armoured Divisions' set-up
-  entries (hexes E3005, E2302) place only the division HQ and carry their
-  "Consists of" roster as a note ("ids not all matched; unconfirmed"), so
-  the engine places the OA's deployed brigade HQs with none of the
-  battalions the notes list (1 RTR, 5 RTR, 4 CLY, 1 Rifle Bde, the 7th
-  Motor Brigade's battalions and so on). Every brigade starts a shell, so
-  both divisions do, R-146 or not. Wanted: those rosters as unit ids in
-  the placement, each under the brigade it is in at GT102.
-- **Raider counters** (Mission 5: §27, plan
-  `docs/plans/2026-11-03-m5-desert-raiders.md`). Rommel's Arrival's Jalo
-  placement has `"units": []` and notes that the OA sheets print no LRDG
-  counter, and no OA file has the two LRDG counters or Sonderkommando
-  Almasy (27.11). Wanted: the three as units (CPA 50, recce vehicle, no
-  ratings, 0 SP), so the Jalo set-up places one and 27.13 can form them.
-- **Raiders under the abstract block** (Mission 5: §27). 32.11 says to
-  ignore all ammunition, fuel and water rules. Does a raider still have
-  to call at a dump, oasis or well each game-turn (27.34) and die
-  without water? Can 27.5x raid a 32.1x supply unit, which is "shown by a
-  supply dump counter", as a supply dump?
+- **Forming raiders without morale training** (Mission 5: 27.13, R-147).
+  27.13 forms a raider from a unit "at maximum morale through training",
+  and R-147's rationale notes no set-up unit is shown so trained. The
+  engine has no morale training (17.3x), so it reads the condition as
+  "not in training" and lets any armoured-car or recce unit form one.
+  Wanted: a ruling on which units qualify in play (every unit at its
+  basic morale, or only those trained under 17.3x, which would leave the
+  engine forming none until training is built).
 
 ## Runs and quota
 
