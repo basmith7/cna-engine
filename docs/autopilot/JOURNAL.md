@@ -531,3 +531,9 @@ In flight: nothing running.
 Also: either-games offer both seats (879dbd5); leave/sign-out send JSON for CSRF (e59b81b); curl e2e against real binaries in #95's body.
 Next: Task 4 rest: /game/{id} page on NetworkEngine, /join/{id}?invite=, settings (disabled), admin list; then screenshots + screenshot-critique. Then Task 5 (two-player Playwright on compose, CI Postgres for web).
 Blocked: none. Shared target dir: removing a worktree leaves test binaries with its CARGO_MANIFEST_DIR baked in; `touch crates/*/src/lib.rs` before testing in a new worktree.
+
+## 2026-11-02 19:50 MST — autopilot/m4-slice-4-lobby
+Done: Task 4 rest (9abbe00): /game/{id} on NetworkEngine (no curtain/autosave, log from the stream, "Your move"/"Waiting for" panel), /join/{id}?invite= (sign-in returns via sessionStorage), alerts switch (disabled) and admin accounts list in the lobby (admin API is under /admin, outside the SPA fallback, so no /admin page). Fixed opponent lookup (lobby ids are numbers).
+In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this branch; manual stack run + screenshots by the main session.
+Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
+Blocked: none.
