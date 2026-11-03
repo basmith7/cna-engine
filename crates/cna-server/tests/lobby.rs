@@ -297,3 +297,62 @@ async fn orders_wait_for_both_seats_and_stop_once_abandoned(pool: PgPool) {
     let (s, b) = call(&app, "POST", &orders, Some(ALICE), Some(body)).await;
     assert_eq!(s, StatusCode::CONFLICT, "abandoned: {b}");
 }
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn a_private_game_tells_a_stranger_nothing_without_its_invite(pool: PgPool) {
+    let app = lobby(&pool).await;
+    let (id, made) = create(&app, ALICE, json!({"side": "axis", "open": false})).await;
+    let invite = made["invite"].as_str().unwrap().to_owned();
+    let (s, _) = join(&app, BOB, id, json!({"side": "cw", "invite": invite})).await;
+    assert_eq!(s, StatusCode::OK);
+    // Started now: a stranger without the invite hears only that it is wrong.
+    let (s, b) = join(&app, CAROL, id, json!({"side": "cw"})).await;
+    assert_eq!(
+        (s, b["error"].as_str()),
+        (
+            StatusCode::FORBIDDEN,
+            Some("a private game: the invite is missing or wrong")
+        )
+    );
+    // With it, that the game has started.
+    let (s, b) = join(&app, CAROL, id, json!({"side": "cw", "invite": invite})).await;
+    assert_eq!(
+        (s, b["error"].as_str()),
+        (StatusCode::CONFLICT, Some("the game is not open"))
+    );
+    // A player in it needs no invite to be told so.
+    let (s, b) = join(&app, BOB, id, json!({"side": "axis"})).await;
+    assert_eq!(
+        (s, b["error"].as_str()),
+        (StatusCode::CONFLICT, Some("you are already in this game"))
+    );
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn the_game_says_its_status(pool: PgPool) {
+    let app = lobby(&pool).await;
+    let (id, _) = create(&app, ALICE, json!({"side": "axis"})).await;
+    let (_, g) = call(&app, "GET", &format!("/api/games/{id}"), Some(ALICE), None).await;
+    assert_eq!(g["status"], "open");
+    join(&app, BOB, id, json!({"side": "cw"})).await;
+    let (_, g) = call(&app, "GET", &format!("/api/games/{id}"), Some(BOB), None).await;
+    assert_eq!(g["status"], "active");
+    call(
+        &app,
+        "POST",
+        &format!("/api/games/{id}/leave"),
+        Some(BOB),
+        Some(json!({})),
+    )
+    .await;
+    let (_, g) = call(&app, "GET", &format!("/api/games/{id}"), Some(ALICE), None).await;
+    assert_eq!(g["status"], "abandoned");
+}

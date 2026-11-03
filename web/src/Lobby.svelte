@@ -3,7 +3,7 @@
   // awaiting their move first; public games waiting for a player; and a
   // form to make one, whose invite link shows once.
   import { sideName } from "./clock";
-  import { type Account, type AdminAccount, type Created, type CreateSide, type MyGame, type OpenGame, accounts, createGame, freeSides, inviteLink, joinGame, myGames, openGames, setSuspended, signOut } from "./lobby";
+  import { type Account, type AdminAccount, type Created, type CreateSide, type MyGame, type OpenGame, accounts, createGame, freeSides, inviteLink, joinGame, leaveGame, myGames, openGames, setSuspended, signOut } from "./lobby";
   import type { Side } from "./types";
 
   let { account, onback }: { account: Account; onback: () => void } = $props();
@@ -52,6 +52,9 @@
     });
 
   const join = (g: OpenGame, side: Side) => act(() => joinGame(g.id, side));
+  const leave = (g: MyGame) => {
+    if (confirm(`Leave game ${g.id}? It ends for both players.`)) act(() => leaveGame(g.id));
+  };
   const suspend = (a: AdminAccount) => act(() => setSuspended(a.id, !a.suspended));
 
   const link = $derived(created ? inviteLink(location.origin, created) : "");
@@ -91,9 +94,12 @@
       <ul data-testid="my-games">
         {#each mine as g (g.id)}
           <li class:move={g.my_move}>
-            <a href={`/game/${g.id}`}>Game {g.id}</a>
+            {#if g.my_side}<a href={`/game/${g.id}`}>Game {g.id}</a>{:else}<span>Game {g.id}</span>{/if}
             <span>{g.my_side ? sideName(g.my_side) : "side at the join"}{g.opponent ? ` against ${g.opponent}` : ""}</span>
             <span class="state">{statusLine(g)}</span>
+            {#if g.status === "open" || g.status === "active"}
+              <button type="button" class="link" disabled={busy} onclick={() => leave(g)}>leave</button>
+            {/if}
           </li>
         {/each}
       </ul>

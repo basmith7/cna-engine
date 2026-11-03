@@ -52,7 +52,7 @@ beforeEach(() => {
       return new Response(JSON.stringify(r.json), { status: r.status, headers: { "Content-Type": "application/json" } });
     }),
   );
-  reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 3, open: false, view: view("axis") } });
+  reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 3, open: false, status: "active", view: view("axis") } });
   reply("GET", "/api/games?mine", { status: 200, json: [{ id: 7, opponent: "bob" }, { id: 8, opponent: "carol" }] });
 });
 
@@ -75,6 +75,17 @@ describe("NetworkEngine", () => {
     expect((await NetworkEngine.open("7")).turnText).toBe("Waiting for bob");
     reply("GET", "/api/games?mine", { status: 500, json: { error: "internal error" } });
     expect((await NetworkEngine.open("7")).turnText).toBe("Waiting for your opponent");
+  });
+
+  it("says the game is not in play, whoever to_act names, unless it is active", async () => {
+    for (const [status, text] of [
+      ["open", "Waiting for an opponent to join"],
+      ["abandoned", "Abandoned: a player left"],
+      ["stale", "Stopped: the rules changed under this game"],
+    ]) {
+      reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 0, open: false, status, view: view("axis") } });
+      expect((await NetworkEngine.open("7")).turnText).toBe(text);
+    }
   });
 
   it("sends the order with its seq as JSON and reloads the view after it lands", async () => {

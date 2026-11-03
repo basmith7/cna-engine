@@ -4,16 +4,17 @@
 // order's `seq`, and the events the stream has shown, and tells
 // subscribers when any of them change.
 import type { Engine } from "./engine";
+import type { GameStatus, MyGame } from "./lobby";
 import type { ApplyResult, Event, HexId, Illegal, Order, PieceId, PreviewResult, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
 
 /** What `GET /api/games/{id}` answers. */
-type GameBody = { side: Side; seq: number; open: boolean; view: View };
+type GameBody = { side: Side; seq: number; open: boolean; status: GameStatus; view: View };
 
 /** One stream message (`stream.rs`): the orders up to `seq`, as this seat may see them, and the view after. */
 type StreamMessage = { seq: number; events: Event[]; view: View };
 
 /** An entry of `GET /api/games?mine`; only the fields read here. */
-type MineEntry = { id: number | string; opponent: string | null };
+type MineEntry = Pick<MyGame, "id" | "opponent">;
 
 /** The illegal-order case `apply` answers when another order landed first. */
 export const STALE_CASE = "stale";
@@ -43,6 +44,8 @@ export class NetworkEngine implements Engine {
   side!: Side;
   /** Whether the game is played with open information. */
   open = false;
+  /** The game's status when last read: only an `active` game takes orders. */
+  status: GameStatus = "active";
   /** The `seq` the next order must carry. */
   seq = 0;
   /** The opponent's name, once known; `null` while the seat is empty or the lobby list could not be read. */
@@ -89,6 +92,9 @@ export class NetworkEngine implements Engine {
 
   /** The top bar's line: "Your move", "Waiting for <name>", or `null` when nobody is to act. */
   get turnText(): string | null {
+    if (this.status === "open") return "Waiting for an opponent to join";
+    if (this.status === "abandoned") return "Abandoned: a player left";
+    if (this.status === "stale") return "Stopped: the rules changed under this game";
     const to = this.current.to_act;
     if (to === null) return null;
     if (to === this.side) return "Your move";
@@ -152,6 +158,7 @@ export class NetworkEngine implements Engine {
     const g = await this.get<GameBody>("");
     this.side = g.side;
     this.open = g.open;
+    this.status = g.status;
     this.seq = g.seq;
     this.current = g.view;
     this.changed();

@@ -364,8 +364,10 @@ async fn leave(
     Ok(Json(json!({ "id": id, "status": "abandoned" })))
 }
 
-/// `{"side", "seq", "view"}`: the caller's seat, the next order's
-/// `seq`, and the game as that seat may see it.
+/// `{"side", "seq", "open", "status", "view"}`: the caller's seat, the
+/// next order's `seq`, whether nothing is hidden, the game's status
+/// (only an `active` game takes orders), and the game as that seat may
+/// see it.
 async fn game(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -374,9 +376,17 @@ async fn game(
     let (side, live) = seated(&games, id, account).await?;
     let view = view_for(&live.state, live.data, &live.aliases, Some(side), live.open)
         .map_err(ApiError::internal)?;
-    Ok(Json(
-        json!({ "side": side, "seq": live.seq(), "open": live.open, "view": view }),
-    ))
+    let status: String = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
+        .bind(id)
+        .fetch_one(games.pool())
+        .await?;
+    Ok(Json(json!({
+        "side": side,
+        "seq": live.seq(),
+        "open": live.open,
+        "status": status,
+        "view": view,
+    })))
 }
 
 #[derive(Deserialize)]

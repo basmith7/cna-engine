@@ -27,7 +27,8 @@
       await joinGame(Number(id), side, invite ?? undefined);
       location.assign(`/game/${id}`);
     } catch (e) {
-      error = e instanceof LobbyError && e.status === 409 ? `The ${sideName(side)} seat is taken: try the other one.` : (e as Error).message;
+      const message = (e as Error).message;
+      error = e instanceof LobbyError && message === "that seat is taken" ? `The ${sideName(side)} seat is taken: try the other one.` : message;
       busy = false;
     }
   }
