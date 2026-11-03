@@ -82,3 +82,22 @@ test("phase C: the Commonwealth forms LRDG 1 from the 11th Hussars by a click (2
   await expect(form).toHaveCount(0);
   await shoot(page, "formed.png");
 });
+
+test("a hidden LRDG raids an Axis supply unit next to it as a dump by a click (27.55, R-149)", async ({ page }) => {
+  const save = JSON.parse(readFileSync(here("fixtures/raid-rommel.json"), "utf8"));
+  save.pieces["supply:axis:10"].location = { hex: "C3519" };
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  await clickHex(page, "C3518");
+  await expect(page.getByTestId("move-panel")).toContainText("1 piece ticked");
+  const raid = page.getByTestId("raid-dumps").locator('[data-order="raid-dump"][data-target="supply:axis:10"]');
+  await expect(raid).toHaveText("Raid the dump at C3519");
+  await shoot(page, "dump-raid-offered.png");
+  await raid.click();
+  await expect(log(page).filter({ hasText: / raids .* at C3519: / })).toHaveCount(1);
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  // The raid puts the raider on the map; the limit is once a stage.
+  await expect(page.locator(".marker.hidden")).toHaveCount(0);
+  await expect(page.getByTestId("raid-dumps")).toHaveCount(0);
+});

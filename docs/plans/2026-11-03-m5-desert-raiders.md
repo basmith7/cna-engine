@@ -82,5 +82,6 @@ Task 3 waits on request 1.
 
 ### Task 4: raids on supply dumps (R-149)
 
-- [x] `Order::RaidDump` on a §32 supply unit (27.55, R-149), engine only;
-  the browser logs it but has no control for it yet.
+- [x] `Order::RaidDump` on a §32 supply unit (27.55, R-149); the move
+  panel offers a *Raid the dump* button per enemy supply unit the
+  engine's preview accepts.

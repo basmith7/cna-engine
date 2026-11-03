@@ -615,3 +615,9 @@ Done: #104 merged a37195a. #106 (bump vendor/cna 8e10e86: `raider` + `under` rea
 In flight: subagent building Order::RaidDump (R-149) on autopilot/m5-raid-dumps (off #106, not yet a PR); browser Form-raider control not started.
 Next: merge #106 on green CI; PR this branch and raid-dumps (retarget to main before merging #106 with --delete-branch); spotting/raid_dump eliminations must call `lose_raider`.
 Blocked: none.
+
+## 2026-11-03 05:28 MST — autopilot/m5-raid-dump-ui
+Done: #106 merged e04ecbd (vendor/cna 8e10e86). #107 ready: FormRaider (27.13/27.16), re-hide on move, raider_formings + Form button, RaidDump (subagent, merged in), fresh-review fixes c1705fc (raiders never in contact/captured; `raided` clears at phase G end). Local: cargo test all ok, clippy, fmt, probe check, Playwright 51 passed. PROGRESS on main dd3351e (new cna request: 27.13's "maximum morale" without training). #108 (stacked on #107): Raid-the-dump button, Playwright 3 passed in raiders.spec.
+In flight: CI on #107 and #108.
+Next: merge #107 on green CI (retarget #108 to main FIRST, then `gh pr merge 107 --merge --delete-branch`), then #108 on green. Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
+Blocked: none.
