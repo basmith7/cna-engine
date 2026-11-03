@@ -218,12 +218,17 @@ impl GameState {
             .row(die)
             .expect("vehicle-repair.json has a row for every d6 roll");
         let (column, percent) = match kind {
-            FacilityKind::Temporary => ("temporary_facility_percent", row.temporary_facility_percent),
+            FacilityKind::Temporary => {
+                ("temporary_facility_percent", row.temporary_facility_percent)
+            }
             FacilityKind::Major => ("major_facility_percent", row.major_facility_percent),
         };
         let percent = percent.expect("vehicle-repair.json has facility columns for every roll");
         // A starred 10 % is ignored for a single point (22.8).
-        let starred = row.single_point_ignores_ten_percent.iter().any(|c| c == column);
+        let starred = row
+            .single_point_ignores_ten_percent
+            .iter()
+            .any(|c| c == column);
         let repaired = if attempted == 1 && starred {
             0
         } else {
@@ -371,12 +376,26 @@ mod tests {
             panic!("{events:?}");
         };
         assert_eq!((attempted, kind), (4, FacilityKind::Major));
-        let pct = data.vehicle_repair.row(die).unwrap().major_facility_percent.unwrap();
+        let pct = data
+            .vehicle_repair
+            .row(die)
+            .unwrap()
+            .major_facility_percent
+            .unwrap();
         assert_eq!(repaired, (4 * pct).div_ceil(100));
-        assert!(repaired >= 1, "the major column never returns nothing on 4 points");
+        assert!(
+            repaired >= 1,
+            "the major column never returns nothing on 4 points"
+        );
         let waiting = state.repaired[&Side::Cw][&hex]["Matilda"];
         assert_eq!(waiting, repaired);
-        let left: u32 = state.broken_down.get(&hex).into_iter().flatten().map(|w| w.points).sum();
+        let left: u32 = state
+            .broken_down
+            .get(&hex)
+            .into_iter()
+            .flatten()
+            .map(|w| w.points)
+            .sum();
         assert_eq!(left, 4 - repaired);
         // One roll per type per phase.
         assert_eq!(
@@ -389,14 +408,23 @@ mod tests {
     fn mersa_matruh_s_temporary_facility_stops_under_an_enemy_zoc_or_a_storm_22_13() {
         let data = Data::load("grazianis-offensive").unwrap();
         let (mut state, hex) = at_facility(&data, breakdown_only(), "D3714");
-        assert_eq!(state.facility_repairs(&data)[0].kind, FacilityKind::Temporary);
+        assert_eq!(
+            state.facility_repairs(&data)[0].kind,
+            FacilityKind::Temporary
+        );
         let mut zoc = state.clone();
         enemy_beside(&data, &mut zoc, &hex);
         assert!(zoc.facility_repairs(&data).is_empty());
-        assert_eq!(zoc.apply(&data, Side::Cw, order(&hex)).unwrap_err().case, "22.13");
+        assert_eq!(
+            zoc.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.13"
+        );
         state.weather = crate::state::Weather::Rainstorm { sheets: vec!['D'] };
         assert!(state.facility_repairs(&data).is_empty());
-        assert_eq!(state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case, "22.13");
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.13"
+        );
     }
 
     #[test]
@@ -405,11 +433,19 @@ mod tests {
         let (mut state, hex) = at_facility(&data, breakdown_only(), "E3613");
         state.broken_down.get_mut(&hex).unwrap()[0].this_stage = 4;
         assert!(state.facility_repairs(&data).is_empty());
-        assert_eq!(state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case, "22.31");
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.31"
+        );
         // Three of the four arrived this OpStage: only one is attempted.
         state.broken_down.get_mut(&hex).unwrap()[0].this_stage = 3;
         let events = state.apply(&data, Side::Cw, order(&hex)).unwrap();
-        let Event::FacilityRepaired { attempted, repaired, .. } = events[0] else {
+        let Event::FacilityRepaired {
+            attempted,
+            repaired,
+            ..
+        } = events[0]
+        else {
             panic!("{events:?}");
         };
         assert_eq!(attempted, 1);
@@ -425,7 +461,10 @@ mod tests {
         let data = Data::load("grazianis-offensive").unwrap();
         let (mut state, hex) = at_facility(&data, breakdown_only(), "E1730");
         assert!(state.facility_repairs(&data).is_empty());
-        assert_eq!(state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case, "22.31");
+        assert_eq!(
+            state.apply(&data, Side::Cw, order(&hex)).unwrap_err().case,
+            "22.31"
+        );
         let (mut state, hex) = at_facility(&data, breakdown_only(), "E3613");
         assert!(state.apply(&data, Side::Axis, order(&hex)).is_err());
     }
@@ -445,14 +484,26 @@ mod tests {
             assert!(state.facility_repairs(&data).is_empty());
         }
         state.put(&source, Location::Hex(hex.clone()));
-        state.pieces.get_mut(&source).unwrap().load.as_mut().unwrap().fuel = 3;
+        state
+            .pieces
+            .get_mut(&source)
+            .unwrap()
+            .load
+            .as_mut()
+            .unwrap()
+            .fuel = 3;
         let fuel_before: u32 = state
             .repair_fuel(&data, Side::Cw, &hex)
             .iter()
             .map(|q| state.pieces[q].load.unwrap().fuel)
             .sum();
         let events = state.apply(&data, Side::Cw, order(&hex)).unwrap();
-        let Event::FacilityRepaired { attempted, ref fuel_from, .. } = events[0] else {
+        let Event::FacilityRepaired {
+            attempted,
+            ref fuel_from,
+            ..
+        } = events[0]
+        else {
             panic!("{events:?}");
         };
         assert_eq!(attempted, 4.min(fuel_before));

@@ -196,6 +196,7 @@ export type Order =
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { "convoy-lanes": { lanes: number[] } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
+  | { "facility-repair": { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
   | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
@@ -223,6 +224,17 @@ export interface Project {
 }
 
 /** Broken-down TOE points of one weapon system in a hex (21.4x). */
+/** A repair facility's kind (22.31). */
+export type FacilityKind = "temporary" | "major";
+
+/** Phase K: a facility roll the viewer may make, for the points that began the OpStage in the hex (22.3x, `cna_game::facility::FacilityOffer`). */
+export interface FacilityOffer {
+  hex: HexId;
+  weapon: string;
+  points: number;
+  kind: FacilityKind;
+}
+
 export interface Wreck {
   side: Side;
   nation?: string | null;
@@ -364,6 +376,7 @@ export type Event =
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
   | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from?: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
+  | { "facility-repaired": { hex: HexId; weapon: string; kind: FacilityKind; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
   | { "equipment-captured": { side: Side; hex: HexId; weapon: string; points?: number } }
@@ -534,6 +547,8 @@ export interface View {
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
   station_options?: { ships: PieceId[]; hexes: HexId[] };
+  /** Phase K: the facility rolls the phasing viewer may make (22.3x). */
+  facility_repairs?: FacilityOffer[];
   /** Each warship's port record (30.1x), with the fleet module on. */
   fleet?: Record<PieceId, { at_sea?: number; owed?: number; stationed?: true; fired?: true }>;
 }

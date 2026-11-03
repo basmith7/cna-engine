@@ -715,7 +715,10 @@ mod tests {
         let s = graziani();
         let axis = &s.side(Side::Axis).repair;
         assert_eq!(axis.len(), 3);
-        assert_eq!(axis[0].placement.sole(), Some(&Locator::Box(OffMapBox::Tripoli)));
+        assert_eq!(
+            axis[0].placement.sole(),
+            Some(&Locator::Box(OffMapBox::Tripoli))
+        );
         assert_eq!(axis[0].kind, FacilityKind::Major);
         assert_eq!(
             axis[1].placement.sole(),
