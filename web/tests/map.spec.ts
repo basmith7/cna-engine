@@ -14,7 +14,8 @@ test("a new game shows the theatre, every placed piece at its hex and the set-up
   await expect(page.locator("path.hexside.road").first()).toBeAttached();
 
   const { placed, pending } = await expectDomMatchesView(page);
-  expect(placed).toBe(235);
+  // 236 with the San Giorgio's wreck in Tobruk (the `fleet` module, R-151).
+  expect(placed).toBe(236);
   expect(pending).toEqual({ axis: 36, cw: 20 });
   await expect(page.locator("[data-where=tray-axis] [data-unit]")).toHaveCount(36);
   await expect(page.locator("[data-where=tray-cw] [data-unit]")).toHaveCount(20);

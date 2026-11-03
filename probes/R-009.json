@@ -2,7 +2,7 @@
   "id": "R-009",
   "kind": "line",
   "question": "Reply barrage against phasing infantry in a level-two fortification: how much does the terrain shift matter?",
-  "rules_commit": "70239b12987d3f0817c719a9f46459b7ef799632",
+  "rules_commit": "25b0f1f4601f6afa62ec16cb6850eb04b0b1b470",
   "engine_commit": "see git log",
   "x": {
     "label": "Actual barrage points",

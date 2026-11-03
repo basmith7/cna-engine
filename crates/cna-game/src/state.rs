@@ -116,7 +116,7 @@ impl Modules {
         abstract_supply: true,
         breakdown: true,
         construction: true,
-        fleet: false,
+        fleet: true,
         patrols: true,
         captured_equipment: true,
     };

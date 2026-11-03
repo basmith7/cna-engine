@@ -701,3 +701,9 @@ Done: #123 merged (R-152 complete: #121–#123). #124 re-merged with main, gates
 In flight: #124 draft, CI.
 Next: #124's ammunition: 32.21 charges by `equivalent` (battalion/company) and the wreck has none; read its OA entry for a size, else post a cna request and record the gap in its NOT_SIMULATED row. Then an Axis supply unit blocking removal, the sealed panel's "guns 2 · ship" label, a retreat regression test; ready and merge.
 Blocked: none.
+
+## 2026-11-03 15:58 MST — autopilot/m5-fleet-default
+Done: #124 (San Giorgio) merged. #125: main merged in (87d6efb), pins regenerated (San Giorgio in new games), CI's 6 Playwright failures fixed (55591a1: no web types/log lines for fleet-strikes-rolled, fleet-struck, ship-repaired, so formatEvent threw on GT1's first strike and the curtain never rose). Local: clippy, cargo test --no-fail-fast, probe check, vitest 240, svelte-check 0, attachment/movement/supply specs 23 passed. Marked ready.
+In flight: CI on #125; subagent building facility repair (22.3x) on autopilot/m5-repair-facilities in /tmp/cna-repair (target dir target-repair).
+Next: merge #125 on green, then delete the first-sail request from PROGRESS. Review and ready the repair-facilities PR; then towing (21.6x) and destroyed tanks (14.5, 22.4x) per its plan.
+Blocked: none.

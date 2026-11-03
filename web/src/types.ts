@@ -312,6 +312,12 @@ export type Event =
   | { patrolled: PatrolReport }
   | { stationed: { ship: PieceId; hex: HexId } }
   | { "in-port": { ships: PieceId[] } }
+  /** The Axis's roll for its strikes on the fleet (32.72): its secret, sent to the Axis alone. */
+  | { "fleet-strikes-rolled": { strikes: number } }
+  /** An Axis strike on the ships in Alexandria (32.73, 32.74): gun points laid per ship, and those sunk. */
+  | { "fleet-struck": { column: number; reading: number; damage: number; hits?: Record<PieceId, number>; sunk?: PieceId[] } }
+  /** A damaged ship got a gun point back after six OpStages in Alexandria (30.37). */
+  | { "ship-repaired": { ship: PieceId; guns: number } }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }

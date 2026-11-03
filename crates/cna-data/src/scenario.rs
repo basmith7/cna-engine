@@ -421,8 +421,8 @@ pub struct RepairBlock {
     pub kind: FacilityKind,
 }
 
-/// One side's set-up. The air, fleet and truck blocks are not read:
-/// Mission 2 plays the Land Game only.
+/// One side's set-up. The air and truck blocks are not read: the
+/// engine plays the Land Game only.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SideSetup {
     #[serde(default)]
@@ -437,6 +437,17 @@ pub struct SideSetup {
     pub reinforcements: Vec<String>,
     #[serde(default)]
     pub special: Vec<String>,
+    /// The Commonwealth fleet's block; only `first_sail` is read.
+    #[serde(default)]
+    pub fleet: Option<FleetSetup>,
+}
+
+/// A scenario's fleet block (`sides.cw.fleet`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FleetSetup {
+    /// No warship sails before this OpStage; `None` sets no bar.
+    #[serde(default)]
+    pub first_sail: Option<GameTime>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -647,6 +658,7 @@ impl Scenario {
             repair: Vec::new(),
             reinforcements: Vec::new(),
             special: Vec::new(),
+            fleet: None,
         };
         self.sides.get(&side).unwrap_or(&EMPTY)
     }
