@@ -59,7 +59,9 @@ engine of Mission 4 serves it unchanged.
   builds. The `air_and_logistics` abstraction block stays the one applied.
 - **Phase E (Commonwealth fleet, §30) and 32.7x (bombing the fleet).** The
   fleet does nothing in a Land-only Graziani game; it stays skipped.
-- **Phase L (patrol).** Patrol points belong to the Air Game; skipped.
+- **Phase L (patrol).** Skipped at first; patrols are a land procedure
+  (cna `rules/60-combat.md`, SPI 16.x) and get their own plan,
+  `docs/plans/2026-11-03-m5-patrols.md`.
 - **§27 raids and §31 (Rommel).** No unit in Graziani's Offensive can use
   them (Rommel arrives after Game-Turn 6).
 - **Other scenarios.** Their land rules are the mission's second half,
