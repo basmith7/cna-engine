@@ -37,10 +37,17 @@ live channel, the golden game over HTTP hashing to its pin, and a CI
 `server` job. A fresh review found no leaks; its fixes are in (a failed
 commit no longer wedges a game, seats are checked before a game loads,
 the creator is seated with the game, catch-up replays from a
-snapshot). **Slice 3, accounts, is draft PR #94:** the fake Discord,
-Discord sign-in with PKCE and sessions in Postgres, rate limits and
+snapshot). **Slice 3, accounts, merged as #94 (2026-11-03):** the fake Discord,
+Discord sign-in with PKCE and sessions in Postgres (our own store:
+the sqlx store crate lags sqlx 0.9), rate limits (IPv6 by /64) and
 CSRF checks, admins and suspension, the fake Discord and server in the
-dev compose; a curl sign-in as `alice` works. Under review.
+dev compose; a curl sign-in as `alice` works. A fresh review's fixes
+are in. **Slice 4, the lobby and the network client, is draft PR
+#95:** the lobby API (create with an invite shown once, open and mine
+lists, join, leave, the 60-day sweep), orders only in active games,
+the server serving the built client; the web `Engine` interface is
+being built, then the network engine, the screens and a two-player
+Playwright run.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -117,8 +124,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: review and
-  merge slice 3 (#94), then slices 4–6 (lobby, alerts, ship).
+- Nothing waits on Brian. Mission 4 goes on unattended: finish slice 4
+  (#95), then slices 5–6 (alerts, ship). Slice 6 must bind the server
+  behind Pangolin only: `CNA_TRUST_PROXY=1` trusts `X-Forwarded-For`
+  from whoever reaches the port.
 - One provisional call to glance at, ledger entry 1.3 in
   `docs/plans/2026-10-13-m4-choices.md`: a game with open information
   still hides the owner's secrets the hot-seat view hid (loads,
