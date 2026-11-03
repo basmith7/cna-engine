@@ -192,7 +192,7 @@ request (#287, R-152). #121 (merged) bumps `vendor/cna` to 70239b1.
 module (on in new games): a surrendering gun, tank or armoured-recce
 unit's points become the captor's replacement points in its hex, by
 class, absorbed in phase C by a unit of that type; the browser logs the
-capture and offers the absorb. #123 (stacked) splits 15.89's captured
+capture and offers the absorb. #123 (merged) splits 15.89's captured
 share the same way and stops capturing vulnerability losses; a fresh
 review's four points are fixed there (spoils by unit type, so an HQ's
 and an infantry unit's guns are prisoners; split assaults counted once).
@@ -236,9 +236,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #123 (R-152's close-assault share) merges on
-  green CI; #124 (the *San Giorgio*) needs its ammunition charged and two
-  small review points before it is ready. Then the fleet in new games
+- Nothing waits on Brian. R-152 is merged (#121–#123). #124 (the
+  *San Giorgio*) needs its ammunition charged (it has no battalion or
+  company size to charge by) and two small review points before it is
+  ready. Then the fleet in new games
   waits on the first-sail request below (re-pin the scripted games and
   Playwright drivers with phase E open).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
@@ -310,6 +311,15 @@ the bullet once it lands and `vendor/cna` is bumped.
   "op_stage": 1}` beside the prose, in every scenario that has such a
   limit (and an explicit statement where a scenario has none). Blocks
   turning the fleet on in new games.
+
+- **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
+  R-151's Rationale says ammunition and the rest of the artillery rules
+  apply to the wreck unchanged, but 32.21 charges a barrage by battalion
+  or company equivalent and its OA entry (`unit:it:the-san-giorgio`) has
+  no `id_code`, TOE or size. Wanted: what one barrage costs it under the
+  abstract block (e.g. a size to charge it as, or a fixed figure), and
+  whether it draws from supply in range like any gun. Until then #124
+  fires it free.
 
 ## Runs and quota
 
@@ -453,3 +463,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 09:44 | 72 | 67→68 | none→none | $9.94 | 3 | Six PRs merged this run (#110–#115). No autopilot PR is left open. For each merge, the PR's CI run passed and the gates passed locally. / PR / What it does / /- |
 | 2026-11-03 10:56 | 85 | 68→70 | none→none | $15.41 | 2 | The fleet engine is built and merged: warship ratings load, ships bombard the coast, and Axis strikes damage, sink and repair them. Its browser panel is merged  |
 | 2026-11-03 12:21 | 15 | 70→? | none→? | $6.63 | 8 | 70 merged autopilot branches deleted from origin (each verified as already in `main`); `autopilot/m5-slice-4-arrivals` has unmerged work, so I left it. Waiting  |
+| 2026-11-03 13:45 | 53 | 70→71 | none→none | $11.48 | 173 | R-152 (captured equipment) is built and merged in #121–#123. The *San Giorgio* (R-151) is open as draft PR #124. A previous run had built it and was killed befo |
