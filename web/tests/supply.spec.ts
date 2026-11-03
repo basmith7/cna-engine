@@ -339,3 +339,22 @@ test("phase C: the Axis names its convoy lanes in order; Greece's are shut in 19
   await lanes.locator('[data-lane="6"]').click();
   await expect(lanes).toContainText("Convoys: lane 2 (Tripoli)");
 });
+
+test("phase J: a rail run sets a supply unit down at a stop on its way (8.77, R-005)", async ({ page }) => {
+  await openFixture(page, "rail");
+  await clickHex(page, "E3613");
+  await page.locator('[data-unit="supply:cw:12"] input.tick').uncheck();
+  await expect(page.getByTestId("reach-count")).toContainText("along the railway");
+  await page.getByTestId("rail-add-stop").click();
+  await expect(page.getByTestId("rail-stop-hint")).toBeVisible();
+  await page.locator('polygon.hex[data-hex="E3412"]').click();
+  const stop = page.getByTestId("rail-stops").locator('[data-stop="E3412"]');
+  await expect(stop).toBeVisible();
+  await stop.locator('[data-stop-off="supply:cw:11"]').check();
+  await page.locator('polygon.hex[data-hex="E3312"]').click();
+  const events = page.getByTestId("log-entries").locator("li.event");
+  await expect(events.filter({ hasText: "by rail E3613 → E3412." })).toHaveCount(1);
+  await expect(events.filter({ hasText: "by rail E3613 → E3312." })).toHaveCount(1);
+  const at = await page.evaluate(() => ["supply:cw:10", "supply:cw:11"].map((id) => window.__cna.view().pieces[id].location));
+  expect(at).toEqual([{ hex: "E3312" }, { hex: "E3412" }]);
+});

@@ -26,7 +26,7 @@ Reversing direction mid-run. Bombing or cutting the line (the Air Game).
 | Getting on | Pieces at the stop that `may_rail` (no CP spent, not railed, not in an enemy ZOC), expanded by `carried`, ride on to the end or a later stop | 8.77, 8.7x |
 | Limits | After each stop: at most 2 SP of units aboard; supply units riding any part of the run count toward 32.3x's two a stage, all one way; supply stacking checked at each hex where supply gets off and at the end | R-005: "the limits hold at every point" |
 | Events | One `Railed { pieces, from, to }` per group that boarded and alighted at the same hexes, in boarding order | The log reads each leg; no new event kind |
-| UI | Engine first (this plan's Task 1); the browser's stops come in Task 2: after a run's destination is armed, clicking a hex on the shaded path makes it a stop where the ticked pieces there get on, and unticking a rider at a stop lets it off | Keeps Task 1 one PR |
+| UI | Task 2: the rail panel's *Add a stop…* arms the next click on the shaded line as a stop; each stop lists who is aboard (tick to set down) and who waits there (tick to take on); the click on the destination sends the run with the stops on its path | No new panel; the engine judges the whole run |
 
 ## Tasks
 
@@ -43,5 +43,6 @@ Reversing direction mid-run. Bombing or cutting the line (the Air Game).
 
 ### Task 2: the browser
 
-- [ ] Stops on the armed rail path (`MovePanel`/`App.svelte`), a
-  Playwright test that drops a battalion and takes on a supply unit.
+- [x] Stops on the rail run (`MovePanel`'s *Add a stop…*, then a click
+  on the line; per stop, who gets off and who gets on), and a Playwright
+  test that sets a supply unit down at a stop on the way.
