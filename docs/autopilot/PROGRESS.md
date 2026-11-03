@@ -45,9 +45,12 @@ dev compose; a curl sign-in as `alice` works. A fresh review's fixes
 are in. **Slice 4, the lobby and the network client, is draft PR
 #95:** the lobby API (create with an invite shown once, open and mine
 lists, join, leave, the 60-day sweep), orders only in active games,
-the server serving the built client; the web `Engine` interface is
-being built, then the network engine, the screens and a two-player
-Playwright run.
+the server serving the built client, the browser's engine behind an
+`Engine` interface (hot-seat unchanged, full Playwright suite green),
+enemy fields the view withholds shown as "?", a `NetworkEngine` over
+the API and live stream, and fuel sources online. Left: the lobby
+screens (started), the game page and invite links, and a two-player
+Playwright run on the compose stack.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
