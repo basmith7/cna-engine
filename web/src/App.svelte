@@ -584,7 +584,7 @@
           {#if online}
             <section class="panel online" data-testid="online">
               <h2>Game {online.gameId} · you play {sideName(online.side)}</h2>
-              <p><strong data-testid="turn">{turnText ?? "Nobody is to act"}</strong>{online.opponent ? ` · against ${online.opponent}` : ""}{online.open ? " · open information" : ""}</p>
+              <p><strong data-testid="turn">{turnText ?? "Nobody is to act"}</strong>{online.opponent && turnText === "Your move" ? ` · against ${online.opponent}` : ""}{online.open ? " · open information" : ""}</p>
               <p><a href="/lobby">Lobby</a></p>
             </section>
           {:else}
