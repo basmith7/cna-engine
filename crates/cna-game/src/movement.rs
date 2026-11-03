@@ -848,6 +848,9 @@ impl GameState {
                 at = to;
                 break;
             }
+            // 27.42: told of a raider here, the stack stops so its
+            // combat units may try to spot it.
+            let announced = combat && self.announce_raiders(pieces, &to, &mut events);
             let left = std::mem::replace(&mut at, to);
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.
@@ -866,6 +869,9 @@ impl GameState {
                     reaction = Some(eligible);
                     break;
                 }
+            }
+            if announced {
+                break;
             }
         }
         // The stack stops, for good or for an answer: a breakdown check

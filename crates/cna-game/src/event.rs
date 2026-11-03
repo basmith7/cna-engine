@@ -46,6 +46,18 @@ pub enum Event {
         roll: u8,
         eliminated: bool,
     },
+    /// Enemy combat units entered `hex`, where a raider of the other side
+    /// stands (27.42). The raider is not named; `pieces` may each try to
+    /// spot it there, and the move stopped so they may.
+    RaiderAnnounced { hex: HexId, pieces: Vec<PieceId> },
+    /// `piece` spent 1 CP trying to spot the raiders in `hex` (27.43):
+    /// one die each, in id order; a 6 eliminates (`eliminated`).
+    SpotTried {
+        piece: PieceId,
+        hex: HexId,
+        rolls: Vec<u8>,
+        eliminated: Vec<PieceId>,
+    },
     /// An LRDG raided Rommel (27.6x): two dice on the Raid on Rommel
     /// Table (27.92).
     RommelRaided {

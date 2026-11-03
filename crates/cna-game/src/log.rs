@@ -155,6 +155,11 @@ impl GameState {
         ids.pieces("moved", &self.moved)?;
         ids.pieces("continuing", &self.continuing)?;
         ids.pieces("shifted", &self.shifted)?;
+        ids.pieces("spot_tried", &self.spot_tried)?;
+        for (id, hex) in &self.spot_chances {
+            ids.piece("the spot chances", id)?;
+            ids.hex("the spot chances", hex)?;
+        }
         self.zoc.keys().try_for_each(|h| ids.hex("the zoc", h))?;
         let c = &self.combat;
         ids.pieces("forward", &c.forward)?;

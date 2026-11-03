@@ -40,6 +40,7 @@ pub mod rng;
 mod rommel;
 #[cfg(test)]
 mod scenarios;
+mod spot_try;
 pub mod setup;
 pub mod state;
 mod supply;
