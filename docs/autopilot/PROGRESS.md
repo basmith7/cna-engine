@@ -159,13 +159,13 @@ and browser, on for new games; a second fresh review found no server
 leak (whether phase L opens says a little about the phasing side's own
 units, as phase K's does: accepted). #111 merged: `vendor/cna` to
 50e66bf and R-150 (an untrained unit forms no raider; 6th Australian
-Cavalry may not). #112 merged: the fleet plan. #113: fleet Task 1
+Cavalry may not). #112 merged: the fleet plan. #113 (merged): fleet Task 1
 (ships arrive in Alexandria by the schedule, phase E, `Station`, the
 port cycle, R-019's row limit), behind an off-by-default `fleet`
 module; its review found ships captured by an Axis ZOC and blocking a
-prisoner march, both fixed. #114: a set-up bug: "west of Mersa
+prisoner march, both fixed. #114 (merged): a set-up bug: "west of Mersa
 Matruh" compared hex rows, not columns, so CW supply could set up south
-of Matruh; fixed, golden game re-pinned. #115: the patrol panel's skip
+of Matruh; fixed, golden game re-pinned. #115 (merged): the patrol panel's skip
 list (16.53).
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
@@ -203,9 +203,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Open: #113 (fleet Task 1), #114 (west-of
-  set-up fix), #115 (patrol skip list); each merges on green CI. The
-  fleet's bombardment, strikes and damage (Tasks 2–3) wait on cna's
+- Nothing waits on Brian, and no autopilot PR is open: #110–#115 all
+  merged 2026-11-03. The fleet's bombardment, strikes and damage (Tasks 2–3) wait on cna's
   warship ratings, and its browser panel (Task 4) on those, since ships
   that cannot fire give phase E nothing to decide. 28.3's captured
   equipment waits on a new cna request (below).
