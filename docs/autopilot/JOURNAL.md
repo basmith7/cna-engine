@@ -518,3 +518,9 @@ Done: #93 merged after review fixes (07d1953, e4b44bd). #94 (draft, slice 3): fa
 In flight: fresh review of #94; slice 4 Task 1 (lobby API) in /tmp/cna-s4 on autopilot/m4-slice-4-lobby (based on #94); Task 2 (web Engine interface) in /tmp/cna-s4e on autopilot/m4-slice-4-engine (from main).
 Next: fix #94 review findings, mark ready, merge on green CI; merge main + the engine branch into slice-4-lobby; then slice 4 Tasks 3–5.
 Blocked: none. Shared dev Postgres on 5433 causes cross-run sqlx::test flakes: give each agent its own container.
+
+## 2026-11-02 17:32 MST — autopilot/m4-slice-4-lobby
+Done: #94 (slice 3) merged after review fixes (b3f72c6). #95 (draft, slice 4): lobby API (a9e681e), orders only in active games, SPA serving of CNA_WEB_DIST (006ddc6). Merged branches and the slice 2/3 worktrees removed.
+In flight: Task 2 (web Engine interface, LocalEngine) on autopilot/m4-slice-4-engine in /tmp/cna-s4e, by a subagent.
+Next: merge the engine branch into slice-4-lobby; Task 3 NetworkEngine (Vitest with mocked fetch/EventSource); Task 4 screens; Task 5 two-player Playwright + CI Postgres for web job.
+Blocked: none.
