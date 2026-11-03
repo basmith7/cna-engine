@@ -340,6 +340,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::ConvoyLanesSet { .. } | E::ConvoyCancelled { .. } => Own(Some(Side::Axis)),
         // 32.72: the number of strikes is rolled secretly.
         E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
+        E::Towed { side, .. } => Own(Some(*side)),
         E::FieldRepaired { hex, weapon, .. } | E::FacilityRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {
                 state

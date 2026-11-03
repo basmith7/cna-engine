@@ -42,7 +42,7 @@ slices below, or the Air Game.
 - [x] `NOT_SIMULATED.md`: the Breakdown row.
 
 ### Task 2: towing (21.6x)
-- [ ] Towing broken-down points toward a facility in phase K: the towing
+- [x] Towing broken-down points toward a facility in phase K: the towing
   unit, its CP and the hexes; towed points skip repair that phase (22.13)
   and arrive having not begun the OpStage there.
 

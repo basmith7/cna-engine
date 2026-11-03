@@ -25,6 +25,10 @@ pub struct Wreck {
     /// it in the hex, so no facility there repairs them yet (22.31).
     #[serde(default, skip_serializing_if = "crate::breakdown::is_zero")]
     pub this_stage: u32,
+    /// How many of `this_stage` were towed in this phase: no repair
+    /// touches them until the next (21.6x, 22.13).
+    #[serde(default, skip_serializing_if = "crate::breakdown::is_zero")]
+    pub towed: u32,
 }
 
 pub(crate) fn is_zero(n: &u32) -> bool {
@@ -331,6 +335,7 @@ impl GameState {
                             weapon,
                             points: 1,
                             this_stage: 1,
+                            towed: 0,
                         }),
                     }
                 }
@@ -515,6 +520,7 @@ mod tests {
                     weapon: "Mark VI Light".into(),
                     points: 2,
                     this_stage: 0,
+                    towed: 0,
                 }],
             );
             let order = Order::Move {

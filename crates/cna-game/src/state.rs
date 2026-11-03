@@ -665,6 +665,15 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.facility_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (
+                None,
+                Order::Tow {
+                    hex,
+                    weapon,
+                    points,
+                    path,
+                },
+            ) => self.tow(data, player, hex, weapon, *points, path),
             (None, Order::Station { ship, hex }) => self.station(data, player, ship, hex),
             (
                 None,

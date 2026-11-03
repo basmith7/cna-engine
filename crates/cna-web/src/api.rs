@@ -1085,6 +1085,7 @@ mod tests {
                 weapon: "Mark VI Light".into(),
                 points: 4,
                 this_stage: 0,
+                towed: 0,
             }],
         );
         repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();

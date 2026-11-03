@@ -206,6 +206,7 @@ impl GameState {
         self.field_rolled.clear();
         for w in self.broken_down.values_mut().flatten() {
             w.this_stage = 0;
+            w.towed = 0;
         }
         self.stage_record = Default::default();
         self.rail_runs.clear();

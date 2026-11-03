@@ -330,6 +330,15 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// `side`'s broken-down `weapon` points towed from `from` to `to`
+    /// (21.6x); they may not be repaired this phase (22.13).
+    Towed {
+        side: Side,
+        from: HexId,
+        to: HexId,
+        weapon: String,
+        points: u32,
+    },
     /// A warship placed at sea for this OpStage (30.1x).
     Stationed {
         ship: PieceId,

@@ -143,6 +143,15 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase K: tow `points` of the player's broken-down `weapon` from
+    /// `hex` along `path`, as a medium truck on 10 CP, toward the nearest
+    /// repair facility (21.6x).
+    Tow {
+        hex: HexId,
+        weapon: String,
+        points: u32,
+        path: Vec<HexId>,
+    },
     /// Phase E: the Commonwealth places `ship` at sea in `hex` for this
     /// OpStage (30.1x).
     Station { ship: PieceId, hex: HexId },
