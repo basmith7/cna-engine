@@ -44,7 +44,7 @@ Task 3 waits on request 1.
 | Hidden | `Piece.hidden: bool` (`#[serde(default, skip_serializing_if = "Not::not")]`), set while off the map in 27.31's sense. The enemy view drops a hidden piece and every event that names it, the same way 3.61 removes enemy-only fields | 27.31; the view module already removes what the enemy may not see |
 | Revealed | A raid, a spotting roll and forming each clear `hidden` for the rest of the stage. Moving off the map again sets it | 27.31 |
 | Spotting | Rolled by the engine, on its own stream, when a raider enters an enemy-controlled hex. An enemy unit entering a raider's hex takes an order to spend 1 CP and roll. A 6 eliminates the raider | 27.41–27.44 |
-| Raid on Rommel | `Order::RaidRommel`: an LRDG next to Rommel's hex (no unit enters an enemy-held hex, 8.1x) spends 10 CP and rolls on `raid-on-rommel.json`. The scenario's campaign flag caps attempts at 4 or 1 | 27.6x, 27.92 |
+| Raid on Rommel | `Order::RaidRommel`: an LRDG next to Rommel's hex (no unit enters an enemy-held hex, 8.1x) spends 10 CP and rolls on `raid-on-rommel.json`. Four attempts in a campaign game (a scenario whose slug names a campaign: cna has no flag), one elsewhere | 27.6x, 27.92 |
 | Supply calls | Wait for cna's answer to request 2; until then raiders need none (32.11) and a NOT_SIMULATED row says so | 32.11 |
 
 ## Tasks

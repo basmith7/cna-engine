@@ -30,10 +30,10 @@ pub(crate) fn is_zero(n: &u32) -> bool {
     *n == 0
 }
 
-/// Raids on Rommel a scenario allows (27.64): four in the Campaign Game,
-/// one in any shorter scenario.
+/// Raids on Rommel a scenario allows (27.64): four in a campaign game
+/// (cna's four, each named a campaign), one in any shorter scenario.
 pub(crate) fn raid_cap(data: &Data) -> u32 {
-    if data.slug() == "campaign-game" { 4 } else { 1 }
+    if data.slug().contains("campaign") { 4 } else { 1 }
 }
 
 impl GameState {
@@ -438,7 +438,10 @@ mod tests {
     fn a_second_raid_in_a_short_scenario_and_a_fifth_in_the_campaign_are_refused() {
         let data = graziani();
         assert_eq!(raid_cap(&data), 1);
-        assert_eq!(raid_cap(&Data::load("campaign-game").unwrap()), 4);
+        for campaign in ["campaign-game", "short-campaign-game", "desert-fox-campaign"] {
+            assert_eq!(raid_cap(&Data::load(campaign).unwrap()), 4, "{campaign}");
+        }
+        assert_eq!(raid_cap(&Data::load("rommels-arrival").unwrap()), 1);
         let mut state = moving(&data, 3, Side::Cw);
         let (_, id) = with_rommel(&data, &mut state, true);
         state.rommel_raids = 1;
