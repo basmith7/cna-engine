@@ -71,6 +71,10 @@ pub enum PieceKind {
     Commander,
     SupplyUnit,
     DummySupplyUnit,
+    /// A desert raider (27.1x): an LRDG or Sonderkommando Almasy. CPA 50,
+    /// no ratings, no stacking points, no ZOC; never fights or breaks
+    /// down.
+    Raider,
 }
 
 impl PieceKind {

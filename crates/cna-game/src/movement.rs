@@ -84,6 +84,9 @@ impl GameState {
     /// by this, not by Rommel's bonus (R-137).
     pub(crate) fn base_cpa(&self, piece: &Piece) -> Option<u32> {
         // The points carrying a supply unit move it at CPA 15 (32.5x).
+        if piece.kind == PieceKind::Raider {
+            return Some(crate::raiders::RAIDER_CPA);
+        }
         if piece.kind.is_supply() {
             return (self.modules.abstract_supply && piece.motorised > 0 && !piece.flown)
                 .then_some(15);
@@ -179,6 +182,10 @@ impl GameState {
     /// How a piece moves on the chart: foot at CPA 10 or less (8.1x),
     /// recce by its characteristics row, any other vehicle.
     pub(crate) fn mobility(&self, data: &Data, piece: &Piece) -> Mobility {
+        // A raider moves as a recce vehicle (27.32).
+        if piece.kind == PieceKind::Raider {
+            return Mobility::Recce;
+        }
         if self.base_cpa(piece).is_none_or(|c| c <= 10) {
             return Mobility::Foot;
         }
@@ -272,7 +279,7 @@ impl GameState {
     /// Whether a piece may move voluntarily at all.
     pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
-            PieceKind::Combat | PieceKind::Hq => {}
+            PieceKind::Combat | PieceKind::Hq | PieceKind::Raider => {}
             PieceKind::Commander => {
                 if self.rommel_recalled {
                     return Err(Illegal::new(
@@ -422,13 +429,18 @@ impl GameState {
 
     /// The fixed facts about a stack a plan for `purpose` prices.
     pub(crate) fn mover(&self, data: &Data, pieces: &[PieceId], purpose: Purpose) -> Mover {
-        let free_of_zoc = matches!(
+        // Raiders need not stop in enemy ZOC (27.32), at the risk of
+        // being spotted.
+        let free_of_zoc = (matches!(
             purpose,
             Purpose::RetreatBeforeAssault | Purpose::ForcedRetreat
         ) && !self.rommel_recalled
             && pieces
                 .iter()
-                .all(|id| self.pieces[id].kind == PieceKind::Commander);
+                .all(|id| self.pieces[id].kind == PieceKind::Commander))
+            || pieces
+                .iter()
+                .all(|id| self.pieces[id].kind == PieceKind::Raider);
         Mover {
             side: self.pieces[&pieces[0]].side,
             combat: pieces
@@ -773,6 +785,7 @@ impl GameState {
                 .max()
                 .unwrap_or(Cp::ZERO);
         }
+        self.raider_cap(pieces, total)?;
         for id in pieces {
             let p = &self.pieces[id];
             if let Some((cap, case, why)) = self.voluntary_cap(id)
@@ -826,6 +839,10 @@ impl GameState {
             }
             self.surrender_collapsed(data, pieces, &to, &mut events);
             self.free_prisoners(data, pieces, &to, &mut events);
+            if self.spot_raiders(data, pieces, &to, &mut events) {
+                at = to;
+                break;
+            }
             let left = std::mem::replace(&mut at, to);
             // Next to enemy units that may react: the move waits here
             // (8.5x). Only a combat unit's arrival asks the question.

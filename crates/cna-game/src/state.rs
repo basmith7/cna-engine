@@ -164,6 +164,14 @@ pub struct GameState {
     /// Rommel recalled to Germany for this Game-Turn (31.0).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub rommel_recalled: bool,
+    /// Raids on Rommel made so far (27.6x): four in a campaign game, one
+    /// in a shorter scenario.
+    #[serde(default, skip_serializing_if = "crate::raiders::is_zero")]
+    pub rommel_raids: u32,
+    /// The last Game-Turn a raid on Rommel's 2 pins the Axis initiative
+    /// rating at 3 through (27.92).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis_initiative_pinned_through: Option<u8>,
     /// Who acts first this OpStage.
     pub player_a: Option<Side>,
     /// Supply units planned and on their way (32.4x).
@@ -345,6 +353,8 @@ impl GameState {
             pending_motorisation,
             initiative: None,
             rommel_recalled: false,
+            rommel_raids: 0,
+            axis_initiative_pinned_through: None,
             player_a: None,
             organised: false,
             attachment_tracked: false,
@@ -615,6 +625,7 @@ impl GameState {
                     points,
                 },
             ) => self.absorb_replacements(data, player, piece, weapon, *points),
+            (None, Order::RaidRommel { piece }) => self.raid_rommel(data, player, piece),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

@@ -38,6 +38,24 @@ pub enum Event {
     },
     /// A 12 on 31.0's roll: Rommel is in Germany this Game-Turn.
     RommelRecalled,
+    /// A raider entered an enemy-controlled hex and rolled one die
+    /// (27.41): a 6 spots and eliminates it.
+    RaiderSpotted {
+        piece: PieceId,
+        hex: HexId,
+        roll: u8,
+        eliminated: bool,
+    },
+    /// An LRDG raided Rommel (27.6x): two dice on the Raid on Rommel
+    /// Table (27.92).
+    RommelRaided {
+        piece: PieceId,
+        hex: HexId,
+        roll: u8,
+        result: cna_data::raid::RaidResult,
+        /// The LRDG did not survive the result.
+        lrdg_eliminated: bool,
+    },
     /// Who is Player A this OpStage.
     InitiativeDeclared {
         player_a: Side,

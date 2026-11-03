@@ -28,6 +28,7 @@ mod phases;
 pub mod piece;
 mod place;
 mod prisoners;
+mod raiders;
 mod rail;
 pub mod reach;
 mod reaction;

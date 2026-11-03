@@ -231,6 +231,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::PhaseSkipped { .. }
         | E::InitiativeDetermined { .. }
         | E::RommelRecalled
+        | E::RaiderSpotted { .. }
+        | E::RommelRaided { .. }
         | E::InitiativeDeclared { .. }
         | E::WeatherSet { .. }
         | E::Placed { .. }
