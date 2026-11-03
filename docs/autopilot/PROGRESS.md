@@ -53,12 +53,13 @@ invite links `/join/{id}`, and a two-player Playwright run (alice and
 bob sign in through the fake Discord and play the golden game's first
 77 orders by clicks over the server, bob's traffic checked for leaks,
 the final hash equal to a pinned replay) with Postgres in CI. A fresh review found no leak; its fixes are in. **Slice
-5, turn alerts, is draft PR #96:** the guild join at
-sign-in, the outbox written with the order (none within 15 minutes or
-while the player watches the game), the DM sender with retries, and
-the lobby's switch, and the enemy's log lines no longer print
-"undefined" where the server withholds a number; left, its Playwright
-DM check.
+5, turn alerts, is PR #96, ready and waiting on CI:** the guild
+join at sign-in, the outbox written with the order (none within 15
+minutes or while the player watches the game), the DM sender with
+retries (none once the game ends or the move has passed), the
+lobby's switch and its "can't reach you" notice, an e2e that bob is
+DM'd once and not with alerts off, and the enemy's log lines no
+longer print "undefined" where the server withholds a number.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -135,8 +136,13 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: finish #96
-  (its Playwright DM check, a fresh review), then slice 6 (ship).
+- Nothing waits on Brian. Mission 4 goes on unattended: merge #96
+  once CI is green, then slice 6 (ship).
+- Two turn-alert calls to glance at (#96's body): a second handover
+  within 15 minutes of the last alert sends nothing, as the plan says,
+  so a quick reply can leave a player untold (delaying it instead is a
+  small change); and the design says turning alerts off leaves the
+  Discord server, while the plan and code leave that to the player.
   #95's review left two follow-ups: the other player's live stream
   hears nothing when a game starts or ends (a reload shows it), and
   the two-player e2e judges each message's leaks against the state at
