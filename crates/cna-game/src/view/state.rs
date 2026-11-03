@@ -421,6 +421,11 @@ pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
             p.location = crate::piece::Location::Eliminated;
         }
     }
+    // The Axis's strikes on the fleet are its own (32.72): the copy holds
+    // none, rolled already, so a preview never shows a strike to come.
+    if s.modules.fleet && viewer != Side::Axis {
+        s.fleet_strikes.insert(Side::Axis, 0);
+    }
     s
 }
 

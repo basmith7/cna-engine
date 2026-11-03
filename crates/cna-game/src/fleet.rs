@@ -966,6 +966,29 @@ mod tests {
         }
 
         #[test]
+        fn a_commonwealth_preview_never_shows_a_strike_to_come_32_72() {
+            let data = graziani();
+            let preview = |strikes: Option<u8>| {
+                let mut state = set_up(&data, fleet_on());
+                to_phase_e(&data, &mut state);
+                match strikes {
+                    Some(n) => {
+                        state.fleet_strikes.insert(Side::Axis, n);
+                    }
+                    None => {
+                        state.fleet_strikes.clear();
+                    }
+                }
+                let mut known = crate::view::as_known_to(&state, Side::Cw);
+                let events = known.apply(&data, Side::Cw, Order::Pass).unwrap();
+                assert!(struck(&events).is_none(), "{events:?}");
+                serde_json::to_string(&events).unwrap()
+            };
+            assert_eq!(preview(Some(0)), preview(Some(2)));
+            assert_eq!(preview(Some(0)), preview(None));
+        }
+
+        #[test]
         fn the_axis_rolls_its_strikes_at_the_first_phase_e_and_keeps_them_secret_32_72() {
             let data = graziani();
             let mut state = set_up(&data, fleet_on());
