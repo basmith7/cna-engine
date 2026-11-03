@@ -1,0 +1,47 @@
+# Tower: compose project `cna`. Pulls the image the tag build pushed
+# (.github/workflows/build.yml); `deploy-now <tag>` syncs this file to
+# Tower and rolls the `cna` service (`.tower-deploy` names the project).
+# Secrets come from a root-only .env beside this file on Tower, never
+# committed: deploy/.env.example lists them.
+services:
+  cna-db:
+    image: postgres:18
+    container_name: cna-db
+    environment:
+      POSTGRES_USER: cna
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      POSTGRES_DB: cna
+    volumes:
+      # postgres:18 keeps PGDATA under /var/lib/postgresql/18/docker.
+      - ${CNA_DATA:-/mnt/cache/appdata/cna}/pg:/var/lib/postgresql
+    healthcheck:
+      # Over TCP: first-boot init answers on the socket before it listens.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "cna", "-d", "cna"]
+      interval: 5s
+      retries: 30
+    restart: unless-stopped
+
+  cna:
+    image: ${CNA_IMAGE:-ghcr.io/basmith7/cna:latest}
+    container_name: cna
+    ports:
+      - "3240:3240"
+    environment:
+      DATABASE_URL: "postgres://cna:${POSTGRES_PASSWORD}@cna-db:5432/cna"
+      CNA_PUBLIC_URL: "${CNA_PUBLIC_URL:-https://cna.basmith.net}"
+      # Behind Pangolin: the client is the last X-Forwarded-For hop.
+      CNA_TRUST_PROXY: "1"
+      CNA_DISCORD_CLIENT_ID: "${CNA_DISCORD_CLIENT_ID:?set CNA_DISCORD_CLIENT_ID in .env}"
+      CNA_DISCORD_CLIENT_SECRET: "${CNA_DISCORD_CLIENT_SECRET:?set CNA_DISCORD_CLIENT_SECRET in .env}"
+      CNA_DISCORD_BOT_TOKEN: "${CNA_DISCORD_BOT_TOKEN:-}"
+      CNA_DISCORD_GUILD_ID: "${CNA_DISCORD_GUILD_ID:-}"
+      CNA_ADMINS: "${CNA_ADMINS:-}"
+      # Unset in production: they point sign-in at the fake Discord.
+      CNA_DISCORD_AUTHORIZE: "${CNA_DISCORD_AUTHORIZE:-https://discord.com/oauth2/authorize}"
+      CNA_DISCORD_API: "${CNA_DISCORD_API:-https://discord.com/api}"
+      RUST_LOG: "${RUST_LOG:-info}"
+    depends_on:
+      cna-db: { condition: service_healthy }
+    restart: unless-stopped
+    labels:
+      - "net.unraid.docker.webui=http://[IP]:[PORT:3240]"

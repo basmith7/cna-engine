@@ -560,3 +560,21 @@ Done: follow-up from #95's review (12267cf): join and leave signal a per-game `s
 In flight: none.
 Next: slice 6 (ship). The stream still says nothing when a game ends by victory or the idle sweep (the client sees it on the next order or reload).
 Blocked: none. An "either" creator has no seat (so no stream) until someone joins; their open page, if any, still waits for a reload.
+
+## 2026-11-02 22:58 MST — autopilot/m4-slice-6-ship
+Done: #96 (slice 5) merged 0a59fe2. Slice 6 started: Dockerfile (fetches vendor/cna at CNA_RULES_COMMIT: the shared build-image.yml checks out without submodules), docker-compose.prod.yml + .tower-deploy (project=cna) instead of the plan's own docker-publish.yml/deploy-now.sh (Brian's tooling now: basmith7/workflows build.yml template + tower-deploy's deploy-now), deploy/smoke.sh.
+In flight: local image build + smoke run; then Task 4 docs (README, NOT_SIMULATED, spec Status + checklist, AUTOPILOT row 4 done / 5 next).
+Next: run deploy/smoke.sh, paste output in PR; docs; gates; ready; merge; MISSION 4 COMPLETE; Mission 5 continues (#80 draft, rail).
+Blocked: none.
+
+## 2026-11-02 23:08 MST — autopilot/m5-rail-stacks
+Done: merged main (30cf428) + view fix for rail_east→rail_runs/rail_supply_way (77ade20). Task 3: rail_to_move opens J for any rail-eligible CW unit/HQ/supply (74282d3, TDD); no re-pin needed (supply already on the line every golden stage; regenerate_ wrote nothing); e2e rails 2 NZ Cav by clicks (a4d2833); docs (54a8263). Local gates green: cargo test 598 passed, clippy, probe check, wasm-pack test, npm check/test/build, Playwright 47 passed.
+In flight: CI on #80 (marked ready).
+Next: merge #80 on green CI.
+Blocked: none.
+
+## 2026-11-02 23:30 MST — autopilot/m5-rail-stacks
+Done: #97 (slice 6, ship) merged 07414ce after a fresh review's fixes (SIGTERM stop, pg_isready over TCP, wasm-pack sha256): MISSION 4 COMPLETE, PROGRESS on main. Slice 6 used Brian's shared build.yml template + deploy-now (.tower-deploy project=cna) instead of the plan's own docker-publish.yml/deploy-now.sh (spec wins; noted in the spec's checklist). #80 green; main merged in again (journal conflict only).
+In flight: #80 CI after this merge; #98 (stream hears join/leave, by a subagent) draft or ready.
+Next: merge #80 on green CI; finish/merge #98; then Mission 5's next item from PROGRESS Next steps (Axis convoy lanes, substitution once cna maps counters to chart slots, or §27 raiders now that per-side views exist).
+Blocked: Mission 4 hosting is Brian's checklist (spec).
