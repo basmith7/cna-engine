@@ -9,6 +9,9 @@ import { defineConfig, devices } from "@playwright/test";
 const port = Number(process.env.CNA_PW_PORT ?? 3260);
 export default defineConfig({
   testDir: "./tests/multiplayer",
+  // Not test-results itself: a run empties its outputDir, and CI's hot-seat
+  // screenshots are in there.
+  outputDir: "test-results/multiplayer",
   fullyParallel: false,
   workers: 1,
   retries: 0,

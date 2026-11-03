@@ -39,6 +39,16 @@ jobs:
       - run: cargo test -p cna-server --features db-tests,test-auth,fake
   web:
     runs-on: ubuntu-latest
+    # The two-player e2e's database (tests/multiplayer/serve.sh takes
+    # DATABASE_URL over a container of its own).
+    services:
+      db:
+        image: postgres:18
+        env: { POSTGRES_USER: cna, POSTGRES_PASSWORD: cna, POSTGRES_DB: cna }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cna" --health-interval 2s
+          --health-timeout 5s --health-retries 30
     defaults:
       run: { working-directory: web }
     steps:
@@ -56,9 +66,12 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: npx playwright test --project chromium
         env:
           CNA_SHOTS: ${{ github.workspace }}/web/test-results/shots
+      - run: npx playwright test -c playwright.multiplayer.config.ts --project multiplayer
+        env:
+          DATABASE_URL: postgres://cna:cna@localhost:5432/cna
       - uses: actions/upload-artifact@v7
         if: always()
         with:
