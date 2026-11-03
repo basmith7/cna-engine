@@ -224,16 +224,15 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Armoured divisions from turn 92 and their motor brigades** (Mission
-  5: 9.26 shells, R-142). The chart's type IV armoured division (turn 92
-  on) counts an `infantry-brigade` slot where types I–III had a
-  `support-group`, and the `units` key calls the support group "the
-  Motor Brigade Group after turn 70". But The Last Chance (GT102) sets
-  up the 1st and 7th Armoured with counters whose `fills` is only
-  `support-group` (`1-spt-hq`, `7-spt-hq`, `7-mtr-hq`), so both
-  divisions start as shells. Wanted: whether those counters fill the
-  type IV `infantry-brigade` slot (a `fills` entry), or the reading
-  that they do not.
+- **The Last Chance's Commonwealth armoured rosters** (Mission 5: 9.26
+  shells; R-146 is in, #105). The 1st and 7th Armoured Divisions' set-up
+  entries (hexes E3005, E2302) place only the division HQ and carry their
+  "Consists of" roster as a note ("ids not all matched; unconfirmed"), so
+  the engine places the OA's deployed brigade HQs with none of the
+  battalions the notes list (1 RTR, 5 RTR, 4 CLY, 1 Rifle Bde, the 7th
+  Motor Brigade's battalions and so on). Every brigade starts a shell, so
+  both divisions do, R-146 or not. Wanted: those rosters as unit ids in
+  the placement, each under the brigade it is in at GT102.
 - **Raider counters** (Mission 5: §27, plan
   `docs/plans/2026-11-03-m5-desert-raiders.md`). Rommel's Arrival's Jalo
   placement has `"units": []` and notes that the OA sheets print no LRDG
