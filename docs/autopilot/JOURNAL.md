@@ -629,7 +629,7 @@ Next: merge #109 if not merged (`gh pr merge 109 --merge --delete-branch`); merg
 Blocked: none.
 
 ## 2026-11-03 07:00 MST — autopilot/m5-patrols
-Done: #109 merged c2e8e4a. Fresh review of #110's engine: W1 (the path check read hidden ZOC strength, so a refusal leaked it) and W2 (losses came off the biggest weapon entry, not the points sent) fixed, with patrol tests at 8 passing and clippy clean for cna-game. Full `cargo test --no-fail-fast` NOT rerun after the fixes.
+Done: #109 merged c2e8e4a. Fresh review of #110's engine: W1 (the path check read hidden ZOC strength, so a refusal leaked it) and W2 (losses came off the biggest weapon entry, not the points sent) fixed, with patrol tests at 8 passing and clippy clean for cna-game. Full `cargo test --no-fail-fast` after the fixes: 0 failed (cna-game 459).
 In flight: none.
 Next: merge origin/main in (it has spot_try: expect conflicts in state.rs, event.rs, view/). Then review items R1 (the 2-a-hex and 3-a-target limits need a per-phase tally, or else let the plan own the gap), R2 (recon counts units, not battalion equivalents: NOT_SIMULATED), R3 (`Reconnaissance::revealed` should error on a missing row), and the tidies: `Modules::ALL` carrying `patrols: false`, `start_stage` widened for a test, phase L opening under storms. Then Task 2 (browser), which turns `patrols` on in ALL.
 Blocked: none.
