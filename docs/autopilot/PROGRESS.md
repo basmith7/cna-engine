@@ -122,8 +122,9 @@ pieces down and take others on at stops (R-005), engine and browser.
 A fresh review of #100–#102 found four faults, all fixed (a unit
 assigned elsewhere could substitute; substitute status could shift; a
 cancelled convoy was rerouted; the Bizerta roll changed old logs).
-With the stack merged, Graziani's land rules are complete bar the LRDG
-raid (27.9x).
+#100, #101 and #102 merged at 07:55 UTC; #103 was waiting on CI.
+Once it merges, Graziani's land rules are complete bar the LRDG raid
+(27.9x).
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -165,9 +166,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Nothing else waits on Brian. Next run: merge what is left of the
-  stack #100 → #101 → #102 → #103 on green CI (retarget each child to
-  `main` before merging its parent), then the desert raiders (§27) and
+- Nothing else waits on Brian. Next run: merge #103 if it is still
+  open (base `main`, green CI), then the desert raiders (§27) and
   the LRDG raid on Rommel (27.9x), which want hidden movement: a spec
   first, as it is the first rule that hides a unit's position.
 - #100 changes starting shells outside Graziani's (its body lists them):
