@@ -85,3 +85,20 @@ Task 3 waits on request 1.
 - [x] `Order::RaidDump` on a §32 supply unit (27.55, R-149); the move
   panel offers a *Raid the dump* button per enemy supply unit the
   engine's preview accepts.
+
+### Task 5: the enemy's spotting try (27.42–27.44)
+
+- [x] When an enemy combat unit's move enters a raider's hex (hidden or not: 27.42 says a raider's hex), the
+  raider's owner announces it (27.42): an event tells the mover that a
+  raider is there, without naming it. The move stops there so the
+  mover may answer, as a reaction stops it (8.5x); it may walk on with
+  a new order.
+- [x] `Order::TrySpot { piece }`: that phasing combat unit, in the
+  hex, spends 1 CP and the engine rolls one die for the raider's owner;
+  a 6 eliminates the raider (`lose_raider`). Once per stage per phasing
+  unit (27.44); the mover may decline by simply not ordering it. The
+  hex is the one it was told of (`spot_chances`), so a refusal never
+  tells a unit where a raider is. Server previews run on
+  `view::as_known_to`, the board without the enemy's hidden pieces.
+- [ ] Browser: a *Try to spot* button in the move panel while the
+  announcement stands. Playwright by clicks.

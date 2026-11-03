@@ -614,7 +614,9 @@ async fn preview(
         .aliases
         .unalias_order(&live.state, side, &b.order)
         .map_err(|_| unknown_piece())?;
-    let mut copy = live.state.clone();
+    // On the board as this side knows it: an enemy's hidden raider
+    // must not stop or announce a previewed move (27.31, 27.42).
+    let mut copy = cna_game::view::as_known_to(&live.state, side);
     let data = live.data;
     let (copy, r) = tokio::task::spawn_blocking(move || {
         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

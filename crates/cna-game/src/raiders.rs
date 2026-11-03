@@ -34,8 +34,8 @@ const GUARDED_DUMP_DEATH: u8 = 6;
 /// The Axis initiative rating a raid's 2 pins (27.92).
 pub(crate) const PINNED_AXIS_INITIATIVE: u8 = 3;
 
-/// The die that spots a raider (27.41).
-const SPOTTING_DIE: u8 = 6;
+/// The die that spots a raider (27.41, 27.43).
+pub(crate) const SPOTTING_DIE: u8 = 6;
 
 pub(crate) fn is_zero(n: &u32) -> bool {
     *n == 0
@@ -468,9 +468,9 @@ pub(crate) mod tests {
 
     #[test]
     fn an_enemy_moves_into_a_hidden_raider_s_hex_as_if_it_were_empty_27_42() {
-        // A raider holds no ground: an Axis unit may enter its hex, and
-        // nothing the Axis is told (a refusal, an attack's target, the
-        // combat segment) gives the hidden counter away.
+        // A raider holds no ground: an Axis unit may enter its hex. It is
+        // told a raider is there (27.42, `spot_try`), but nothing names
+        // the hidden counter.
         let data = graziani();
         let base = moving(&data, 3, Side::Axis);
         let (mover, to) = base
