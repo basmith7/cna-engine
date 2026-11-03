@@ -152,6 +152,35 @@ impl GameState {
             .sum()
     }
 
+    /// Patrol losses come off the points sent (16.31): a unit that sends
+    /// only its light tanks loses light tanks.
+    fn take_patrol_loss(
+        &mut self,
+        data: &Data,
+        id: &PieceId,
+        points: u32,
+        events: &mut Vec<Event>,
+    ) -> u32 {
+        let p = &self.pieces[id];
+        if self.patrol_points(data, p) == p.toe {
+            return self.take_loss(id, points, events);
+        }
+        let mut taken = 0;
+        while taken < points {
+            let light = self.pieces[id]
+                .weapons
+                .iter()
+                .find(|w| w.points > 0 && LIGHT_TANKS.contains(&w.weapon.as_str()))
+                .map(|w| w.weapon.clone());
+            if light.is_none() || !self.take_loss_entry(id, light.as_deref()) {
+                break;
+            }
+            taken += 1;
+        }
+        self.note_losses(id, taken, events);
+        taken
+    }
+
     fn role(&self, data: &Data, p: &Piece) -> Role {
         if p.kind == PieceKind::Hq {
             return Role::Hq;
@@ -411,7 +440,7 @@ impl GameState {
                 if owed == 0 {
                     break;
                 }
-                owed -= self.take_loss(id, owed.min(*n), &mut events);
+                owed -= self.take_patrol_loss(data, id, owed.min(*n), &mut events);
             }
             if captured > 0 {
                 self.capture_prisoners(data, enemy, target, captured, &mut events);
@@ -510,7 +539,7 @@ mod tests {
 
     const KRRC: &str = "unit:cw:1-krrc";
 
-    /// The Commonwealth's phase K, patrols on, 1 KRRC (motor infantry)
+    /// The Commonwealth's phase K, patrols on, 1 KRRC (on foot)
     /// at C4021 beside the Axis in C4020.
     fn at_repair(data: &Data) -> GameState {
         let mut state = moving(data, 3, Side::Cw);
@@ -857,5 +886,34 @@ mod tests {
             assert!(report(&events).described.iter().all(|d| d.piece != supply));
             assert_eq!(state.pieces[&supply].toe, base.pieces[&supply].toe);
         }
+    }
+
+    #[test]
+    fn a_unit_that_sends_its_light_tanks_loses_light_tanks_16_31() {
+        let data = graziani();
+        let mut s = moving(&data, 3, Side::Cw);
+        let id = pid("unit:cw:1-6-rajrf");
+        let p = s.pieces.get_mut(&id).unwrap();
+        p.toe = 6;
+        p.weapons = vec![
+            cna_data::oa::ToeEntry {
+                weapon: "Mark VI Light".to_owned(),
+                points: 2,
+            },
+            cna_data::oa::ToeEntry {
+                weapon: "A13 Cruiser".to_owned(),
+                points: 4,
+            },
+        ];
+        assert_eq!(s.patrol_points(&data, &s.pieces[&id]), 2);
+        let mut events = Vec::new();
+        assert_eq!(s.take_patrol_loss(&data, &id, 2, &mut events), 2);
+        let left: Vec<(String, u32)> = s.pieces[&id]
+            .weapons
+            .iter()
+            .map(|w| (w.weapon.clone(), w.points))
+            .collect();
+        assert!(left.contains(&("A13 Cruiser".to_owned(), 4)), "{left:?}");
+        assert_eq!(s.patrol_points(&data, &s.pieces[&id]), 0);
     }
 }
