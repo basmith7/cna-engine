@@ -110,7 +110,7 @@ module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
 on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
-Mission 5 is the current mission again. #80 (rail: one stack each way, attached units ride, phase J opens for a unit alone; main merged in, a Playwright test rails a battalion by clicks; no golden re-pin was needed) is ready, local gates green.
+Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
 `docs/designs/2026-10-13-multiplayer-server-design.md` and six slice
@@ -150,9 +150,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Mission 5 goes on unattended: merge #80 on green CI. #95's
-  stream follow-up (the other player's page hears a join or leave only
-  on reload) is in a PR from this run if it got that far.
+- Nothing else waits on Brian. Next run: merge #98 on green CI (the
+  other player's game page now updates when someone joins or leaves;
+  a game ended by the 60-day idle sweep still shows only on reload),
+  then Mission 5's next item below.
 - Two turn-alert calls to glance at (#96's body): a second handover
   within 15 minutes of the last alert sends nothing, as the plan says,
   so a quick reply can leave a player untold (delaying it instead is a
