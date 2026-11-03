@@ -3,6 +3,8 @@
 //! data `{seq, events, view}` as the stream's seat may see them. A
 //! client reconnecting with `Last-Event-ID` (or `?after=`) first gets one
 //! catch-up message: the events of every order since, and the view now.
+//! When a player joins or leaves, every open stream gets `event: seats`
+//! with data `{}` and no id, so the client reloads the game's status.
 
 use crate::api::ApiError;
 use crate::auth::CurrentAccount;
@@ -113,6 +115,8 @@ struct Open {
     id: GameId,
     side: Side,
     rx: broadcast::Receiver<Arc<Applied>>,
+    /// Join and leave signals; `None` once their sender is gone.
+    seats: Option<broadcast::Receiver<()>>,
     /// Orders up to this seq have been sent (or predate the stream).
     sent: i64,
     catch_up: Option<i64>,
@@ -170,9 +174,27 @@ async fn next_message(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)>
         return Some((Ok(sse(seq, &data)), open));
     }
     loop {
-        let applied = match open.rx.recv().await {
-            Ok(a) => a,
-            Err(_) => return None,
+        let seats = async {
+            match open.seats.as_mut() {
+                Some(rx) => rx.recv().await,
+                None => std::future::pending().await,
+            }
+        };
+        let applied = tokio::select! {
+            a = open.rx.recv() => match a {
+                Ok(a) => a,
+                Err(_) => return None,
+            },
+            s = seats => match s {
+                // Missed signals say no more than one does.
+                Ok(()) | Err(broadcast::error::RecvError::Lagged(_)) => {
+                    return Some((Ok(Sse::default().event("seats").data("{}")), open));
+                }
+                Err(broadcast::error::RecvError::Closed) => {
+                    open.seats = None;
+                    continue;
+                }
+            },
         };
         if applied.seq <= open.sent {
             continue; // in the catch-up already
@@ -222,9 +244,9 @@ pub async fn stream(
     }
     // Subscribed under the game's lock, so no order falls between the
     // catch-up and the first live message.
-    let (rx, sent) = {
+    let (rx, seats, sent) = {
         let live = games.get(id).await?;
-        (live.tx.subscribe(), live.seq() - 1)
+        (live.tx.subscribe(), live.seats.subscribe(), live.seq() - 1)
     };
     let catch_up = last.or(q.after);
     let open = Open {
@@ -232,6 +254,7 @@ pub async fn stream(
         id,
         side,
         rx,
+        seats: Some(seats),
         sent: catch_up.map_or(sent, |_| -1),
         catch_up,
         ticket,

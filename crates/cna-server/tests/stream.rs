@@ -105,6 +105,37 @@ impl Sse {
         }
     }
 
+    /// The next frame that names an event: its name and data, and
+    /// whether it carried an id. Keep-alives do not extend the 30 s wait.
+    async fn event(&mut self) -> (String, Value, bool) {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+        loop {
+            if let Some(end) = self.buf.find("\n\n") {
+                let frame: String = self.buf.drain(..end + 2).collect();
+                let (mut name, mut data, mut id) = (None, String::new(), false);
+                for line in frame.lines() {
+                    if let Some(v) = line.strip_prefix("event:") {
+                        name = Some(v.trim().to_string());
+                    } else if let Some(v) = line.strip_prefix("data:") {
+                        data.push_str(v.trim_start());
+                    } else if line.starts_with("id:") {
+                        id = true;
+                    }
+                }
+                if let Some(name) = name {
+                    return (name, serde_json::from_str(&data).unwrap(), id);
+                }
+                continue;
+            }
+            let chunk = tokio::time::timeout_at(deadline, self.body.next())
+                .await
+                .expect("an event within 30 s")
+                .expect("the stream stays open")
+                .unwrap();
+            self.buf.push_str(std::str::from_utf8(&chunk).unwrap());
+        }
+    }
+
     /// Nothing more arrives within a short wait.
     async fn quiet(&mut self) {
         assert!(!self.buf.contains("data:"), "{}", self.buf);
@@ -284,4 +315,44 @@ async fn streams_are_capped_per_game_and_per_account(pool: PgPool) {
     );
     drop(held);
     assert_eq!(open(&app, more[7], AXIS, None).await.0, StatusCode::OK);
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn the_stream_hears_a_player_join_and_leave(pool: PgPool) {
+    let games = Games::new(pool.clone());
+    let axis = cna_server::accounts::insert(&pool, AXIS, "Axis")
+        .await
+        .unwrap();
+    cna_server::accounts::insert(&pool, CW, "Commonwealth")
+        .await
+        .unwrap();
+    let id = games
+        .create_seeded(&golden().scenario, axis, false, golden().seed)
+        .await
+        .unwrap();
+    games.seat(id, Side::Axis, axis).await.unwrap();
+    let app = router(games.clone());
+    let (s, axis_stream) = open(&app, id, AXIS, None).await;
+    assert_eq!(s, StatusCode::OK, "the creator streams the open game");
+    let mut axis_stream = axis_stream.unwrap();
+
+    let join = json!({"side": Side::Cw});
+    send(&app, "POST", &format!("/api/games/{id}/join"), CW, Some(join)).await;
+    let (name, data, id_set) = axis_stream.event().await;
+    assert_eq!((name.as_str(), &data, id_set), ("seats", &json!({}), false));
+    axis_stream.quiet().await;
+
+    // The joiner streams too; the leave reaches the creator.
+    let (s, cw_stream) = open(&app, id, CW, None).await;
+    assert_eq!(s, StatusCode::OK);
+    let mut cw_stream = cw_stream.unwrap();
+    send(&app, "POST", &format!("/api/games/{id}/leave"), CW, None).await;
+    let (name, _, id_set) = axis_stream.event().await;
+    assert_eq!((name.as_str(), id_set), ("seats", false));
+    assert_eq!(cw_stream.event().await.0, "seats");
+    assert_eq!(status(&pool, id).await, "abandoned");
 }
