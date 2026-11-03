@@ -39,6 +39,8 @@
 //! | `die-rolled` | public, but *own* for `mines at <hex> for <piece>` | that piece | the mine roll tells a 1-point TOE loss of a named piece (status, 3.61); other rolls are made in the open |
 //! | `initiative-determined` | public | | |
 //! | `rommel-recalled` | public | | |
+//! | `raider-announced` | public | | names only the hex and the movers: the raider stays unnamed (27.42) |
+//! | `spot-tried` | public | | the try is made in the open; only raiders it eliminated are named (27.43) |
 //! | `initiative-declared` | public | | |
 //! | `weather-set` | public | | |
 //! | `placed` | public | | a counter on the map; any stack may be examined |
@@ -164,6 +166,7 @@ pub fn events_for(
                     | Event::RommelRaided { .. }
                     | Event::RaiderFormed { .. }
                     | Event::DumpRaided { .. }
+                    | Event::SpotTried { .. }
             );
             if !reveals && super::state::names_any(&v, &raiders) {
                 return None;
@@ -253,6 +256,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::InitiativeDetermined { .. }
         | E::RommelRecalled
         | E::RaiderSpotted { .. }
+        | E::RaiderAnnounced { .. }
+        | E::SpotTried { .. }
         | E::RommelRaided { .. }
         | E::RaiderFormed { .. }
         | E::InitiativeDeclared { .. }

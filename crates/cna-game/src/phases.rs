@@ -90,6 +90,8 @@ impl GameState {
         // Once per raider and hex a stage, across both movement segments
         // (27.91's general notes).
         self.raided.clear();
+        self.spot_chances.clear();
+        self.spot_tried.clear();
         self.clock = self.clock.end_phase();
         self.advance(data, &mut events);
         Ok(events)

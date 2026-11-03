@@ -177,6 +177,15 @@ pub struct GameState {
     /// (27.91's general notes).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub raided: BTreeSet<(PieceId, HexId)>,
+    /// Phasing combat units told of an enemy raider in the hex they
+    /// entered, and that hex (27.42): each may try to spot it there
+    /// (`Order::TrySpot`). Cleared as phase G ends.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub spot_chances: BTreeMap<PieceId, HexId>,
+    /// Phasing units that have tried to spot a raider this OpStage, once
+    /// each (27.44). Cleared as phase G ends.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub spot_tried: BTreeSet<PieceId>,
     /// The last Game-Turn a raid on Rommel's 2 pins the Axis initiative
     /// rating at 3 through (27.92).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -371,6 +380,8 @@ impl GameState {
             rommel_recalled: false,
             rommel_raids: 0,
             raided: BTreeSet::new(),
+            spot_chances: BTreeMap::new(),
+            spot_tried: BTreeSet::new(),
             axis_initiative_pinned_through: None,
             raiders_lost: BTreeMap::new(),
             player_a: None,
@@ -659,6 +670,7 @@ impl GameState {
             (None, Order::RaidDump { piece, target }) => {
                 self.raid_dump(data, player, piece, target)
             }
+            (None, Order::TrySpot { piece }) => self.try_spot(player, piece),
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

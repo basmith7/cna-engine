@@ -622,6 +622,18 @@ In flight: CI on #107 and #108.
 Next: merge #107 on green CI (retarget #108 to main FIRST, then `gh pr merge 107 --merge --delete-branch`), then #108 on green. Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
 Blocked: none.
 
+## 2026-11-03 05:50 MST — autopilot/m5-spot-try
+Done: #107 merged f32770e (FormRaider, RaidDump, review fixes), #108 merged eb79b33 (Raid-the-dump button). PROGRESS on main afb7522. Worktrees, merged branches and scratch target dirs removed.
+In flight: none; this branch only plans Task 5 (the enemy's 1 CP spotting try, 27.42–27.44) in the raiders plan.
+Next: build Task 5 on this branch (draft PR open), TDD; then §28 commandos or the next NOT_SIMULATED land gap. Watch the cna request on 27.13's "maximum morale".
+Blocked: none.
+
+## 2026-11-03 06:23 MST — autopilot/m5-spot-try
+Done: Task 5 built on #109. Engine 1d4ac5d..(review fixes), `spot_try.rs`: the move stops at a raider's hex, `RaiderAnnounced`, `Order::TrySpot`, `spot_chances`/`spot_tried`, server preview on `view::as_known_to`. Browser ff83a42 (subagent) + caption/log fix. Fresh review: 2 faults fixed (ZOC interrupt past the stop; preview refused a try). Local: cargo test --no-fail-fast 0 failed, clippy clean, probe check up to date, svelte-check 0 errors, vitest 224, Playwright 53 passed.
+In flight: CI on #109 (ready).
+Next: merge #109 on green CI (`gh pr merge 109 --merge --delete-branch`). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
+Blocked: none.
+
 ## 2026-11-03 06:45 MST — autopilot/m5-patrols
 Done: #109 (spotting try) ready, CI test/server green, web pending at hand-off. This branch, draft #110: plan + engine (subagent, 304ba59 5c5ffaa) for patrols behind `Modules.patrols` (off by default, NOT in `Modules::ALL`, so no pins moved). Subagent's local gates: clippy clean, cargo test --no-fail-fast 0 failed, probe check up to date. PROGRESS on main dc859da.
 In flight: a fresh review of #110's engine (findings may be posted to the PR).

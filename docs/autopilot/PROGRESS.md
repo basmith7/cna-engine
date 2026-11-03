@@ -146,6 +146,14 @@ as dumps (R-149, engine only). A fresh review found two faults (a hidden
 raider captured in an enemy ZOC; the dump-raid limit resetting mid-stage),
 both fixed. #108 (merged) adds a Raid-the-dump button.
 
+**2026-11-03, fifth run:** #109 builds the enemy's spotting try
+(27.42–27.44), merged. An Axis unit entering a raider's hex is told a raider is
+there, unnamed, and stops; it may spend 1 CP on a die, and a 6
+eliminates the raider. Previews online never give the raider away. A
+fresh review found two faults, both fixed. #110 (draft): patrols. Phase
+L had been skipped on the wrong ground that patrols are an Air Game
+rule. The engine now has them, behind an off-by-default module.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -181,13 +189,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #107 (raider forming and dump raids) and
-  #108 (a Raid-the-dump button) merged 2026-11-03. Two-way calls in
-  #107's body: "at maximum morale" is read as "not in training", since
-  the engine has no morale training (asked of cna below), and a unit
-  never gives up its last TOE point. Next: the enemy's 1 CP spotting try
-  (27.42–27.44), then the next land gap in `NOT_SIMULATED.md` a scenario
-  sets up (§28 commandos reuse hidden movement).
+- Nothing waits on Brian. #109 (the enemy's spotting try against
+  desert raiders, 27.42–27.44) merged 2026-11-03. Its
+  two-way calls are listed in its body: the move stops at a raider's
+  hex, the try burns no fuel, one die per raider, and no module flag.
+  Next: #110, patrols (phase L, §16). Its plan and engine are built
+  behind a new `patrols` module that is off by default. Still to do: a
+  fresh review, then the browser panel, which turns the module on for
+  new games.
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
@@ -396,3 +405,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 00:06 | 74 | 53→57 | none→none | $23.95 | 2 | All four stacked PRs (#100–#103) are merged, and main's CI on the #103 merge (run 41600130717) passed: web, test and server. Locally on main, clippy is clean, 6 |
 | 2026-11-03 01:45 | 79 | 58→61 | none→none | $12.84 | 3 | #105 merged, and #104 is ready but not merged: its browser CI job (`web`, the Playwright run) was still running at 10:04Z with the deadline at 10:15Z. **#105: m |
 | 2026-11-03 04:45 | 63 | 61→62 | none→none | $14.94 | 8 | Everything planned for this run is merged: forming raiders, raids on supply dumps, and the `vendor/cna` bump for cna's answers. Nothing needs you, apart from Mi |
+| 2026-11-03 05:48 | 69 | 62→64 | none→none | $15.42 | 124 | #109 is merged, and draft #110 (patrols) has its plan and engine built, reviewed and fixed. Nothing needs you. **#109, the spotting try against desert raiders ( |

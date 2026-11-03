@@ -36,7 +36,7 @@
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
-//! | `scuttled`, `raided`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
+//! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
 //! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
 //! | `pending` | as is, aliased; `forced-retreat.raw` (a function of TOE) only for the side retreating |
 //! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
@@ -136,6 +136,8 @@ const STATE_KEEPS: &[&str] = &[
     "air_lifted",
     "scuttled",
     "raided",
+    "spot_chances",
+    "spot_tried",
     "railed",
     "moved",
     "continuing",
@@ -395,7 +397,22 @@ pub fn view_for(
     Ok(v)
 }
 
-/// The labels every piece carries, and the shell flag (9.26).
+/// `state` with every piece hidden from `viewer` off the board, for
+/// trying an order on (a preview): it then answers as `viewer`'s own
+/// view would have it, so a hidden raider's hex walks as empty and
+/// announces nothing (27.31, 27.42). A hex where `viewer` was told of a
+/// raider (`spot_chances`) keeps its raiders, so a try previews as made.
+pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
+    let mut s = state.clone();
+    let told: BTreeSet<_> = s.spot_chances.values().cloned().collect();
+    for p in s.pieces.values_mut() {
+        if p.hidden && p.side != viewer && !p.hex().is_some_and(|h| told.contains(h)) {
+            p.location = crate::piece::Location::Eliminated;
+        }
+    }
+    s
+}
+
 /// The ids of pieces `viewer` may not see at all: the other side's
 /// hidden ones (27.31).
 pub(super) fn hidden_from(state: &GameState, viewer: Option<Side>) -> BTreeSet<&str> {
@@ -443,6 +460,7 @@ fn strip_hidden(v: &mut Value, hidden: &BTreeSet<&str>) {
     }
 }
 
+/// The labels every piece carries, and the shell flag (9.26).
 fn label(state: &GameState, data: &Data, v: &mut Value) -> Result<()> {
     for p in state.pieces.values() {
         let unit_type = p

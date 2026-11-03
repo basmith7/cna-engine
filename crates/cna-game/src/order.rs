@@ -178,6 +178,10 @@ pub enum Order {
     /// hex of enemy supply unit `target` (its alias, to the raider's
     /// side), spends 5 CP to raid it as a supply dump (27.55, R-149).
     RaidDump { piece: PieceId, target: PieceId },
+    /// The phasing player's movement segment: combat unit `piece`, told
+    /// of an enemy raider in the hex it entered and still there, spends
+    /// 1 CP to try to spot it (27.42–27.44).
+    TrySpot { piece: PieceId },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,
