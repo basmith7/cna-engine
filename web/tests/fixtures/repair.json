@@ -12,7 +12,8 @@
   "modules": {
     "abstract_supply": true,
     "breakdown": true,
-    "construction": true
+    "construction": true,
+    "patrols": true
   },
   "clock": {
     "game_turn": 1,
@@ -84,6 +85,14 @@
     "axis": {
       "C4120": 3
     }
+  },
+  "stage_record": {
+    "fought": [
+      "axis"
+    ],
+    "barraged": [
+      "C3922"
+    ]
   },
   "attachment_tracked": true,
   "weather": "hot",

@@ -89,6 +89,14 @@ mod tests {
     fn play(data: &Data, state: &mut GameState, orders: Vec<(Side, Order)>) -> Vec<Event> {
         let mut events = Vec::new();
         for (side, order) in orders {
+            // Phase L, when it opens (the `patrols` module): no patrol
+            // goes out in the script.
+            while state.clock.phase == crate::clock::Phase::Patrol
+                && !matches!(order, Order::Patrol { .. })
+            {
+                let by = state.to_act().unwrap();
+                events.extend(state.apply(data, by, Order::Pass).unwrap());
+            }
             assert_eq!(state.to_act(), Some(side), "at {}: {order:?}", state.clock);
             let ev = state
                 .apply(data, side, order.clone())

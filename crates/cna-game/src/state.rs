@@ -109,7 +109,7 @@ impl Modules {
         abstract_supply: true,
         breakdown: true,
         construction: true,
-        patrols: false,
+        patrols: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
