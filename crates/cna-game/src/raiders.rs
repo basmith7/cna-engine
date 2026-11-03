@@ -34,8 +34,8 @@ const GUARDED_DUMP_DEATH: u8 = 6;
 /// The Axis initiative rating a raid's 2 pins (27.92).
 pub(crate) const PINNED_AXIS_INITIATIVE: u8 = 3;
 
-/// The die that spots a raider (27.41).
-const SPOTTING_DIE: u8 = 6;
+/// The die that spots a raider (27.41, 27.43).
+pub(crate) const SPOTTING_DIE: u8 = 6;
 
 pub(crate) fn is_zero(n: &u32) -> bool {
     *n == 0

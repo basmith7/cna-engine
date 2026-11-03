@@ -7,6 +7,7 @@
 use crate::clock::{Phase, Segment};
 use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
+use crate::raiders::SPOTTING_DIE;
 use crate::state::GameState;
 use cna_data::cp::Cp;
 use cna_data::map::HexId;
@@ -14,9 +15,6 @@ use cna_data::scenario::Side;
 
 /// What a spotting try costs (27.43).
 const TRY_CP: u32 = 1;
-
-/// The die that spots a raider (27.43).
-const SPOTTING_DIE: u8 = 6;
 
 impl GameState {
     /// Enemy raiders in `hex` of `side`'s enemy, in id order.
@@ -70,20 +68,15 @@ impl GameState {
     /// never told of one is refused before anything else is looked at.
     pub(crate) fn try_spot(&mut self, player: Side, id: &PieceId) -> Result<Vec<Event>, Illegal> {
         let bad = |why: String| Illegal::new("27.44", why);
-        let Some(hex) = self
-            .spot_chances
-            .get(id)
-            .filter(|_| self.pieces.get(id).is_some_and(|p| p.side == player))
-            .cloned()
-        else {
+        // Only the phasing player acts in its movement segment (5.2), and
+        // chances are cleared as phase G ends; they do outlast the
+        // movement segment, so the segment is checked.
+        let Some(hex) = self.spot_chances.get(id).cloned() else {
             return Err(bad(format!(
                 "{id} has not been told of a raider in the hex it entered this stage, or has tried already"
             )));
         };
-        if self.clock.phase != Phase::MovementCombat
-            || self.clock.segment != Some(Segment::Movement)
-            || self.phasing() != Some(player)
-        {
+        if self.clock.segment != Some(Segment::Movement) {
             return Err(bad(
                 "a spotting try is made in the mover's movement segment".to_owned(),
             ));
@@ -351,5 +344,49 @@ mod tests {
             serde_json::to_string(&as_known_to(&s, Side::Cw)).unwrap(),
             serde_json::to_string(&s).unwrap()
         );
+    }
+
+    #[test]
+    fn a_move_stopped_short_by_a_raider_asks_no_zoc_declaration_further_on() {
+        // 1 KRRC's walk C3822-C3821-C3820 is interrupted before C3820 for
+        // an Axis ZOC declaration; stopped at C3822 by a raider, it is not.
+        let data = graziani();
+        let base = moving(&data, 3, Side::Cw);
+        let walk = mv(&["unit:cw:1-krrc"], &["C3822", "C3821", "C3820"]);
+        let mut plain = base.clone();
+        plain.apply(&data, Side::Cw, walk.clone()).unwrap();
+        assert!(
+            matches!(
+                plain.pending,
+                Some(crate::state::Pending::DeclareZoc { .. })
+            ),
+            "the walk this test needs is interrupted: {:?}",
+            plain.pending
+        );
+        let mut s = base.clone();
+        let r = raider(&mut s, &HexId::parse("C3822").unwrap());
+        s.pieces.get_mut(&r).unwrap().side = Side::Axis;
+        let events = s.apply(&data, Side::Cw, walk).unwrap();
+        assert_eq!(
+            s.pieces[&PieceId::from("unit:cw:1-krrc".to_owned())].hex(),
+            Some(&HexId::parse("C3822").unwrap())
+        );
+        assert_eq!(s.pending, None, "{events:?}");
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::MoveInterrupted { .. })),
+            "{events:?}"
+        );
+    }
+
+    #[test]
+    fn a_preview_keeps_the_raider_the_mover_was_told_of() {
+        let data = graziani();
+        let (mut s, mover, a, b, r) = crossing(&data);
+        walk(&data, &mut s, &mover, &a, &b);
+        let mut known = as_known_to(&s, Side::Axis);
+        assert_eq!(known.pieces[&r].hex(), Some(&a));
+        known.apply(&data, Side::Axis, try_spot(&mover)).unwrap();
     }
 }

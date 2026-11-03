@@ -48,7 +48,7 @@ pub enum Event {
     },
     /// Enemy combat units entered `hex`, where a raider of the other side
     /// stands (27.42). The raider is not named; `pieces` may each try to
-    /// spot it there, and the move stopped so they may.
+    /// spot it there, and when any may the move stopped so they can.
     RaiderAnnounced {
         hex: HexId,
         pieces: Vec<PieceId>,

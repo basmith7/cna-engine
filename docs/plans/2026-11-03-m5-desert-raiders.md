@@ -88,7 +88,7 @@ Task 3 waits on request 1.
 
 ### Task 5: the enemy's spotting try (27.42–27.44)
 
-- [x] When an enemy combat unit's move enters a hidden raider's hex, the
+- [x] When an enemy combat unit's move enters a raider's hex (hidden or not: 27.42 says a raider's hex), the
   raider's owner announces it (27.42): an event tells the mover that a
   raider is there, without naming it. The move stops there so the
   mover may answer, as a reaction stops it (8.5x); it may walk on with

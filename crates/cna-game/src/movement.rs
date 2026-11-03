@@ -817,6 +817,8 @@ impl GameState {
         let mut reaction = None;
         let storm =
             crate::breakdown::mostly_in_sandstorm(self, plan.steps.iter().map(|(h, c)| (h, *c)));
+        let last = plan.steps.last().map(|(h, _)| h.clone());
+        let mut announced_at = None;
         for (to, cost) in plan.steps {
             for id in pieces {
                 let p = self.pieces.get_mut(id).expect("checked");
@@ -871,8 +873,14 @@ impl GameState {
                 }
             }
             if announced {
+                announced_at = Some(at.clone());
                 break;
             }
+        }
+        // Stopped short by a raider (27.42): the step a ZOC declaration
+        // was to precede is not coming.
+        if announced_at.is_some() && announced_at != last {
+            plan.interrupt = None;
         }
         // The stack stops, for good or for an answer: a breakdown check
         // (21.2x).

@@ -399,11 +399,13 @@ pub fn view_for(
 /// `state` with every piece hidden from `viewer` off the board, for
 /// trying an order on (a preview): it then answers as `viewer`'s own
 /// view would have it, so a hidden raider's hex walks as empty and
-/// announces nothing (27.31, 27.42).
+/// announces nothing (27.31, 27.42). A hex where `viewer` was told of a
+/// raider (`spot_chances`) keeps its raiders, so a try previews as made.
 pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
     let mut s = state.clone();
+    let told: BTreeSet<_> = s.spot_chances.values().cloned().collect();
     for p in s.pieces.values_mut() {
-        if p.hidden && p.side != viewer {
+        if p.hidden && p.side != viewer && !p.hex().is_some_and(|h| told.contains(h)) {
             p.location = crate::piece::Location::Eliminated;
         }
     }
@@ -457,6 +459,7 @@ fn strip_hidden(v: &mut Value, hidden: &BTreeSet<&str>) {
     }
 }
 
+/// The labels every piece carries, and the shell flag (9.26).
 fn label(state: &GameState, data: &Data, v: &mut Value) -> Result<()> {
     for p in state.pieces.values() {
         let unit_type = p
