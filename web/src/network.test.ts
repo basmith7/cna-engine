@@ -19,6 +19,7 @@ function reply(method: string, path: string, ...rs: Reply[]) {
 class FakeEventSource {
   static last: FakeEventSource | undefined;
   onmessage: ((m: MessageEvent<string>) => void) | null = null;
+  private named = new Map<string, (() => void)[]>();
   closed = false;
   constructor(
     readonly url: string,
@@ -28,6 +29,13 @@ class FakeEventSource {
   }
   close() {
     this.closed = true;
+  }
+  addEventListener(name: string, f: () => void) {
+    this.named.set(name, [...(this.named.get(name) ?? []), f]);
+  }
+  /** A named event, as the server sends `event: <name>`. */
+  emitNamed(name: string) {
+    for (const f of this.named.get(name) ?? []) f();
   }
   emit(data: unknown) {
     this.onmessage?.({ data: JSON.stringify(data) } as MessageEvent<string>);
@@ -158,6 +166,28 @@ describe("NetworkEngine", () => {
     await expect(e.save()).rejects.toThrow("the game is not over");
   });
 
+  it("on a seats event reloads the status and the opponent's name", async () => {
+    reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 0, open: false, status: "open", view: view("axis") } });
+    reply("GET", "/api/games?mine", { status: 200, json: [{ id: 7, opponent: null }] });
+    const e = await NetworkEngine.open("7");
+    expect(e.turnText).toBe("Waiting for an opponent to join");
+    const changes = vi.fn();
+    e.onChange(changes);
+
+    // Bob joins: the game goes active and he is to move.
+    reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 0, open: false, status: "active", view: view("cw") } });
+    reply("GET", "/api/games?mine", { status: 200, json: [{ id: 7, opponent: "bob" }] });
+    FakeEventSource.last!.emitNamed("seats");
+    await vi.waitFor(() => expect(e.turnText).toBe("Waiting for bob"));
+    expect(e.opponent).toBe("bob");
+    expect(changes).toHaveBeenCalled();
+
+    // He leaves.
+    reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 0, open: false, status: "abandoned", view: view("cw") } });
+    FakeEventSource.last!.emitNamed("seats");
+    await vi.waitFor(() => expect(e.turnText).toBe("Abandoned: a player left"));
+  });
+
   it("close ends the stream and its subscriptions", async () => {
     const e = await NetworkEngine.open("7");
     const changes = vi.fn();
@@ -166,6 +196,9 @@ describe("NetworkEngine", () => {
     e.close();
     expect(es.closed).toBe(true);
     es.emit({ seq: 3, events: [], view: view("cw") });
+    es.emitNamed("seats");
+    await Promise.resolve();
     expect(changes).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.url === "/api/games/7")).toHaveLength(1);
   });
 });

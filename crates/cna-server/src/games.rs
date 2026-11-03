@@ -111,6 +111,8 @@ pub struct Live {
     /// Open information: both sides see everything.
     pub open: bool,
     pub tx: broadcast::Sender<Arc<Applied>>,
+    /// Signalled when a player joins or leaves.
+    pub seats: broadcast::Sender<()>,
     last_used: Instant,
 }
 
@@ -420,7 +422,24 @@ impl Games {
         }
         seat_in(&mut tx, game, side, account).await?;
         tx.commit().await?;
+        self.seats_changed(game).await;
         Ok(())
+    }
+
+    /// Tells the game's open streams its seats changed. A streamed game
+    /// is in memory (`evict_idle` keeps it), so one not loaded has none.
+    async fn seats_changed(&self, game: GameId) {
+        let slot = self
+            .live
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&game)
+            .cloned();
+        if let Some(slot) = slot
+            && let Some(live) = slot.lock().await.as_ref()
+        {
+            let _ = live.seats.send(());
+        }
     }
 
     async fn seat_in_tx(
@@ -465,6 +484,7 @@ impl Games {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        self.seats_changed(game).await;
         Ok(())
     }
 
@@ -756,6 +776,7 @@ impl Games {
             aliases: Aliases::new(key),
             open,
             tx: broadcast::channel(64).0,
+            seats: broadcast::channel(4).0,
             last_used: Instant::now(),
         })
     }
