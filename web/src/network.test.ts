@@ -52,35 +52,35 @@ beforeEach(() => {
       return new Response(JSON.stringify(r.json), { status: r.status, headers: { "Content-Type": "application/json" } });
     }),
   );
-  reply("GET", "/api/games/g1", { status: 200, json: { side: "axis", seq: 3, open: false, view: view("axis") } });
-  reply("GET", "/api/games?mine", { status: 200, json: [{ id: "g1", opponent: "bob" }, { id: "g2", opponent: "carol" }] });
+  reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 3, open: false, view: view("axis") } });
+  reply("GET", "/api/games?mine", { status: 200, json: [{ id: 7, opponent: "bob" }, { id: 8, opponent: "carol" }] });
 });
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("NetworkEngine", () => {
   it("loads the seat, seq and view, and opens the stream", async () => {
-    const e = await NetworkEngine.open("g1");
+    const e = await NetworkEngine.open("7");
     expect(e.side).toBe("axis");
     expect(e.seq).toBe(3);
     expect(await e.view()).toEqual(view("axis"));
     expect(e.turnText).toBe("Your move");
     expect(e.myMove).toBe(true);
-    expect(FakeEventSource.last?.url).toBe("/api/games/g1/stream");
+    expect(FakeEventSource.last?.url).toBe("/api/games/7/stream");
     expect(calls.every((c) => c.init.credentials === "same-origin")).toBe(true);
   });
 
   it("names the opponent it waits for, and falls back when the lobby list fails", async () => {
-    reply("GET", "/api/games/g1", { status: 200, json: { side: "cw", seq: 0, open: false, view: view("axis") } });
-    expect((await NetworkEngine.open("g1")).turnText).toBe("Waiting for bob");
+    reply("GET", "/api/games/7", { status: 200, json: { side: "cw", seq: 0, open: false, view: view("axis") } });
+    expect((await NetworkEngine.open("7")).turnText).toBe("Waiting for bob");
     reply("GET", "/api/games?mine", { status: 500, json: { error: "internal error" } });
-    expect((await NetworkEngine.open("g1")).turnText).toBe("Waiting for your opponent");
+    expect((await NetworkEngine.open("7")).turnText).toBe("Waiting for your opponent");
   });
 
   it("sends the order with its seq as JSON and reloads the view after it lands", async () => {
-    const e = await NetworkEngine.open("g1");
-    reply("POST", "/api/games/g1/orders", { status: 200, json: { ok: [{ "phase-skipped": {} }] } });
-    reply("GET", "/api/games/g1", { status: 200, json: { side: "axis", seq: 4, open: false, view: view("cw", 2) } });
+    const e = await NetworkEngine.open("7");
+    reply("POST", "/api/games/7/orders", { status: 200, json: { ok: [{ "phase-skipped": {} }] } });
+    reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 4, open: false, view: view("cw", 2) } });
     const changes = vi.fn();
     e.onChange(changes);
     expect(await e.apply("axis", order)).toEqual({ ok: [{ "phase-skipped": {} }] });
@@ -93,18 +93,18 @@ describe("NetworkEngine", () => {
   });
 
   it("on a stale seq refetches the game and says it moved on", async () => {
-    const e = await NetworkEngine.open("g1");
-    reply("POST", "/api/games/g1/orders", { status: 409, json: { error: "stale seq: the game is at 5", seq: 5 } });
-    reply("GET", "/api/games/g1", { status: 200, json: { side: "axis", seq: 5, open: false, view: view("cw", 3) } });
+    const e = await NetworkEngine.open("7");
+    reply("POST", "/api/games/7/orders", { status: 409, json: { error: "stale seq: the game is at 5", seq: 5 } });
+    reply("GET", "/api/games/7", { status: 200, json: { side: "axis", seq: 5, open: false, view: view("cw", 3) } });
     expect(await e.apply("axis", order)).toEqual({ illegal: { case: STALE_CASE, reason: MOVED_ON } });
     expect(e.seq).toBe(5);
     expect(await e.view()).toEqual(view("cw", 3));
   });
 
   it("answers an illegal order as the server words it, the view untouched", async () => {
-    const e = await NetworkEngine.open("g1");
+    const e = await NetworkEngine.open("7");
     const illegal = { case: "not-your-turn", reason: "it is not your turn" };
-    reply("POST", "/api/games/g1/orders", { status: 422, json: { illegal } });
+    reply("POST", "/api/games/7/orders", { status: 422, json: { illegal } });
     const before = calls.length;
     expect(await e.apply("axis", order)).toEqual({ illegal });
     expect(calls.length).toBe(before + 1);
@@ -112,13 +112,13 @@ describe("NetworkEngine", () => {
   });
 
   it("reports a refusal with no seq (game not in play) without refetching", async () => {
-    const e = await NetworkEngine.open("g1");
-    reply("POST", "/api/games/g1/orders", { status: 409, json: { error: "the game is not in play" } });
+    const e = await NetworkEngine.open("7");
+    reply("POST", "/api/games/7/orders", { status: 409, json: { error: "the game is not in play" } });
     expect(await e.apply("axis", order)).toEqual({ illegal: { case: "server", reason: "the game is not in play" } });
   });
 
   it("replaces the view whole on each stream message and logs its events", async () => {
-    const e = await NetworkEngine.open("g1");
+    const e = await NetworkEngine.open("7");
     const changes = vi.fn();
     e.onChange(changes);
     const ev = { "die-rolled": { purpose: "weather", value: 4 } };
@@ -135,20 +135,20 @@ describe("NetworkEngine", () => {
   });
 
   it("passes queries' illegal answers through and throws other errors", async () => {
-    const e = await NetworkEngine.open("g1");
+    const e = await NetworkEngine.open("7");
     const illegal = { case: "no-move", reason: "out of supply" };
-    reply("GET", `/api/games/g1/reachable?pieces=${encodeURIComponent('["a1"]')}&purpose=move`, { status: 422, json: { illegal } });
+    reply("GET", `/api/games/7/reachable?pieces=${encodeURIComponent('["a1"]')}&purpose=move`, { status: 422, json: { illegal } });
     expect(await e.reachable("axis", ["a1"], "move")).toEqual({ illegal });
-    reply("GET", `/api/games/g1/fuel-sources?pieces=${encodeURIComponent('["a1"]')}`, { status: 200, json: { ok: ["s1"] } });
+    reply("GET", `/api/games/7/fuel-sources?pieces=${encodeURIComponent('["a1"]')}`, { status: 200, json: { ok: ["s1"] } });
     expect(await e.fuelSources("axis", ["a1"])).toEqual(["s1"]);
-    reply("GET", "/api/games/g1/placements?piece=x", { status: 403, json: { error: "not your piece" } });
+    reply("GET", "/api/games/7/placements?piece=x", { status: 403, json: { error: "not your piece" } });
     await expect(e.placements("x")).rejects.toThrow("not your piece");
-    reply("GET", "/api/games/g1/save", { status: 409, json: { error: "the game is not over" } });
+    reply("GET", "/api/games/7/save", { status: 409, json: { error: "the game is not over" } });
     await expect(e.save()).rejects.toThrow("the game is not over");
   });
 
   it("close ends the stream and its subscriptions", async () => {
-    const e = await NetworkEngine.open("g1");
+    const e = await NetworkEngine.open("7");
     const changes = vi.fn();
     e.onChange(changes);
     const es = FakeEventSource.last!;

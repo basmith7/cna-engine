@@ -128,3 +128,16 @@ export function freeSides(g: OpenGame): Side[] {
 export function inviteLink(origin: string, c: Created): string {
   return `${origin}/join/${c.id}?invite=${encodeURIComponent(c.invite)}`;
 }
+
+/** An entry of `GET /admin/accounts`. */
+export type AdminAccount = { id: number; discord_id: string; name: string; admin: boolean; suspended: boolean };
+
+/** Every account, oldest first; admins only (403 otherwise). */
+export async function accounts(): Promise<AdminAccount[]> {
+  return call<AdminAccount[]>("GET", "/admin/accounts");
+}
+
+/** Suspends account `id` (its sessions and streams end) or restores it. */
+export async function setSuspended(id: number, suspended: boolean): Promise<void> {
+  await call("POST", `/admin/accounts/${id}/${suspended ? "suspend" : "restore"}`, {});
+}

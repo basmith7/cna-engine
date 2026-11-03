@@ -13,7 +13,7 @@ type GameBody = { side: Side; seq: number; open: boolean; view: View };
 type StreamMessage = { seq: number; events: Event[]; view: View };
 
 /** An entry of `GET /api/games?mine`; only the fields read here. */
-type MineEntry = { id: string; opponent: string | null };
+type MineEntry = { id: number | string; opponent: string | null };
 
 /** The illegal-order case `apply` answers when another order landed first. */
 export const STALE_CASE = "stale";
@@ -161,7 +161,7 @@ export class NetworkEngine implements Engine {
   private async loadOpponent(): Promise<void> {
     try {
       const mine = await this.fetchJson<MineEntry[]>("/api/games?mine");
-      this.opponent = mine.find((g) => g.id === this.gameId)?.opponent ?? null;
+      this.opponent = mine.find((g) => String(g.id) === this.gameId)?.opponent ?? null;
     } catch {
       this.opponent = null;
     }

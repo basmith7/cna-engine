@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { clockLine } from "./clock";
+  import { clockLine, sideName } from "./clock";
   import Counters from "./Counters.svelte";
   import { label, stacks } from "./counters";
   import Curtain from "./Curtain.svelte";
@@ -24,6 +24,9 @@
   import StartScreen from "./StartScreen.svelte";
   import Lobby from "./Lobby.svelte";
   import { type Account, me } from "./lobby";
+  import JoinScreen from "./JoinScreen.svelte";
+  import { NetworkEngine } from "./network";
+  import { RETURN_KEY, parseRoute } from "./route";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
@@ -41,7 +44,35 @@
   let account: Account | null = $state(null);
   /** The lobby shows in place of the start screen. */
   let inLobby = $state(false);
-  me().then((a) => (account = a), () => (account = null));
+  /** The page asked for: a game online, an invite, or the start screen. */
+  const route = parseRoute(location.pathname, location.search);
+  /** Whether `me()` has answered, so the invite page knows if a sign-in is needed. */
+  let known = $state(false);
+  me().then(
+    (a) => {
+      account = a;
+      known = true;
+      // Back from a sign-in an invite asked for: follow the invite again.
+      let back: string | null = null;
+      try {
+        back = sessionStorage.getItem(RETURN_KEY);
+        sessionStorage.removeItem(RETURN_KEY);
+      } catch {
+        back = null;
+      }
+      if (a && back && route.page === "start" && back.startsWith("/join/")) location.replace(back);
+    },
+    () => {
+      account = null;
+      known = true;
+    },
+  );
+  /** The online game on the page, if it is one: no curtain, no autosave, the log from its stream. */
+  const online = $derived(engine instanceof NetworkEngine ? engine : null);
+  /** The online game's "Your move" / "Waiting for …" line. */
+  let turnText: string | null = $state(null);
+  /** Why the online game could not be opened. */
+  let onlineError: string | null = $state(null);
   /** The autosave's clock line on the start screen, or null when there is none. */
   let autosave: string | null = $state(null);
   /** The engine's refusal of the last file given to Load, until the next Load. */
@@ -202,6 +233,12 @@
   async function sendNow(order: Order): Promise<boolean> {
     const e = engine;
     if (!e || !view || !view.to_act) return false;
+    // Online, orders go as this seat; the server would refuse the other side's.
+    if (e instanceof NetworkEngine && view.to_act !== e.side) {
+      illegal = "Not your move: the other side is to act.";
+      refusals++;
+      return false;
+    }
     const r = await e.apply(view.to_act, order);
     // Another game was opened while the order was out: it is not this one's.
     if (engine !== e) return false;
@@ -220,12 +257,15 @@
     const next = await e.view();
     if (engine !== e) return false;
     view = next;
-    log = withEvents(
-      log,
-      clockLine(before),
-      r.ok.map((e) => formatEvent(e, name)),
-    );
-    curtain = curtainAfter(before.to_act, view.to_act);
+    // Online, the stream logs every order, this seat's own included.
+    if (!(e instanceof NetworkEngine)) {
+      log = withEvents(
+        log,
+        clockLine(before),
+        r.ok.map((e) => formatEvent(e, name)),
+      );
+      curtain = curtainAfter(before.to_act, view.to_act);
+    }
     custom = [];
     autosaveNow();
     if (curtain) {
@@ -386,7 +426,7 @@
 
   /** The state JSON into `localStorage` (spec, *Save and load*), after every accepted order; a full store is not an error worth stopping play for. */
   async function autosaveNow() {
-    if (!engine) return;
+    if (!engine || engine instanceof NetworkEngine) return;
     try {
       localStorage.setItem(AUTOSAVE_KEY, await engine.save());
     } catch {
@@ -438,9 +478,42 @@
     if (!(await loadJson(json))) autosave = null;
   }
 
+  /**
+   * Opens the online game `id` (spec, *Web client*): the seat's view,
+   * replaced whenever the stream brings an order, either side's; the
+   * stream's events go to the log under the clock they happened at.
+   */
+  async function openOnline(id: string) {
+    let e: NetworkEngine;
+    try {
+      e = await NetworkEngine.open(id);
+    } catch (err) {
+      onlineError = err instanceof Error ? err.message : String(err);
+      return;
+    }
+    await start(e);
+    turnText = e.turnText;
+    let logged = e.log.length;
+    e.onChange(async () => {
+      if (engine !== e) return;
+      const before = view;
+      const next = await e.view();
+      if (engine !== e) return;
+      const fresh = e.log.slice(logged);
+      logged = e.log.length;
+      if (before && fresh.length > 0) {
+        const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
+        log = withEvents(log, clockLine(before), fresh.map((ev) => formatEvent(ev, name)));
+      }
+      view = next;
+      turnText = e.turnText;
+    });
+  }
+
   initEngine()
     .then(() => {
       loaded = true;
+      if (route.page === "game") openOnline(route.id);
       const stored = localStorage.getItem(AUTOSAVE_KEY);
       autosave = stored === null ? null : describeSave(stored);
       if (import.meta.env.MODE === "test") {
@@ -498,7 +571,15 @@
       </main>
       <aside class="side">
         <div class="panels">
-          <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
+          {#if online}
+            <section class="panel online" data-testid="online">
+              <h2>Game {online.gameId} · you play {sideName(online.side)}</h2>
+              <p><strong data-testid="turn">{turnText ?? "Nobody is to act"}</strong>{online.opponent ? ` · against ${online.opponent}` : ""}{online.open ? " · open information" : ""}</p>
+              <p><a href="/">Lobby</a></p>
+            </section>
+          {:else}
+            <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
+          {/if}
           {#if view.over}
             <section class="panel over" data-testid="over">
               <h2>Game over</h2>
@@ -541,6 +622,12 @@
     </div>
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
+  {:else if route.page === "game" && onlineError}
+    <p class="status error" role="alert">Game {route.id} could not be opened: {onlineError}. <a href="/">Start screen</a></p>
+  {:else if route.page === "game"}
+    <p class="status">Opening game {route.id}…</p>
+  {:else if route.page === "join" && known}
+    <JoinScreen {account} id={route.id} invite={route.invite} />
   {:else if loaded && inLobby && account}
     <Lobby {account} onback={() => { inLobby = false; me().then((a) => (account = a), () => (account = null)); }} />
   {:else if loaded}
@@ -636,6 +723,13 @@
   .panel.assault {
     background: #fbe3e1;
     border: 1px solid #d9847d;
+  }
+  .panel.online {
+    background: #e9e4d8;
+    border: 1px solid #b9b2a2;
+  }
+  .panel.online p + p {
+    margin-top: 0.3rem;
   }
   .panel.over {
     background: #e9e4d8;

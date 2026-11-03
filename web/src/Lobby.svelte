@@ -3,7 +3,7 @@
   // awaiting their move first; public games waiting for a player; and a
   // form to make one, whose invite link shows once.
   import { sideName } from "./clock";
-  import { type Account, type Created, type CreateSide, type MyGame, type OpenGame, createGame, freeSides, inviteLink, joinGame, myGames, openGames, signOut } from "./lobby";
+  import { type Account, type AdminAccount, type Created, type CreateSide, type MyGame, type OpenGame, accounts, createGame, freeSides, inviteLink, joinGame, myGames, openGames, setSuspended, signOut } from "./lobby";
   import type { Side } from "./types";
 
   let { account, onback }: { account: Account; onback: () => void } = $props();
@@ -19,9 +19,13 @@
   let listed = $state(true);
   let openInformation = $state(false);
 
+  /** The admin's account list; empty for anyone else. */
+  let all: AdminAccount[] = $state([]);
+
   async function refresh() {
     try {
       [mine, open] = await Promise.all([myGames(), openGames()]);
+      if (account.admin) all = await accounts();
       error = null;
     } catch (e) {
       error = (e as Error).message;
@@ -48,6 +52,7 @@
     });
 
   const join = (g: OpenGame, side: Side) => act(() => joinGame(g.id, side));
+  const suspend = (a: AdminAccount) => act(() => setSuspended(a.id, !a.suspended));
 
   const link = $derived(created ? inviteLink(location.origin, created) : "");
 
@@ -130,6 +135,25 @@
         <p>Send this link to your opponent. It is shown only now.</p>
         <p><input type="text" readonly value={link} aria-label="Invite link" /> <button type="button" onclick={copy}>{copied ? "Copied" : "Copy"}</button></p>
       </div>
+    {/if}
+
+    <h2>Settings</h2>
+    <p><label><input type="checkbox" checked={account.alerts} disabled /> Tell me by Discord message when it is my move</label></p>
+    <p class="none">Turn alerts are not sent yet; this switch comes with them.</p>
+
+    {#if account.admin}
+      <h2>Accounts</h2>
+      <ul data-testid="accounts">
+        {#each all as a (a.id)}
+          <li>
+            <span>{a.name}{a.admin ? " (admin)" : ""}</span>
+            <span class="state">{a.suspended ? "suspended" : "active"}</span>
+            {#if a.id !== account.id}
+              <button type="button" disabled={busy} onclick={() => suspend(a)}>{a.suspended ? "Restore" : "Suspend"}</button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
     {/if}
   </section>
 </div>
