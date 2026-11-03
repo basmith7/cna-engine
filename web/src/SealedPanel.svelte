@@ -7,7 +7,7 @@
   // never outlive it; a refused answer keeps them.
   import { sideName } from "./clock";
   import { label } from "./counters";
-  import { assignOrder, barrageOrder, committed, fireRowFor, roleRowFor, type FireRow, type RoleRow } from "./sealed";
+  import { assignOrder, barrageOrder, committed, fireRowFor, roleRowFor, shipPoints, type FireRow, type RoleRow } from "./sealed";
   import { ammoNote } from "./supply";
   import type { Committer, Firer, Illegal, Order, PieceId, SealedOptions, View } from "./types";
 
@@ -94,15 +94,20 @@
       <div class="unit" data-unit={f.piece}>
         <div class="head">
           <span class="name">{name(f.piece)}</span>
-          <span class="facts">TOE {f.points} · {f.forward ? "forward" : "back"}{#if ammoNote(f, "fire")} · <span class="ammo" class:short={f.ammo_short} data-ammo>{ammoNote(f, "fire")}</span>{/if}</span>
+          <span class="facts">{#if f.ship_points}guns {f.points} · ship{:else}TOE {f.points} · {f.forward ? "forward" : "back"}{/if}{#if ammoNote(f, "fire")} · <span class="ammo" class:short={f.ammo_short} data-ammo>{ammoNote(f, "fire")}</span>{/if}</span>
           <button type="button" class="add" data-add-fire={f.piece} onclick={() => addFire(f)}>+ fire</button>
         </div>
         {#each fires as row, i (i)}
           {#if row.piece === f.piece}
             <div class="row" data-fire={i}>
-              <input type="number" min="1" max={f.points} data-points bind:value={row.points} aria-label="Points" />
+              {#if f.ship_points}
+                <!-- A ship fires its guns, or half of them next door: one count per target (30.2x). -->
+                <input type="number" data-points value={row.points} readonly aria-label="Points" />
+              {:else}
+                <input type="number" min="1" max={f.points} data-points bind:value={row.points} aria-label="Points" />
+              {/if}
               <span>points at</span>
-              <select data-target bind:value={row.target} aria-label="Target">
+              <select data-target bind:value={row.target} onchange={() => { const n = shipPoints(f, row.target); if (n !== undefined) row.points = n; }} aria-label="Target">
                 {#each f.targets as t (t)}
                   <option value={t}>{name(t)}</option>
                 {/each}

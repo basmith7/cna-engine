@@ -145,6 +145,65 @@ fn station_refusal(map: &Map, hex: &HexId) -> Option<Illegal> {
     None
 }
 
+/// Every hex a ship may be placed in (30.1x, R-019): what
+/// `station_refusal` accepts, with the sea distances computed once.
+fn station_hexes(map: &Map) -> Vec<HexId> {
+    let dist = sea_distances(map);
+    map.hexes()
+        .filter(|h| h.terrain == Terrain::Sea || h.coastal)
+        .filter(|h| {
+            let id = &h.id;
+            !(id.sheet() < WESTERN_SHEET || (id.sheet() == WESTERN_SHEET && id.col() < WESTERN_ROW))
+        })
+        .filter(|h| {
+            if h.terrain == Terrain::Sea {
+                dist.contains_key(&h.id)
+            } else {
+                map.neighbours(&h.id).iter().any(|n| dist.contains_key(n))
+            }
+        })
+        .map(|h| h.id.clone())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+/// The ships the Commonwealth may place this phase E and the hexes any
+/// of them may go to (30.1x): what `Order::Station` accepts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationOptions {
+    pub ships: Vec<PieceId>,
+    pub hexes: Vec<HexId>,
+}
+
+impl GameState {
+    /// What `player` may station now; `None` outside its phase E or with
+    /// no ship free to sail.
+    pub fn station_options(&self, data: &Data, player: Side) -> Option<StationOptions> {
+        if !self.modules.fleet
+            || self.clock.phase != crate::clock::Phase::CwFleet
+            || self.pending.is_some()
+            || player != Side::Cw
+            || self.to_act() != Some(Side::Cw)
+        {
+            return None;
+        }
+        let ships: Vec<PieceId> = self
+            .fleet
+            .iter()
+            .filter(|(id, r)| r.stationed || self.free_to_sail(id))
+            .map(|(id, _)| id.clone())
+            .collect();
+        if ships.is_empty() {
+            return None;
+        }
+        Some(StationOptions {
+            ships,
+            hexes: station_hexes(&data.map),
+        })
+    }
+}
+
 impl GameState {
     /// The warships the schedule has deployed by now and not yet in
     /// play land in Alexandria (30.59). A scenario starting later has
@@ -589,6 +648,31 @@ mod tests {
     }
 
     #[test]
+    fn station_options_are_exactly_what_station_accepts_30_1x() {
+        let data = graziani();
+        let mut state = set_up(&data, fleet_on());
+        to_phase_e(&data, &mut state);
+        let o = state.station_options(&data, Side::Cw).expect("phase E");
+        assert_eq!(o.ships.len(), 11);
+        assert!(state.station_options(&data, Side::Axis).is_none());
+        let valiant = ship_id("valiant");
+        let offered: std::collections::BTreeSet<_> = o.hexes.iter().collect();
+        for h in data.map.hexes() {
+            let r = state
+                .clone()
+                .apply(&data, Side::Cw, station(&valiant, h.id.as_str()));
+            assert_eq!(r.is_ok(), offered.contains(&h.id), "{}: {r:?}", h.id);
+        }
+        // A ship owing port time is not offered.
+        state.fleet.get_mut(&valiant).unwrap().owed = 2;
+        let o = state.station_options(&data, Side::Cw).unwrap();
+        assert!(!o.ships.contains(&valiant));
+        // Nor outside phase E.
+        state.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert!(state.station_options(&data, Side::Cw).is_none());
+    }
+
+    #[test]
     fn row_xx29_lies_about_100_sea_hexes_out_r_019() {
         let data = graziani();
         let dist = sea_distances(&data.map);
@@ -884,6 +968,53 @@ mod tests {
             let valiant = put(&mut state, "valiant", &at);
             assert_eq!(resolve(&data, &mut state, &valiant, 6), 6);
             assert!(state.fleet[&valiant].fired);
+        }
+
+        #[test]
+        fn the_barrage_options_offer_each_ship_exactly_the_fire_apply_accepts_30_2x() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let sea = offshore(&data, &at);
+            let valiant = put(&mut state, "valiant", &sea);
+            let dido = put(&mut state, "dido", &at);
+            let airedale = put(&mut state, "airedale", &sea);
+            let crate::combat::options::SealedOptions::Barrage { firers } =
+                state.sealed_options(&data, Side::Cw).unwrap()
+            else {
+                panic!("the barrage step");
+            };
+            let offered = |id: &PieceId| firers.iter().find(|f| &f.piece == id);
+            assert_eq!(offered(&valiant).unwrap().ship_points[&pid(TARGET)], 3);
+            assert!(offered(&dido).is_some());
+            assert!(offered(&airedale).is_none(), "a destroyer out of reach");
+            let enemies: Vec<PieceId> = state
+                .pieces
+                .values()
+                .filter(|p| p.side == Side::Axis && p.hex().is_some())
+                .map(|p| p.id.clone())
+                .collect();
+            for ship in [&valiant, &dido, &airedale] {
+                for t in &enemies {
+                    for points in 1..=8 {
+                        let r = state.clone().apply(
+                            &data,
+                            Side::Cw,
+                            Order::Barrage {
+                                fires: vec![Fire {
+                                    piece: ship.clone(),
+                                    points,
+                                    target: t.clone(),
+                                }],
+                            },
+                        );
+                        let want = offered(ship)
+                            .and_then(|f| f.ship_points.get(t))
+                            .is_some_and(|n| *n == points);
+                        assert_eq!(r.is_ok(), want, "{ship} {points} at {t}: {r:?}");
+                    }
+                }
+            }
         }
 
         #[test]

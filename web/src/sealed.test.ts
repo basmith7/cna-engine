@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignOrder, barrageOrder, committed, fireRowFor, passConsequence, retreatOrderWords, roleRowFor } from "./sealed";
+import { assignOrder, barrageOrder, committed, fireRowFor, passConsequence, retreatOrderWords, roleRowFor, shipPoints } from "./sealed";
 import type { Committer, Firer, PieceId } from "./types";
 
 const gun: Firer = { piece: "u:gun", points: 6, forward: true, targets: ["u:krrc", "u:cldgds"], ammo: 0, ammo_short: false };
@@ -7,6 +7,13 @@ const bn: Committer = { piece: "u:bn", points: 5, anti_armour: false, anti_armou
 const tanks: Committer = { piece: "u:tanks", points: 4, anti_armour: true, anti_armour_targets: ["C3922"], close_assault_targets: ["C3922", "C3921"], one_assault: true, ammo: 0, ammo_short: false };
 
 describe("the barrage panel", () => {
+  it("starts a ship's row at the one count it fires at its first target (30.2x)", () => {
+    const ship: Firer = { ...gun, piece: "ship:cw:valiant", forward: false, ship_points: { "u:krrc": 3, "u:cldgds": 6 } };
+    expect(fireRowFor(ship)).toEqual({ piece: "ship:cw:valiant", points: 3, target: "u:krrc" });
+    expect(shipPoints(ship, "u:cldgds")).toBe(6);
+    expect(shipPoints(gun, "u:krrc")).toBeUndefined();
+  });
+
   it("starts a firer's row at its whole TOE and first target, and sends the rows as fires", () => {
     const row = fireRowFor(gun);
     expect(row).toEqual({ piece: "u:gun", points: 6, target: "u:krrc" });

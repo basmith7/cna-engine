@@ -55,14 +55,24 @@ export function sizeMark(equivalent: Equivalent | null): string {
  * The counter's short label and the panel's long one. Supply units are
  * all "Supply": a dummy must look like a real one to both players.
  */
+/** A warship's name from its id, `ship:cw:<name>` (30.1x): the view gives ships no OA name. */
+export function shipName(id: PieceId): string {
+  const n = id.split(":").at(-1) ?? id;
+  return n
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export function label(p: Piece): { short: string; long: string } {
+  if (p.kind === "ship") return { short: shipName(p.id), long: `HMS ${shipName(p.id)}` };
   if (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") return { short: "Supply", long: "Supply unit" };
   if (p.kind === "raider" && !p.abbreviation) return { short: "Raider", long: p.name ?? "Raider" };
   return { short: p.abbreviation ?? p.id_code ?? p.id, long: p.name ?? p.id };
 }
 
 /** Rommel on top, then HQs, combat units and supply; ties by id so a stack is stable. */
-const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, raider: 2, "supply-unit": 3, "dummy-supply-unit": 3 };
+const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, raider: 2, "supply-unit": 3, "dummy-supply-unit": 3, ship: 4 };
 
 /**
  * Supply units tie-break on a hash of the id, not the id itself: a dummy's
@@ -96,6 +106,8 @@ export function nameParts(name: string): { text: string; sup: string | null } {
 export function stacks(view: View): Map<HexId, Piece[]> {
   const byHex = new Map<HexId, Piece[]>();
   for (const p of Object.values(view.pieces)) {
+    // Ships at sea are drawn apart from the land stacks (`Ships.svelte`).
+    if (p.kind === "ship") continue;
     if (typeof p.location === "object" && "hex" in p.location) {
       const list = byHex.get(p.location.hex) ?? [];
       list.push(p);
@@ -182,4 +194,22 @@ export function markers(p: Piece, view: View): Marker[] {
 /** A piece's number as shown: "?" when the view withholds it (an enemy's, 3.61), `none` when the piece has none. */
 export function shown(v: number | string | null | undefined, none = "–"): string {
   return v === undefined ? "?" : v === null ? none : String(v);
+}
+
+/** The warships on the map by hex (30.1x), drawn apart from the land counters. */
+export function shipsAtSea(view: View): Map<HexId, Piece[]> {
+  const byHex = new Map<HexId, Piece[]>();
+  for (const p of Object.values(view.pieces)) {
+    if (p.kind !== "ship" || typeof p.location !== "object" || !("hex" in p.location)) continue;
+    byHex.set(p.location.hex, [...(byHex.get(p.location.hex) ?? []), p]);
+  }
+  for (const ps of byHex.values()) ps.sort((a, b) => a.id.localeCompare(b.id));
+  return byHex;
+}
+
+/** The warships in port (30.1x), by id. */
+export function shipsInPort(view: View): Piece[] {
+  return Object.values(view.pieces)
+    .filter((p) => p.kind === "ship" && typeof p.location === "object" && "port" in p.location)
+    .sort((a, b) => a.id.localeCompare(b.id));
 }

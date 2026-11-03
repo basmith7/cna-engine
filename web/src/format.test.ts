@@ -33,6 +33,9 @@ const cases: [Event, string][] = [
     "Commonwealth patrols C4020 with A 2, B 1: survival 2, 1 killed and 1 captured; reconnaissance 5, sees u:c (6 TOE), u:d (3 TOE); objective loss 1, 1 TOE killed and 1 captured.",
   ],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
+  [{ arrived: { pieces: ["u:a", "u:b"], at: { port: "alexandria" } } }, "A, B arrive at Alexandria."],
+  [{ stationed: { ship: "u:a", hex: "C4131" } }, "A puts to sea at C4131 (30.1x)."],
+  [{ "in-port": { ships: ["u:a"] } }, "A is back in Alexandria (30.1x)."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
   [{ disorganised: { piece: "u:a", dp: 2, level: 1 } }, "A takes 2 DP, now cohesion level 1."],
@@ -111,9 +114,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 79 variants", () => {
+  it("covers all 81 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(79);
+    expect(tags.size).toBe(81);
   });
 
   it.each(cases)("%j", (event, line) => {

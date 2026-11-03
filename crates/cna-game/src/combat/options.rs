@@ -17,6 +17,7 @@ use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::supply::Role;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// The choices open to one side in the sealed step now pending.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +65,11 @@ pub struct Firer {
     /// refused.
     #[serde(default)]
     pub ammo_short: bool,
+    /// A ship (30.2x): the one point count it fires at each target, its
+    /// guns into its own hex or half of them into an adjacent one; empty
+    /// for a land unit, which fires any points up to `points`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub ship_points: BTreeMap<PieceId, u32>,
 }
 
 /// A unit that may commit TOE points to the roles of step 4.
@@ -96,6 +102,35 @@ pub struct Committer {
 }
 
 impl GameState {
+    /// A ship of `side` at sea as a barrage firer (30.2x): the enemy units
+    /// it may bombard, each with the one point count `check_barrage`
+    /// accepts; `None` for a land unit or a ship with nothing in reach.
+    fn ship_firer(&self, data: &Data, side: Side, id: &PieceId) -> Option<Firer> {
+        let ship = self.pieces.get(id)?;
+        if ship.kind != crate::piece::PieceKind::Ship || ship.side != side {
+            return None;
+        }
+        let ship_points: BTreeMap<PieceId, u32> = self
+            .pieces
+            .values()
+            .filter(|t| t.side != side && self.is_target(data, t))
+            .filter_map(|t| {
+                let n = self.bombardment_points(data, ship, t.hex()?).ok()?;
+                Some((t.id.clone(), n))
+            })
+            .collect();
+        let points = *ship_points.values().max()?;
+        Some(Firer {
+            piece: id.clone(),
+            points,
+            forward: false,
+            targets: ship_points.keys().cloned().collect(),
+            ammo: 0,
+            ammo_short: false,
+            ship_points,
+        })
+    }
+
     /// The choices open to `side` in the sealed step now pending; `Err`
     /// with the case `apply` would give when `side` may not answer now.
     pub fn sealed_options(&self, data: &Data, side: Side) -> Result<SealedOptions, Illegal> {
@@ -135,6 +170,9 @@ impl GameState {
                 firers: own
                     .iter()
                     .filter_map(|id| {
+                        if let Some(f) = self.ship_firer(data, side, id) {
+                            return Some(f);
+                        }
                         let p = self.barrage_firer(data, side, id).ok()?;
                         let targets: Vec<PieceId> = self
                             .pieces
@@ -155,6 +193,7 @@ impl GameState {
                             targets,
                             ammo,
                             ammo_short,
+                            ship_points: BTreeMap::new(),
                         })
                     })
                     .collect(),
