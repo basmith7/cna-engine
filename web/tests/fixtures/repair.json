@@ -13,7 +13,8 @@
     "abstract_supply": true,
     "breakdown": true,
     "construction": true,
-    "patrols": true
+    "patrols": true,
+    "captured_equipment": true
   },
   "clock": {
     "game_turn": 1,
@@ -75,6 +76,13 @@
         "points": 4
       }
     ]
+  },
+  "repaired": {
+    "axis": {
+      "C4021": {
+        "captured artillery": 12
+      }
+    }
   },
   "prisoners": {
     "axis": {

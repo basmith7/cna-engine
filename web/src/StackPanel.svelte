@@ -8,6 +8,7 @@
   import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
+  import { replacementName } from "./format";
   import { loadLabel, motorisationAt } from "./supply";
   import type { Order, PieceId, View } from "./types";
 
@@ -113,7 +114,7 @@
     {#each repaired as r (r.weapon)}
       {@const pick = absorbing[r.weapon] ?? { piece: absorbers[0]?.id ?? null, points: r.points }}
       <p class="repaired" data-testid="repaired" data-weapon={r.weapon}>
-        {r.points} repaired {r.weapon} point{r.points === 1 ? "" : "s"} waiting
+        {r.points} {replacementName(r.weapon)} point{r.points === 1 ? "" : "s"} waiting
         {#if onorder && view.clock?.phase === "organisation" && absorbers.length > 0}
           <select aria-label="Unit to absorb {r.weapon}" value={pick.piece} onchange={(e) => (absorbing[r.weapon] = { ...pick, piece: (e.target as HTMLSelectElement).value })}>
             {#each absorbers as a (a.id)}

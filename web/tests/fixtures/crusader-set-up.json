@@ -13,7 +13,8 @@
     "abstract_supply": true,
     "breakdown": true,
     "construction": true,
-    "patrols": true
+    "patrols": true,
+    "captured_equipment": true
   },
   "clock": {
     "game_turn": 57,

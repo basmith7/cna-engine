@@ -31,3 +31,27 @@ test("phase C: the tank battalion absorbs its repaired points at a CP per two (2
   const after = await page.evaluate(() => window.__cna.view().pieces["unit:it:iim-tank-bn"]);
   expect(after.toe).toBe(tanks.toe + 3);
 });
+
+test("phase C: captured tank points join the battalion's own model (R-152)", async ({ page }) => {
+  // As above, with two captured tank points waiting instead.
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  const tanks = save.pieces["unit:it:iim-tank-bn"];
+  const entry = tanks.weapons.find((w: { points: number }) => w.points >= 2);
+  entry.points -= 2;
+  tanks.toe -= 2;
+  save.repaired = { axis: { C3617: { "captured tank": 2 } } };
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  await page.getByTestId("phase-controls").locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await expect(page.getByTestId("clock")).toContainText("C · organisation");
+  await clickHex(page, "C3617");
+  const line = page.locator('[data-testid="repaired"][data-weapon="captured tank"]');
+  await expect(line).toContainText("2 captured tank points waiting");
+  await line.getByLabel("Unit to absorb captured tank").selectOption("unit:it:iim-tank-bn");
+  await line.locator('[data-order="absorb"]').click();
+  await expect(log(page).filter({ hasText: "absorbs 2 captured tank points for 1 CP." })).toHaveCount(1);
+  const after = await page.evaluate(() => window.__cna.view().pieces["unit:it:iim-tank-bn"]);
+  expect(after.toe).toBe(tanks.toe + 2);
+  expect(after.weapons.find((w: { weapon: string }) => w.weapon === entry.weapon).points).toBe(entry.points + 2);
+});

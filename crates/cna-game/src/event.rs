@@ -465,6 +465,14 @@ pub enum Event {
         hex: HexId,
         points: u32,
     },
+    /// `side` (the captor) took `points` replacement points of a captured
+    /// class (`weapon`, e.g. `captured tank`) in `hex` (28.3, R-152).
+    EquipmentCaptured {
+        side: Side,
+        hex: HexId,
+        weapon: String,
+        points: u32,
+    },
     /// `side`'s prisoners marched along `path` (28.13).
     PrisonersMarched {
         side: Side,
