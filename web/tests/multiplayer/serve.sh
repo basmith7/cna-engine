@@ -34,13 +34,16 @@ cargo build -p cna-server --features test-auth,fake --bins
 target=$(cargo metadata --format-version 1 --no-deps | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).target_directory)')
 bin=$target/debug
 
-FAKE_DISCORD_BIND=127.0.0.1:$fake_port "$bin/fake-discord" &
+# A bot token made per run: the fake refuses any other on its bot routes.
+bot_token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+FAKE_DISCORD_BIND=127.0.0.1:$fake_port FAKE_DISCORD_BOT_TOKEN=$bot_token "$bin/fake-discord" &
 pids+=($!)
 CNA_BIND=127.0.0.1:$port CNA_DEV=1 CNA_PUBLIC_URL=http://localhost:$port \
   CNA_WEB_DIST="$web/dist-multiplayer" \
   CNA_DISCORD_CLIENT_ID=dev CNA_DISCORD_CLIENT_SECRET=dev \
   CNA_DISCORD_AUTHORIZE=http://localhost:$fake_port/oauth2/authorize \
   CNA_DISCORD_API=http://localhost:$fake_port/api \
+  CNA_DISCORD_BOT_TOKEN=$bot_token CNA_DISCORD_GUILD_ID=4242 \
   RUST_LOG=${RUST_LOG:-warn} "$bin/cna-server" &
 pids+=($!)
 # Either dying ends the run; Playwright's TERM ends both.
