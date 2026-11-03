@@ -668,7 +668,10 @@ impl GameState {
         let in_hex: Vec<PieceId> = self
             .pieces
             .values()
-            .filter(|p| p.side == other && p.hex() == Some(target))
+            // The San Giorgio stays put whatever the hex does (30.17).
+            .filter(|p| {
+                p.side == other && p.hex() == Some(target) && p.kind != PieceKind::Blockship
+            })
             .map(|p| p.id.clone())
             .collect();
         let fighters: Vec<&Piece> = in_hex
@@ -1282,7 +1285,9 @@ impl GameState {
             let pieces: Vec<PieceId> = self
                 .pieces
                 .values()
-                .filter(|p| p.side == phasing && p.hex() == Some(&h))
+                .filter(|p| {
+                    p.side == phasing && p.hex() == Some(&h) && p.kind != PieceKind::Blockship
+                })
                 .map(|p| p.id.clone())
                 .collect();
             self.order_retreat(

@@ -219,13 +219,13 @@ mod tests {
         let points = spoils["captured tank"];
         assert!(points > 0, "{spoils:?}");
         let events = state
-            .apply(
-                data,
-                Side::Cw,
-                mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]),
-            )
+            .apply(data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C3923", "C3924"]))
             .unwrap();
-        assert!(events.iter().any(|e| matches!(e, Event::Surrendered { .. })));
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::Surrendered { .. }))
+        );
         (state, events, points)
     }
 
@@ -281,7 +281,9 @@ mod tests {
             .sum();
         assert!(recce > 0);
         assert_eq!(
-            state.spoils(&data, std::slice::from_ref(&car.id)).get(ARMOURED_RECCE),
+            state
+                .spoils(&data, std::slice::from_ref(&car.id))
+                .get(ARMOURED_RECCE),
             Some(&(2 * recce))
         );
     }
