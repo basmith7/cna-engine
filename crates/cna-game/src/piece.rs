@@ -78,6 +78,13 @@ pub enum PieceKind {
 }
 
 impl PieceKind {
+    /// Whether the piece holds its hex against the enemy: everything bar a
+    /// raider, which an enemy may enter, attack past and retreat through
+    /// (27.32, 27.42), so a hidden one gives nothing away.
+    pub fn holds_ground(self) -> bool {
+        self != PieceKind::Raider
+    }
+
     /// A supply unit, real or dummy (32.1x).
     pub fn is_supply(self) -> bool {
         matches!(self, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)

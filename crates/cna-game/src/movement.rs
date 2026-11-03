@@ -585,7 +585,7 @@ impl GameState {
         let enemies: Vec<&Piece> = self
             .pieces_at(to)
             .into_iter()
-            .filter(|q| q.side != side)
+            .filter(|q| q.side != side && q.kind.holds_ground())
             .collect();
         let capturable = mover.combat && enemies.iter().all(|q| q.kind.is_supply());
         if let Some(enemy) = enemies.first().filter(|_| !capturable) {

@@ -102,7 +102,10 @@ impl GameState {
 
     /// The side holding a hex, if any.
     pub(crate) fn holder(&self, hex: &HexId) -> Option<Side> {
-        self.pieces_at(hex).first().map(|p| p.side)
+        self.pieces_at(hex)
+            .into_iter()
+            .find(|p| p.kind.holds_ground())
+            .map(|p| p.side)
     }
 
     /// The enemy ZOC over `hex` for a unit of `side` (10.2x): the phasing

@@ -24,7 +24,7 @@ impl GameState {
             data.map.neighbours(h).iter().any(|n| {
                 self.pieces
                     .values()
-                    .any(|q| q.side != piece.side && q.hex() == Some(n))
+                    .any(|q| q.side != piece.side && q.kind.holds_ground() && q.hex() == Some(n))
             })
         })
     }
@@ -35,7 +35,7 @@ impl GameState {
         let phasing = self.phasing();
         self.pieces
             .values()
-            .filter(|p| Some(p.side) == phasing)
+            .filter(|p| Some(p.side) == phasing && p.kind.holds_ground())
             .any(|p| self.next_to_enemy(data, p))
     }
 

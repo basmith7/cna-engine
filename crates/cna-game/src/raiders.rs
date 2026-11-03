@@ -37,8 +37,20 @@ pub(crate) fn raid_cap(data: &Data) -> u32 {
 }
 
 impl GameState {
-    /// A raider never goes past its CPA of 50 (27.38).
+    /// A raider never goes past its CPA of 50 (27.38), and moves only
+    /// with other raiders: its owner moves it in secret (27.31), which a
+    /// stack seen on the map cannot share.
     pub(crate) fn raider_cap(&self, pieces: &[PieceId], cost: Cp) -> Result<(), Illegal> {
+        let raiders = pieces
+            .iter()
+            .filter(|id| self.pieces[*id].kind == PieceKind::Raider)
+            .count();
+        if raiders > 0 && raiders < pieces.len() {
+            return Err(Illegal::new(
+                "27.31",
+                "a raider moves in secret, apart from any other unit".to_owned(),
+            ));
+        }
         for id in pieces {
             let p = &self.pieces[id];
             if p.kind == PieceKind::Raider && p.cp_own_half() + cost > Cp::whole(RAIDER_CPA) {
@@ -308,6 +320,60 @@ mod tests {
             }
         }
         assert!(spotted > 0 && survived > 0, "{spotted} {survived}");
+    }
+
+    #[test]
+    fn an_enemy_moves_into_a_hidden_raider_s_hex_as_if_it_were_empty_27_42() {
+        // A raider holds no ground: an Axis unit may enter its hex, and
+        // nothing the Axis is told (a refusal, an attack's target, the
+        // combat segment) gives the hidden counter away.
+        let data = graziani();
+        let base = moving(&data, 3, Side::Axis);
+        let (mover, to) = base
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            .find_map(|p| {
+                let at = p.hex()?;
+                data.map.neighbours(at).into_iter().find_map(|n| {
+                    let mut s = base.clone();
+                    let ok = empty(&s, &n)
+                        && s.apply(&data, Side::Axis, mv(&[p.id.as_str()], &[&n.to_string()]))
+                            .is_ok();
+                    ok.then(|| (p.id.clone(), n))
+                })
+            })
+            .expect("an Axis unit with an empty hex to step into");
+        let mut state = base.clone();
+        let id = raider(&mut state, &to);
+        assert_eq!(state.holder(&to), None, "a raider holds no hex");
+        state
+            .apply(&data, Side::Axis, mv(&[mover.as_str()], &[&to.to_string()]))
+            .unwrap();
+        assert_eq!(state.pieces[&mover].hex(), Some(&to));
+        assert_eq!(state.pieces[&id].hex(), Some(&to));
+    }
+
+    #[test]
+    fn a_raider_moves_apart_from_other_units_27_31() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let (far, near) = approach(&data, &state);
+        let id = raider(&mut state, &far);
+        let other = pid("unit:cw:1-krrc");
+        let p = state.pieces.get_mut(&other).unwrap();
+        p.location = Location::Hex(far.clone());
+        p.attached_to = None;
+        let before = serde_json::to_string(&state).unwrap();
+        let err = state
+            .apply(
+                &data,
+                Side::Cw,
+                mv(&[id.as_str(), other.as_str()], &[&near.to_string()]),
+            )
+            .unwrap_err();
+        assert_eq!(err.case, "27.31", "{err:?}");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
     }
 
     #[test]
