@@ -1266,6 +1266,7 @@ mod tests {
             Purpose::Rail => Order::Rail {
                 pieces: stack.to_vec(),
                 path,
+                stops: Vec::new(),
             },
         }
     }

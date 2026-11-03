@@ -6,6 +6,7 @@
   import { label } from "./counters";
   import { attachmentOrder, cpLabel, OFF_MAP_PLACES } from "./moves";
   import { fuelSummary, sourceLabel } from "./supply";
+  import { aboardAt, toggleAtStop, waitingAt, type RailStop } from "./rail";
   import type { HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, View } from "./types";
 
   let {
@@ -25,6 +26,8 @@
     onclear,
     onoffmap,
     onorder,
+    railStops = $bindable([]),
+    stopping = $bindable(false),
   }: {
     view: View;
     purpose: Purpose;
@@ -48,6 +51,10 @@
     onoffmap: (to: OffMapPlace) => void;
     /** Attach or detach a ticked unit in a box, which has no stack panel (19.4x). */
     onorder?: (o: Order) => void;
+    /** Phase J: the stops the run makes on its way (8.77, R-005). */
+    railStops?: RailStop[];
+    /** The next click on the line adds a stop. */
+    stopping?: boolean;
   } = $props();
 
   const TITLES: Record<Purpose, string> = { move: "Move", react: "Reaction move", "retreat-before-assault": "Retreat before assault", "forced-retreat": "Forced retreat", rail: "Rail" };
@@ -59,6 +66,11 @@
   const fuel = $derived(fuelSummary(reaches));
   const under = $derived(hovered ? reaches.find((r) => r.hex === hovered) : undefined);
   const nameOf = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
+  /** A rider's name: supply units all read "Supply", so theirs carries the counter's number. */
+  const riderName = (id: PieceId) => {
+    const p = view.pieces[id];
+    return p && (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") ? `Supply ${id.split(":").pop()}` : nameOf(id);
+  };
 </script>
 
 <section class="panel" data-testid="move-panel" data-purpose={purpose}>
@@ -72,6 +84,32 @@
   {:else if onMap}
     {#if purpose === "rail"}
       <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} along the railway, no CP or fuel. Click one to go there.</p>
+      <div class="stops" data-testid="rail-stops">
+        {#each railStops as stop, i (stop.at)}
+          {@const aboard = aboardAt(ticked, railStops, i)}
+          {@const waiting = waitingAt(view, stop.at, ticked)}
+          <div class="stop" data-stop={stop.at}>
+            <p class="stop-title"><strong>Stop at {stop.at}</strong> <button type="button" class="link" data-stop-remove onclick={() => (railStops = railStops.filter((s) => s.at !== stop.at))}>remove</button></p>
+            {#if aboard.length > 0}
+              <p class="sub">Aboard: tick to set down here</p>
+              {#each aboard as id (id)}
+                <label><input type="checkbox" data-stop-off={id} checked={stop.off.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "off", id))} /> {riderName(id)}</label>
+              {/each}
+            {/if}
+            {#if waiting.length > 0}
+              <p class="sub">Waiting here: tick to take on</p>
+              {#each waiting as id (id)}
+                <label><input type="checkbox" data-stop-on={id} checked={stop.on.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "on", id))} /> {riderName(id)}</label>
+              {/each}
+            {/if}
+          </div>
+        {/each}
+        {#if stopping}
+          <p class="hint" data-testid="rail-stop-hint">Click a hex on the line to stop there (R-005).</p>
+        {:else}
+          <button type="button" data-testid="rail-add-stop" onclick={() => (stopping = true)}>Add a stop…</button>
+        {/if}
+      </div>
     {:else}
       <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
     {/if}
@@ -174,6 +212,24 @@
   .fuel select {
     font: inherit;
     max-width: 100%;
+  }
+  .stops {
+    margin: 0.3rem 0 0.5rem;
+  }
+  .stop {
+    border-left: 3px solid #1b6f66;
+    padding: 0.1rem 0 0.2rem 0.5rem;
+    margin: 0 0 0.4rem;
+  }
+  .stop p {
+    margin: 0.1rem 0;
+  }
+  .stop .sub {
+    font-size: 12px;
+    color: #444;
+  }
+  .stop label {
+    display: block;
   }
   .assault {
     display: block;
