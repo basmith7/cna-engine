@@ -685,3 +685,9 @@ Done: #121 (vendor/cna 70239b1, R-152 not-yet row, pins) ready, CI. #122 (stacke
 In flight: gates/CI on #122.
 Next: merge #121 (retarget #122 to main FIRST), then #122. Then R-152's 15.89 captured share split (assault.rs ~903: needs the lost points' classes). Fleet in new games waits on cna's first-sail request.
 Blocked: none.
+
+## 2026-11-03 14:35 MST — autopilot/m5-san-giorgio
+Done: found this branch (R-151, built by the 19:21Z run) unpushed in /tmp/cna-sangiorgio; merged main (R-152), pushed, draft #124. Fresh review: the wreck retreated with its hex's stack — fixed (assault.rs whole-hex lists skip Blockship). Gates green before the fix; cna-game 521 + clippy after.
+In flight: #124 (draft); #123 (R-152 share) on CI, merge on green. /tmp/cna-fleet-all holds uncommitted work putting the fleet in Modules::ALL (branch autopilot/m5-fleet-default, unpushed) from the same earlier run.
+Next: on #124, charge the wreck's barrage ammunition as an artillery unit's (R-151 Rationale), let an Axis supply unit block its removal, add the `blockship_fired` view row and a retreat regression test; then ready and merge. Then the fleet in new games (cna's first-sail request; see /tmp/cna-fleet-all).
+Blocked: none.
