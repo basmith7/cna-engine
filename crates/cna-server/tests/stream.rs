@@ -341,7 +341,14 @@ async fn the_stream_hears_a_player_join_and_leave(pool: PgPool) {
     let mut axis_stream = axis_stream.unwrap();
 
     let join = json!({"side": Side::Cw});
-    send(&app, "POST", &format!("/api/games/{id}/join"), CW, Some(join)).await;
+    send(
+        &app,
+        "POST",
+        &format!("/api/games/{id}/join"),
+        CW,
+        Some(join),
+    )
+    .await;
     let (name, data, id_set) = axis_stream.event().await;
     assert_eq!((name.as_str(), &data, id_set), ("seats", &json!({}), false));
     axis_stream.quiet().await;
