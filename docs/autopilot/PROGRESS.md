@@ -192,7 +192,7 @@ request (#287, R-152). #121 (merged) bumps `vendor/cna` to 70239b1.
 module (on in new games): a surrendering gun, tank or armoured-recce
 unit's points become the captor's replacement points in its hex, by
 class, absorbed in phase C by a unit of that type; the browser logs the
-capture and offers the absorb. #123 (stacked) splits 15.89's captured
+capture and offers the absorb. #123 (merged) splits 15.89's captured
 share the same way and stops capturing vulnerability losses; a fresh
 review's four points are fixed there (spoils by unit type, so an HQ's
 and an infantry unit's guns are prisoners; split assaults counted once).
@@ -236,9 +236,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #123 (R-152's close-assault share) merges on
-  green CI; #124 (the *San Giorgio*) needs its ammunition charged and two
-  small review points before it is ready. Then the fleet in new games
+- Nothing waits on Brian. R-152 is merged (#121–#123). #124 (the
+  *San Giorgio*) needs its ammunition charged (it has no battalion or
+  company size to charge by) and two small review points before it is
+  ready. Then the fleet in new games
   waits on the first-sail request below (re-pin the scripted games and
   Playwright drivers with phase E open).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
