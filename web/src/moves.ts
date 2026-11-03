@@ -49,12 +49,13 @@ export function toggleOffMap(view: View, ticked: PieceId[], id: PieceId): PieceI
 /** The pieces of `hex` that start ticked for `side`: its own combat units and HQs, top of the stack first; in phases H and J its supply units, which alone move there. */
 export function defaultTicked(view: View, hex: HexId, side: Side | null): PieceId[] {
   if (!side) return [];
-  // Only supply units move in the truck convoy phase and by rail; raiders move as units do (27.3x).
+  // Only supply units move in the truck convoy phase and by rail.
   const supplyOnly = view.clock?.phase === "truck-convoy" || view.clock?.phase === "rail";
-  return Object.values(view.pieces)
-    .filter((p) => p.side === side && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex)
-    .filter((p) => (supplyOnly ? p.kind === "supply-unit" || p.kind === "dummy-supply-unit" : p.kind === "combat" || p.kind === "hq" || p.kind === "raider"))
-    .map((p) => p.id);
+  const here = Object.values(view.pieces).filter((p) => p.side === side && typeof p.location === "object" && "hex" in p.location && p.location.hex === hex);
+  if (supplyOnly) return here.filter((p) => p.kind === "supply-unit" || p.kind === "dummy-supply-unit").map((p) => p.id);
+  const units = here.filter((p) => p.kind === "combat" || p.kind === "hq");
+  // Raiders move only with raiders (27.3x): ticked when no unit is.
+  return (units.length > 0 ? units : here.filter((p) => p.kind === "raider")).map((p) => p.id);
 }
 
 /** Whether a piece may be ticked at all: the side to act's, on the map. */
