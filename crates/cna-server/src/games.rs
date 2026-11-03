@@ -385,17 +385,20 @@ impl Games {
         let Some((status, public, hash, creator, either)) = row else {
             return Err(GameError::NotFound);
         };
-        if status != "open" {
-            return Err(GameError::Refused("the game is not open"));
-        }
-        if creator == Some(account) || self.seat_in_tx(&mut tx, game, account).await? {
-            return Err(GameError::Refused("you are already in this game"));
-        }
-        if !public {
+        let inside = creator == Some(account) || self.seat_in_tx(&mut tx, game, account).await?;
+        // The invite before anything else: without it a stranger learns
+        // nothing of a private game, not even whether it has started.
+        if !public && !inside {
             let given = invite.map(|t| Sha256::digest(t.as_bytes()).to_vec());
             if hash.is_none() || given != hash {
                 return Err(GameError::BadInvite);
             }
+        }
+        if inside {
+            return Err(GameError::Refused("you are already in this game"));
+        }
+        if status != "open" {
+            return Err(GameError::Refused("the game is not open"));
         }
         let taken: bool = sqlx::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM seats WHERE game_id = $1 AND side = $2)",
@@ -595,6 +598,16 @@ impl Games {
         // this seq again for ever.
         let stored_ok: Result<(), GameError> = async {
             let mut tx = self.pool.begin().await?;
+            // Checked again under the row lock a leave also takes: an
+            // order racing a leave must not land in an abandoned game.
+            let status: String =
+                sqlx::query_scalar("SELECT status FROM games WHERE id = $1 FOR UPDATE")
+                    .bind(game)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            if status != "active" {
+                return Err(GameError::Refused("the game is not in play"));
+            }
             sqlx::query(r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4)"#)
                 .bind(game)
                 .bind(seq)

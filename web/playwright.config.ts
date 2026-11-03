@@ -6,6 +6,8 @@ import { defineConfig, devices } from "@playwright/test";
 const port = Number(process.env.PW_PORT ?? 4173);
 export default defineConfig({
   testDir: "./tests",
+  // The two-player specs need cna-server: playwright.multiplayer.config.ts.
+  testIgnore: "multiplayer/**",
   fullyParallel: false,
   // One worker: the performance budget in `map.spec.ts` is a timing, and on
   // CI's two cores it fails when a second worker runs the set-up e2e beside it.

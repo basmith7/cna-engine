@@ -285,11 +285,12 @@ export type Event =
   | { "reserve-flipped": { pieces: PieceId[] } }
   | { sealed: { side: Side; step: SealedStep } }
   | { "gun-positions-set": { side: Side; forward: PieceId[] } }
-  | { "barrage-plotted": { side: Side; fires: Fire[] } }
+  | { "barrage-plotted": { side: Side; fires?: Fire[] } }
   | {
       barrage: {
         side: Side;
-        firers: PieceId[];
+        /** Absent for the enemy's barrage, online (3.61). */
+        firers?: PieceId[];
         target: PieceId;
         points: number;
         shift: number;
@@ -353,7 +354,7 @@ export type Event =
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
-  | { "forces-assigned": { side: Side; assignments: Assignment[] } }
+  | { "forces-assigned": { side: Side; assignments?: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
   | { captured: { piece: PieceId; hex: HexId } }

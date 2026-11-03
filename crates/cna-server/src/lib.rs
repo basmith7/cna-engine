@@ -145,10 +145,13 @@ impl FromRef<App> for games::Games {
 /// The routes. The client's address comes from `ConnectInfo`, so serve
 /// with `into_make_service_with_connect_info::<SocketAddr>()`.
 pub fn router(app: App) -> Router {
-    let routes = Router::new();
+    // Outside the layers: a leak check posts whole views, past the
+    // body limit, and only tests call them.
     #[cfg(feature = "test-auth")]
-    let routes = routes.nest("/test", test_routes::routes());
-    routes
+    let test = Router::new()
+        .nest("/test", test_routes::routes())
+        .with_state(app.clone());
+    let routes = Router::new()
         .route("/healthz", get(healthz))
         .nest("/api", api::routes())
         .nest("/admin", admin::routes())
@@ -159,7 +162,10 @@ pub fn router(app: App) -> Router {
             limits::csrf,
         ))
         .layer(tower_http::limit::RequestBodyLimitLayer::new(api::MAX_BODY))
-        .with_state(app)
+        .with_state(app);
+    #[cfg(feature = "test-auth")]
+    let routes = routes.merge(test);
+    routes
 }
 
 /// `router` serving the built client from `dist` too: its files as they

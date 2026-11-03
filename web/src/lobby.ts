@@ -15,7 +15,8 @@ export type Account = {
   admin: boolean;
 };
 
-export type GameStatus = "open" | "active" | "finished" | "abandoned";
+/** A game's `status` column. */
+export type GameStatus = "open" | "active" | "over" | "abandoned" | "stale";
 export type Seats = { axis: string | null; cw: string | null };
 
 /** An entry of `GET /api/games?mine`. */
