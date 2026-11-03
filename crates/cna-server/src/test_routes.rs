@@ -19,6 +19,7 @@ pub fn routes() -> Router<App> {
         .route("/next-seed", post(next_seed))
         .route("/games/{id}/hash", get(hash))
         .route("/games/{id}/leaks", post(leaks))
+        .layer(axum::extract::DefaultBodyLimit::disable())
 }
 
 #[derive(Deserialize)]
