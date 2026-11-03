@@ -16,10 +16,15 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use tower_sessions::Session;
+use tower_sessions::{Expiry, Session};
 
 /// The session key holding a sign-in in progress.
 const PENDING: &str = "oauth";
+
+/// How long a sign-in in progress lives unused: the session behind it
+/// gets the full `SESSION_DAYS` only once it is signed in, so sign-in
+/// starts nobody finishes do not pile up for a month.
+const PENDING_MINUTES: i64 = 10;
 
 pub const SCOPES: [&str; 2] = ["identify", "guilds.join"];
 
@@ -87,6 +92,9 @@ async fn start(
         state: state.secret().clone(),
         verifier: verifier.secret().clone(),
     };
+    session.set_expiry(Some(Expiry::OnInactivity(time::Duration::minutes(
+        PENDING_MINUTES,
+    ))));
     if let Err(e) = session.insert(PENDING, pending).await {
         return failed(e);
     }
@@ -176,6 +184,9 @@ async fn callback(
     if let Err(e) = session.cycle_id().await {
         return failed(e);
     }
+    session.set_expiry(Some(Expiry::OnInactivity(time::Duration::days(
+        super::SESSION_DAYS,
+    ))));
     if let Err(e) = session.insert(ACCOUNT, id).await {
         return failed(e);
     }
