@@ -1,6 +1,6 @@
 {
   "scenario": "operation-crusader",
-  "rules_commit": "70239b12987d3f0817c719a9f46459b7ef799632",
+  "rules_commit": "25b0f1f4601f6afa62ec16cb6850eb04b0b1b470",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -13,6 +13,7 @@
     "abstract_supply": true,
     "breakdown": true,
     "construction": true,
+    "fleet": true,
     "patrols": true,
     "captured_equipment": true
   },

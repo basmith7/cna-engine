@@ -321,8 +321,24 @@ impl GameState {
         }
         self.ships_arrive(data, events);
         self.roll_for_strikes(data, events);
+        if self.before_first_sail(data) {
+            return false;
+        }
         let ids: Vec<PieceId> = self.fleet.keys().cloned().collect();
         ids.iter().any(|id| self.free_to_sail(data, id))
+    }
+
+    /// Whether the scenario still bars every warship from sailing
+    /// (`first_sail`: Graziani's Offensive's 60.45, Rommel's Arrival's
+    /// 61.37). Ships in port meanwhile serve their port time as usual.
+    fn before_first_sail(&self, data: &Data) -> bool {
+        let now = GameTime::new(self.clock.game_turn, self.clock.stage);
+        data.scenario
+            .side(Side::Cw)
+            .fleet
+            .as_ref()
+            .and_then(|f| f.first_sail)
+            .is_some_and(|first| now < first)
     }
 
     /// The first phase E with the fleet in play: the Axis rolls one die,
@@ -631,12 +647,48 @@ mod tests {
     use super::*;
     use crate::clock::Phase;
     use crate::order::Order;
-    use crate::raiders::tests::graziani;
     use crate::state::Modules;
     use crate::state::test_support::{auto_place, pass_stage};
 
     fn hex(s: &str) -> HexId {
         HexId::parse(s).unwrap()
+    }
+
+    /// Graziani's Offensive with its first-sail bar lifted, so the
+    /// fleet's rules can be tried from GT1.
+    fn graziani() -> Data {
+        let mut data = crate::raiders::tests::graziani();
+        let cw = data.scenario.sides.get_mut(&Side::Cw).unwrap();
+        cw.fleet.as_mut().unwrap().first_sail = None;
+        data
+    }
+
+    #[test]
+    fn no_warship_sails_before_the_scenario_s_first_sail_60_45() {
+        let data = crate::raiders::tests::graziani();
+        let mut state = set_up(&data, fleet_on());
+        let mut skipped = Vec::new();
+        while state.clock.game_turn < 2 {
+            for e in pass_stage(&data, &mut state) {
+                match e {
+                    Event::PhaseSkipped { clock } if clock.phase == Phase::CwFleet => {
+                        skipped.push(clock.stage)
+                    }
+                    Event::PhaseStarted { clock } => {
+                        assert_ne!(clock.phase, Phase::CwFleet, "phase E opened at {clock}")
+                    }
+                    _ => {}
+                }
+            }
+        }
+        assert_eq!(skipped, [1, 2, 3], "phase E skipped all of GT1");
+        assert_eq!(state.fleet.len(), 11, "the ships are in Alexandria");
+        to_phase_e(&data, &mut state);
+        assert_eq!((state.clock.game_turn, state.clock.stage), (2, 1));
+        let ship = ship_id("valiant");
+        state
+            .apply(&data, Side::Cw, station(&ship, &off_alexandria(&data).to_string()))
+            .unwrap();
     }
 
     fn fleet_on() -> Modules {

@@ -97,6 +97,13 @@ mod tests {
                 let by = state.to_act().unwrap();
                 events.extend(state.apply(data, by, Order::Pass).unwrap());
             }
+            // Phase E, when it opens (the `fleet` module): every ship
+            // stays in Alexandria in the script.
+            while state.clock.phase == crate::clock::Phase::CwFleet
+                && !matches!(order, Order::Station { .. })
+            {
+                events.extend(state.apply(data, Side::Cw, Order::Pass).unwrap());
+            }
             assert_eq!(state.to_act(), Some(side), "at {}: {order:?}", state.clock);
             let ev = state
                 .apply(data, side, order.clone())

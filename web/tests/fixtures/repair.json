@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "70239b12987d3f0817c719a9f46459b7ef799632",
+  "rules_commit": "25b0f1f4601f6afa62ec16cb6850eb04b0b1b470",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -13,6 +13,7 @@
     "abstract_supply": true,
     "breakdown": true,
     "construction": true,
+    "fleet": true,
     "patrols": true,
     "captured_equipment": true
   },
@@ -94,6 +95,56 @@
       "C4120": 3
     }
   },
+  "fleet": {
+    "ship:cw:airedale": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:arethusa": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:bedouin": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:dido": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:euryalus": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:jervis": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:lance": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:ledbury": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:mohawk": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:nubian": {
+      "at_sea": 0,
+      "owed": 0
+    },
+    "ship:cw:valiant": {
+      "at_sea": 0,
+      "owed": 0,
+      "damage": 1
+    }
+  },
+  "fleet_strikes": {
+    "axis": 0
+  },
   "stage_record": {
     "fought": [
       "axis"
@@ -105,6 +156,270 @@
   "attachment_tracked": true,
   "weather": "hot",
   "pieces": {
+    "ship:cw:airedale": {
+      "id": "ship:cw:airedale",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:arethusa": {
+      "id": "ship:cw:arethusa",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:bedouin": {
+      "id": "ship:cw:bedouin",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:dido": {
+      "id": "ship:cw:dido",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:euryalus": {
+      "id": "ship:cw:euryalus",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:jervis": {
+      "id": "ship:cw:jervis",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:lance": {
+      "id": "ship:cw:lance",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:ledbury": {
+      "id": "ship:cw:ledbury",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:mohawk": {
+      "id": "ship:cw:mohawk",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:nubian": {
+      "id": "ship:cw:nubian",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "ship:cw:valiant": {
+      "id": "ship:cw:valiant",
+      "side": "cw",
+      "kind": "ship",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "port": "alexandria"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "supply:axis:1": {
       "id": "supply:axis:1",
       "side": "axis",
