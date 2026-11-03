@@ -45,7 +45,7 @@ impl GameState {
     /// Whether an HQ or combat unit is a barrage target (12.2x): a
     /// combat unit, or an HQ with points carrying a plain close-assault
     /// rating.
-    fn is_target(&self, data: &Data, p: &Piece) -> bool {
+    pub(crate) fn is_target(&self, data: &Data, p: &Piece) -> bool {
         match p.kind {
             PieceKind::Combat => p.toe > 0,
             PieceKind::Hq => {
@@ -148,8 +148,19 @@ impl GameState {
         let mut spent: BTreeMap<&PieceId, u32> = BTreeMap::new();
         // (firing hex, target) -> the firers; a back gun must be alone.
         let mut per_hex: BTreeMap<(&HexId, &PieceId), Vec<&PieceId>> = BTreeMap::new();
+        let mut ships = BTreeSet::new();
         for f in fires {
             let p = self.own_piece(player, &f.piece, "12.2x")?;
+            if p.kind == PieceKind::Ship {
+                if !ships.insert(&f.piece) {
+                    return Err(Illegal::new(
+                        "30.25",
+                        format!("{}: a ship fires once a stage, at one target", f.piece),
+                    ));
+                }
+                self.check_bombardment(data, player, p, f)?;
+                continue;
+            }
             if f.points == 0 {
                 return Err(Illegal::new(
                     "12.2x",
@@ -200,6 +211,46 @@ impl GameState {
                     format!("{id} is back: it may not split its fire across targets"),
                 ));
             }
+        }
+        Ok(())
+    }
+
+    /// A ship's fire (30.2x): an enemy unit a barrage may target, in
+    /// reach, fired at with the ship's whole guns at that reach.
+    fn check_bombardment(
+        &self,
+        data: &Data,
+        player: Side,
+        ship: &Piece,
+        f: &Fire,
+    ) -> Result<(), Illegal> {
+        let Some(t) = self.pieces.get(&f.target) else {
+            return Err(Illegal::new(
+                "12.2x",
+                format!("{}: no such target", f.target),
+            ));
+        };
+        let Some(at) = t.hex() else {
+            return Err(Illegal::new(
+                "12.2x",
+                format!("{} is not on the map", f.target),
+            ));
+        };
+        if t.side == player || !self.is_target(data, t) {
+            return Err(Illegal::new(
+                "12.2x",
+                format!("{} is not an enemy unit a barrage may target", f.target),
+            ));
+        }
+        let points = self.bombardment_points(data, ship, at)?;
+        if f.points != points {
+            return Err(Illegal::new(
+                "30.2x",
+                format!(
+                    "{} fires its {points} gun points at {at}, not {}",
+                    ship.id, f.points
+                ),
+            ));
         }
         Ok(())
     }

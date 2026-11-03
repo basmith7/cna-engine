@@ -105,7 +105,8 @@ impl GameState {
                 }
             }
             Segment::Barrage => {
-                if fighting && self.barrage_needed(data) {
+                // A ship may bombard a coast no land unit fights on (30.2x).
+                if (fighting && self.barrage_needed(data)) || self.ships_may_fire(data) {
                     sealed(self, SealedStep::Barrage, events);
                     return;
                 }

@@ -9,12 +9,22 @@
 //! Where a ship may be: a sea hex, or a coastal one, reached by sea from
 //! Alexandria and no farther west than hex row xx29 on sheet B (R-019:
 //! the row is the operative limit, and is where the 100-sea-hex count
-//! ends). Ratings, bombardment, strikes on the fleet, damage, repair and
+//! ends).
+//!
+//! Off-shore bombardment (30.2x): a ship at sea fires once an OpStage,
+//! in a barrage step of the Commonwealth's choosing (`Order::Barrage`
+//! naming the ship as a firer), its gun rating as actual barrage points
+//! needing no ammunition, at an enemy unit in its own coastal hex; a
+//! battleship or heavy cruiser (cna's "4-point ships", by class) may
+//! instead fire at one in an adjacent hex at half its guns, a half point
+//! rounding up (as R-121 rounds a halved point; only a damaged ship has
+//! an odd rating). A ship that fired comes back to Alexandria and spends
+//! the next two OpStages there. Strikes on the fleet, damage, repair and
 //! the Valletta shuttle are not simulated yet (`NOT_SIMULATED.md`).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceId, PieceKind, Port};
+use crate::piece::{Location, Piece, PieceId, PieceKind, Port};
 use crate::state::GameState;
 use cna_data::map::{HexId, Map, Terrain};
 use cna_data::scenario::Side;
@@ -36,6 +46,9 @@ pub const MAX_AT_SEA: u8 = 3;
 /// OpStages in port owed for each OpStage at sea (30.1x).
 pub const PORT_PER_SEA: u8 = 2;
 
+/// OpStages in Alexandria owed by a ship that fired (30.25).
+pub const PORT_AFTER_FIRING: u8 = 2;
+
 /// One ship's port record (30.1x).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PortRecord {
@@ -49,11 +62,26 @@ pub struct PortRecord {
     /// Stationed in this phase E.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub stationed: bool,
+    /// Bombarded this OpStage (30.25): it fires no more, and goes back to
+    /// Alexandria for the next two.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fired: bool,
 }
 
 /// A ship's piece id: `ship:cw:<name>`.
 pub fn ship_id(name: &str) -> PieceId {
     PieceId::from(format!("ship:cw:{name}"))
+}
+
+/// The schedule's row for a ship's piece.
+fn ship_row<'a>(data: &'a Data, id: &PieceId) -> Option<&'a cna_data::fleet::Ship> {
+    data.fleet.rows.iter().find(|r| ship_id(&r.ship) == *id)
+}
+
+/// Battleships and heavy cruisers, cna's "4-point ships", reach an
+/// adjacent hex (30.2x).
+fn reaches_adjacent(class: &str) -> bool {
+    matches!(class, "BB" | "CA")
 }
 
 /// Sea distance from Alexandria of every sea hex reached by sea, the
@@ -157,7 +185,7 @@ impl GameState {
         };
         match self.pieces.get(ship).map(|p| &p.location) {
             Some(Location::Port(_)) => r.owed == 0,
-            Some(Location::Hex(_)) => r.at_sea < MAX_AT_SEA,
+            Some(Location::Hex(_)) => !r.fired && r.at_sea < MAX_AT_SEA,
             _ => false,
         }
     }
@@ -193,7 +221,8 @@ impl GameState {
                 .expect("a ship's record has its piece");
             if matches!(p.location, Location::Hex(_)) {
                 p.location = Location::Port(Port::Alexandria);
-                r.owed = PORT_PER_SEA * r.at_sea;
+                r.owed = (PORT_PER_SEA * r.at_sea).max(if r.fired { PORT_AFTER_FIRING } else { 0 });
+                r.fired = false;
                 r.at_sea = 0;
                 back.push(id.clone());
             }
@@ -226,7 +255,14 @@ impl GameState {
         }
         let r = self.fleet[ship];
         if !r.stationed && !self.free_to_sail(ship) {
-            return Err(if r.at_sea >= MAX_AT_SEA {
+            return Err(if r.fired {
+                Illegal::new(
+                    "30.25",
+                    format!(
+                        "{ship} fired: it spends the next {PORT_AFTER_FIRING} OpStages in Alexandria"
+                    ),
+                )
+            } else if r.at_sea >= MAX_AT_SEA {
                 Illegal::new(
                     "30.1x",
                     format!("{ship} has been at sea {MAX_AT_SEA} OpStages in a row"),
@@ -247,6 +283,96 @@ impl GameState {
             ship: ship.clone(),
             hex: hex.clone(),
         }])
+    }
+
+    /// The actual barrage points `ship` fires at an enemy unit in `at`
+    /// (30.2x): its guns into its own coastal hex, or, a battleship or
+    /// heavy cruiser, half of them (a half point up) into an adjacent hex.
+    pub(crate) fn bombardment_points(
+        &self,
+        data: &Data,
+        ship: &Piece,
+        at: &HexId,
+    ) -> Result<u32, Illegal> {
+        let row = ship_row(data, &ship.id).filter(|_| self.modules.fleet);
+        let (Some(row), Some(r)) = (row, self.fleet.get(&ship.id)) else {
+            return Err(Illegal::new(
+                "30.2x",
+                format!("{}: not a ship in play", ship.id),
+            ));
+        };
+        if r.fired {
+            return Err(Illegal::new(
+                "30.25",
+                format!(
+                    "{} has fired this OpStage: a ship fires once a stage",
+                    ship.id
+                ),
+            ));
+        }
+        let Some(from) = ship.hex() else {
+            return Err(Illegal::new(
+                "30.2x",
+                format!(
+                    "{} is in port: a ship fires from the hex it is placed in",
+                    ship.id
+                ),
+            ));
+        };
+        if from == at {
+            if data.map.hex(at).is_some_and(|h| h.coastal) {
+                return Ok(row.gun_rating);
+            }
+            return Err(Illegal::new(
+                "30.2x",
+                format!("{at}: a ship bombards a coastal hex"),
+            ));
+        }
+        if !data.map.adjacent(from, at) {
+            return Err(Illegal::new(
+                "30.2x",
+                format!(
+                    "{at} is neither {}'s hex {from} nor adjacent to it",
+                    ship.id
+                ),
+            ));
+        }
+        if !reaches_adjacent(&row.class) {
+            return Err(Illegal::new(
+                "30.2x",
+                format!(
+                    "{} is a {}: only battleships and heavy cruisers bombard an adjacent hex",
+                    ship.id, row.class
+                ),
+            ));
+        }
+        Ok(row.gun_rating.div_ceil(2))
+    }
+
+    /// Whether some ship may bombard an enemy unit now (30.2x): opens a
+    /// barrage step that has no land fire in it.
+    pub(crate) fn ships_may_fire(&self, data: &Data) -> bool {
+        if !self.modules.fleet {
+            return false;
+        }
+        self.fleet.keys().any(|id| {
+            let ship = &self.pieces[id];
+            self.pieces.values().any(|t| {
+                t.side != ship.side
+                    && self.is_target(data, t)
+                    && t.hex()
+                        .is_some_and(|at| self.bombardment_points(data, ship, at).is_ok())
+            })
+        })
+    }
+
+    /// The ships among a barrage plot are marked as having fired (30.25).
+    pub(crate) fn ships_fired(&mut self, firers: &[PieceId]) {
+        for id in firers {
+            if let Some(r) = self.fleet.get_mut(id) {
+                r.fired = true;
+            }
+        }
     }
 }
 
@@ -623,5 +749,279 @@ mod tests {
             "{events:?}"
         );
         assert_ne!(state.pieces[&dido].location, Location::Eliminated);
+    }
+
+    mod bombardment {
+        use super::*;
+        use crate::combat::segment::test_support::at_sollum;
+        use crate::movement::test_support::{moving, pid};
+        use crate::order::Fire;
+
+        const TARGET: &str = "unit:it:viii-libyan-bn";
+
+        /// Sollum's combat with the fleet in play: the ships in
+        /// Alexandria, the gun positions answered, the barrage step open.
+        fn at_barrage(data: &Data) -> GameState {
+            let mut state = at_sollum(data);
+            state.modules.fleet = true;
+            state.ships_arrive(data, &mut Vec::new());
+            for side in [Side::Cw, Side::Axis] {
+                state
+                    .apply(data, side, Order::GunPositions { forward: vec![] })
+                    .unwrap();
+            }
+            assert_eq!(state.clock.segment, Some(crate::clock::Segment::Barrage));
+            // The target steps onto the coast beside Sollum (C4021).
+            let coast = data
+                .map
+                .neighbours(&hex("C4021"))
+                .into_iter()
+                .find(|n| {
+                    data.map.hex(n).unwrap().coastal
+                        && data
+                            .map
+                            .neighbours(n)
+                            .iter()
+                            .any(|m| data.map.hex(m).unwrap().terrain == Terrain::Sea)
+                })
+                .unwrap();
+            state.pieces.get_mut(&pid(TARGET)).unwrap().location = Location::Hex(coast);
+            state
+        }
+
+        fn target_hex(state: &GameState) -> HexId {
+            state.pieces[&pid(TARGET)].hex().unwrap().clone()
+        }
+
+        /// A sea hex beside the target's coastal hex.
+        fn offshore(data: &Data, at: &HexId) -> HexId {
+            data.map
+                .neighbours(at)
+                .into_iter()
+                .find(|n| data.map.hex(n).unwrap().terrain == Terrain::Sea)
+                .expect("the target's hex is on the coast")
+        }
+
+        fn put(state: &mut GameState, ship: &str, at: &HexId) -> PieceId {
+            let id = ship_id(ship);
+            state.pieces.get_mut(&id).unwrap().location = Location::Hex(at.clone());
+            id
+        }
+
+        fn fire(ship: &PieceId, points: u32) -> Order {
+            Order::Barrage {
+                fires: vec![Fire {
+                    piece: ship.clone(),
+                    points,
+                    target: pid(TARGET),
+                }],
+            }
+        }
+
+        /// The Commonwealth's plot, then the Axis's empty one: the barrage
+        /// rolled. Returns the ship's barrage's points.
+        fn resolve(data: &Data, state: &mut GameState, ship: &PieceId, points: u32) -> u32 {
+            state.apply(data, Side::Cw, fire(ship, points)).unwrap();
+            let events = state
+                .apply(data, Side::Axis, Order::Barrage { fires: vec![] })
+                .unwrap();
+            events
+                .iter()
+                .find_map(|e| match e {
+                    Event::Barrage {
+                        firers,
+                        points,
+                        target,
+                        ..
+                    } if firers == &vec![ship.clone()] && *target == pid(TARGET) => Some(*points),
+                    _ => None,
+                })
+                .expect("the ship's barrage")
+        }
+
+        #[test]
+        fn a_ship_bombards_its_coastal_hex_with_its_guns_as_actual_points_30_2x() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            assert!(data.map.hex(&at).unwrap().coastal);
+            let valiant = put(&mut state, "valiant", &at);
+            assert_eq!(resolve(&data, &mut state, &valiant, 6), 6);
+            assert!(state.fleet[&valiant].fired);
+        }
+
+        #[test]
+        fn a_battleship_bombards_an_adjacent_hex_at_half_30_2x() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let sea = offshore(&data, &target_hex(&state));
+            let valiant = put(&mut state, "valiant", &sea);
+            let err = state.apply(&data, Side::Cw, fire(&valiant, 6)).unwrap_err();
+            assert_eq!(err.case, "30.2x");
+            assert!(err.reason.contains("its 3 gun points"), "{}", err.reason);
+            assert_eq!(resolve(&data, &mut state, &valiant, 3), 3);
+        }
+
+        #[test]
+        fn a_destroyer_or_light_cruiser_may_not_bombard_an_adjacent_hex_30_2x() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let sea = offshore(&data, &at);
+            for ship in ["airedale", "arethusa", "dido"] {
+                let id = put(&mut state, ship, &sea);
+                let err = state.apply(&data, Side::Cw, fire(&id, 1)).unwrap_err();
+                assert_eq!(err.case, "30.2x", "{ship}");
+                assert!(err.reason.contains("only battleships"), "{}", err.reason);
+            }
+            // In the coastal hex itself a destroyer fires its one point.
+            let airedale = put(&mut state, "airedale", &at);
+            assert_eq!(resolve(&data, &mut state, &airedale, 1), 1);
+        }
+
+        #[test]
+        fn a_ship_in_port_or_out_of_reach_may_not_fire_30_2x() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let err = state
+                .apply(&data, Side::Cw, fire(&ship_id("valiant"), 6))
+                .unwrap_err();
+            assert_eq!(err.case, "12.2x", "in Alexandria, off the map");
+            let far = sea_distances(&data.map)
+                .into_keys()
+                .find(|h| !data.map.adjacent(h, &target_hex(&state)))
+                .unwrap();
+            let valiant = put(&mut state, "valiant", &far);
+            let err = state.apply(&data, Side::Cw, fire(&valiant, 6)).unwrap_err();
+            assert_eq!(err.case, "30.2x");
+            assert!(err.reason.contains("neither"), "{}", err.reason);
+        }
+
+        #[test]
+        fn a_ship_fires_once_a_stage_30_25() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let valiant = put(&mut state, "valiant", &at);
+            let twice = Order::Barrage {
+                fires: vec![
+                    Fire {
+                        piece: valiant.clone(),
+                        points: 6,
+                        target: pid(TARGET),
+                    };
+                    2
+                ],
+            };
+            let err = state.apply(&data, Side::Cw, twice).unwrap_err();
+            assert_eq!(err.case, "30.25");
+            resolve(&data, &mut state, &valiant, 6);
+            // A later barrage step this stage: refused.
+            let err = state
+                .check_barrage(
+                    &data,
+                    Side::Cw,
+                    &[Fire {
+                        piece: valiant.clone(),
+                        points: 6,
+                        target: pid(TARGET),
+                    }],
+                )
+                .unwrap_err();
+            assert_eq!(err.case, "30.25");
+            assert!(err.reason.contains("once a stage"), "{}", err.reason);
+        }
+
+        #[test]
+        fn a_ship_that_fired_spends_the_next_two_stages_in_alexandria_30_25() {
+            let data = graziani();
+            let mut state = set_up(&data, fleet_on());
+            let valiant = ship_id("valiant");
+            let sea = off_alexandria(&data);
+            to_phase_e(&data, &mut state);
+            state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap();
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            // It fires this stage (the firing itself is tested above).
+            state.ships_fired(std::slice::from_ref(&valiant));
+            // Stage 2: one stage out would let it stay; having fired, no.
+            to_phase_e(&data, &mut state);
+            let err = state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap_err();
+            assert_eq!(err.case, "30.25");
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert_eq!(
+                state.pieces[&valiant].location,
+                Location::Port(Port::Alexandria)
+            );
+            assert!(!state.fleet[&valiant].fired);
+            // Stage 3: the second in port.
+            to_phase_e(&data, &mut state);
+            let err = state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap_err();
+            assert!(err.reason.contains("owes 1"), "{}", err.reason);
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            // Stage 4: free to sail.
+            to_phase_e(&data, &mut state);
+            state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap();
+        }
+
+        #[test]
+        fn a_ship_opens_a_barrage_step_on_a_coast_no_land_unit_fights_on_30_2x() {
+            let data = graziani();
+            let mut state = moving(&data, 3, Side::Cw);
+            state.modules.fleet = true;
+            state.ships_arrive(&data, &mut Vec::new());
+            // One Axis unit left, on a coast in range no Commonwealth
+            // land unit stands beside.
+            let cw_near = |s: &GameState, h: &HexId| {
+                s.pieces.values().any(|p| {
+                    p.side == Side::Cw
+                        && p.kind.holds_ground()
+                        && p.hex().is_some_and(|q| q == h || data.map.adjacent(q, h))
+                })
+            };
+            let coast = data
+                .map
+                .hexes()
+                .filter(|h| h.coastal && station_refusal(&data.map, &h.id).is_none())
+                .map(|h| h.id.clone())
+                .find(|h| !cw_near(&state, h))
+                .unwrap();
+            for p in state.pieces.values_mut() {
+                if p.side == Side::Axis && p.hex().is_some() {
+                    p.location = Location::Eliminated;
+                }
+            }
+            state.pieces.get_mut(&pid(TARGET)).unwrap().location = Location::Hex(coast.clone());
+            let mut quiet = state.clone();
+            quiet.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+            assert_ne!(
+                quiet.clock.segment,
+                Some(crate::clock::Segment::Barrage),
+                "no ship in reach, no land contact: no barrage step"
+            );
+            put(&mut state, "valiant", &coast);
+            state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+            assert_eq!(state.clock.segment, Some(crate::clock::Segment::Barrage));
+            assert_eq!(resolve(&data, &mut state, &ship_id("valiant"), 6), 6);
+        }
+
+        #[test]
+        fn without_the_module_no_ship_fires() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let valiant = put(&mut state, "valiant", &at);
+            state.modules.fleet = false;
+            assert!(!state.ships_may_fire(&data));
+            let err = state.apply(&data, Side::Cw, fire(&valiant, 6)).unwrap_err();
+            assert_eq!(err.case, "30.2x");
+        }
     }
 }
