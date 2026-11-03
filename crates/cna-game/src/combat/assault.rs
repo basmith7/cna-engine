@@ -2056,6 +2056,124 @@ mod tests {
         assert_eq!(state.clock.segment, Some(Segment::ReserveRelease));
     }
 
+    const WRECK: &str = "unit:it:the-san-giorgio";
+
+    /// Puts the *San Giorgio* in `at` with the fleet on.
+    fn wreck_in(data: &Data, state: &mut GameState, at: &str) {
+        state.modules.fleet = true;
+        state.place_blockship(data).unwrap();
+        state.pieces.get_mut(&pid(WRECK)).unwrap().location = Location::Hex(hex(at));
+    }
+
+    #[test]
+    fn the_wreck_stays_when_its_hex_retreats_after_an_assault_r151() {
+        let data = graziani();
+        let mut state = assigning(&data);
+        wreck_in(&data, &mut state, "C4020");
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        vec![],
+                        vec![alloc(Some("C4020"), 6)],
+                    )],
+                },
+            )
+            .unwrap();
+        for id in c4020_ids(&state) {
+            state.combat.pinned.insert(id);
+        }
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let guns: Vec<PieceId> = c4020_ids(&state)
+            .into_iter()
+            .filter(|id| state.class_of(&data, &state.pieces[id]) == Class::Gun)
+            .collect();
+        for id in &guns {
+            state.combat.pinned.remove(id);
+        }
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        let Some(Pending::ForcedRetreat { side, pieces, .. }) = state.pending.clone() else {
+            panic!("a forced retreat: {:?}", state.pending);
+        };
+        assert_eq!(side, Side::Axis);
+        assert!(!pieces.is_empty());
+        assert!(!pieces.contains(&pid(WRECK)), "{pieces:?}");
+        let away = data
+            .map
+            .neighbours(&hex("C4020"))
+            .into_iter()
+            .find(|n| {
+                !data.map.adjacent(n, &hex("C4021"))
+                    && !state.pieces.values().any(|p| p.hex() == Some(n))
+            })
+            .unwrap();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::Retreat {
+                    path: vec![away.clone()],
+                },
+            )
+            .unwrap();
+        assert!(
+            pieces
+                .iter()
+                .filter(|id| state.pieces[*id].toe > 0)
+                .all(|id| state.pieces[id].hex() == Some(&away))
+        );
+        assert_eq!(
+            state.pieces[&pid(WRECK)].location,
+            Location::Hex(hex("C4020"))
+        );
+    }
+
+    #[test]
+    fn the_wreck_stays_when_its_hex_must_retreat_for_attacking_nothing_10_36_r151() {
+        // 10.36 binds the phasing side, and the wreck is Axis: it is put
+        // on the Commonwealth's side here only to sit in the stack that
+        // must retreat. The whole-hex list skips it by kind, not side.
+        let data = graziani();
+        let (mut state, before) = under_a_declared_zoc(&data);
+        wreck_in(&data, &mut state, "C4021");
+        state.pieces.get_mut(&pid(WRECK)).unwrap().side = Side::Cw;
+        assign_nothing(&data, &mut state);
+        let Some(Pending::ForcedRetreat { pieces, reason, .. }) = state.pending.clone() else {
+            panic!("a forced retreat: {:?}", state.pending);
+        };
+        assert_eq!(reason, RetreatReason::MustAttack);
+        assert_eq!(pieces, before, "the wreck is not in the retreat");
+        let path = way_out(&data, &state, &before);
+        let at = path.last().unwrap().clone();
+        state
+            .apply(&data, Side::Cw, Order::Retreat { path })
+            .unwrap();
+        assert!(before.iter().all(|id| state.pieces[id].hex() == Some(&at)));
+        assert_eq!(
+            state.pieces[&pid(WRECK)].location,
+            Location::Hex(hex("C4021"))
+        );
+    }
+
     #[test]
     fn a_hex_at_minus_17_surrenders_when_assaulted() {
         let data = graziani();
