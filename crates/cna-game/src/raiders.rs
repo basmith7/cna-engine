@@ -44,11 +44,7 @@ pub(crate) fn is_zero(n: &u32) -> bool {
 /// Raids on Rommel a scenario allows (27.64): four in a campaign game
 /// (cna's four, each named a campaign), one in any shorter scenario.
 pub(crate) fn raid_cap(data: &Data) -> u32 {
-    if data.slug().contains("campaign") {
-        4
-    } else {
-        1
-    }
+    if data.is_campaign() { 4 } else { 1 }
 }
 
 impl GameState {

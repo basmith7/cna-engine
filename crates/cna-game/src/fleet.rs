@@ -19,8 +19,29 @@
 //! instead fire at one in an adjacent hex at half its guns, a half point
 //! rounding up (as R-121 rounds a halved point; only a damaged ship has
 //! an odd rating). A ship that fired comes back to Alexandria and spends
-//! the next two OpStages there. Strikes on the fleet, damage, repair and
-//! the Valletta shuttle are not simulated yet (`NOT_SIMULATED.md`).
+//! the next two OpStages there.
+//!
+//! Strikes on the fleet (32.7x, R-032): the first time phase E comes
+//! round the Axis rolls a die (+2 in a campaign game) for its strikes, a
+//! number the Commonwealth never sees (3.61). As phase E closes, one
+//! strike falls on Alexandria harbour when the Axis has one left, some
+//! ship is in port and map sheet E has no rainstorm or sandstorm: the
+//! engine makes the Axis's choice to strike, as it makes a patrol
+//! defender's, and always strikes when it may. A die (+2 in a campaign
+//! game) picks the column, counted from the left, of the Air Bombardment
+//! Table's units rows; two dice read in order there give damage points,
+//! laid one at a time on the ship in port with the most guns left (the
+//! lower id on a tie), the Axis's choice again made by the engine. The
+//! strike's dice come from a stream of their own, seeded by the game and
+//! the OpStage, as convoy bombing's do, so they never shift play's dice.
+//!
+//! Damage (30.3x): a ship's guns drop point for point and its AA in
+//! proportion, rounded to the nearest point (a half up); it fires at its
+//! guns left. Below half its printed guns it may not leave port; at none
+//! it is sunk and leaves play. Repair (30.37): a damaged ship gets a gun
+//! point back for each six OpStages in a row it spends in Alexandria,
+//! counted as phase E closes, the count starting again whenever it sails.
+//! The Valletta shuttle is not simulated (`NOT_SIMULATED.md`).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
@@ -49,6 +70,12 @@ pub const PORT_PER_SEA: u8 = 2;
 /// OpStages in Alexandria owed by a ship that fired (30.25).
 pub const PORT_AFTER_FIRING: u8 = 2;
 
+/// OpStages in a row in Alexandria for a gun point of repair (30.37).
+pub const STAGES_PER_REPAIR: u8 = 6;
+
+/// The map sheet whose storms keep the Axis from striking (32.73).
+const STRIKE_SHEET: &str = "E3613";
+
 /// One ship's port record (30.1x).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PortRecord {
@@ -66,6 +93,41 @@ pub struct PortRecord {
     /// Alexandria for the next two.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub fired: bool,
+    /// Gun points lost (30.3x).
+    #[serde(default, skip_serializing_if = "crate::raiders::is_zero")]
+    pub damage: u32,
+    /// OpStages in a row in Alexandria towards the next gun point of
+    /// repair (30.37), counted while damaged.
+    #[serde(default, skip_serializing_if = "is_zero_u8")]
+    pub repairing: u8,
+}
+
+fn is_zero_u8(n: &u8) -> bool {
+    *n == 0
+}
+
+/// A ship's ratings as damaged (30.3x): guns less the damage, AA in the
+/// same proportion of its printed AA, rounded to the nearest point (a
+/// half up).
+pub fn current_ratings(row: &cna_data::fleet::Ship, damage: u32) -> (u32, u32) {
+    let guns = row.gun_rating.saturating_sub(damage);
+    if row.gun_rating == 0 {
+        return (0, row.aa_rating);
+    }
+    let aa = (2 * row.aa_rating * guns + row.gun_rating) / (2 * row.gun_rating);
+    (guns, aa)
+}
+
+/// Below half its printed guns a ship may not leave port (30.3x).
+fn below_half(row: &cna_data::fleet::Ship, damage: u32) -> bool {
+    2 * current_ratings(row, damage).0 < row.gun_rating
+}
+
+/// A die stream of the fleet's own, seeded by the game, the OpStage and
+/// `tag`, so its rolls never shift the dice of play (as convoy bombing's).
+fn fleet_dice(seed: u64, game_turn: u8, stage: u8, tag: u64) -> crate::rng::GameRng {
+    let salt = (1 << 40) | (tag << 32) | (u64::from(game_turn) << 8) | u64::from(stage);
+    crate::rng::GameRng::new(seed ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15))
 }
 
 /// A ship's piece id: `ship:cw:<name>`.
@@ -236,14 +298,16 @@ impl GameState {
     }
 
     /// Whether `ship` may be placed at sea this phase E (30.1x): in port
-    /// with no port time owed, or at sea fewer than three OpStages in a
-    /// row.
-    fn free_to_sail(&self, ship: &PieceId) -> bool {
+    /// with no port time owed and at least half its guns, or at sea fewer
+    /// than three OpStages in a row.
+    fn free_to_sail(&self, data: &Data, ship: &PieceId) -> bool {
         let Some(r) = self.fleet.get(ship) else {
             return false;
         };
         match self.pieces.get(ship).map(|p| &p.location) {
-            Some(Location::Port(_)) => r.owed == 0,
+            Some(Location::Port(_)) => {
+                r.owed == 0 && ship_row(data, ship).is_some_and(|row| !below_half(row, r.damage))
+            }
             Some(Location::Hex(_)) => !r.fired && r.at_sea < MAX_AT_SEA,
             _ => false,
         }
@@ -256,14 +320,126 @@ impl GameState {
             return false;
         }
         self.ships_arrive(data, events);
+        self.roll_for_strikes(data, events);
         let ids: Vec<PieceId> = self.fleet.keys().cloned().collect();
-        ids.iter().any(|id| self.free_to_sail(id))
+        ids.iter().any(|id| self.free_to_sail(data, id))
+    }
+
+    /// The first phase E with the fleet in play: the Axis rolls one die,
+    /// +2 in a campaign game, for its strikes on the fleet (32.72).
+    fn roll_for_strikes(&mut self, data: &Data, events: &mut Vec<Event>) {
+        if self.fleet_strikes.contains_key(&Side::Axis) || self.fleet.is_empty() {
+            return;
+        }
+        let mut dice = fleet_dice(self.rng.seed(), self.clock.game_turn, self.clock.stage, 1);
+        let strikes = dice.d6() + if data.is_campaign() { 2 } else { 0 };
+        self.fleet_strikes.insert(Side::Axis, strikes);
+        events.push(Event::FleetStrikesRolled { strikes });
+    }
+
+    /// Ships in Alexandria harbour now.
+    fn in_harbour(&self) -> Vec<PieceId> {
+        self.fleet
+            .keys()
+            .filter(|id| self.pieces[*id].location == Location::Port(Port::Alexandria))
+            .cloned()
+            .collect()
+    }
+
+    /// The close of phase E: an Axis strike on the harbour, if it has one
+    /// left, some ship is in port and sheet E has no storm (32.73, R-032).
+    fn strike_the_fleet(&mut self, data: &Data, events: &mut Vec<Event>) {
+        let left = self.fleet_strikes.get(&Side::Axis).copied().unwrap_or(0);
+        let storm = self.weather_at(&HexId::parse(STRIKE_SHEET).expect("a hex id"))
+            != cna_rules::movement::Weather::Normal;
+        if left == 0 || storm || self.in_harbour().is_empty() {
+            return;
+        }
+        self.fleet_strikes.insert(Side::Axis, left - 1);
+        let mut dice = fleet_dice(self.rng.seed(), self.clock.game_turn, self.clock.stage, 2);
+        let column = dice.d6() + if data.is_campaign() { 2 } else { 0 };
+        let reading = dice.d6() * 10 + dice.d6();
+        self.resolve_strike(data, column, reading, events);
+    }
+
+    /// A strike read in `column` (1 the leftmost) on `reading`: its damage
+    /// laid a point at a time on the ship in harbour with the most guns
+    /// left, the lower id on a tie (32.74, the Axis's choice made by the
+    /// engine); a ship left with none is sunk (30.3x).
+    pub(crate) fn resolve_strike(
+        &mut self,
+        data: &Data,
+        column: u8,
+        reading: u8,
+        events: &mut Vec<Event>,
+    ) {
+        let damage = data
+            .fleet_bombardment
+            .in_column(usize::from(column.saturating_sub(1)), reading)
+            .unwrap_or(0);
+        let guns = |s: &Self, id: &PieceId| {
+            ship_row(data, id).map_or(0, |row| current_ratings(row, s.fleet[id].damage).0)
+        };
+        let mut hits = BTreeMap::new();
+        for _ in 0..damage {
+            let Some(target) = self
+                .in_harbour()
+                .into_iter()
+                .filter(|id| guns(self, id) > 0)
+                .max_by(|a, b| guns(self, a).cmp(&guns(self, b)).then_with(|| b.cmp(a)))
+            else {
+                break;
+            };
+            self.fleet.get_mut(&target).expect("in harbour").damage += 1;
+            *hits.entry(target).or_insert(0) += 1;
+        }
+        let sunk: Vec<PieceId> = hits
+            .keys()
+            .filter(|id| guns(self, id) == 0)
+            .cloned()
+            .collect();
+        for id in &sunk {
+            self.fleet.remove(id);
+            self.pieces.get_mut(id).expect("a ship's piece").location = Location::Eliminated;
+        }
+        events.push(Event::FleetStruck {
+            column,
+            reading,
+            damage,
+            hits,
+            sunk,
+        });
+    }
+
+    /// A damaged ship in Alexandria counts the OpStage towards repair: a
+    /// gun point back at six in a row (30.37).
+    fn repair_ships(&mut self, events: &mut Vec<Event>, data: &Data) {
+        for (id, r) in self.fleet.iter_mut() {
+            if r.damage == 0 || self.pieces[id].location != Location::Port(Port::Alexandria) {
+                r.repairing = 0;
+                continue;
+            }
+            r.repairing += 1;
+            if r.repairing >= STAGES_PER_REPAIR {
+                r.repairing = 0;
+                r.damage -= 1;
+                let guns = ship_row(data, id).map_or(0, |row| current_ratings(row, r.damage).0);
+                events.push(Event::ShipRepaired {
+                    ship: id.clone(),
+                    guns,
+                });
+            }
+        }
     }
 
     /// Phase E closes: a ship placed this phase spends the OpStage at
     /// sea; any other goes back to (or stays in) Alexandria and serves a
     /// stage of its port time, owing two for each stage it was out.
-    pub(crate) fn close_fleet_phase(&mut self, events: &mut Vec<Event>) {
+    ///
+    /// Then a damaged ship in port counts the stage towards repair, and
+    /// the Axis strikes (32.73, R-032): repair first, so a ship struck
+    /// this stage starts its six from the next.
+    pub(crate) fn close_fleet_phase(&mut self, data: &Data, events: &mut Vec<Event>) {
         if !self.modules.fleet {
             return;
         }
@@ -290,6 +466,8 @@ impl GameState {
         if !back.is_empty() {
             events.push(Event::InPort { ships: back });
         }
+        self.repair_ships(events, data);
+        self.strike_the_fleet(data, events);
     }
 
     /// Phase E: `ship` goes to sea in `hex` this OpStage (30.1x).
@@ -313,25 +491,35 @@ impl GameState {
             ));
         }
         let r = self.fleet[ship];
-        if !r.stationed && !self.free_to_sail(ship) {
-            return Err(if r.fired {
-                Illegal::new(
-                    "30.25",
-                    format!(
-                        "{ship} fired: it spends the next {PORT_AFTER_FIRING} OpStages in Alexandria"
-                    ),
-                )
-            } else if r.at_sea >= MAX_AT_SEA {
-                Illegal::new(
-                    "30.1x",
-                    format!("{ship} has been at sea {MAX_AT_SEA} OpStages in a row"),
-                )
-            } else {
-                Illegal::new(
-                    "30.1x",
-                    format!("{ship} owes {} more OpStages in port", r.owed),
-                )
-            });
+        if !r.stationed && !self.free_to_sail(data, ship) {
+            let crippled = ship_row(data, ship).is_some_and(|row| below_half(row, r.damage));
+            return Err(
+                if crippled && matches!(self.pieces[ship].location, Location::Port(_)) {
+                    Illegal::new(
+                        "30.3x",
+                        format!(
+                            "{ship} is below half its guns: it may not leave port until repaired"
+                        ),
+                    )
+                } else if r.fired {
+                    Illegal::new(
+                        "30.25",
+                        format!(
+                            "{ship} fired: it spends the next {PORT_AFTER_FIRING} OpStages in Alexandria"
+                        ),
+                    )
+                } else if r.at_sea >= MAX_AT_SEA {
+                    Illegal::new(
+                        "30.1x",
+                        format!("{ship} has been at sea {MAX_AT_SEA} OpStages in a row"),
+                    )
+                } else {
+                    Illegal::new(
+                        "30.1x",
+                        format!("{ship} owes {} more OpStages in port", r.owed),
+                    )
+                },
+            );
         }
         if let Some(e) = station_refusal(&data.map, hex) {
             return Err(e);
@@ -378,9 +566,10 @@ impl GameState {
                 ),
             ));
         };
+        let guns = current_ratings(row, r.damage).0;
         if from == at {
             if data.map.hex(at).is_some_and(|h| h.coastal) {
-                return Ok(row.gun_rating);
+                return Ok(guns);
             }
             return Err(Illegal::new(
                 "30.2x",
@@ -405,7 +594,7 @@ impl GameState {
                 ),
             ));
         }
-        Ok(row.gun_rating.div_ceil(2))
+        Ok(guns.div_ceil(2))
     }
 
     /// Whether some ship may bombard an enemy unit now (30.2x): opens a
@@ -835,6 +1024,321 @@ mod tests {
             "{events:?}"
         );
         assert_ne!(state.pieces[&dido].location, Location::Eliminated);
+    }
+
+    mod strikes {
+        use super::*;
+        use crate::view::{Aliases, events_for, leaks, view_for};
+
+        /// Graziani's set-up with the fleet, at its first phase E, the
+        /// Axis's strikes set to `strikes`.
+        fn at_phase_e(data: &Data, strikes: u8) -> GameState {
+            let mut state = set_up(data, fleet_on());
+            to_phase_e(data, &mut state);
+            state.fleet_strikes.insert(Side::Axis, strikes);
+            state
+        }
+
+        fn struck(events: &[Event]) -> Option<&Event> {
+            events
+                .iter()
+                .find(|e| matches!(e, Event::FleetStruck { .. }))
+        }
+
+        fn damage(state: &GameState, ship: &str) -> u32 {
+            state.fleet[&ship_id(ship)].damage
+        }
+
+        #[test]
+        fn a_commonwealth_preview_never_shows_a_strike_to_come_32_72() {
+            let data = graziani();
+            let preview = |strikes: Option<u8>| {
+                let mut state = set_up(&data, fleet_on());
+                to_phase_e(&data, &mut state);
+                match strikes {
+                    Some(n) => {
+                        state.fleet_strikes.insert(Side::Axis, n);
+                    }
+                    None => {
+                        state.fleet_strikes.clear();
+                    }
+                }
+                let mut known = crate::view::as_known_to(&state, Side::Cw);
+                let events = known.apply(&data, Side::Cw, Order::Pass).unwrap();
+                assert!(struck(&events).is_none(), "{events:?}");
+                serde_json::to_string(&events).unwrap()
+            };
+            assert_eq!(preview(Some(0)), preview(Some(2)));
+            assert_eq!(preview(Some(0)), preview(None));
+        }
+
+        #[test]
+        fn the_axis_rolls_its_strikes_at_the_first_phase_e_and_keeps_them_secret_32_72() {
+            let data = graziani();
+            let mut state = set_up(&data, fleet_on());
+            assert!(state.fleet_strikes.is_empty());
+            to_phase_e(&data, &mut state);
+            let n = state.fleet_strikes[&Side::Axis];
+            assert!((1..=6).contains(&n), "one die: {n}");
+            let aliases = Aliases::new([1; 32]);
+            let cw = view_for(&state, &data, &aliases, Some(Side::Cw), false).unwrap();
+            assert!(
+                cw.get("fleet_strikes")
+                    .is_none_or(|m| m.get("axis").is_none())
+            );
+            assert_eq!(leaks(&state, &cw, Side::Axis), Vec::<String>::new());
+            let axis = view_for(&state, &data, &aliases, Some(Side::Axis), false).unwrap();
+            assert_eq!(axis["fleet_strikes"]["axis"], serde_json::json!(n));
+            let rolled = [Event::FleetStrikesRolled { strikes: n }];
+            assert!(events_for(&state, &aliases, &rolled, Some(Side::Cw), false).is_empty());
+            assert!(events_for(&state, &aliases, &rolled, None, false).is_empty());
+            assert_eq!(
+                events_for(&state, &aliases, &rolled, Some(Side::Axis), false).len(),
+                1
+            );
+            // Rolled once: the next phase E leaves it be.
+            state.fleet_strikes.insert(Side::Axis, 9);
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            to_phase_e(&data, &mut state);
+            assert_eq!(
+                state.fleet_strikes[&Side::Axis],
+                8,
+                "struck once, not rerolled"
+            );
+        }
+
+        #[test]
+        fn one_strike_a_stage_and_none_while_sheet_e_has_a_storm_32_73() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 3);
+            state.weather = crate::state::Weather::Rainstorm { sheets: vec!['E'] };
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(struck(&events).is_none(), "{events:?}");
+            assert_eq!(state.fleet_strikes[&Side::Axis], 3);
+            to_phase_e(&data, &mut state);
+            state.weather = crate::state::Weather::Sandstorm { sheets: vec!['E'] };
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(struck(&events).is_none());
+            // A storm elsewhere does not stop it.
+            to_phase_e(&data, &mut state);
+            state.weather = crate::state::Weather::Sandstorm { sheets: vec!['C'] };
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(struck(&events).is_some());
+            assert_eq!(state.fleet_strikes[&Side::Axis], 2, "one a stage");
+        }
+
+        #[test]
+        fn no_strike_without_one_left_or_a_ship_in_harbour_32_73() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(struck(&events).is_none());
+            let mut state = at_phase_e(&data, 2);
+            let sea = off_alexandria(&data);
+            let ids: Vec<PieceId> = state.fleet.keys().cloned().collect();
+            for id in &ids {
+                state
+                    .apply(&data, Side::Cw, station(id, sea.as_str()))
+                    .unwrap();
+            }
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(struck(&events).is_none(), "the harbour is empty");
+            assert_eq!(state.fleet_strikes[&Side::Axis], 2);
+        }
+
+        #[test]
+        fn damage_goes_a_point_at_a_time_to_the_most_guns_in_harbour_32_74() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            // A ship at sea is out of the strike's reach.
+            let sea = off_alexandria(&data);
+            state
+                .apply(&data, Side::Cw, station(&ship_id("dido"), sea.as_str()))
+                .unwrap();
+            let mut events = Vec::new();
+            // Column 8 (a 6 in a campaign game), 65: 5 damage points.
+            state.resolve_strike(&data, 8, 65, &mut events);
+            // Valiant 6, 5, 4 to 3; tied with Arethusa's 3, the lower id
+            // first: Arethusa to 2; then Valiant to 2.
+            assert_eq!(damage(&state, "valiant"), 4);
+            assert_eq!(damage(&state, "arethusa"), 1);
+            assert_eq!(damage(&state, "dido"), 0);
+            assert_eq!(
+                events,
+                vec![Event::FleetStruck {
+                    column: 8,
+                    reading: 65,
+                    damage: 5,
+                    hits: BTreeMap::from([(ship_id("arethusa"), 1), (ship_id("valiant"), 4)]),
+                    sunk: vec![],
+                }]
+            );
+            // The leftmost column, 62: nothing.
+            let mut events = Vec::new();
+            state.resolve_strike(&data, 1, 62, &mut events);
+            assert!(
+                matches!(&events[0], Event::FleetStruck { damage: 0, hits, .. } if hits.is_empty())
+            );
+        }
+
+        #[test]
+        fn a_damaged_ships_aa_drops_in_proportion_30_3x() {
+            let data = graziani();
+            let valiant = ship_row(&data, &ship_id("valiant")).unwrap();
+            assert_eq!(current_ratings(valiant, 0), (6, 12));
+            assert_eq!(current_ratings(valiant, 4), (2, 4));
+            assert_eq!(current_ratings(valiant, 6), (0, 0));
+            let bedouin = ship_row(&data, &ship_id("bedouin")).unwrap();
+            assert_eq!(current_ratings(bedouin, 0), (1, 3));
+        }
+
+        #[test]
+        fn a_ship_below_half_its_guns_may_not_leave_port_30_3x() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let sea = off_alexandria(&data);
+            let valiant = ship_id("valiant");
+            state.fleet.get_mut(&valiant).unwrap().damage = 4;
+            let err = state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap_err();
+            assert_eq!(err.case, "30.3x");
+            assert!(err.reason.contains("below half"), "{}", err.reason);
+            // At exactly half it may.
+            state.fleet.get_mut(&valiant).unwrap().damage = 3;
+            state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap();
+        }
+
+        #[test]
+        fn a_ship_with_no_guns_left_is_sunk_30_3x() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let sea = off_alexandria(&data);
+            let ids: Vec<PieceId> = state.fleet.keys().cloned().collect();
+            let airedale = ship_id("airedale");
+            for id in ids.iter().filter(|id| **id != airedale) {
+                state
+                    .apply(&data, Side::Cw, station(id, sea.as_str()))
+                    .unwrap();
+            }
+            let mut events = Vec::new();
+            // Column 1, 63: a point, Airedale's one gun.
+            state.resolve_strike(&data, 1, 63, &mut events);
+            assert!(
+                matches!(&events[0], Event::FleetStruck { sunk, .. } if *sunk == vec![airedale.clone()])
+            );
+            assert_eq!(state.pieces[&airedale].location, Location::Eliminated);
+            assert!(!state.fleet.contains_key(&airedale));
+            // Gone from play: it may not be stationed, nor arrives again.
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            to_phase_e(&data, &mut state);
+            let err = state
+                .apply(&data, Side::Cw, station(&airedale, sea.as_str()))
+                .unwrap_err();
+            assert!(err.reason.contains("not a Commonwealth ship in play"));
+        }
+
+        #[test]
+        fn a_ship_fires_at_its_guns_left_30_3x() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let valiant = ship_id("valiant");
+            let sea = off_alexandria(&data);
+            state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap();
+            state.fleet.get_mut(&valiant).unwrap().damage = 1;
+            let coast = data
+                .map
+                .neighbours(&sea)
+                .into_iter()
+                .find(|h| data.map.hex(h).unwrap().coastal)
+                .unwrap();
+            let ship = state.pieces[&valiant].clone();
+            assert_eq!(
+                state.bombardment_points(&data, &ship, &sea),
+                Err(Illegal::new(
+                    "30.2x",
+                    format!("{sea}: a ship bombards a coastal hex")
+                ))
+            );
+            // Five guns left: half of them, a half up, into the next hex.
+            assert_eq!(state.bombardment_points(&data, &ship, &coast), Ok(3));
+            state.pieces.get_mut(&valiant).unwrap().location = Location::Hex(coast.clone());
+            let ship = state.pieces[&valiant].clone();
+            assert_eq!(state.bombardment_points(&data, &ship, &coast), Ok(5));
+        }
+
+        #[test]
+        fn a_gun_point_comes_back_after_six_stages_in_alexandria_30_37() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let valiant = ship_id("valiant");
+            state.fleet.get_mut(&valiant).unwrap().damage = 2;
+            for stage in 1..=5 {
+                let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+                assert!(
+                    !events
+                        .iter()
+                        .any(|e| matches!(e, Event::ShipRepaired { .. })),
+                    "stage {stage}"
+                );
+                to_phase_e(&data, &mut state);
+            }
+            assert_eq!(state.fleet[&valiant].repairing, 5);
+            let events = state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert!(events.contains(&Event::ShipRepaired {
+                ship: valiant.clone(),
+                guns: 5
+            }));
+            assert_eq!(damage(&state, "valiant"), 1);
+            assert_eq!(state.fleet[&valiant].repairing, 0);
+        }
+
+        #[test]
+        fn repair_starts_again_when_the_ship_sails_30_37() {
+            let data = graziani();
+            let mut state = at_phase_e(&data, 0);
+            let valiant = ship_id("valiant");
+            let sea = off_alexandria(&data);
+            state.fleet.get_mut(&valiant).unwrap().damage = 1;
+            for _ in 0..5 {
+                state.apply(&data, Side::Cw, Order::Pass).unwrap();
+                to_phase_e(&data, &mut state);
+            }
+            assert_eq!(state.fleet[&valiant].repairing, 5);
+            state
+                .apply(&data, Side::Cw, station(&valiant, sea.as_str()))
+                .unwrap();
+            state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            assert_eq!(state.fleet[&valiant].repairing, 0, "it sailed");
+            assert_eq!(damage(&state, "valiant"), 1);
+            // Back in port: six more from scratch.
+            for _ in 0..6 {
+                to_phase_e(&data, &mut state);
+                state.apply(&data, Side::Cw, Order::Pass).unwrap();
+            }
+            assert_eq!(damage(&state, "valiant"), 0);
+        }
+
+        #[test]
+        fn without_the_module_no_strike_is_rolled_or_made() {
+            let data = graziani();
+            let mut state = set_up(&data, Modules::default());
+            for _ in 0..3 {
+                if state.clock.phase == Phase::InitiativeDeclaration {
+                    let p = state.to_act().unwrap();
+                    state
+                        .apply(&data, p, Order::DeclareInitiative { player_a: p })
+                        .unwrap();
+                }
+                let events = pass_stage(&data, &mut state);
+                assert!(struck(&events).is_none());
+            }
+            assert!(state.fleet_strikes.is_empty());
+        }
     }
 
     mod bombardment {
