@@ -234,6 +234,17 @@ the bullet once it lands and `vendor/cna` is bumped.
   divisions start as shells. Wanted: whether those counters fill the
   type IV `infantry-brigade` slot (a `fills` entry), or the reading
   that they do not.
+- **Raider counters** (Mission 5: §27, plan
+  `docs/plans/2026-11-03-m5-desert-raiders.md`). Rommel's Arrival's Jalo
+  placement has `"units": []` and notes that the OA sheets print no LRDG
+  counter, and no OA file has the two LRDG counters or Sonderkommando
+  Almasy (27.11). Wanted: the three as units (CPA 50, recce vehicle, no
+  ratings, 0 SP), so the Jalo set-up places one and 27.13 can form them.
+- **Raiders under the abstract block** (Mission 5: §27). 32.11 says to
+  ignore all ammunition, fuel and water rules. Does a raider still have
+  to call at a dump, oasis or well each game-turn (27.34) and die
+  without water? Can 27.5x raid a 32.1x supply unit, which is "shown by a
+  supply dump counter", as a supply dump?
 
 ## Runs and quota
 
