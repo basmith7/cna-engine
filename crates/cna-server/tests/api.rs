@@ -5,8 +5,7 @@
 mod common;
 
 use axum::Router;
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
+use axum::http::StatusCode;
 use cna_data::scenario::Side;
 use cna_game::view::leaks;
 use cna_server::accounts;
@@ -14,43 +13,11 @@ use cna_server::games::{GameId, Games};
 use common::*;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use tower::ServiceExt;
 
 /// Discord ids of the seated accounts `seated` makes, and an outsider's.
 const AXIS: &str = "1";
 const CW: &str = "2";
 const OUTSIDER: &str = "3";
-
-async fn call(
-    app: &Router,
-    method: &str,
-    uri: &str,
-    who: Option<&str>,
-    body: Option<Value>,
-) -> (StatusCode, Value) {
-    let mut req = Request::builder()
-        .method(method)
-        .uri(uri)
-        .header("origin", PUBLIC_URL);
-    if method != "GET" {
-        req = req.header("content-type", "application/json");
-    }
-    if let Some(who) = who {
-        req = req.header("x-cna-test-account", who);
-    }
-    let req = match body {
-        Some(b) => req.body(Body::from(b.to_string())),
-        None => req.body(Body::empty()),
-    }
-    .unwrap();
-    let res = app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    let v = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-    (status, v)
-}
 
 /// What a Commonwealth answer `body` says that 3.61 hides about the Axis.
 async fn cw_leaks(games: &Games, id: GameId, body: &Value) -> Vec<String> {

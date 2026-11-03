@@ -1,12 +1,17 @@
 //! Helpers shared by the database tests.
 #![allow(dead_code)]
 
+use axum::Router;
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
 use cna_data::scenario::Side;
 use cna_game::log::Log;
 use cna_game::state::{GameState, Modules};
 use cna_server::accounts;
 use cna_server::games::{AccountId, GameId, Games};
+use serde_json::Value;
 use sqlx::PgPool;
+use tower::ServiceExt;
 
 /// The module-on golden game: the orders the server's games (every
 /// module on) accept.
@@ -120,4 +125,38 @@ pub fn router_for_play(games: Games) -> axum::Router {
     let mut config = config(&[]);
     config.limits.orders_per_minute = 10_000;
     router_with(games, &config)
+}
+
+/// One request to `app` as the `test-auth` account `who` (Discord id),
+/// with the `Origin` and `Content-Type` the CSRF check wants: the
+/// status and the JSON body (`null` if it is not JSON).
+pub async fn call(
+    app: &Router,
+    method: &str,
+    uri: &str,
+    who: Option<&str>,
+    body: Option<Value>,
+) -> (StatusCode, Value) {
+    let mut req = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("origin", PUBLIC_URL);
+    if method != "GET" {
+        req = req.header("content-type", "application/json");
+    }
+    if let Some(who) = who {
+        req = req.header("x-cna-test-account", who);
+    }
+    let req = match body {
+        Some(b) => req.body(Body::from(b.to_string())),
+        None => req.body(Body::empty()),
+    }
+    .unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let v = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
+    (status, v)
 }

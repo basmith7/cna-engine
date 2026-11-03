@@ -27,6 +27,7 @@ async fn main() -> Result<()> {
     let (moved, stale) = games.recheck_rules().await?;
     tracing::info!("rules {RULES_COMMIT}: {moved} games moved, {stale} stale");
     games.spawn_evictor(Duration::from_secs(60), MAX_IDLE);
+    games.spawn_sweeper();
     let app = App::new(games, &config)?;
     {
         let (limits, store) = (app.limits.clone(), app.auth.store.clone());
