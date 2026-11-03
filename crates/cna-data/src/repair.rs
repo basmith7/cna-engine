@@ -17,6 +17,10 @@ pub struct RepairRow {
     pub field_tank_percent: Option<u32>,
     pub temporary_facility_percent: Option<u32>,
     pub major_facility_percent: Option<u32>,
+    /// The columns whose starred 10 % is ignored when a single point is
+    /// under repair.
+    #[serde(default)]
+    pub single_point_ignores_ten_percent: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
