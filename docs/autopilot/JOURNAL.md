@@ -663,3 +663,9 @@ Done: #112 (fleet plan) and #110 (patrols) merged. #111 (R-150, vendor/cna 50e66
 In flight: CI on #111, #113, #114, #115.
 Next: merge #111 (retarget #114 to main FIRST), then #114 (main merged in; re-run regenerate_ if pins conflict), #113, #115. Then fleet Tasks 2–3 when cna adds warship ratings; 28.3 captured equipment waits on a cna request.
 Blocked: none.
+
+## 2026-11-03 11:50 MST — autopilot/m5-fleet-panel
+Done: #116 (vendor/cna b142151, ratings, R-151 row) and #117 (fleet Task 2 bombardment + review fixes 6ba6cb2) merged. #118 fleet Task 3 (strikes, damage, repair; preview-leak fix 45da806) ready. #119 fleet Task 4 panel (2667b7f + merge of #118), stacked on #118; local gates, vitest 231, Playwright full 57 (pre-merge), fleet/patrols/golden 5 after.
+In flight: CI on #118/#119; merge #118 (retarget #119 to main FIRST), then #119.
+Next: put `fleet` in `Modules::ALL` (cna-play `--no-fleet`): golden.rs's `play` needs a CwFleet auto-Pass (tried: works for regenerate_), but cna-web's e2e_fixtures index the golden log (`golden_prefix(n)`, asserts at api.rs ~880) and the Playwright golden/two-player drivers must pass phase E; enforce Graziani's "no warship moves before GT2 OpStage 1" (scenario prose; ask cna for data if not structured). Then the San Giorgio (R-151).
+Blocked: none.
