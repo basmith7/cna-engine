@@ -95,6 +95,19 @@ pub struct PatrolReport {
     pub objective_captured: u32,
 }
 
+/// A unit the phasing player may patrol with now, for the browser's
+/// phase L panel: its hex, the points it may send (16.11, less what its
+/// hex has already sent this phase, 16.13) and the hexes it could send
+/// them against (16.22). Built from who holds each hex alone, which both
+/// sides see (3.61).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatrolSource {
+    pub piece: PieceId,
+    pub hex: HexId,
+    pub points: u32,
+    pub targets: Vec<HexId>,
+}
+
 /// Which kind of unit a piece is, for patrols.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Role {
@@ -221,6 +234,62 @@ impl GameState {
     /// no anti-armour and made no close assault this stage.
     fn may_patrol(&self, side: Side) -> bool {
         self.modules.patrols && !self.stage_record.fought.contains(&side)
+    }
+
+    /// Every unit `player` may patrol with now and its targets (16.1x,
+    /// 16.2x); empty outside its phase L. `apply` still judges a patrol:
+    /// two sources' points together may break 16.13's limits.
+    pub fn patrol_options(&self, data: &Data, player: Side) -> Vec<PatrolSource> {
+        if self.clock.phase != Phase::Patrol
+            || self.pending.is_some()
+            || self.phasing() != Some(player)
+            || !self.may_patrol(player)
+        {
+            return Vec::new();
+        }
+        let left_at = |h: &HexId| {
+            PER_TARGET.saturating_sub(self.stage_record.patrolled_at.get(h).copied().unwrap_or(0))
+        };
+        let mut out = Vec::new();
+        for p in self.pieces.values().filter(|p| p.side == player) {
+            let Some(hex) = p.hex() else { continue };
+            if self.weather_at(hex) != StepWeather::Normal {
+                continue;
+            }
+            let sent = self
+                .stage_record
+                .patrolled_from
+                .get(hex)
+                .copied()
+                .unwrap_or(0);
+            let points = self
+                .patrol_points(data, p)
+                .min(PER_HEX.saturating_sub(sent));
+            if points == 0 {
+                continue;
+            }
+            let targets: Vec<HexId> = data
+                .map
+                .within(hex, RANGE)
+                .into_iter()
+                .filter(|h| self.holder(h) == Some(player.other()))
+                .filter(|h| !self.stage_record.barraged.contains(h))
+                .filter(|h| self.weather_at(h) == StepWeather::Normal)
+                .filter(|h| left_at(h) > 0)
+                .filter(|h| self.patrol_path(data, player, hex, h))
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            if !targets.is_empty() {
+                out.push(PatrolSource {
+                    piece: p.id.clone(),
+                    hex: hex.clone(),
+                    points,
+                    targets,
+                });
+            }
+        }
+        out
     }
 
     /// Whether phase L opens: patrols are allowed, and some eligible unit
@@ -779,6 +848,57 @@ mod tests {
         // The next stage starts afresh.
         pooled.start_stage();
         assert!(pooled.stage_record.is_empty());
+    }
+
+    #[test]
+    fn patrol_options_offer_each_eligible_unit_its_points_and_targets() {
+        let data = graziani();
+        let mut state = hussars(&data);
+        let options = state.patrol_options(&data, Side::Cw);
+        let hus = options
+            .iter()
+            .find(|o| o.piece == pid(HUS))
+            .expect("11 Hussars may patrol");
+        assert_eq!(hus.hex, hex("C4021"));
+        assert_eq!(hus.points, PER_HEX, "6 TOE, but two a hex");
+        assert!(hus.targets.contains(&hex("C4020")));
+        assert!(!hus.targets.contains(&hex("C3922")), "no enemy there");
+        // Every target offered is one the engine takes.
+        for t in &hus.targets {
+            let mut probe = state.clone();
+            probe
+                .apply(&data, Side::Cw, patrol(&[(HUS, 1)], t.as_str()))
+                .unwrap_or_else(|e| panic!("{t}: {e:?}"));
+        }
+        // On foot, 1 KRRC has no points to offer.
+        assert!(options.iter().all(|o| o.piece != pid(KRRC)));
+        // Not the Axis's, and none once the hex has sent its two.
+        assert!(state.patrol_options(&data, Side::Axis).is_empty());
+        state
+            .apply(&data, Side::Cw, patrol(&[(HUS, 2)], "C4020"))
+            .unwrap();
+        assert!(
+            state
+                .patrol_options(&data, Side::Cw)
+                .iter()
+                .all(|o| o.hex != hex("C4021"))
+        );
+        // Nor outside phase L.
+        assert!(at_repair(&data).patrol_options(&data, Side::Cw).is_empty());
+        // The view carries them to their owner alone.
+        let fresh = hussars(&data);
+        let aliases = crate::view::Aliases::new([3; 32]);
+        let cw = crate::view::view_for(&fresh, &data, &aliases, Some(Side::Cw), false).unwrap();
+        let listed = cw["patrol_options"]
+            .as_array()
+            .expect("the Commonwealth's options");
+        assert!(listed.iter().any(|o| o["piece"] == HUS && o["points"] == 2));
+        let axis = crate::view::view_for(&fresh, &data, &aliases, Some(Side::Axis), false).unwrap();
+        assert!(axis.get("patrol_options").is_none());
+        assert_eq!(
+            crate::view::leaks(&fresh, &cw, Side::Axis),
+            Vec::<String>::new()
+        );
     }
 
     fn report(events: &[Event]) -> PatrolReport {

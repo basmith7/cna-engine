@@ -186,7 +186,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
 /// units), `shell: true` on a formation that is a shell (9.26), and in
-/// phase C `raider_formings`, the viewer's raiders it may form (27.13).
+/// phase C `raider_formings`, the viewer's raiders it may form (27.13),
+/// and in phase L `patrol_options`, the viewer's units that may patrol
+/// and where (16.x): built from who holds each hex, which both sides see.
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -218,6 +220,12 @@ pub fn view_for(
         .collect();
     if !formings.is_empty() {
         obj.insert("raider_formings".into(), json!(formings));
+    }
+    let patrols = viewer
+        .map(|side| state.patrol_options(data, side))
+        .unwrap_or_default();
+    if !patrols.is_empty() {
+        obj.insert("patrol_options".into(), json!(patrols));
     }
     label(state, data, &mut v)?;
     if state.is_over() {
