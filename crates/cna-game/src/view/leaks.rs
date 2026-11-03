@@ -96,7 +96,10 @@ fn walk(units: &BTreeSet<&str>, v: &Value, about: Side, at: &str, found: &mut Ve
             let names_unit = map
                 .values()
                 .any(|x| x.as_str().is_some_and(|s| units.contains(s)));
-            if names_unit && !is_about_piece {
+            // 16.5x: a patrol's description states the unit's TOE; that
+            // event alone may carry it.
+            let described = at.contains(".patrolled.described[");
+            if names_unit && !is_about_piece && !described {
                 for k in INTERNALS.iter().filter(|k| map.contains_key(**k)) {
                     found.push(format!("{at}.{k}"));
                 }

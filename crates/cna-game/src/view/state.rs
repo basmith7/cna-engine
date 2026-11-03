@@ -31,7 +31,7 @@
 //! |---|---|
 //! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
-//! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet` | as is: on the board, or known to both (30.1x: the ships and their port time are open) |
+//! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped` | own only: 3.61 keeps POW and guard numbers secret, and R-145 the count of escapees back with their own side |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
@@ -132,6 +132,7 @@ const STATE_KEEPS: &[&str] = &[
     "escapees",
     "marched",
     "fleet",
+    "stage_record",
     "zoc",
     "air_lifted",
     "scuttled",
@@ -186,7 +187,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
 /// units), `shell: true` on a formation that is a shell (9.26), and in
-/// phase C `raider_formings`, the viewer's raiders it may form (27.13).
+/// phase C `raider_formings`, the viewer's raiders it may form (27.13),
+/// and in phase L `patrol_options`, the viewer's units that may patrol
+/// and where (16.x): built from who holds each hex, which both sides see.
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -218,6 +221,12 @@ pub fn view_for(
         .collect();
     if !formings.is_empty() {
         obj.insert("raider_formings".into(), json!(formings));
+    }
+    let patrols = viewer
+        .map(|side| state.patrol_options(data, side))
+        .unwrap_or_default();
+    if !patrols.is_empty() {
+        obj.insert("patrol_options".into(), json!(patrols));
     }
     label(state, data, &mut v)?;
     if state.is_over() {

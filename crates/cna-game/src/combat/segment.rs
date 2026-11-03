@@ -138,6 +138,7 @@ impl GameState {
                 }
             }
             Segment::ReserveRelease => {
+                self.record_for_patrols();
                 self.combat = CombatSegment::default();
                 events.push(Event::PhaseStarted { clock: self.clock });
                 return;

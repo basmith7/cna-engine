@@ -36,6 +36,13 @@
 //! |---|---|---|---|
 //! | `phase-started` | public | | |
 //! | `phase-skipped` | public | | |
+//!
+//! (Whether phases K and L open is public, and each reads its side's own
+//! units: a skipped phase L tells the enemy that no unit near it has
+//! light-tank points to patrol with, as a skipped phase K tells it there
+//! is nothing to repair. Accepted: the signal is coarse, and opening the
+//! phases on public facts alone would make every player pass them.)
+//!
 //! | `die-rolled` | public, but *own* for `mines at <hex> for <piece>` | that piece | the mine roll tells a 1-point TOE loss of a named piece (status, 3.61); other rolls are made in the open |
 //! | `initiative-determined` | public | | |
 //! | `rommel-recalled` | public | | |
@@ -65,6 +72,7 @@
 //! | `retreated-before-assault` | public | | counters move |
 //! | `anti-armour` | reduced | `side` | `points`, `shift`: 3.61 reveals the types that fired, not numbers; the damage the target takes is kept |
 //! | `assault` | reduced | the side of `attackers[0]` (else the phasing side) attacks, the other defends | the enemy side's `attacker_raw` / `defender_raw` (raw points are finer than the totals 15.2 announces) and its roll's `raw_lost` and `toe_lost` ("not numbers or which weapons were lost"); actual totals (`basic`), column, readings, percentages and results kept |
+//! | `patrolled` | public | | 16.x: the sources and target are announced, and the descriptions (each unit's stated TOE) are what the patrol bought, the one breach of 3.61 the rules sanction; the losses behind it follow in `losses` (own) and `prisoners` (reduced) |
 //! | `prisoners` | reduced | the captor, `side.other()` | `points` (POW numbers secret) |
 //! | `surrendered` | public | | a board fact |
 //! | `engaged` | public | | a board marker |
@@ -293,6 +301,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::PrisonersEscaped { .. }
         | E::PrisonersFreed { .. }
         | E::BizertaOpened
+        // 16.5x: what a patrol learns is its sanctioned breach of 3.61.
+        | E::Patrolled(_)
         | E::GameOver { .. } => Public,
         E::DieRolled { purpose, .. } => match purpose
             .strip_prefix("mines at ")

@@ -3,7 +3,8 @@
 <script lang="ts">
   // Hexes a panel is asking about, outlined on the map (the ZOC
   // declaration's hexes; the hexes still to assault in the close assault
-  // step, which a click assaults; broken-down vehicles, 21.4x). Only
+  // step, which a click assaults; broken-down vehicles, 21.4x; the hexes
+  // the ticked patrol sources may patrol, 16.22, which a click targets). Only
   // those hexes are in this layer.
   import { polygonPoints } from "./geom";
   import type { HexId } from "./types";
@@ -32,6 +33,12 @@
     stroke: #7a1410;
     stroke-width: 2;
     stroke-dasharray: none;
+  }
+  .kind-patrol .mark {
+    fill: #2d6a4f;
+    fill-opacity: 0.25;
+    stroke: #1b4332;
+    stroke-width: 1.8;
   }
   .kind-wreck .mark {
     fill: none;

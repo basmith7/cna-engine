@@ -25,6 +25,7 @@ mod occupancy;
 mod off_map;
 pub mod order;
 mod organisation;
+pub mod patrol;
 mod phases;
 pub mod piece;
 mod place;

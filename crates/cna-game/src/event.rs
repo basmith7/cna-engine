@@ -325,6 +325,8 @@ pub enum Event {
     InPort {
         ships: Vec<PieceId>,
     },
+    /// A patrol's three rolls and what came of them (16.x).
+    Patrolled(Box<crate::patrol::PatrolReport>),
     /// The Axis set the lanes its convoys sail by (32.63).
     ConvoyLanesSet {
         lanes: Vec<u8>,

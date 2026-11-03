@@ -42,6 +42,9 @@ enum Cmd {
         /// opens. Off until the browser has a phase E panel.
         #[arg(long)]
         fleet: bool,
+        /// Play without patrols (§16): phase L stays skipped.
+        #[arg(long)]
+        no_patrols: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -165,6 +168,7 @@ fn main() -> Result<()> {
             no_breakdown,
             no_construction,
             fleet,
+            no_patrols,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -173,6 +177,7 @@ fn main() -> Result<()> {
                 breakdown: !no_breakdown,
                 construction: !no_construction,
                 fleet,
+                patrols: !no_patrols,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
