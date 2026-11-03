@@ -240,6 +240,8 @@ export interface Wreck {
   nation?: string | null;
   weapon: string;
   points: number;
+  /** How many of `points` broke down this OpStage: no facility repairs them until the next (22.31). */
+  this_stage?: number;
 }
 
 export type VictoryLevel = string;
