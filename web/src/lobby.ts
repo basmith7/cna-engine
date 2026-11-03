@@ -111,11 +111,11 @@ export async function joinGame(id: number, side: Side, invite?: string): Promise
 
 /** Leaves game `id`, which is then abandoned. */
 export async function leaveGame(id: number): Promise<void> {
-  await call("POST", `/api/games/${id}/leave`);
+  await call("POST", `/api/games/${id}/leave`, {});
 }
 
 export async function signOut(): Promise<void> {
-  await call("POST", "/auth/sign-out");
+  await call("POST", "/auth/sign-out", {});
 }
 
 /** The seats a joiner of `g` may take: the one the creator left free, or either when the creator would take either. */

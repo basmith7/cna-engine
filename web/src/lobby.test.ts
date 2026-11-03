@@ -82,6 +82,8 @@ describe("lobby client", () => {
     await leaveGame(5);
     await signOut();
     expect(calls.map((c) => c.url)).toEqual(["/api/games/5/leave", "/auth/sign-out"]);
+    // The server's CSRF check refuses a state change that is not JSON.
+    for (const c of calls) expect((c.init?.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
 
   it("gives a joiner the seat the creator left free", () => {
