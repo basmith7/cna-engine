@@ -436,3 +436,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 04:45 | 63 | 61→62 | none→none | $14.94 | 8 | Everything planned for this run is merged: forming raiders, raids on supply dumps, and the `vendor/cna` bump for cna's answers. Nothing needs you, apart from Mi |
 | 2026-11-03 05:48 | 69 | 62→64 | none→none | $15.42 | 124 | #109 is merged, and draft #110 (patrols) has its plan and engine built, reviewed and fixed. Nothing needs you. **#109, the spotting try against desert raiders ( |
 | 2026-11-03 09:44 | 72 | 67→68 | none→none | $9.94 | 3 | Six PRs merged this run (#110–#115). No autopilot PR is left open. For each merge, the PR's CI run passed and the gates passed locally. / PR / What it does / /- |
+| 2026-11-03 10:56 | 85 | 68→70 | none→none | $15.41 | 2 | The fleet engine is built and merged: warship ratings load, ships bombard the coast, and Axis strikes damage, sink and repair them. Its browser panel is merged  |
