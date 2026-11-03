@@ -12,6 +12,7 @@ use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
 use cna_data::map::HexId;
+use cna_data::patrol::Revealed;
 use cna_data::scenario::Side;
 use cna_rules::movement::Weather as StepWeather;
 use serde::{Deserialize, Serialize};
@@ -44,11 +45,21 @@ pub struct StageRecord {
     /// Hexes barraged this stage: none may be patrolled.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub barraged: BTreeSet<HexId>,
+    /// Patrol points sent this phase L, by the hex they left and by the
+    /// hex they went against: 16.13's limits hold across every patrol of
+    /// the phase, or two patrols would send what one may not.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub patrolled_from: BTreeMap<HexId, u32>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub patrolled_at: BTreeMap<HexId, u32>,
 }
 
 impl StageRecord {
     pub(crate) fn is_empty(&self) -> bool {
-        self.fought.is_empty() && self.barraged.is_empty()
+        self.fought.is_empty()
+            && self.barraged.is_empty()
+            && self.patrolled_from.is_empty()
+            && self.patrolled_at.is_empty()
     }
 }
 
@@ -227,6 +238,7 @@ impl GameState {
             .filter(|p| p.side == side.other() && p.kind.holds_ground())
             .filter_map(|p| p.hex().cloned())
             .filter(|h| !self.stage_record.barraged.contains(h))
+            .filter(|h| self.weather_at(h) == StepWeather::Normal)
             .collect();
         if targets.is_empty() {
             return false;
@@ -236,6 +248,7 @@ impl GameState {
             .values()
             .filter(|p| p.side == side && self.patrol_points(data, p) > 0)
             .filter_map(|p| p.hex().cloned())
+            .filter(|h| self.weather_at(h) == StepWeather::Normal)
             .collect();
         sources.iter().any(|s| {
             data.map
@@ -348,7 +361,13 @@ impl GameState {
             }
             let from = per_hex.entry(hex.clone()).or_insert(0);
             *from += n;
-            if *from > PER_HEX {
+            let sent = self
+                .stage_record
+                .patrolled_from
+                .get(hex)
+                .copied()
+                .unwrap_or(0);
+            if sent + *from > PER_HEX {
                 return Err(bad(
                     "16.13",
                     format!("at most {PER_HEX} patrol points leave {hex}"),
@@ -361,7 +380,13 @@ impl GameState {
                 ));
             }
         }
-        let total: u32 = sources.iter().map(|(_, n)| n).sum();
+        let total: u32 = sources.iter().map(|(_, n)| n).sum::<u32>()
+            + self
+                .stage_record
+                .patrolled_at
+                .get(target)
+                .copied()
+                .unwrap_or(0);
         if total > PER_TARGET {
             return Err(bad(
                 "16.13",
@@ -409,6 +434,15 @@ impl GameState {
         let mut events = Vec::new();
         let enemy = player.other();
         let sent: u32 = sources.iter().map(|(_, n)| n).sum();
+        for (id, n) in sources {
+            let hex = self.pieces[id].hex().cloned().expect("checked on the map");
+            *self.stage_record.patrolled_from.entry(hex).or_insert(0) += n;
+        }
+        *self
+            .stage_record
+            .patrolled_at
+            .entry(target.clone())
+            .or_insert(0) += sent;
         let defenders = self.patrolled(target, player);
         let combat_present = defenders
             .iter()
@@ -468,7 +502,10 @@ impl GameState {
             candidates.sort_by_key(|p| (p.equivalent != Some(Equivalent::Battalion), p.id.clone()));
             described = candidates
                 .into_iter()
-                .take(count.map_or(usize::MAX, |n| n as usize))
+                .take(match count {
+                    Revealed::Count(n) => n as usize,
+                    Revealed::All(_) => usize::MAX,
+                })
                 .map(|p| Described {
                     piece: p.id.clone(),
                     toe: p.toe,
@@ -595,6 +632,11 @@ mod tests {
         fought.stage_record.fought.insert(Side::Cw);
         fought.apply(&data, Side::Cw, Order::Pass).unwrap();
         assert_ne!(fought.clock.phase, Phase::Patrol);
+        // A storm over every source keeps it shut (16.17).
+        let mut storm = at_repair(&data);
+        storm.weather = crate::state::Weather::Sandstorm { sheets: vec!['C'] };
+        storm.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert_ne!(storm.clock.phase, Phase::Patrol);
         // Off without the module, as old saves play.
         let mut old = at_repair(&data);
         old.modules.patrols = false;
@@ -708,6 +750,37 @@ mod tests {
             .unwrap();
     }
 
+    #[test]
+    fn the_hex_and_target_limits_hold_across_the_phases_patrols_16_13() {
+        let data = graziani();
+        // Two a hex: one point now, two more refused, one more allowed.
+        let mut state = hussars(&data);
+        state
+            .apply(&data, Side::Cw, patrol(&[(HUS, 1)], "C4020"))
+            .unwrap();
+        assert_eq!(
+            refusal(&mut state, &data, patrol(&[(HUS, 2)], "C4020")).case,
+            "16.13"
+        );
+        state
+            .apply(&data, Side::Cw, patrol(&[(HUS, 1)], "C4020"))
+            .unwrap();
+        // Three a target, pooled from two hexes over two patrols.
+        let mut pooled = hussars(&data);
+        put(&mut pooled, AUSCAV, "C4022");
+        pooled
+            .apply(&data, Side::Cw, patrol(&[(HUS, 2)], "C4020"))
+            .unwrap();
+        let e = refusal(&mut pooled, &data, patrol(&[(AUSCAV, 2)], "C4020"));
+        assert!(e.reason.contains("at most 3"), "{e:?}");
+        pooled
+            .apply(&data, Side::Cw, patrol(&[(AUSCAV, 1)], "C4020"))
+            .unwrap();
+        // The next stage starts afresh.
+        pooled.start_stage();
+        assert!(pooled.stage_record.is_empty());
+    }
+
     fn report(events: &[Event]) -> PatrolReport {
         events
             .iter()
@@ -756,7 +829,9 @@ mod tests {
                 assert_eq!(r.objective_captured, 0, "its captures read as kills");
                 assert_eq!(r.objective_killed, o.killed + o.captured);
             } else {
-                let n = t.reconnaissance.revealed(r.recon_die.unwrap(), 1).unwrap();
+                let Revealed::Count(n) = t.reconnaissance.revealed(r.recon_die.unwrap(), 1) else {
+                    panic!("one point never reveals all")
+                };
                 assert_eq!(r.described.len(), n as usize);
                 assert!(
                     r.described.iter().all(|d| {

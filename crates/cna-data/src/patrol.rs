@@ -60,17 +60,32 @@ pub struct Reconnaissance {
 }
 
 impl Reconnaissance {
-    /// How many units `points` surviving patrol points reveal on `die`;
-    /// `None` for all of them.
-    pub fn revealed(&self, die: u8, points: u32) -> Option<u32> {
+    /// How many units `points` surviving patrol points reveal on `die`
+    /// (1–6): a count, or all of them. Every cell is checked at load.
+    pub fn revealed(&self, die: u8, points: u32) -> Revealed {
         if points == 0 {
-            return Some(0);
+            return Revealed::Count(0);
         }
+        self.cell(die, points)
+            .expect("patrol-reconnaissance.json was checked at load for every die and point")
+    }
+
+    fn cell(&self, die: u8, points: u32) -> Option<Revealed> {
         let row = self.rows.iter().find(|r| r.die == die)?;
-        match row.units_revealed.get(&points.min(3).to_string())? {
-            Revealed::Count(n) => Some(*n),
-            Revealed::All(_) => None,
+        row.units_revealed.get(&points.min(3).to_string()).copied()
+    }
+
+    fn check(&self) -> Result<()> {
+        for die in 1..=6 {
+            for points in 1..=3 {
+                if self.cell(die, points).is_none() {
+                    anyhow::bail!(
+                        "patrol-reconnaissance.json has no cell for die {die}, {points} points"
+                    );
+                }
+            }
         }
+        Ok(())
     }
 }
 
@@ -89,9 +104,12 @@ impl Patrol {
 
     pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
         let table = |name| crate::errata::load_table(src, name);
+        let reconnaissance: Reconnaissance =
+            serde_json::from_value(table("patrol-reconnaissance")?)?;
+        reconnaissance.check()?;
         Ok(Patrol {
             survival: serde_json::from_value(table("patrol-survival")?)?,
-            reconnaissance: serde_json::from_value(table("patrol-reconnaissance")?)?,
+            reconnaissance,
             objective_loss: serde_json::from_value(table("objective-loss")?)?,
         })
     }
@@ -111,13 +129,22 @@ mod tests {
         assert_eq!(s(4), Some((0, 1)));
         assert_eq!(s(5), Some((1, 0)));
         assert_eq!(s(6), Some((1, 1)));
-        assert_eq!(t.reconnaissance.revealed(1, 1), Some(0));
-        assert_eq!(t.reconnaissance.revealed(4, 2), Some(2));
-        assert_eq!(t.reconnaissance.revealed(6, 3), None);
-        assert_eq!(t.reconnaissance.revealed(6, 0), Some(0));
+        let r = |d, p| t.reconnaissance.revealed(d, p);
+        assert_eq!(r(1, 1), Revealed::Count(0));
+        assert_eq!(r(4, 2), Revealed::Count(2));
+        assert_eq!(r(6, 3), Revealed::All(AllMark::All));
+        assert_eq!(r(6, 0), Revealed::Count(0));
         let o = |d| t.objective_loss.row(d).map(|r| (r.killed, r.captured));
         assert_eq!(o(4), Some((0, 0)));
         assert_eq!(o(5), Some((0, 1)));
         assert_eq!(o(6), Some((1, 0)));
+    }
+
+    #[test]
+    fn a_reconnaissance_table_missing_a_cell_fails_to_load() {
+        let mut t = Patrol::load().unwrap().reconnaissance;
+        t.check().unwrap();
+        t.rows.retain(|r| r.die != 3);
+        assert!(t.check().unwrap_err().to_string().contains("die 3"));
     }
 }
