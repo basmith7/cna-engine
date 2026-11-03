@@ -147,7 +147,7 @@ raider captured in an enemy ZOC; the dump-raid limit resetting mid-stage),
 both fixed. #108 (merged) adds a Raid-the-dump button.
 
 **2026-11-03, fifth run:** #109 builds the enemy's spotting try
-(27.42–27.44). An Axis unit entering a raider's hex is told a raider is
+(27.42–27.44), merged. An Axis unit entering a raider's hex is told a raider is
 there, unnamed, and stops; it may spend 1 CP on a die, and a 6
 eliminates the raider. Previews online never give the raider away. A
 fresh review found two faults, both fixed. #110 (draft): patrols. Phase
@@ -190,7 +190,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 ## Next steps
 
 - Nothing waits on Brian. #109 (the enemy's spotting try against
-  desert raiders, 27.42–27.44) is ready and merges on green CI. Its
+  desert raiders, 27.42–27.44) merged 2026-11-03. Its
   two-way calls are listed in its body: the move stops at a raider's
   hex, the try burns no fuel, one die per raider, and no module flag.
   Next: #110, patrols (phase L, §16). Its plan and engine are built
