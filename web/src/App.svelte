@@ -33,7 +33,8 @@
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
-  import type { PreviewResult, HexId, Illegal, OffMapPlace, Order, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
+  import { SIZE, centre } from "./geom";
+  import type { PreviewResult, HexId, Illegal, OffMapPlace, Order, Piece, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -227,6 +228,29 @@
     if (!e || !view?.to_act || purpose !== "move" || t.length !== 1 || view.pieces[t[0]]?.kind !== "raider") return;
     const piece = t[0];
     return answer(e.preview(view.to_act, { "raid-rommel": { piece } }), (r) => (raid = "illegal" in r ? null : piece));
+  });
+  /** Enemy supply units a lone ticked raider may raid as dumps now: the engine's preview does not refuse them (27.55, R-149). */
+  let dumps: { target: PieceId; hex: HexId }[] = $state([]);
+  $effect(() => {
+    const e = engine, t = ticked, v = view;
+    dumps = [];
+    if (!e || !v?.to_act || purpose !== "move" || t.length !== 1 || v.pieces[t[0]]?.kind !== "raider") return;
+    const piece = t[0], side = v.to_act;
+    const hexOf = (p: Piece | undefined) => (p && typeof p.location === "object" && "hex" in p.location ? p.location.hex : null);
+    const at = hexOf(v.pieces[piece]);
+    if (!at) return;
+    const [ax, ay] = centre(at);
+    const near = Object.values(v.pieces).flatMap((p) => {
+      const h = hexOf(p);
+      if (!h || p.side === side || (p.kind !== "supply-unit" && p.kind !== "dummy-supply-unit")) return [];
+      const [x, y] = centre(h);
+      return Math.hypot(x - ax, y - ay) < 2 * SIZE ? [{ target: p.id, hex: h }] : [];
+    });
+    if (near.length === 0) return;
+    return answer(
+      Promise.all(near.map((d) => e.preview(side, { "raid-dump": { piece, target: d.target } }))),
+      (rs) => (dumps = near.filter((_, i) => !("illegal" in rs[i]))),
+    );
   });
   let fuelPick: PieceId | null = $state(null);
   const fuelFrom = $derived(fuelPick && fuelSources.includes(fuelPick) ? fuelPick : null);
@@ -649,7 +673,7 @@
           {/if}
           {/if}
           {#if purpose}
-            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} {raid} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} bind:railStops bind:stopping />
+            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} {raid} {dumps} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} bind:railStops bind:stopping />
           {/if}
           <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={async (o) => {
             if ((await send(o)) && typeof o === "object" && "unplace" in o) {

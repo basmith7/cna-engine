@@ -23,6 +23,7 @@
     onMap,
     offMap,
     raid = null,
+    dumps = [],
     onsend,
     onclear,
     onoffmap,
@@ -49,6 +50,8 @@
     offMap: boolean;
     /** The ticked raider, when the engine would take its raid on Rommel (27.6x). */
     raid?: PieceId | null;
+    /** Enemy supply units the ticked raider may raid as dumps (27.55, R-149). */
+    dumps?: { target: PieceId; hex: HexId }[];
     onsend: () => void;
     onclear: () => void;
     onoffmap: (to: OffMapPlace) => void;
@@ -153,6 +156,16 @@
     <p class="buttons">
       <button type="button" data-testid="raid-rommel" title="10 CP and two dice on the Raid on Rommel Table (27.6x)" onclick={() => onorder({ "raid-rommel": { piece } })}>Raid Rommel</button>
     </p>
+  {/if}
+  {#if dumps.length > 0 && onorder && ticked.length === 1}
+    {@const piece = ticked[0]}
+    {#if piece}
+      <p class="buttons" data-testid="raid-dumps">
+        {#each dumps as d (d.target)}
+          <button type="button" data-order="raid-dump" data-target={d.target} title="5 CP; one die, 1-2 burns 10 % of its ammunition and fuel; guards are got past first (27.55, R-149)" onclick={() => onorder({ "raid-dump": { piece, target: d.target } })}>Raid the dump at {d.hex}</button>
+        {/each}
+      </p>
+    {/if}
   {/if}
   {#if offMap && purpose === "move"}
     <div class="offmap" data-testid="off-map-moves">
