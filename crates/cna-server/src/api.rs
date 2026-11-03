@@ -89,7 +89,7 @@ pub const MAX_BODY: usize = 64 * 1024;
 
 pub fn routes() -> Router<App> {
     Router::new()
-        .route("/me", get(me))
+        .route("/me", get(me).patch(set_me))
         .route("/games", get(list).post(create))
         .route("/games/{id}", get(game))
         .route("/games/{id}/join", post(join))
@@ -108,11 +108,19 @@ pub fn routes() -> Router<App> {
 
 /// The caller's account: `{id, discord_id, name, avatar, alerts, admin}`.
 async fn me(State(app): State<App>, account: CurrentAccount) -> ApiResult {
-    let (discord_id, name, avatar, alerts): (String, String, Option<String>, bool) =
-        sqlx::query_as("SELECT discord_id, name, avatar, alerts FROM accounts WHERE id = $1")
-            .bind(account.0)
-            .fetch_one(app.games.pool())
-            .await?;
+    let (discord_id, name, avatar, alerts, unreachable): (
+        String,
+        String,
+        Option<String>,
+        bool,
+        bool,
+    ) = sqlx::query_as(
+        "SELECT discord_id, name, avatar, alerts, alerts_unreachable_at IS NOT NULL \
+             FROM accounts WHERE id = $1",
+    )
+    .bind(account.0)
+    .fetch_one(app.games.pool())
+    .await?;
     let admin = app.auth.admins.contains(&discord_id);
     Ok(Json(json!({
         "id": account.0,
@@ -120,8 +128,31 @@ async fn me(State(app): State<App>, account: CurrentAccount) -> ApiResult {
         "name": name,
         "avatar": avatar,
         "alerts": alerts,
+        // The last DM was refused (DMs closed): the lobby asks the player to allow them.
+        "alerts_unreachable": unreachable,
         "admin": admin,
     })))
+}
+
+#[derive(Deserialize)]
+struct SetMe {
+    alerts: bool,
+}
+
+/// `PATCH /api/me {alerts}`: turns turn alerts on or off and, either
+/// way, forgets that the last DM could not be delivered; answers as
+/// `GET /api/me`.
+async fn set_me(
+    State(app): State<App>,
+    account: CurrentAccount,
+    Json(b): Json<SetMe>,
+) -> ApiResult {
+    sqlx::query("UPDATE accounts SET alerts = $2, alerts_unreachable_at = NULL WHERE id = $1")
+        .bind(account.0)
+        .bind(b.alerts)
+        .execute(app.games.pool())
+        .await?;
+    me(State(app), account).await
 }
 
 /// The caller's seat in `id` (403 without one) and the game, locked.

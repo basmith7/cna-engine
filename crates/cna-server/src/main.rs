@@ -29,6 +29,19 @@ async fn main() -> Result<()> {
     games.spawn_evictor(Duration::from_secs(60), MAX_IDLE);
     games.spawn_sweeper();
     let app = App::new(games, &config)?;
+    // Turn alerts: only with the bot configured (see `Config`).
+    match &app.auth.bot {
+        Some((token, _)) => cna_server::alerts::Sender::new(
+            pool.clone(),
+            app.auth.discord_api.clone(),
+            token.clone(),
+            app.auth.public_url.clone(),
+        )?
+        .spawn(),
+        None => {
+            tracing::info!("turn alerts off: no CNA_DISCORD_BOT_TOKEN and CNA_DISCORD_GUILD_ID")
+        }
+    }
     {
         let (limits, store) = (app.limits.clone(), app.auth.store.clone());
         tokio::spawn(async move {

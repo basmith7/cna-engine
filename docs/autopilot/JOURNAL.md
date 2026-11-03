@@ -538,8 +538,19 @@ In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this bra
 Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
 Blocked: none.
 
+## 2026-11-02 20:07 MST — autopilot/m4-slice-5-alerts
+Done: #96 (draft, based on #95): guild join at sign-in (76c3793), outbox + sender (c18b651), PATCH /api/me + lobby switch and unreachable notice (9926258). Gates green here (clippy, cargo test --no-fail-fast, probe check; server DB suite with db-tests,test-auth,fake).
+In flight: none on this branch.
+Next: after #95 merges, retarget #96 to main, merge main in; Task 4's Playwright DM check in two-players.spec.ts (alice's last set-up placement with bob's page closed → fake /_sent has one DM; none with alerts off); then ready and merge; then slice 6 (ship).
+Blocked: none.
+
 ## 2026-11-02 20:26 MST — autopilot/m4-slice-4-lobby
 Done: Task 5 by a subagent (e5cad4d, 412deca, 605bcb8, f5482a8, 6facfba): two-player e2e by clicks, leaks + hash checked, CI Postgres. Fresh review fixes (6436420). Local: multiplayer e2e 1 passed on 6436420; hot-seat 46 passed; server DB suite and clippy green.
 In flight: CI on #95; then ready + merge, retarget #96 to main.
 Next: #96 Task 4's Playwright DM check; slice 6. Follow-ups: stream silent when a game ends/starts; e2e leak check judges against later state; enemy events with stripped fields log "undefined" (move cost, anti-armour points, prisoner points).
+
+## 2026-11-02 20:49 MST — autopilot/m4-slice-5-alerts
+Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 all four tasks: Task 4 PATCH /api/me + lobby switch/notice (9926258), alerts e2e (26c1bdc; multiplayer config 2 passed locally), enemy-event "undefined" fix (ae5c398). Clippy clean; server DB suite green before Task 4's e2e. Merged worktrees/branches from older runs removed.
+In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
+Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
 Blocked: none.

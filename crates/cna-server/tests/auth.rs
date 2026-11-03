@@ -7,7 +7,6 @@ mod common;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
-use cna_server::fake_discord;
 use cna_server::games::Games;
 use common::*;
 use serde_json::Value;
@@ -16,17 +15,7 @@ use tower::ServiceExt;
 
 /// The fake Discord on a free port: its base URL.
 pub async fn fake_discord() -> String {
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
-        axum::serve(
-            listener,
-            fake_discord::router(fake_discord::default_users()),
-        )
-        .await
-        .unwrap()
-    });
-    format!("http://{addr}")
+    fake_discord_with(None).await
 }
 
 /// The server pointed at the fake at `base`, with `vars` on top.
@@ -257,4 +246,85 @@ async fn dev_cookies_are_not_secure(pool: PgPool) {
     let r = send(&app, "GET", "/auth/discord", None).await;
     let set = r.set_cookie.unwrap();
     assert!(set.contains("HttpOnly") && !set.contains("Secure"), "{set}");
+}
+
+/// The guild joins the fake has taken.
+async fn members(base: &str) -> Vec<Value> {
+    reqwest::get(format!("{base}/_members"))
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap()
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn signing_in_with_alerts_on_joins_the_guild_and_off_does_not(pool: PgPool) {
+    let token = bot_token();
+    let base = fake_discord_with(Some(token.clone())).await;
+    let app = server(
+        &pool,
+        &base,
+        &[
+            ("CNA_DISCORD_BOT_TOKEN", token.as_str()),
+            ("CNA_DISCORD_GUILD_ID", "777"),
+        ],
+    );
+    sign_in(&app, "alice").await;
+    let joined = members(&base).await;
+    assert_eq!(joined.len(), 1, "{joined:?}");
+    assert_eq!(joined[0]["guild"], "777");
+    assert_eq!(joined[0]["user"], "1001");
+    assert_eq!(joined[0]["access_token"], true);
+
+    // bob turned alerts off (his account already exists): no join.
+    let bob = cna_server::accounts::insert(&pool, "1002", "bob")
+        .await
+        .unwrap();
+    sqlx::query("UPDATE accounts SET alerts = false WHERE id = $1")
+        .bind(bob)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sign_in(&app, "bob").await;
+    assert_eq!(members(&base).await.len(), 1);
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn a_failed_guild_join_still_signs_in(pool: PgPool) {
+    let base = fake_discord_with(Some(bot_token())).await;
+    // The server's token is not the bot's: the join gets a 401.
+    let wrong = bot_token();
+    let app = server(
+        &pool,
+        &base,
+        &[
+            ("CNA_DISCORD_BOT_TOKEN", wrong.as_str()),
+            ("CNA_DISCORD_GUILD_ID", "777"),
+        ],
+    );
+    let cookie = sign_in(&app, "alice").await;
+    assert!(members(&base).await.is_empty());
+    let me = send(&app, "GET", "/api/me", Some(&cookie)).await;
+    assert_eq!(me.status, StatusCode::OK, "{}", me.body);
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn without_the_bot_configured_no_guild_join_is_tried(pool: PgPool) {
+    let base = fake_discord_with(None).await;
+    let app = server(&pool, &base, &[("CNA_DISCORD_GUILD_ID", "777")]);
+    sign_in(&app, "alice").await;
+    assert!(members(&base).await.is_empty());
 }

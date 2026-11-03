@@ -44,6 +44,9 @@ pub struct Auth {
     pub trust_proxy: bool,
     pub admins: BTreeSet<String>,
     pub store: PgStore,
+    /// The bot token and the guild id players join at sign-in, when
+    /// both are configured (alerts are off otherwise).
+    pub bot: Option<(String, String)>,
 }
 
 impl Auth {
@@ -83,6 +86,10 @@ impl Auth {
             trust_proxy: config.trust_proxy,
             admins: config.admins.clone(),
             store: PgStore::new(pool),
+            bot: config
+                .discord_bot_token
+                .clone()
+                .zip(config.discord_guild_id.clone()),
         })
     }
 

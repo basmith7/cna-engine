@@ -574,6 +574,7 @@ impl Games {
         // On a clone, off the async threads, so a panicking order leaves
         // the live state as it was.
         let mut next = live.state.clone();
+        let before = live.state.to_act();
         let data = live.data;
         let stored = real.clone();
         let (next, result) = tokio::task::spawn_blocking(move || {
@@ -624,6 +625,13 @@ impl Games {
             .bind(Json(next.clock))
             .execute(&mut *tx)
             .await?;
+            // The move passing to the other seat is its alert, in this
+            // transaction: none for a rolled-back order, none lost.
+            if let Some(to) = next.to_act().filter(|s| Some(*s) != before)
+                && !next.is_over()
+            {
+                crate::alerts::queue(&mut tx, &self.streams, game, to, seq, account).await?;
+            }
             if next.log.len() % SNAPSHOT_EVERY == 0 {
                 sqlx::query(
                     "INSERT INTO snapshots (game_id, seq, rules_commit, state) VALUES ($1, $2, $3, $4) \

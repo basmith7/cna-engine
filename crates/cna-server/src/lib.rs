@@ -4,6 +4,7 @@
 
 pub mod accounts;
 pub mod admin;
+pub mod alerts;
 pub mod api;
 pub mod auth;
 #[cfg(feature = "fake")]
@@ -47,6 +48,12 @@ pub struct Config {
     pub discord_api: String,
     /// `CNA_DISCORD_AUTHORIZE`, default Discord's consent page.
     pub discord_authorize: String,
+    /// `CNA_DISCORD_BOT_TOKEN` and `CNA_DISCORD_GUILD_ID`: the bot that
+    /// sends turn alerts and the "CNA" server it shares with players.
+    /// Optional: a server without both runs with alerts off (no guild
+    /// join at sign-in, no sender), though the outbox still fills.
+    pub discord_bot_token: Option<String>,
+    pub discord_guild_id: Option<String>,
     /// `CNA_DEV=1`: plain-HTTP dev (session cookies without `Secure`,
     /// `CNA_PUBLIC_URL` defaulting to `http://localhost:3240`).
     pub dev: bool,
@@ -80,6 +87,8 @@ impl Config {
             discord_api: var("CNA_DISCORD_API").unwrap_or_else(|| "https://discord.com/api".into()),
             discord_authorize: var("CNA_DISCORD_AUTHORIZE")
                 .unwrap_or_else(|| "https://discord.com/oauth2/authorize".into()),
+            discord_bot_token: var("CNA_DISCORD_BOT_TOKEN").filter(|s| !s.is_empty()),
+            discord_guild_id: var("CNA_DISCORD_GUILD_ID").filter(|s| !s.is_empty()),
             dev: var("CNA_DEV").as_deref() == Some("1"),
             trust_proxy: var("CNA_TRUST_PROXY").as_deref() == Some("1"),
             admins: var("CNA_ADMINS")
@@ -309,6 +318,7 @@ mod tests {
             "orders",
             "snapshots",
             "sessions",
+            "alerts",
         ] {
             assert!(once.contains(&t.to_owned()), "{t} in {once:?}");
         }
@@ -327,6 +337,7 @@ mod tests {
             Config::from_vars(|k| (k == "DATABASE_URL").then(|| "postgres://x".into())).unwrap();
         assert_eq!(c.bind, "0.0.0.0:3240".parse().unwrap());
         assert_eq!(c.public_url, None);
+        assert_eq!((c.discord_bot_token, c.discord_guild_id), (None, None));
         assert!(Config::from_vars(|_| None).is_err());
     }
 }

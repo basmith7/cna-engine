@@ -4,7 +4,16 @@
 import type { Clock, Side } from "./types";
 
 /** `GET /api/me`. */
-export type Account = { id: number; discord_id: string; name: string; avatar: string | null; alerts: boolean; admin: boolean };
+export type Account = {
+  id: number;
+  discord_id: string;
+  name: string;
+  avatar: string | null;
+  alerts: boolean;
+  /** The last turn alert could not be delivered (the player's DMs are closed). */
+  alerts_unreachable: boolean;
+  admin: boolean;
+};
 
 /** A game's `status` column. */
 export type GameStatus = "open" | "active" | "over" | "abandoned" | "stale";
@@ -113,6 +122,11 @@ export async function joinGame(id: number, side: Side, invite?: string): Promise
 /** Leaves game `id`, which is then abandoned. */
 export async function leaveGame(id: number): Promise<void> {
   await call("POST", `/api/games/${id}/leave`, {});
+}
+
+/** `PATCH /api/me`: turn alerts on or off; answers the account as it now is. */
+export async function setAlerts(alerts: boolean): Promise<Account> {
+  return call<Account>("PATCH", "/api/me", { alerts });
 }
 
 export async function signOut(): Promise<void> {

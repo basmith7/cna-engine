@@ -2,7 +2,10 @@
 //! the OAuth2 endpoints the sign-in uses and the bot endpoints alerts
 //! use, in memory, so tests and compose run the real flow offline. The
 //! token endpoint checks the PKCE verifier against the challenge, so the
-//! server's PKCE is tested rather than assumed.
+//! server's PKCE is tested rather than assumed. The bot endpoints
+//! want `Authorization: Bot <token>` (the token given to `router_with`,
+//! any token for `router`), and `POST /_fail` makes them answer one
+//! user with an error, so the alert sender's retries are tested too.
 
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -56,18 +59,46 @@ struct Inner {
     tokens: BTreeMap<String, String>,
     members: Vec<Value>,
     sent: Vec<Value>,
+    /// Per Discord user id: the error the next bot calls for them get.
+    faults: BTreeMap<String, Fault>,
+}
+
+/// A `POST /_fail` body: the next `times` bot calls for `user` (a
+/// guild join, or a DM to them) answer `status`; a 429 carries
+/// `retry_after` seconds.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Fault {
+    pub user: String,
+    pub status: u16,
+    #[serde(default)]
+    pub retry_after: f64,
+    #[serde(default = "one")]
+    pub times: u32,
+}
+
+fn one() -> u32 {
+    1
 }
 
 #[derive(Clone)]
 struct Fake {
     users: Arc<Vec<User>>,
+    /// The bot token the bot endpoints want; any when `None`.
+    bot_token: Option<Arc<String>>,
     inner: Arc<Mutex<Inner>>,
 }
 
-/// The fake's routes over `users`.
+/// The fake's routes over `users`, taking any bot token.
 pub fn router(users: Vec<User>) -> Router {
+    router_with(users, None)
+}
+
+/// The fake's routes over `users`, its bot endpoints answering 401 to
+/// any `Authorization` but `Bot <bot_token>` when that is given.
+pub fn router_with(users: Vec<User>, bot_token: Option<String>) -> Router {
     let fake = Fake {
         users: Arc::new(users),
+        bot_token: bot_token.map(Arc::new),
         inner: Arc::default(),
     };
     Router::new()
@@ -79,6 +110,7 @@ pub fn router(users: Vec<User>) -> Router {
         .route("/api/channels/{channel}/messages", post(send))
         .route("/_sent", get(sent))
         .route("/_members", get(members))
+        .route("/_fail", post(fail))
         .with_state(fake)
 }
 
@@ -205,17 +237,66 @@ async fn me(State(fake): State<Fake>, headers: HeaderMap) -> Response {
     }
 }
 
+impl Fake {
+    /// The error a bot call for `user` gets, if its `Authorization` is
+    /// not the bot's or a fault is set for `user` (one use spent).
+    fn refuse(&self, headers: &HeaderMap, user: &str) -> Option<Response> {
+        let auth = headers
+            .get(header::AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bot "));
+        let ok = match (&self.bot_token, auth) {
+            (_, None) => false,
+            (None, Some(_)) => true,
+            (Some(want), Some(got)) => want.as_str() == got,
+        };
+        if !ok {
+            return Some(
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({ "message": "401: Unauthorized", "code": 0 })),
+                )
+                    .into_response(),
+            );
+        }
+        let mut inner = self.inner.lock().unwrap();
+        let fault = inner.faults.get_mut(user)?;
+        fault.times -= 1;
+        let fault = if fault.times == 0 {
+            inner.faults.remove(user)?
+        } else {
+            fault.clone()
+        };
+        let status =
+            StatusCode::from_u16(fault.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let body = match fault.status {
+            429 => json!({
+                "message": "You are being rate limited.",
+                "retry_after": fault.retry_after,
+                "global": false,
+            }),
+            403 => json!({ "message": "Cannot send messages to this user", "code": 50007 }),
+            _ => json!({ "message": "fault", "code": 0 }),
+        };
+        Some((status, Json(body)).into_response())
+    }
+}
+
 async fn add_member(
     State(fake): State<Fake>,
+    headers: HeaderMap,
     Path((guild, user)): Path<(String, String)>,
     Json(body): Json<Value>,
-) -> StatusCode {
+) -> Response {
+    if let Some(r) = fake.refuse(&headers, &user) {
+        return r;
+    }
     fake.inner.lock().unwrap().members.push(json!({
         "guild": guild,
         "user": user,
         "access_token": body.get("access_token").is_some(),
     }));
-    StatusCode::CREATED
+    StatusCode::CREATED.into_response()
 }
 
 #[derive(Deserialize)]
@@ -224,21 +305,39 @@ struct OpenDm {
 }
 
 /// A DM channel's id is `dm-<user>`.
-async fn open_dm(Json(b): Json<OpenDm>) -> Json<Value> {
-    Json(json!({ "id": format!("dm-{}", b.recipient_id), "type": 1 }))
+async fn open_dm(State(fake): State<Fake>, headers: HeaderMap, Json(b): Json<OpenDm>) -> Response {
+    if let Some(r) = fake.refuse(&headers, "") {
+        return r;
+    }
+    Json(json!({ "id": format!("dm-{}", b.recipient_id), "type": 1 })).into_response()
 }
 
+/// Posts to `dm-<user>`: where a fault for `user` answers, as Discord
+/// answers a closed DM (403, code 50007) on the message.
 async fn send(
     State(fake): State<Fake>,
+    headers: HeaderMap,
     Path(channel): Path<String>,
     Json(body): Json<Value>,
-) -> Json<Value> {
+) -> Response {
+    let user = channel.strip_prefix("dm-").unwrap_or("");
+    if let Some(r) = fake.refuse(&headers, user) {
+        return r;
+    }
     let content = body.get("content").cloned().unwrap_or(Value::Null);
     fake.inner.lock().unwrap().sent.push(json!({
         "channel": channel,
         "content": content,
     }));
-    Json(json!({ "id": random(), "channel_id": channel }))
+    Json(json!({ "id": random(), "channel_id": channel })).into_response()
+}
+
+/// Sets a fault: 204.
+async fn fail(State(fake): State<Fake>, Json(f): Json<Fault>) -> StatusCode {
+    if f.times > 0 {
+        fake.inner.lock().unwrap().faults.insert(f.user.clone(), f);
+    }
+    StatusCode::NO_CONTENT
 }
 
 /// The DMs sent so far, oldest first.
