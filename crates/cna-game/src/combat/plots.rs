@@ -151,7 +151,7 @@ impl GameState {
         let mut ships = BTreeSet::new();
         for f in fires {
             let p = self.own_piece(player, &f.piece, "12.2x")?;
-            if p.kind == PieceKind::Ship {
+            if p.kind.is_vessel() {
                 if !ships.insert(&f.piece) {
                     return Err(Illegal::new(
                         "30.25",
@@ -215,8 +215,9 @@ impl GameState {
         Ok(())
     }
 
-    /// A ship's fire (30.2x): an enemy unit a barrage may target, in
-    /// reach, fired at with the ship's whole guns at that reach.
+    /// A ship's fire (30.2x), or the *San Giorgio*'s (R-151): an enemy
+    /// unit a barrage may target, in reach, fired at with the whole guns
+    /// at that reach.
     fn check_bombardment(
         &self,
         data: &Data,
@@ -242,7 +243,11 @@ impl GameState {
                 format!("{} is not an enemy unit a barrage may target", f.target),
             ));
         }
-        let points = self.bombardment_points(data, ship, at)?;
+        let points = if ship.kind == PieceKind::Blockship {
+            self.blockship_points(data, ship, at)?
+        } else {
+            self.bombardment_points(data, ship, at)?
+        };
         if f.points != points {
             return Err(Illegal::new(
                 "30.2x",

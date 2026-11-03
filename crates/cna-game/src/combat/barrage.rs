@@ -5,7 +5,7 @@ use super::cp::{NON_PHASING_CEILING, PHASING_CEILING};
 use super::strength::{Class, Kind};
 use crate::data::Data;
 use crate::event::Event;
-use crate::piece::{PieceId, PieceKind};
+use crate::piece::PieceId;
 use crate::state::GameState;
 use cna_data::map::HexId;
 use cna_data::oa::Nation;
@@ -59,7 +59,7 @@ impl GameState {
                 let Some(hex) = firer.hex().cloned() else {
                     continue;
                 };
-                if firer.kind == PieceKind::Ship {
+                if firer.kind.is_vessel() {
                     let pool = pools
                         .entry((f.target.clone(), None, Some(f.piece.clone())))
                         .or_default();

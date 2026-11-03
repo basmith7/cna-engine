@@ -102,20 +102,26 @@ pub struct Committer {
 }
 
 impl GameState {
-    /// A ship of `side` at sea as a barrage firer (30.2x): the enemy units
+    /// A ship of `side` at sea, or the *San Giorgio* (R-151), as a barrage
+    /// firer (30.2x): the enemy units
     /// it may bombard, each with the one point count `check_barrage`
     /// accepts; `None` for a land unit or a ship with nothing in reach.
     fn ship_firer(&self, data: &Data, side: Side, id: &PieceId) -> Option<Firer> {
         let ship = self.pieces.get(id)?;
-        if ship.kind != crate::piece::PieceKind::Ship || ship.side != side {
+        if !ship.kind.is_vessel() || ship.side != side {
             return None;
         }
+        let blockship = ship.kind == crate::piece::PieceKind::Blockship;
         let ship_points: BTreeMap<PieceId, u32> = self
             .pieces
             .values()
             .filter(|t| t.side != side && self.is_target(data, t))
             .filter_map(|t| {
-                let n = self.bombardment_points(data, ship, t.hex()?).ok()?;
+                let n = if blockship {
+                    self.blockship_points(data, ship, t.hex()?).ok()?
+                } else {
+                    self.bombardment_points(data, ship, t.hex()?).ok()?
+                };
                 Some((t.id.clone(), n))
             })
             .collect();

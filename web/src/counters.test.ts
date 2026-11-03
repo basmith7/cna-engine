@@ -113,6 +113,17 @@ describe("ships", () => {
   });
 });
 
+describe("the San Giorgio", () => {
+  it("is drawn in its hex's land stack, at the bottom, named from the OA (30.17, R-151)", () => {
+    const v = view([
+      piece({ id: "unit:it:the-san-giorgio", kind: "blockship", id_code: null, equivalent: null, unit_type: null, name: "The San Giorgio", abbreviation: "San Giorgio" }),
+      piece({ id: "unit:it:a" }),
+    ]);
+    expect(stacks(v).get("C4131")!.map((p) => p.id)).toEqual(["unit:it:a", "unit:it:the-san-giorgio"]);
+    expect(label(v.pieces["unit:it:the-san-giorgio"]).short).toBe("San Giorgio");
+  });
+});
+
 describe("stacks", () => {
   it("does not put the dummy supply units last: their order is no tell", () => {
     const supply = (id: string, kind: "supply-unit" | "dummy-supply-unit") =>

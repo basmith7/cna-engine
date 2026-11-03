@@ -94,7 +94,7 @@
       <div class="unit" data-unit={f.piece}>
         <div class="head">
           <span class="name">{name(f.piece)}</span>
-          <span class="facts">{#if f.ship_points}guns {f.points} · ship{:else}TOE {f.points} · {f.forward ? "forward" : "back"}{/if}{#if ammoNote(f, "fire")} · <span class="ammo" class:short={f.ammo_short} data-ammo>{ammoNote(f, "fire")}</span>{/if}</span>
+          <span class="facts">{#if f.ship_points}guns {f.points} · {view.pieces[f.piece]?.kind === "blockship" ? "fixed wreck" : "ship"}{:else}TOE {f.points} · {f.forward ? "forward" : "back"}{/if}{#if ammoNote(f, "fire")} · <span class="ammo" class:short={f.ammo_short} data-ammo>{ammoNote(f, "fire")}</span>{/if}</span>
           <button type="button" class="add" data-add-fire={f.piece} onclick={() => addFire(f)}>+ fire</button>
         </div>
         {#each fires as row, i (i)}

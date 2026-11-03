@@ -81,7 +81,7 @@ export type Location =
   | { port: string }
   | "eliminated";
 
-export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit" | "raider" | "ship";
+export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit" | "raider" | "ship" | "blockship";
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
