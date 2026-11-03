@@ -1306,7 +1306,7 @@
       "equivalent": null,
       "group": 6,
       "location": {
-        "hex": "D3614"
+        "hex": "D3713"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1331,7 +1331,7 @@
       "equivalent": null,
       "group": 6,
       "location": {
-        "hex": "D3614"
+        "hex": "D3713"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1356,7 +1356,7 @@
       "equivalent": null,
       "group": 6,
       "location": {
-        "hex": "D3614"
+        "hex": "D3713"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -9293,7 +9293,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-1",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },
@@ -9302,7 +9302,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-2",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },
@@ -9311,7 +9311,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-3",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },
