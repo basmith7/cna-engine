@@ -175,11 +175,14 @@ NOT_SIMULATED row until it is placed. #117 (merged): fleet Task 2,
 off-shore bombardment (30.2x): a stationed ship fires its guns in a
 barrage step, BB/CA also into an adjacent hex at half, then two stages
 in Alexandria. A fresh review found ships paying combat CP and the
-step's opening reading hidden TOE; both fixed. #118: fleet Task 3,
-strikes on the fleet (32.7x), damage, the half-guns bar, sinking and
-repair; its review found the Commonwealth's preview showing a strike
-to come, fixed. The fleet stays off in new games until the browser
-panel (Task 4) lands.
+step's opening reading hidden TOE; both fixed. #118 (merged): fleet
+Task 3, strikes on the fleet (32.7x), damage, the half-guns bar,
+sinking and repair; its review found the Commonwealth's preview
+showing a strike to come, fixed. #119: fleet Task 4, the browser's
+phase E panel, ships on the map and offered in the barrage step, a
+Playwright spec by clicks. A fresh look at its screenshots found six
+display faults (in #119's body), not yet fixed. The fleet stays off in
+new games until they are and the scripted games are re-pinned.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -216,9 +219,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. The fleet's engine is built (#117, #118);
-  its browser panel (Task 4) is next, and then the module joins new
-  games. 28.3's captured equipment waits on cna (#287 there, draft).
+- Nothing waits on Brian. The fleet is built (#117, #118, #119 on CI);
+  next: fix #119's display faults, then put the fleet in new games
+  (re-pin the scripted games and Playwright drivers) and enforce
+  Graziani's "no warship moves before Game-Turn 2". 28.3's captured
+  equipment waits on cna (#287 there, draft).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
