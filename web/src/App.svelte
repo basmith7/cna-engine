@@ -22,6 +22,8 @@
   import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
+  import Lobby from "./Lobby.svelte";
+  import { type Account, me } from "./lobby";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
@@ -35,6 +37,11 @@
   let error: string | null = $state(null);
   /** The wasm is in; without a game yet the start screen shows. */
   let loaded = $state(false);
+  /** The signed-in account for "Play online", or null when signed out or there is no lobby server. */
+  let account: Account | null = $state(null);
+  /** The lobby shows in place of the start screen. */
+  let inLobby = $state(false);
+  me().then((a) => (account = a), () => (account = null));
   /** The autosave's clock line on the start screen, or null when there is none. */
   let autosave: string | null = $state(null);
   /** The engine's refusal of the last file given to Load, until the next Load. */
@@ -534,8 +541,10 @@
     </div>
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
+  {:else if loaded && inLobby && account}
+    <Lobby {account} onback={() => { inLobby = false; me().then((a) => (account = a), () => (account = null)); }} />
   {:else if loaded}
-    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} scenarios={LocalEngine.scenarios()} onnew={(scenario, seed) => start(LocalEngine.newGame(scenario, seed))} onload={loadFile} />
+    <StartScreen {account} onlobby={() => (inLobby = true)} {autosave} error={loadError} oncontinue={continueAutosave} scenarios={LocalEngine.scenarios()} onnew={(scenario, seed) => start(LocalEngine.newGame(scenario, seed))} onload={loadFile} />
   {:else}
     <p class="status">Loading the engine…</p>
   {/if}
