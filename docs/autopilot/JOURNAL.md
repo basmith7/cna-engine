@@ -578,3 +578,9 @@ Done: #97 (slice 6, ship) merged 07414ce after a fresh review's fixes (SIGTERM s
 In flight: #80 CI after this merge; #98 (stream hears join/leave, by a subagent) draft or ready.
 Next: merge #80 on green CI; finish/merge #98; then Mission 5's next item from PROGRESS Next steps (Axis convoy lanes, substitution once cna maps counters to chart slots, or §27 raiders now that per-side views exist).
 Blocked: Mission 4 hosting is Brian's checklist (spec).
+
+## 2026-11-02 23:52 MST — autopilot/m4-stream-seats
+Done: #80 merged c2c793a (green CI). #98 (subagent: seats SSE event on join/leave, server + client tests) ready; main merged in (journal conflict only).
+In flight: CI on #98's merge commit.
+Next: merge #98 on green CI; then Mission 5's next item (PROGRESS Next steps).
+Blocked: none (hosting Mission 4 is Brian's checklist).
