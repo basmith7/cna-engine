@@ -122,9 +122,9 @@ pieces down and take others on at stops (R-005), engine and browser.
 A fresh review of #100–#102 found four faults, all fixed (a unit
 assigned elsewhere could substitute; substitute status could shift; a
 cancelled convoy was rerouted; the Bizerta roll changed old logs).
-#100, #101 and #102 merged at 07:55 UTC; #103 was waiting on CI.
-Once it merges, Graziani's land rules are complete bar the LRDG raid
-(27.9x).
+#100–#103 merged (2026-11-03). Graziani's land rules are complete bar
+the LRDG raid on Rommel (27.6x). Draft #104 plans it together with the
+desert raiders (§27); two cna requests are filed below.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -166,10 +166,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Nothing else waits on Brian. Next run: merge #103 if it is still
-  open (base `main`, green CI), then the desert raiders (§27) and
-  the LRDG raid on Rommel (27.9x), which want hidden movement: a spec
-  first, as it is the first rule that hides a unit's position.
+- Nothing else waits on Brian. Next run: #104's Task 1 (`docs/plans/2026-11-03-m5-desert-raiders.md`),
+  with a test-only raider piece: spotting and the raid on Rommel (hidden
+  pieces already leave the enemy's view and events on #104). Task 3 (forming raiders) waits on
+  the cna raider-counter request.
 - #100 changes starting shells outside Graziani's (its body lists them):
   the 15th Panzer is whole in The Last Chance now, and the 7th Support
   Group, the 21st Panzer and the 1st and 7th Armoured are shells; the
@@ -381,3 +381,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-02 16:44 | 76 | 40→43 | none→none | $15.44 | 2 | Slices 2 and 3 of Mission 4 are merged, and slice 4 is partly built as draft PR #95 with CI green. - **Slice 2, the headless server (#93), merged.** A separate  |
 | 2026-11-02 19:44 | 79 | 44→? | none→? | $19.87 | 2 | #96 isn't merged: its `server` and `test` checks pass, but `web` is still running and should finish around 04:11Z, too close to the 04:14Z cutoff to merge safel |
 | 2026-11-02 22:44 | 82 | 50→53 | none→none | $9.14 | 2 | Mission 4 (online play) is finished and merged. Nothing is hosted yet; that's your checklist, below. **Merged this run:** - **#96, turn alerts.** You get a Disc |
+| 2026-11-03 00:06 | 74 | 53→57 | none→none | $23.95 | 2 | All four stacked PRs (#100–#103) are merged, and main's CI on the #103 merge (run 41600130717) passed: web, test and server. Locally on main, clippy is clean, 6 |
