@@ -469,3 +469,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 10:56 | 85 | 68→70 | none→none | $15.41 | 2 | The fleet engine is built and merged: warship ratings load, ships bombard the coast, and Axis strikes damage, sink and repair them. Its browser panel is merged  |
 | 2026-11-03 12:21 | 15 | 70→? | none→? | $6.63 | 8 | 70 merged autopilot branches deleted from origin (each verified as already in `main`); `autopilot/m5-slice-4-arrivals` has unmerged work, so I left it. Waiting  |
 | 2026-11-03 13:45 | 53 | 70→71 | none→none | $11.48 | 173 | R-152 (captured equipment) is built and merged in #121–#123. The *San Giorgio* (R-151) is open as draft PR #124. A previous run had built it and was killed befo |
+| 2026-11-03 15:44 | 73 | 71→0 | none→none | $9.79 | 125 | Three PRs merged this run (#124, #125, #126). The towing slice is open as draft #127 for the next run. - **#124, the *San Giorgio*:** merged on green CI. Its ba |
