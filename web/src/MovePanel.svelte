@@ -66,6 +66,11 @@
   const fuel = $derived(fuelSummary(reaches));
   const under = $derived(hovered ? reaches.find((r) => r.hex === hovered) : undefined);
   const nameOf = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
+  /** A rider's name: supply units all read "Supply", so theirs carries the counter's number. */
+  const riderName = (id: PieceId) => {
+    const p = view.pieces[id];
+    return p && (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") ? `Supply ${id.split(":").pop()}` : nameOf(id);
+  };
 </script>
 
 <section class="panel" data-testid="move-panel" data-purpose={purpose}>
@@ -81,14 +86,22 @@
       <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} along the railway, no CP or fuel. Click one to go there.</p>
       <div class="stops" data-testid="rail-stops">
         {#each railStops as stop, i (stop.at)}
+          {@const aboard = aboardAt(ticked, railStops, i)}
+          {@const waiting = waitingAt(view, stop.at, ticked)}
           <div class="stop" data-stop={stop.at}>
-            <p>Stop at {stop.at} <button type="button" class="link" data-stop-remove onclick={() => (railStops = railStops.filter((s) => s.at !== stop.at))}>remove</button></p>
-            {#each aboardAt(ticked, railStops, i) as id (id)}
-              <label><input type="checkbox" data-stop-off={id} checked={stop.off.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "off", id))} /> {nameOf(id)} gets off</label>
-            {/each}
-            {#each waitingAt(view, stop.at, ticked) as id (id)}
-              <label><input type="checkbox" data-stop-on={id} checked={stop.on.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "on", id))} /> {nameOf(id)} gets on</label>
-            {/each}
+            <p class="stop-title"><strong>Stop at {stop.at}</strong> <button type="button" class="link" data-stop-remove onclick={() => (railStops = railStops.filter((s) => s.at !== stop.at))}>remove</button></p>
+            {#if aboard.length > 0}
+              <p class="sub">Aboard: tick to set down here</p>
+              {#each aboard as id (id)}
+                <label><input type="checkbox" data-stop-off={id} checked={stop.off.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "off", id))} /> {riderName(id)}</label>
+              {/each}
+            {/if}
+            {#if waiting.length > 0}
+              <p class="sub">Waiting here: tick to take on</p>
+              {#each waiting as id (id)}
+                <label><input type="checkbox" data-stop-on={id} checked={stop.on.includes(id)} onchange={() => (railStops = toggleAtStop(railStops, i, "on", id))} /> {riderName(id)}</label>
+              {/each}
+            {/if}
           </div>
         {/each}
         {#if stopping}
@@ -199,6 +212,24 @@
   .fuel select {
     font: inherit;
     max-width: 100%;
+  }
+  .stops {
+    margin: 0.3rem 0 0.5rem;
+  }
+  .stop {
+    border-left: 3px solid #1b6f66;
+    padding: 0.1rem 0 0.2rem 0.5rem;
+    margin: 0 0 0.4rem;
+  }
+  .stop p {
+    margin: 0.1rem 0;
+  }
+  .stop .sub {
+    font-size: 12px;
+    color: #444;
+  }
+  .stop label {
+    display: block;
   }
   .assault {
     display: block;
