@@ -9321,6 +9321,30 @@
       "contact": false,
       "engaged": false
     },
+    "unit:it:the-san-giorgio": {
+      "id": "unit:it:the-san-giorgio",
+      "side": "axis",
+      "kind": "blockship",
+      "nation": "it",
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
     "unit:it:trivioli-2nd-regt-hq": {
       "id": "unit:it:trivioli-2nd-regt-hq",
       "side": "axis",
