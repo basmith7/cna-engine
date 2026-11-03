@@ -312,6 +312,15 @@ the bullet once it lands and `vendor/cna` is bumped.
   limit (and an explicit statement where a scenario has none). Blocks
   turning the fleet on in new games.
 
+- **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
+  R-151's Rationale says ammunition and the rest of the artillery rules
+  apply to the wreck unchanged, but 32.21 charges a barrage by battalion
+  or company equivalent and its OA entry (`unit:it:the-san-giorgio`) has
+  no `id_code`, TOE or size. Wanted: what one barrage costs it under the
+  abstract block (e.g. a size to charge it as, or a fixed figure), and
+  whether it draws from supply in range like any gun. Until then #124
+  fires it free.
+
 ## Runs and quota
 
 | Started | Minutes | Weekly before→after | 5h before→after | Cost | Turns | Result |
