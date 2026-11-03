@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatEvent } from "./format";
-import type { Clock, Event, VictoryReport } from "./types";
+import type { Clock, Event, RaidResult, VictoryReport } from "./types";
 
 const clock: Clock = { game_turn: 2, stage: 3, phase: "movement-combat", half: "A", segment: "movement" };
 const report: VictoryReport = { axis: null, cw: "marginal", checked: [], unchecked: [] };
@@ -18,6 +18,8 @@ const cases: [Event, string][] = [
   [{ unplaced: { piece: "u:a" } }, "A taken back, to be placed again."],
   ["set-up-complete", "Set-up complete; play begins."],
   ["rommel-recalled", "Rommel is recalled to Germany for this Game-Turn."],
+  [{ "raider-spotted": { piece: "u:a", hex: "C4131", roll: 6, eliminated: true } }, "A entering C4131 rolls 6 to stay unseen: spotted and eliminated."],
+  [{ "rommel-raided": { piece: "u:a", hex: "C3618", roll: 7, result: "lrdg-eliminated", lrdg_eliminated: true } }, "A raids Rommel at C3618: 7, the raid fails; the raider is eliminated."],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
@@ -97,13 +99,23 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 72 variants", () => {
+  it("covers all 74 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(72);
+    expect(tags.size).toBe(74);
   });
 
   it.each(cases)("%j", (event, line) => {
     expect(formatEvent(event, name)).toBe(line);
+  });
+
+  it("reads every row of the Raid on Rommel Table, and a raider not spotted", () => {
+    const raid = (result: RaidResult, lrdg_eliminated = false) => formatEvent({ "rommel-raided": { piece: "u:a", hex: "C3618", roll: 2, result, lrdg_eliminated } }, name);
+    expect(raid("rommel-removed")).toBe("A raids Rommel at C3618: 2, Rommel is removed for good; the raider survives.");
+    expect(raid("axis-initiative-3-temporary")).toBe("A raids Rommel at C3618: 2, the Axis initiative rating drops to 3 for a while; the raider survives.");
+    expect(raid("none")).toBe("A raids Rommel at C3618: 2, no effect; the raider survives.");
+    // Rommel's hex held no combat or HQ unit: the result spares the raider (27.92).
+    expect(raid("lrdg-eliminated")).toBe("A raids Rommel at C3618: 2, the raid fails; the raider survives.");
+    expect(formatEvent({ "raider-spotted": { piece: "u:a", hex: "C4131", roll: 3, eliminated: false } }, name)).toBe("A entering C4131 rolls 3 to stay unseen: not spotted.");
   });
 
   it("names pieces by id when no namer is given", () => {

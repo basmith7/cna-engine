@@ -280,4 +280,5 @@
   .marker.contact { background: #e07b00; }
   .marker.engaged { background: #b3261e; }
   .marker.forward { background: #2e7d32; }
+  .marker.hidden { background: #6a1b9a; }
 </style>

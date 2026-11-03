@@ -29,6 +29,8 @@ const BY_WORD: [RegExp, Glyph][] = [
 export function glyphFor(kind: PieceKind, unitType: string | null): Glyph {
   if (kind === "supply-unit" || kind === "dummy-supply-unit") return "supply";
   if (kind === "commander") return "commander";
+  // A raider (§27) is a desert patrol of recce vehicles; it has no chart row.
+  if (kind === "raider") return "recce";
   if (unitType) {
     for (const [re, glyph] of BY_WORD) if (re.test(unitType)) return glyph;
   }
@@ -55,11 +57,12 @@ export function sizeMark(equivalent: Equivalent | null): string {
  */
 export function label(p: Piece): { short: string; long: string } {
   if (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") return { short: "Supply", long: "Supply unit" };
+  if (p.kind === "raider" && !p.abbreviation) return { short: "Raider", long: p.name ?? "Raider" };
   return { short: p.abbreviation ?? p.id_code ?? p.id, long: p.name ?? p.id };
 }
 
 /** Rommel on top, then HQs, combat units and supply; ties by id so a stack is stable. */
-const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, "supply-unit": 3, "dummy-supply-unit": 3 };
+const KIND_ORDER: Record<PieceKind, number> = { commander: 0, hq: 1, combat: 2, raider: 2, "supply-unit": 3, "dummy-supply-unit": 3 };
 
 /**
  * Supply units tie-break on a hash of the id, not the id itself: a dummy's
@@ -161,10 +164,12 @@ export function offMap(view: View): OffMap {
 }
 
 /** The small marks a counter carries, from the piece and the combat segment's sets. */
-export type Marker = "reserve-I" | "reserve-II" | "contact" | "engaged" | "pinned" | "forward";
+export type Marker = "hidden" | "reserve-I" | "reserve-II" | "contact" | "engaged" | "pinned" | "forward";
 
 export function markers(p: Piece, view: View): Marker[] {
   const out: Marker[] = [];
+  // Only its owner's view has a hidden raider in it (27.31).
+  if (p.hidden) out.push("hidden");
   if (p.reserve) out.push(`reserve-${p.reserve}`);
   if (p.engaged) out.push("engaged");
   else if (p.contact) out.push("contact");

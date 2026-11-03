@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import charsFile from "../../vendor/cna/data/tables/unit-characteristics.json";
-import { glyphFor, label, nameParts, nested, offMap, sizeMark, stacks, topFirst } from "./counters";
+import { glyphFor, label, markers, nameParts, nested, offMap, sizeMark, stacks, topFirst } from "./counters";
 import type { Piece, View } from "./types";
 
 function piece(over: Partial<Piece> & { id: string }): Piece {
@@ -163,5 +163,21 @@ describe("nested", () => {
       ["hq:bde", 1],
       ["unit:bn", 2],
     ]);
+  });
+});
+
+describe("raiders", () => {
+  const raider = (over: Partial<Piece> = {}) =>
+    piece({ id: "unit:cw:lrdg", side: "cw", kind: "raider", nation: "cw", id_code: null, toe: 0, cpa: null, equivalent: null, unit_type: null, name: null, abbreviation: null, ...over });
+
+  it("marks a hidden raider and only while it is hidden (27.31)", () => {
+    expect(markers(raider({ hidden: true }), view([]))).toEqual(["hidden"]);
+    expect(markers(raider(), view([]))).toEqual([]);
+  });
+
+  it("draws a raider as reconnaissance, named Raider when the OA has no name for it", () => {
+    expect(glyphFor("raider", null)).toBe("recce");
+    expect(label(raider())).toEqual({ short: "Raider", long: "Raider" });
+    expect(label(raider({ name: "Long Range Desert Group", abbreviation: "LRDG" }))).toEqual({ short: "LRDG", long: "Long Range Desert Group" });
   });
 });
