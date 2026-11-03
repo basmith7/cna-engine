@@ -219,6 +219,9 @@ impl GameState {
     /// A path of at most five hexes from `from` to `target` that avoids
     /// enemy-held hexes and enemy-controlled ones, bar the target's own
     /// ZOC (16.22).
+    // Every hex next to an enemy-held one counts as enemy-controlled: the
+    // patroller sees who holds a hex, not whether it could exert a ZOC
+    // (its strength is hidden, 3.61), so a refusal must not tell it.
     fn patrol_path(&self, data: &Data, side: Side, from: &HexId, target: &HexId) -> bool {
         let around_target: BTreeSet<HexId> = data.map.neighbours(target).into_iter().collect();
         let open = |h: &HexId| -> bool {
@@ -233,7 +236,7 @@ impl GameState {
                     .map
                     .neighbours(h)
                     .iter()
-                    .any(|n| self.holder(n) == Some(side.other()) && self.could_exert(data, n))
+                    .any(|n| self.holder(n) == Some(side.other()))
         };
         let mut seen: BTreeSet<HexId> = BTreeSet::from([from.clone()]);
         let mut frontier = vec![from.clone()];
