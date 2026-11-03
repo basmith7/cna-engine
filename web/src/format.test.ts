@@ -28,6 +28,10 @@ const cases: [Event, string][] = [
   [{ "dump-raided": { piece: "u:a", target: "u:b", hex: "C4808", guard_roll: 9, guard_strength: 7, roll: 2, dummy: false, ammo_lost: 4, fuel_lost: 5, removed: false, raider_eliminated: false } }, "A raids B at C4808: guards 9 against 7, die 2, 4 ammunition and 5 fuel burnt; the raider survives."],
   [{ "dump-raided": { piece: "u:a", target: "u:b", hex: "C4808", guard_roll: null, roll: 1, dummy: false, removed: false, raider_eliminated: false } }, "A raids B at C4808: die 1; the raider survives."],
   [{ "dump-raided": { piece: "u:a", target: "u:b", hex: "C4808", guard_roll: 4, roll: null, dummy: true, removed: true, raider_eliminated: true } }, "A raids B at C4808: guards 4, a dummy, removed; the raider is eliminated."],
+  [
+    { patrolled: { side: "cw", target: "C4020", sources: [["u:a", 2], ["u:b", 1]], survival_die: 2, killed: 1, captured: 1, recon_die: 5, described: [{ piece: "u:c", toe: 6 }, { piece: "u:d", toe: 3 }], objective_die: 1, objective_killed: 1, objective_captured: 1 } },
+    "Commonwealth patrols C4020 with A 2, B 1: survival 2, 1 killed and 1 captured; reconnaissance 5, sees u:c (6 TOE), u:d (3 TOE); objective loss 1, 1 TOE killed and 1 captured.",
+  ],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
@@ -107,9 +111,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 78 variants", () => {
+  it("covers all 79 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(78);
+    expect(tags.size).toBe(79);
   });
 
   it.each(cases)("%j", (event, line) => {
@@ -124,6 +128,14 @@ describe("the log line of every event variant", () => {
     // Rommel's hex held no combat or HQ unit: the result spares the raider (27.92).
     expect(raid("lrdg-eliminated")).toBe("A raids Rommel at C3618: 2, the raid fails; the raider survives.");
     expect(formatEvent({ "raider-spotted": { piece: "u:a", hex: "C4131", roll: 3, eliminated: false } }, name)).toBe("A entering C4131 rolls 3 to stay unseen: not spotted.");
+  });
+
+  it("says when a patrol met no combat unit, came back with nothing, or was wiped out", () => {
+    const base = { side: "axis" as const, target: "C4020", sources: [["u:a", 1]] as [string, number][], killed: 0, captured: 0, objective_die: 6, objective_killed: 0, objective_captured: 0 };
+    expect(formatEvent({ patrolled: { ...base, recon_die: 1 } }, name)).toBe("Axis patrols C4020 with A 1: no combat unit to meet it; reconnaissance 1, sees nothing; objective loss 6, no loss.");
+    expect(formatEvent({ patrolled: { ...base, survival_die: 6, recon_die: 4, described: [{ piece: "u:b", toe: 2 }] } }, name)).toBe("Axis patrols C4020 with A 1: survival 6, none lost; reconnaissance 4, sees B (2 TOE); objective loss 6, no loss.");
+    // Wiped out: no reconnaissance die, and the objective's captures read as kills (16.32).
+    expect(formatEvent({ patrolled: { ...base, survival_die: 1, killed: 1, objective_die: 2, objective_killed: 1 } }, name)).toBe("Axis patrols C4020 with A 1: survival 1, 1 killed; none came back to report; objective loss 2, 1 TOE killed.");
   });
 
   it("names pieces by id when no namer is given", () => {

@@ -316,6 +316,8 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// A patrol's three rolls and what came of them (16.x).
+    Patrolled(Box<crate::patrol::PatrolReport>),
     /// The Axis set the lanes its convoys sail by (32.63).
     ConvoyLanesSet {
         lanes: Vec<u8>,

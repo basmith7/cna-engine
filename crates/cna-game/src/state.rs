@@ -98,6 +98,9 @@ pub struct Modules {
     /// Engineers build in phase C (§24).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub construction: bool,
+    /// Phase L opens for patrols (§16).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub patrols: bool,
 }
 
 impl Modules {
@@ -106,6 +109,7 @@ impl Modules {
         abstract_supply: true,
         breakdown: true,
         construction: true,
+        patrols: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -268,6 +272,10 @@ pub struct GameState {
     /// (28.13).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub marched: BTreeSet<HexId>,
+    /// This OpStage's anti-armour fire, close assaults and barraged
+    /// hexes, for patrols (16.21, 16.22).
+    #[serde(default, skip_serializing_if = "crate::patrol::StageRecord::is_empty")]
+    pub stage_record: crate::patrol::StageRecord,
     /// The ways a rail stack has run this OpStage: one each (8.7x, R-005).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub rail_runs: BTreeSet<crate::rail::RailWay>,
@@ -396,6 +404,7 @@ impl GameState {
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
             marched: BTreeSet::new(),
+            stage_record: Default::default(),
             air_lifted: BTreeMap::new(),
             convoy_lanes: Vec::new(),
             bizerta_open: false,
@@ -621,6 +630,14 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (
+                None,
+                Order::Patrol {
+                    sources,
+                    target,
+                    exclude,
+                },
+            ) => self.patrol(data, player, sources, target, exclude),
             (None, Order::MarchPrisoners { from, path, points }) => {
                 self.march_prisoners(data, player, from, path, *points)
             }

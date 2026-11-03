@@ -633,3 +633,27 @@ Done: Task 5 built on #109. Engine 1d4ac5d..(review fixes), `spot_try.rs`: the m
 In flight: CI on #109 (ready).
 Next: merge #109 on green CI (`gh pr merge 109 --merge --delete-branch`). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
 Blocked: none.
+
+## 2026-11-03 06:45 MST — autopilot/m5-patrols
+Done: #109 (spotting try) ready, CI test/server green, web pending at hand-off. This branch, draft #110: plan + engine (subagent, 304ba59 5c5ffaa) for patrols behind `Modules.patrols` (off by default, NOT in `Modules::ALL`, so no pins moved). Subagent's local gates: clippy clean, cargo test --no-fail-fast 0 failed, probe check up to date. PROGRESS on main dc859da.
+In flight: a fresh review of #110's engine (findings may be posted to the PR).
+Next: merge #109 if not merged (`gh pr merge 109 --merge --delete-branch`); merge main into this branch; triage the review; Task 2 browser panel, turning `patrols` on in `Modules::ALL` (regenerate pins per AGENTS.md if moved).
+Blocked: none.
+
+## 2026-11-03 07:00 MST — autopilot/m5-patrols
+Done: #109 merged c2e8e4a. Fresh review of #110's engine: W1 (the path check read hidden ZOC strength, so a refusal leaked it) and W2 (losses came off the biggest weapon entry, not the points sent) fixed, with patrol tests at 8 passing and clippy clean for cna-game. Full `cargo test --no-fail-fast` after the fixes: 0 failed (cna-game 459).
+In flight: none.
+Next: merge origin/main in (it has spot_try: expect conflicts in state.rs, event.rs, view/). Then review items R1 (the 2-a-hex and 3-a-target limits need a per-phase tally, or else let the plan own the gap), R2 (recon counts units, not battalion equivalents: NOT_SIMULATED), R3 (`Reconnaissance::revealed` should error on a missing row), and the tidies: `Modules::ALL` carrying `patrols: false`, `start_stage` widened for a test, phase L opening under storms. Then Task 2 (browser), which turns `patrols` on in ALL.
+Blocked: none.
+
+## 2026-11-03 08:55 MST — autopilot/m5-patrols
+Done: main merged in; review R1 (16.13 limits tallied across the phase in `StageRecord`), R3 (recon table checked at load, `revealed` returns `Revealed`), phase L shut under storms: e86110d. `patrols` on in `Modules::ALL`, `cna-play new --no-patrols`, golden script passes phase L, all pins regenerated: ea2b800. R2 is a NOT_SIMULATED line.
+In flight: subagent building Task 2 (browser phase L panel, API, log lines, patrols.spec, existing Playwright drivers passing phase L) on this branch.
+Next: check the subagent's pasted gates; run Playwright in full; fresh review of the panel for leaks; `gh pr ready 110`, merge on green CI.
+Blocked: none.
+
+## 2026-11-03 09:58 MST — autopilot/m5-patrols
+Done: #112 (fleet plan) merged. Fresh review of #110: no server leak beyond phase L's open/skip signal (accepted, documented in view/events.rs as phase K's is); points box clamped; the 16.53 exclusion has no browser control (NOT_SIMULATED). Local: svelte-check 0, vitest 226, patrols.spec 1 passed, view tests ok.
+In flight: CI on #110 (ready); subagent building fleet Task 1 on autopilot/m5-fleet (/tmp/cna-fleet-1).
+Next: merge #110 on green CI; then merge main into #111 (r150), regenerate pins per AGENTS.md, merge.
+Blocked: none.
