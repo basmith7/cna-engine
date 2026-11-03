@@ -168,6 +168,11 @@ pub struct GameState {
     /// in a shorter scenario.
     #[serde(default, skip_serializing_if = "crate::raiders::is_zero")]
     pub rommel_raids: u32,
+    /// Raiders and the hexes they raided this movement segment, so this
+    /// OpStage: no raider makes the same raid in a hex twice in a stage
+    /// (27.91's general notes).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub raided: BTreeSet<(PieceId, HexId)>,
     /// The last Game-Turn a raid on Rommel's 2 pins the Axis initiative
     /// rating at 3 through (27.92).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -354,6 +359,7 @@ impl GameState {
             initiative: None,
             rommel_recalled: false,
             rommel_raids: 0,
+            raided: BTreeSet::new(),
             axis_initiative_pinned_through: None,
             player_a: None,
             organised: false,
@@ -626,6 +632,9 @@ impl GameState {
                 },
             ) => self.absorb_replacements(data, player, piece, weapon, *points),
             (None, Order::RaidRommel { piece }) => self.raid_rommel(data, player, piece),
+            (None, Order::RaidDump { piece, target }) => {
+                self.raid_dump(data, player, piece, target)
+            }
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }

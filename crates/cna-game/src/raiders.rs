@@ -20,6 +20,17 @@ pub(crate) const RAIDER_CPA: u32 = 50;
 /// What a raid on Rommel costs (27.61).
 const RAID_CP: u32 = 10;
 
+/// What a raid on a supply dump costs (27.5x; the Desert Raider Raids
+/// Table's `cp_cost`).
+const DUMP_RAID_CP: u32 = 5;
+
+/// The highest supply-dump die that burns 10 % (the table's
+/// `supply-dump` row).
+const DUMP_HIT_MAX: u8 = 2;
+
+/// The supply-dump die that eliminates a raider among combat units.
+const GUARDED_DUMP_DEATH: u8 = 6;
+
 /// The Axis initiative rating a raid's 2 pins (27.92).
 pub(crate) const PINNED_AXIS_INITIATIVE: u8 = 3;
 
@@ -203,6 +214,139 @@ impl GameState {
             roll,
             result: row.result,
             lrdg_eliminated,
+        });
+        Ok(events)
+    }
+
+    /// `Order::RaidDump` (27.55, 27.56, R-149): a raider in its movement
+    /// segment, in or next to an enemy supply unit's hex outside a major
+    /// city, spends 5 CP to raid it as a supply dump on the Desert Raider
+    /// Raids Table (27.91). It raids from where it stands, as no unit
+    /// enters an enemy-held hex (8.1x), and may move on afterwards.
+    pub(crate) fn raid_dump(
+        &mut self,
+        data: &Data,
+        player: Side,
+        id: &PieceId,
+        target: &PieceId,
+    ) -> Result<Vec<Event>, Illegal> {
+        let Some(p) = self.pieces.get(id) else {
+            return Err(Illegal::new("27.55", format!("{id}: no such piece")));
+        };
+        if p.side != player || p.kind != PieceKind::Raider {
+            return Err(Illegal::new(
+                "27.55",
+                format!("{id}: only a desert raider raids a supply dump"),
+            ));
+        }
+        if !self.modules.abstract_supply {
+            return Err(Illegal::new(
+                "R-149",
+                "a supply unit is a dump only under abstract supply (§32)",
+            ));
+        }
+        if self.clock.phase != Phase::MovementCombat
+            || self.clock.segment != Some(Segment::Movement)
+            || self.phasing() != Some(player)
+        {
+            return Err(Illegal::new(
+                "27.51",
+                "a raid is made in the raider's movement segment",
+            ));
+        }
+        let Some(at) = p.hex().cloned() else {
+            return Err(Illegal::new("27.55", format!("{id} is not on the map")));
+        };
+        let Some((hex, dummy, owner)) = self
+            .pieces
+            .get(target)
+            .filter(|t| t.side != player && t.kind.is_supply())
+            .and_then(|t| {
+                let dummy = t.kind == PieceKind::DummySupplyUnit;
+                Some((t.hex()?.clone(), dummy, t.side))
+            })
+        else {
+            return Err(Illegal::new(
+                "27.55",
+                format!("{target}: no enemy supply unit on the map"),
+            ));
+        };
+        if at != hex && !data.map.adjacent(&at, &hex) {
+            return Err(Illegal::new(
+                "27.55",
+                format!("{id} at {at} is not in or next to {hex}"),
+            ));
+        }
+        if data
+            .map
+            .hex(&hex)
+            .is_some_and(|h| h.terrain == cna_data::map::Terrain::MajorCity)
+        {
+            return Err(Illegal::new(
+                "27.55",
+                format!("{hex} is a major city hex: no dump there is raided"),
+            ));
+        }
+        if self.raided.contains(&(id.clone(), hex.clone())) {
+            return Err(Illegal::new(
+                "27.91",
+                format!("{id} has raided at {hex} this stage"),
+            ));
+        }
+        self.raider_cap(std::slice::from_ref(id), Cp::whole(DUMP_RAID_CP))?;
+        let guards: Vec<&crate::piece::Piece> = self
+            .pieces_at(&hex)
+            .into_iter()
+            .filter(|q| q.side == owner && q.kind == PieceKind::Combat)
+            .collect();
+        let guard_strength = (!guards.is_empty()).then(|| self.raw_defence(data, &guards));
+        let mut events = Vec::new();
+        self.charge(id, Cp::whole(DUMP_RAID_CP), false, &mut events);
+        self.raided.insert((id.clone(), hex.clone()));
+        // The chart: two dice equal to or above the guards' raw
+        // close-assault defence get past them (27.91's note).
+        let guard_roll = guard_strength.map(|_| self.rng.d6() + self.rng.d6());
+        let mut raider_eliminated =
+            matches!((guard_roll, guard_strength), (Some(r), Some(s)) if u32::from(r) < s);
+        let roll = (!raider_eliminated).then(|| self.rng.d6());
+        if roll == Some(GUARDED_DUMP_DEATH) && guard_strength.is_some() {
+            raider_eliminated = true;
+        }
+        let (mut ammo_lost, mut fuel_lost, mut removed) = (0, 0, dummy);
+        if roll.is_some_and(|r| r <= DUMP_HIT_MAX)
+            && let Some(load) = self.pieces.get_mut(target).and_then(|t| t.load.as_mut())
+        {
+            // 10 % of each kind, rounded up (R-149).
+            ammo_lost = load.ammo.div_ceil(10);
+            fuel_lost = load.fuel.div_ceil(10);
+            load.ammo -= ammo_lost;
+            load.fuel -= fuel_lost;
+            removed = load.ammo == 0 && load.fuel == 0;
+        }
+        if removed {
+            // A dummy found is removed (27.56, 32.18); a unit left with
+            // nothing is too (32.11).
+            self.release_motorisation(target);
+            self.pieces.get_mut(target).expect("checked").location = Location::Eliminated;
+        }
+        let p = self.pieces.get_mut(id).expect("checked");
+        // A raid puts the counter on the map (27.5x).
+        p.hidden = false;
+        if raider_eliminated {
+            p.location = Location::Eliminated;
+        }
+        events.push(Event::DumpRaided {
+            piece: id.clone(),
+            target: target.clone(),
+            hex,
+            guard_roll,
+            guard_strength,
+            roll,
+            dummy,
+            ammo_lost,
+            fuel_lost,
+            removed,
+            raider_eliminated,
         });
         Ok(events)
     }
@@ -586,5 +730,353 @@ mod tests {
         assert_eq!(state.axis_initiative_rating(&data), 3);
         state.clock.game_turn = turn + 3;
         assert_eq!(state.axis_initiative_rating(&data), 6);
+    }
+
+    #[test]
+    fn the_dump_raid_constants_are_the_desert_raider_raids_table_s() {
+        let t = cna_data::errata::load_table(&cna_data::source::Fs, "desert-raider-raids").unwrap();
+        assert_eq!(t["cp_cost"], DUMP_RAID_CP);
+        let row = |name: &str| {
+            t["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["target"] == name)
+                .unwrap()
+                .clone()
+        };
+        let dump = row("supply-dump");
+        let die = dump["die"].as_array().unwrap();
+        assert_eq!(die[0]["to"], DUMP_HIT_MAX);
+        assert_eq!(die[0]["result"], "destroy-percent");
+        assert_eq!(die[0]["percent"], 10);
+        assert_eq!(die[2]["from"], GUARDED_DUMP_DEATH);
+        assert_eq!(die[2]["raider_eliminated_if_combat_units"], true);
+        let guarded = row("supply-dump-guarded");
+        assert_eq!(guarded["guard_check"]["dice"], 2);
+        assert_eq!(
+            guarded["guard_check"]["survive_if_sum_at_least"],
+            "raw-close-assault-defence"
+        );
+    }
+
+    /// An Axis supply unit (or dummy) holding 35 ammunition and 41 fuel
+    /// at `hex`.
+    fn dump(state: &mut GameState, hex: &HexId, dummy: bool) -> PieceId {
+        let model = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            .unwrap();
+        let mut d = model.clone();
+        d.id = if dummy {
+            PieceId::dummy_supply(Side::Axis, 900)
+        } else {
+            PieceId::supply(Side::Axis, 900)
+        };
+        d.kind = if dummy {
+            PieceKind::DummySupplyUnit
+        } else {
+            PieceKind::SupplyUnit
+        };
+        d.nation = None;
+        d.id_code = None;
+        d.toe = 0;
+        d.weapons.clear();
+        d.equivalent = None;
+        d.parent = None;
+        d.attached_to = None;
+        d.load = (!dummy).then_some(crate::piece::Load { ammo: 35, fuel: 41 });
+        d.location = Location::Hex(hex.clone());
+        let id = d.id.clone();
+        state.pieces.insert(id.clone(), d);
+        id
+    }
+
+    /// A raider and an Axis dump next to it, alone or (`guarded`) in an
+    /// Axis combat unit's hex, under abstract supply.
+    fn dump_raid(
+        data: &Data,
+        state: &mut GameState,
+        guarded: bool,
+        dummy: bool,
+    ) -> (PieceId, PieceId) {
+        state.modules.abstract_supply = true;
+        let (far, near) = approach(data, state);
+        let ax = data
+            .map
+            .neighbours(&near)
+            .into_iter()
+            .find(|h| {
+                state
+                    .pieces_at(h)
+                    .iter()
+                    .any(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            })
+            .unwrap();
+        let (dump_hex, raider_hex) = if guarded { (ax, near) } else { (near, far) };
+        let terrain = data.map.hex(&dump_hex).unwrap().terrain.name();
+        assert_ne!(terrain, "major-city");
+        let target = dump(state, &dump_hex, dummy);
+        (raider(state, &raider_hex), target)
+    }
+
+    fn raid_dump(
+        state: &mut GameState,
+        data: &Data,
+        id: &PieceId,
+        target: &PieceId,
+    ) -> Result<Event, Illegal> {
+        let events = state.apply(
+            data,
+            Side::Cw,
+            Order::RaidDump {
+                piece: id.clone(),
+                target: target.clone(),
+            },
+        )?;
+        Ok(events
+            .into_iter()
+            .find(|e| matches!(e, Event::DumpRaided { .. }))
+            .expect("a raid event"))
+    }
+
+    #[test]
+    fn an_unguarded_raid_burns_ten_percent_of_each_kind_rounded_up_on_one_or_two() {
+        let data = graziani();
+        let base = moving(&data, 3, Side::Cw);
+        let (mut hits, mut misses) = (0, 0);
+        for seed in 0..40 {
+            let mut s = base.clone();
+            let (id, target) = dump_raid(&data, &mut s, false, false);
+            s.rng = GameRng::new(seed);
+            let Event::DumpRaided {
+                guard_roll,
+                roll,
+                dummy,
+                ammo_lost,
+                fuel_lost,
+                removed,
+                raider_eliminated,
+                ..
+            } = raid_dump(&mut s, &data, &id, &target).unwrap()
+            else {
+                unreachable!()
+            };
+            assert_eq!(guard_roll, None);
+            assert!(
+                !dummy && !removed && !raider_eliminated,
+                "unguarded: no 6 kills"
+            );
+            let roll = roll.expect("a die");
+            let load = s.pieces[&target].load.unwrap();
+            if roll <= 2 {
+                hits += 1;
+                // 3.5 and 4.1, rounded up.
+                assert_eq!((ammo_lost, fuel_lost), (4, 5));
+                assert_eq!((load.ammo, load.fuel), (31, 36));
+            } else {
+                misses += 1;
+                assert_eq!((ammo_lost, fuel_lost), (0, 0));
+                assert_eq!((load.ammo, load.fuel), (35, 41));
+            }
+            let p = &s.pieces[&id];
+            assert_eq!(p.cp_spent, Cp::whole(5));
+            assert!(!p.hidden, "a raid puts the counter on the map");
+            assert!(p.hex().is_some());
+        }
+        assert!(hits > 0 && misses > 0, "{hits} {misses}");
+    }
+
+    #[test]
+    fn a_dump_raid_leaving_a_unit_empty_removes_it_32_11() {
+        let data = graziani();
+        let base = moving(&data, 3, Side::Cw);
+        let (s, target, e) = (0..40)
+            .find_map(|seed| {
+                let mut s = base.clone();
+                let (id, target) = dump_raid(&data, &mut s, false, false);
+                s.pieces.get_mut(&target).unwrap().load =
+                    Some(crate::piece::Load { ammo: 1, fuel: 0 });
+                s.rng = GameRng::new(seed);
+                let e = raid_dump(&mut s, &data, &id, &target).unwrap();
+                matches!(
+                    e,
+                    Event::DumpRaided {
+                        roll: Some(1 | 2),
+                        ..
+                    }
+                )
+                .then_some((s, target, e))
+            })
+            .expect("a hit in 40 seeds");
+        assert!(
+            matches!(
+                e,
+                Event::DumpRaided {
+                    removed: true,
+                    ammo_lost: 1,
+                    fuel_lost: 0,
+                    ..
+                }
+            ),
+            "{e:?}"
+        );
+        assert_eq!(s.pieces[&target].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn a_raided_dummy_is_revealed_and_removed_27_56() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let (id, target) = dump_raid(&data, &mut state, false, true);
+        let Event::DumpRaided {
+            dummy,
+            removed,
+            ammo_lost,
+            fuel_lost,
+            ..
+        } = raid_dump(&mut state, &data, &id, &target).unwrap()
+        else {
+            unreachable!()
+        };
+        assert!(dummy && removed);
+        assert_eq!((ammo_lost, fuel_lost), (0, 0));
+        assert_eq!(state.pieces[&target].location, Location::Eliminated);
+    }
+
+    #[test]
+    fn a_guarded_dump_kills_a_raider_below_the_guards_strength_or_on_a_six() {
+        let data = graziani();
+        let mut base = moving(&data, 3, Side::Cw);
+        let (id, target) = dump_raid(&data, &mut base, true, false);
+        // One guard, thin enough that two dice sometimes get past it.
+        let hex = base.pieces[&target].hex().unwrap().clone();
+        let guards: Vec<PieceId> = base
+            .pieces_at(&hex)
+            .iter()
+            .filter(|p| p.kind == PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .collect();
+        for (i, g) in guards.iter().enumerate() {
+            let p = base.pieces.get_mut(g).unwrap();
+            p.toe = 1;
+            p.weapons.clear();
+            if i > 0 {
+                p.location = Location::Eliminated;
+            }
+        }
+        let strength = |s: &GameState| s.raw_defence(&data, &[&s.pieces[&guards[0]]]);
+        while strength(&base) < 5 {
+            base.pieces.get_mut(&guards[0]).unwrap().toe += 1;
+        }
+        assert!(strength(&base) <= 9, "{}", strength(&base));
+        let (mut fell, mut passes, mut fails, mut level) = (0, 0, 0, 0);
+        for seed in 0..200 {
+            let mut s = base.clone();
+            s.rng = GameRng::new(seed);
+            let Event::DumpRaided {
+                guard_roll,
+                guard_strength,
+                roll,
+                ammo_lost,
+                raider_eliminated,
+                ..
+            } = raid_dump(&mut s, &data, &id, &target).unwrap()
+            else {
+                unreachable!()
+            };
+            let (dice, strength) = (guard_roll.unwrap(), guard_strength.unwrap());
+            assert!(strength > 0);
+            // The chart: a sum equal to or above the strength survives.
+            let passed = u32::from(dice) >= strength;
+            (passes, fails) = if passed {
+                (passes + 1, fails)
+            } else {
+                (passes, fails + 1)
+            };
+            level += usize::from(u32::from(dice) == strength);
+            assert_eq!(roll.is_some(), passed, "no dump die after a failed check");
+            assert_eq!(raider_eliminated, !passed || roll == Some(6), "seed {seed}");
+            if !passed {
+                assert_eq!(ammo_lost, 0);
+            }
+            if raider_eliminated {
+                fell += 1;
+                assert_eq!(s.pieces[&id].location, Location::Eliminated);
+            }
+        }
+        assert!(
+            fell > 0 && passes > 0 && fails > 0,
+            "{fell} {passes} {fails}"
+        );
+        assert!(level > 0, "a sum equal to the strength was rolled");
+    }
+
+    #[test]
+    fn a_dump_in_a_major_city_is_not_raided() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.abstract_supply = true;
+        let city = data
+            .map
+            .hexes()
+            .find(|h| h.terrain.name() == "major-city")
+            .unwrap()
+            .id
+            .clone();
+        let beside = data.map.neighbours(&city)[0].clone();
+        let target = dump(&mut state, &city, false);
+        let id = raider(&mut state, &beside);
+        let before = serde_json::to_string(&state).unwrap();
+        let err = raid_dump(&mut state, &data, &id, &target).unwrap_err();
+        assert_eq!(err.case, "27.55", "{err:?}");
+        assert!(err.to_string().contains("major city"), "{err:?}");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
+    }
+
+    #[test]
+    fn a_raider_raids_a_hex_once_a_stage() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let (id, target) = dump_raid(&data, &mut state, false, false);
+        raid_dump(&mut state, &data, &id, &target).unwrap();
+        let before = serde_json::to_string(&state).unwrap();
+        let err = raid_dump(&mut state, &data, &id, &target).unwrap_err();
+        assert_eq!(err.case, "27.91", "{err:?}");
+        assert_eq!(serde_json::to_string(&state).unwrap(), before);
+    }
+
+    #[test]
+    fn a_dump_raid_is_made_in_the_raider_s_movement_segment_and_within_cpa_fifty() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        let (id, target) = dump_raid(&data, &mut state, false, false);
+        let mut barrage = state.clone();
+        barrage.clock.segment = Some(Segment::Barrage);
+        assert_eq!(
+            raid_dump(&mut barrage, &data, &id, &target)
+                .unwrap_err()
+                .case,
+            "27.51"
+        );
+        state.pieces.get_mut(&id).unwrap().cp_spent = Cp::whole(46);
+        assert_eq!(
+            raid_dump(&mut state, &data, &id, &target).unwrap_err().case,
+            "27.38"
+        );
+        // Only a raider raids, and only an enemy supply unit.
+        state.pieces.get_mut(&id).unwrap().cp_spent = Cp::ZERO;
+        let krrc = pid("unit:cw:1-krrc");
+        assert_eq!(
+            raid_dump(&mut state, &data, &krrc, &target)
+                .unwrap_err()
+                .case,
+            "27.55"
+        );
+        assert_eq!(
+            raid_dump(&mut state, &data, &id, &krrc).unwrap_err().case,
+            "27.55"
+        );
     }
 }
