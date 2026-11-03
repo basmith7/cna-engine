@@ -18,6 +18,7 @@ pub mod morale;
 pub mod oa;
 pub mod off_map;
 pub mod organisation;
+pub mod patrol;
 pub mod prisoners;
 pub mod raid;
 pub mod repair;

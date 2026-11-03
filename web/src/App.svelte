@@ -29,6 +29,7 @@
   import { NetworkEngine } from "./network";
   import { RETURN_KEY, parseRoute } from "./route";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
+  import PatrolPanel from "./PatrolPanel.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
@@ -184,6 +185,22 @@
   });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
   const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
+  /** Phase L: the ticked patrol sources with their points, and the target clicked (16.x). */
+  let patrolChosen: Record<PieceId, number> = $state({});
+  let patrolPick: HexId | null = $state(null);
+  /** The hexes every ticked source may patrol, as the engine offers them; marked, and a click picks one. */
+  const patrolTargets: HexId[] = $derived.by(() => {
+    const opts = (view?.patrol_options ?? []).filter((o) => o.piece in patrolChosen);
+    if (opts.length === 0) return [];
+    return opts[0].targets.filter((h) => opts.every((o) => o.targets.includes(h)));
+  });
+  const patrolTarget = $derived(patrolPick !== null && patrolTargets.includes(patrolPick) ? patrolPick : null);
+  // Sources the engine no longer offers (sent, or phase L over) drop out.
+  $effect(() => {
+    const offered = new Set((view?.patrol_options ?? []).map((o) => o.piece));
+    const kept = Object.fromEntries(Object.entries(patrolChosen).filter(([id]) => offered.has(id)));
+    if (Object.keys(kept).length !== Object.keys(patrolChosen).length) patrolChosen = kept;
+  });
   const wrecked: HexId[] = $derived(Object.keys(view?.broken_down ?? {}));
   let map: Map | undefined = $state();
   // A forced retreat is the ordered stack's, nobody else's: it stands
@@ -387,6 +404,12 @@
     // An armed prisoner march: each click is the path's next hex.
     if (march) {
       march = { ...march, path: [...march.path, h] };
+      return;
+    }
+    // Phase L: a click on a marked hex is the patrol's target.
+    if (!view.pending && patrolTargets.includes(h)) {
+      patrolPick = h;
+      hex = h;
       return;
     }
     // The close assault step: a click on a hex still to assault resolves it.
@@ -626,6 +649,7 @@
             <Placements hexes={placements} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
+            <Marks hexes={patrolTargets} kind="patrol" />
             <Marks hexes={wrecked} kind="wreck" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
@@ -666,6 +690,17 @@
               if (march && (await send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } }))) march = null;
             }}
             oncancel={() => (march = null)}
+          />
+          <PatrolPanel
+            {view}
+            bind:chosen={patrolChosen}
+            target={patrolTarget}
+            onsend={async (o) => {
+              if (await send(o)) {
+                patrolChosen = {};
+                patrolPick = null;
+              }
+            }}
           />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
