@@ -110,6 +110,15 @@ module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
 on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
+**2026-11-03, morning run:** cna answered both requests (R-142,
+R-143–R-145). #98 merged. #99 bumps `vendor/cna` to 442a172 and gives
+the four rulings homes (R-145: how many escaped prisoners have rejoined
+is their side's alone in a networked view). #100 judges shells slot by
+slot from cna's new `fills` (R-142): attached non-assigned units count,
+and #75's ledger item 1 is fixed. #101 builds substitution (19.4x) on
+the same slots. #102 builds the Axis's convoy lanes beyond Tripoli
+(32.63, 56.1x, 55.17), engine and browser. Graziani's land rules are
+now complete bar the LRDG raid and en-route rail pick-ups.
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -150,10 +159,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Nothing else waits on Brian. Next run: merge #98 on green CI (the
-  other player's game page now updates when someone joins or leaves;
-  a game ended by the 60-day idle sweep still shows only on reload),
-  then Mission 5's next item below.
+- Nothing else waits on Brian. Next run: merge what is left of the
+  stack #99 → #100 → #101 → #102 on green CI (each retargets to `main`
+  as the one below merges), then Mission 5's next item: rail pick-ups
+  and drop-offs en route (R-005), or the desert raiders (§27) and the
+  LRDG raid on Rommel (27.9x), which want hidden movement.
+- #100 changes starting shells outside Graziani's (its body lists them):
+  the 15th Panzer is whole in The Last Chance now, and the 7th Support
+  Group, the 21st Panzer and the 1st and 7th Armoured are shells; the
+  last two wait on the cna request below.
 - Two turn-alert calls to glance at (#96's body): a second handover
   within 15 minutes of the last alert sends nothing, as the plan says,
   so a quick reply can leave a player untold (delaying it instead is a
@@ -183,25 +197,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   non-goal); ticks are offered in a sealed step though nothing moves;
   at 390 px
   the end dialog's table clips its right-hand columns (it scrolls).
-- The rest of #79's plan (`docs/plans/2026-10-27-m5-rail-units.md`): attached
-  units carried by rail, one stack each way, phase J opening for units
-  alone (re-pins the module-on golden, as #78 did).
-- Mission 5, for Graziani's: Axis convoy lanes beyond Tripoli
-  (ports as destinations, 56.15, 55.17, a new player order); combat
-  units by rail; substitution (19.x) once cna maps counters to chart
-  slots; or the desert raiders (§27) that the raid on Rommel needs, which want
-  hidden movement and so Mission 4's per-side views.
 - Mission 3's slow shading is closed: after #72, an uncapped motorised
   stack (11 Hussars, 3,614 hexes) paints in ~200 ms from pointer-down
   (198–227 ms, timed in the page in a Playwright test build; the engine
   is ~141 ms of it), down from ~0.6 s. Playwright's own click-to-text
   wait reads ~0.5 s because of its selector polling, not the app.
-- #75's ledger item 1 checked (2026-10-27): real. The shell share is
-  matched by stacking equivalent, not chart slot, and some counted
-  slots are not one counter of that equivalent (15th Panzer's
-  `artillery-group`, the Polish brigade's MG slot). Fix waits on the
-  cna request below (counter to chart slot), which substitution needs
-  too.
 - Look at #75's two new starting shells (2nd NZ Division, the Trivioli
   tank regiment at Bardia): they follow the OA and the 19.3 chart, but
   change Graziani's opening.
@@ -218,36 +218,16 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **3.61's per-event details** (Mission 4, slice 1: what a networked
-  player is shown; not blocking, the engine takes the stricter reading
-  meanwhile). The *Limited intelligence* table leaves these open:
-  (1) does a side learn that an enemy unit took losses or was
-  disorganised, as a bare fact with no numbers (now: no); (2) after an
-  Axis convoy is bombed (56.x), does the Commonwealth learn how many
-  supply units sailed and how many sank (now: no); (3) 12.0 states the
-  actual barrage points against a target while 3.61 says only totals,
-  never the units behind them: is the target side told the points
-  total but not the firers (now: yes); (4) the escape and liberation of
-  prisoners: are those numbers known to both sides (now: yes), given
-  "POWs, camps, guards: numbers secret". Wanted: a ruling or a line in
-  the 3.61 table for each.
-- **Which 19.3 chart slot each counter fills** (Mission 5: 9.26 shells
-  by slot, and 19.x substitution). `formation-organisation.json` names
-  its components by slugs (`infantry-battalion`, `artillery-group`,
-  `anti-tank-regiment`, ...) but nothing maps an OA unit or a
-  characteristics row to those slugs, so the engine counts a shell's
-  share by stacking equivalent instead, and gets it wrong where a slot
-  is not one counter of that equivalent: the 15th Panzer Division's
-  counted `artillery-group` is "any three 1 SP artillery units" (its
-  33 and 140 artillery regiments are battalion-equivalent counters the
-  division share never counts); the Polish brigade's counted
-  `light-aa-unit|machinegun-battalion` slot is held by a company-
-  equivalent counter (kopanski-mg); the 1st Free French brigade has 8
-  battalion-equivalents assigned against 5 counted slots, so its share
-  can pass with the wrong units. Wanted: for each OA unit (or each
-  characteristics row, if that is exact), the `units` slug(s) it can
-  fill, and how many counters fill a slot where it is more than one
-  (`artillery-group`, `artillery-regiment`'s "up to three battalions").
+- **Armoured divisions from turn 92 and their motor brigades** (Mission
+  5: 9.26 shells, R-142). The chart's type IV armoured division (turn 92
+  on) counts an `infantry-brigade` slot where types I–III had a
+  `support-group`, and the `units` key calls the support group "the
+  Motor Brigade Group after turn 70". But The Last Chance (GT102) sets
+  up the 1st and 7th Armoured with counters whose `fills` is only
+  `support-group` (`1-spt-hq`, `7-spt-hq`, `7-mtr-hq`), so both
+  divisions start as shells. Wanted: whether those counters fill the
+  type IV `infantry-brigade` slot (a `fills` entry), or the reading
+  that they do not.
 
 ## Runs and quota
 
