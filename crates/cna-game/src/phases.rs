@@ -40,7 +40,7 @@ impl GameState {
         Ok(events)
     }
 
-    /// Nothing more this phase (F or G).
+    /// Nothing more this phase (C, E, F, G, H, J or K).
     pub(crate) fn pass(&mut self, data: &Data) -> Result<Vec<Event>, Illegal> {
         match self.clock.phase {
             Phase::ReserveDesignation
@@ -49,6 +49,13 @@ impl GameState {
             | Phase::Rail
             | Phase::Repair
             | Phase::Patrol => {}
+            Phase::CwFleet => {
+                let mut events = Vec::new();
+                self.close_fleet_phase(&mut events);
+                self.clock = self.clock.next();
+                self.advance(data, &mut events);
+                return Ok(events);
+            }
             Phase::Organisation => {
                 // Player A hands phase C to Player B; B's pass ends it.
                 if !self.organised {
@@ -166,12 +173,21 @@ impl GameState {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
+                // Phase E waits for the Commonwealth while a ship may sail
+                // (30.1x); else its ships' port time runs on.
+                Phase::CwFleet if self.fleet_phase_opens(data, events) => {
+                    events.push(Event::PhaseStarted { clock });
+                    return;
+                }
+                Phase::CwFleet => {
+                    self.close_fleet_phase(events);
+                    events.push(Event::PhaseSkipped { clock });
+                }
                 Phase::Patrol if self.patrols_to_send(data) => {
                     events.push(Event::PhaseStarted { clock });
                     return;
                 }
                 Phase::Organisation
-                | Phase::CwFleet
                 | Phase::TruckConvoy
                 | Phase::Rail
                 | Phase::Repair

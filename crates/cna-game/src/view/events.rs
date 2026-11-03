@@ -61,6 +61,7 @@
 //! | `zoc-declared` | public | | |
 //! | `reaction-offered` | public | | the non-phasing player must answer it |
 //! | `contact-broken` | reduced | `piece` | `cost` (CP, status) |
+//! | `stationed`, `in-port` | public | | 30.1x: the ships' counters are on the map, open to both |
 //! | `reserve-designated` | public | | a board marker |
 //! | `reserve-released` | public | | a board marker |
 //! | `reserve-flipped` | public | | a board marker |
@@ -273,6 +274,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::Unplaced { .. }
         | E::SetUpComplete
         | E::Arrived { .. }
+        | E::Stationed { .. }
+        | E::InPort { .. }
         | E::MovedOffMap { .. }
         | E::MoveInterrupted { .. }
         | E::ZocDeclared { .. }

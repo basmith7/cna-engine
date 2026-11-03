@@ -280,6 +280,12 @@ impl GameState {
     pub(crate) fn able_to_move(&self, p: &Piece) -> Result<(), Illegal> {
         match p.kind {
             PieceKind::Combat | PieceKind::Hq | PieceKind::Raider => {}
+            PieceKind::Ship => {
+                return Err(Illegal::new(
+                    "30.1x",
+                    format!("{}: a ship does not move; it is placed in phase E", p.id),
+                ));
+            }
             PieceKind::Commander => {
                 if self.rommel_recalled {
                     return Err(Illegal::new(

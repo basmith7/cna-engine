@@ -11,6 +11,7 @@ pub mod construction;
 pub mod convoy;
 pub mod cp;
 pub mod errata;
+pub mod fleet;
 pub mod initiative;
 pub mod map;
 pub mod max_attachments;

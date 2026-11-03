@@ -268,10 +268,10 @@ impl GameState {
             if self.rommel_recalled && self.pieces[&id].kind == PieceKind::Commander {
                 continue;
             }
-            // A raider holds no hex and is never in contact: it need not
-            // stop in an enemy ZOC, and only a spotting or a raid ends it
-            // (27.32, 27.41).
-            if self.pieces[&id].kind == PieceKind::Raider {
+            // A raider or a ship holds no hex and is never in contact: a
+            // raider need not stop in an enemy ZOC, and only a spotting or
+            // a raid ends it (27.32, 27.41); a ship is off the coast (30.1x).
+            if !self.pieces[&id].kind.holds_ground() {
                 continue;
             }
             let contact = self.zoc_at(data, &hex, side) == Zoc::Exerts;

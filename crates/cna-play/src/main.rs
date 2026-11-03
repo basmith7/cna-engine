@@ -38,6 +38,10 @@ enum Cmd {
         /// Play without construction (§24): engineers build nothing.
         #[arg(long)]
         no_construction: bool,
+        /// Play with the Commonwealth fleet (§30): ships arrive and phase E
+        /// opens. Off until the browser has a phase E panel.
+        #[arg(long)]
+        fleet: bool,
         /// Play without patrols (§16): phase L stays skipped.
         #[arg(long)]
         no_patrols: bool,
@@ -144,6 +148,7 @@ fn show(state: &GameState) -> String {
             Location::Box(b) => format!("box {b:?}"),
             Location::Transit { from, to, done } => format!("{from} to {to}, {done} stages along"),
             Location::Pending(_) => format!("pending ({})", p.side),
+            Location::Port(port) => format!("in port at {port:?}"),
             Location::Eliminated => "eliminated".into(),
         };
         by_place.entry(key).or_default().push(p.id.to_string());
@@ -162,6 +167,7 @@ fn main() -> Result<()> {
             no_abstract_supply,
             no_breakdown,
             no_construction,
+            fleet,
             no_patrols,
             output,
         } => {
@@ -170,6 +176,7 @@ fn main() -> Result<()> {
                 abstract_supply: !no_abstract_supply,
                 breakdown: !no_breakdown,
                 construction: !no_construction,
+                fleet,
                 patrols: !no_patrols,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
