@@ -2,7 +2,7 @@
   // What is in the clicked hex (spec, *Moving*): the side to act's own
   // pieces carry a tick, and the ticked ones are the stack an order
   // moves. The app owns the ticks; this only shows and toggles them.
-  import { glyphFor, label, markers, nameParts, nested, stacks } from "./counters";
+  import { glyphFor, label, markers, nameParts, nested, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
@@ -131,7 +131,7 @@
             <span class="facts">
               {sideName(p.side)} · {p.unit_type ?? glyphFor(p.kind, p.unit_type)}
               {#if p.kind !== "supply-unit" && p.kind !== "dummy-supply-unit"}
-                · TOE {p.toe} · CPA {p.cpa ?? "–"}{#if p.rommel_cpa}{" "}<span data-testid="rommel-cpa" title="With Rommel since the OpStage began: CPA +{p.rommel_cpa} while it stays with him (31.0, R-137)">+{p.rommel_cpa}</span>{/if} · morale {p.morale ?? "–"} · cohesion {p.cohesion.level}
+                · TOE {shown(p.toe)} · CPA {p.cpa ?? "–"}{#if p.rommel_cpa}{" "}<span data-testid="rommel-cpa" title="With Rommel since the OpStage began: CPA +{p.rommel_cpa} while it stays with him (31.0, R-137)">+{p.rommel_cpa}</span>{/if} · morale {shown(p.morale)} · cohesion {shown(p.cohesion?.level)}
                 {#if p.breakdown_halves}
                   · <span data-testid="breakdown-points" title="Breakdown points this OpStage (21.2x)">BP {p.breakdown_halves / 2}</span>
                 {/if}

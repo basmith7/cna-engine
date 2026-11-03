@@ -5,7 +5,7 @@
   // nation's colour, a NATO frame with a branch glyph, the size mark,
   // the abbreviation and ID code, TOE and CPA, and the small markers.
   // Drawn in a COUNTER x COUNTER box with its origin at the top-left.
-  import { COUNTER, glyphFor, label, sizeMark, type Marker } from "./counters";
+  import { COUNTER, glyphFor, label, shown, sizeMark, type Marker } from "./counters";
   import type { Piece } from "./types";
 
   let { piece, markers = [], muted = false }: { piece: Piece; markers?: Marker[]; muted?: boolean } = $props();
@@ -24,7 +24,7 @@
   const fy = S * 0.36;
   const cx = S / 2;
   const cy = fy + fh / 2;
-  const toe = $derived(isSupply ? "" : String(piece.toe));
+  const toe = $derived(isSupply ? "" : shown(piece.toe));
   const cpa = $derived(piece.cpa ?? "");
 </script>
 

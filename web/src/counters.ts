@@ -173,3 +173,8 @@ export function markers(p: Piece, view: View): Marker[] {
   if (combat.forward?.includes(p.id)) out.push("forward");
   return out;
 }
+
+/** A piece's number as shown: "?" when the view withholds it (an enemy's, 3.61), `none` when the piece has none. */
+export function shown(v: number | string | null | undefined, none = "–"): string {
+  return v === undefined ? "?" : v === null ? none : String(v);
+}
