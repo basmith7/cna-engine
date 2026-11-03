@@ -112,6 +112,7 @@ rulings*). Each names where it is enforced.
 | R-143 | as decided: a networked player sees the dice and the table result of every barrage, anti-armour fire and assault, never which TOE points the enemy lost, its DP or its disorganisation (`cna-game::view::events`: `Losses`, `Disorganised` are their owner's) |
 | R-144 | as decided: the Commonwealth sees an Axis convoy's lane, bomb points, roll and percentage, not how many supply units sailed or sank (`cna-game::view::events`, `ConvoyBombed`). The Logistics Game's flak is not in the engine |
 | R-145 | as decided: an escape and a recapture are shown to both sides with their numbers; how many escaped points have rejoined their side (`escaped`) is that side's alone (`cna-game::view::state`). Escapees do not walk or thirst in the engine yet, so their marker's count is the one both saw at the escape |
+| R-146 | as decided: the data does it. A Commonwealth support group or motor brigade HQ lists `infantry-brigade` in its `fills`, so it fills the type IV armoured division's infantry brigade slot from turn 92, and is itself judged a shell against the chart's added support-group row for turns 92 on (three infantry battalions) (`cna-game::limits`) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)

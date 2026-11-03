@@ -592,4 +592,21 @@ mod tests {
         assert_eq!(at(&with_mg), 4);
         assert_eq!(at(&[]), 0);
     }
+
+    #[test]
+    fn a_support_group_fills_the_type_iv_infantry_brigade_slot_r146() {
+        // From turn 92 the armoured division has an infantry brigade slot
+        // in place of its support group; the support group fills it.
+        let data = data();
+        let at = |turn, ids: &[&str]| filled(&data, Nation::Cw, "armoured-division", turn, ids);
+        let bde = "unit:cw:7th-armored-bde-hq";
+        assert_eq!(at(102, &[bde]), 1);
+        assert_eq!(at(102, &[bde, "unit:cw:7-spt-hq"]), 2);
+        assert_eq!(at(102, &[bde, "unit:cw:7-mtr-hq"]), 2);
+        // Before turn 92 it fills the support group slot as before.
+        assert_eq!(at(80, &[bde, "unit:cw:7-spt-hq"]), 2);
+        // And is itself judged by the added row: three battalions.
+        let row = data.organisation.row(Nation::Cw, "support-group", 102).unwrap();
+        assert_eq!(row.components.len(), 1);
+    }
 }
