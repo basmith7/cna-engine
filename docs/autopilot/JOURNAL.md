@@ -597,3 +597,9 @@ Blocked: two cna requests in PROGRESS: raider counters are missing from the OA d
 Also on #104 (29c0b8c): `Piece.hidden`. The enemy's view and events drop a hidden piece and everything naming it, open information or not. Gates pass locally (612 tests).
 Next: the rest of #104's Task 1: `PieceKind::Raider`, spotting on its own stream, and `Order::RaidRommel`.
 
+
+## 2026-11-03 02:15 MST — autopilot/m5-desert-raiders
+Done: #105 merged 9dca053 (vendor/cna ccc285d, R-146 homed as-decided, slot test). PROGRESS on main 62eee4e: new cna request (The Last Chance's CW armoured rosters are notes, so its brigades start empty and every division is a shell). #104 Task 1 (subagent, 99fbe5a 487b6bb), raid cap 4 in every campaign scenario (b9c0763), Task 2 browser (subagent, eda2532 7b1dddc), fresh review's leaks fixed (5668a91: raiders hold no ground, move apart, moves secret once revealed).
+In flight: #104 gates (cargo test --no-fail-fast, clippy, probe check, web checks, Playwright) then ready + merge.
+Next: merge #104 on green CI; Task 3 waits on cna (raider counters, supply under 32.11). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
+Blocked: none.
