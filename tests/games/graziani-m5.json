@@ -400,7 +400,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-1",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },
@@ -409,7 +409,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-2",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },
@@ -418,7 +418,7 @@
       "order": {
         "place": {
           "piece": "supply:cw:dummy-3",
-          "hex": "D3614"
+          "hex": "D3713"
         }
       }
     },

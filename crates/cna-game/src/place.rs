@@ -296,10 +296,10 @@ fn in_locator(data: &Data, locator: &Locator, hex: &HexId) -> bool {
         Locator::Place(ids) => ids
             .iter()
             .any(|id| data.map.place(id).is_some_and(|p| p.hexes.contains(hex))),
-        // Sheets run A to E west to east; within a sheet the first two
-        // digits (cna's column CC, `HexId::row` here) grow eastward.
+        // Sheets run A to E west to east; within a sheet the last two
+        // digits (cna's RRCC column, `HexId::col`) grow eastward.
         Locator::WestOf(bound) => {
-            hex.sheet() < bound.sheet() || (hex.sheet() == bound.sheet() && hex.row() < bound.row())
+            hex.sheet() < bound.sheet() || (hex.sheet() == bound.sheet() && hex.col() < bound.col())
         }
         // Needs the state: `check_place` looks at the hex's units.
         Locator::StackedWith(_) => true,
@@ -353,6 +353,25 @@ mod tests {
 
     fn data() -> Data {
         Data::load("grazianis-offensive").unwrap()
+    }
+
+    /// "West of Mersa Matruh (D3714)" is a column bound (RRCC): Sidi
+    /// Barrani's column 31 on sheet C is west of it, as is a hex of sheet
+    /// D's column 13 far inland, while the coast road east of Matruh
+    /// (column 15 and up) and Matruh's own column are not.
+    #[test]
+    fn west_of_is_by_column_cc() {
+        let data = data();
+        let bound = Locator::WestOf(HexId::parse("D3714").unwrap());
+        let west = |h: &str| in_locator(&data, &bound, &HexId::parse(h).unwrap());
+        assert!(west("C4131"));
+        assert!(west("D0113"));
+        assert!(west("D3713"));
+        assert!(!west("D3714"));
+        assert!(!west("D0114"));
+        assert!(!west("D3715"));
+        assert!(!west("D3615"));
+        assert!(!west("E3212"));
     }
 
     /// The golden game's first `n` orders applied: `n = 36` is the Axis
