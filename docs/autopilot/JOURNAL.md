@@ -679,3 +679,9 @@ Done: #119 (fleet Task 4 panel, behind the module) merged. #120 (this branch, re
 In flight: CI on #120.
 Next: merge #120 on green (`gh pr merge 120 --merge --delete-branch`). Then put `fleet` in `Modules::ALL` (see the 11:50 entry: golden.rs CwFleet auto-Pass, cna-web e2e_fixtures' golden_prefix indices, Playwright golden/two-player drivers), enforce Graziani's GT2 sailing bar, then the San Giorgio (R-151).
 Blocked: none.
+
+## 2026-11-03 13:55 MST — autopilot/m5-captured-equipment-build
+Done: #121 (vendor/cna 70239b1, R-152 not-yet row, pins) ready, CI. #122 (stacked on #121) builds R-152 for surrenders behind `captured_equipment` (in Modules::ALL): `cna-game::captured`, spoils into `repaired` under `captured <class>` keys, Absorb by class, 32.81 AA drop, `EquipmentCaptured` event, browser log line, Playwright case in replacements.spec.
+In flight: gates/CI on #122.
+Next: merge #121 (retarget #122 to main FIRST), then #122. Then R-152's 15.89 captured share split (assault.rs ~903: needs the lost points' classes). Fleet in new games waits on cna's first-sail request.
+Blocked: none.

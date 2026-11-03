@@ -281,7 +281,7 @@ mod tests {
             .sum();
         assert!(recce > 0);
         assert_eq!(
-            state.spoils(&data, &[car.id.clone()]).get(ARMOURED_RECCE),
+            state.spoils(&data, std::slice::from_ref(&car.id)).get(ARMOURED_RECCE),
             Some(&(2 * recce))
         );
     }
