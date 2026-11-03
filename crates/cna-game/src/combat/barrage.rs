@@ -5,7 +5,7 @@ use super::cp::{NON_PHASING_CEILING, PHASING_CEILING};
 use super::strength::{Class, Kind};
 use crate::data::Data;
 use crate::event::Event;
-use crate::piece::PieceId;
+use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
 use cna_data::oa::Nation;
@@ -20,6 +20,8 @@ struct Pool {
     firers: Vec<PieceId>,
     hexes: BTreeSet<HexId>,
     raw: u32,
+    /// A ship's guns, already actual points (30.2x).
+    ship: u32,
 }
 
 impl GameState {
@@ -48,17 +50,28 @@ impl GameState {
             // refused any plot that could not be paid.
             let plan = self.plan_ammo(data, &firers, Role::Barrage, side == phasing);
             self.spend_ammo(plan.payments, events);
-            let mut pools: BTreeMap<(PieceId, Option<HexId>), Pool> = BTreeMap::new();
+            self.ships_fired(&firers);
+            // A ship barrages alone (30.2x), keyed by its id.
+            let mut pools: BTreeMap<(PieceId, Option<HexId>, Option<PieceId>), Pool> =
+                BTreeMap::new();
             for f in plots {
                 let firer = &self.pieces[&f.piece];
                 let Some(hex) = firer.hex().cloned() else {
                     continue;
                 };
+                if firer.kind == PieceKind::Ship {
+                    let pool = pools
+                        .entry((f.target.clone(), None, Some(f.piece.clone())))
+                        .or_default();
+                    pool.firers.push(f.piece.clone());
+                    pool.ship += f.points;
+                    continue;
+                }
                 let pooled =
                     self.combat.forward.contains(&f.piece) && firer.nation != Some(Nation::It);
                 let raw = self.raw_points(data, firer, Kind::Barrage, f.points);
                 let pool = pools
-                    .entry((f.target.clone(), (!pooled).then_some(hex.clone())))
+                    .entry((f.target.clone(), (!pooled).then_some(hex.clone()), None))
                     .or_default();
                 pool.firers.push(f.piece.clone());
                 pool.hexes.insert(hex);
@@ -66,11 +79,11 @@ impl GameState {
             }
             let mut firing_hexes = BTreeSet::new();
             let mut target_hexes = BTreeSet::new();
-            for ((target, _), pool) in pools {
+            for ((target, ..), pool) in pools {
                 let Some(hex) = self.pieces[&target].hex().cloned() else {
                     continue;
                 };
-                let points = actual(pool.raw);
+                let points = actual(pool.raw) + pool.ship;
                 let class = self.class_of(data, &self.pieces[&target]);
                 let shift = terrain_shift(
                     &self.ruleset,
