@@ -4,7 +4,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
         with: { components: clippy, targets: wasm32-unknown-unknown }
@@ -14,32 +14,65 @@ jobs:
       - run: cargo check -p cna-game --target wasm32-unknown-unknown
       - uses: taiki-e/install-action@v2
         with: { tool: wasm-pack@0.15.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24 }
       - run: wasm-pack test --node crates/cna-web
+  server:
+    # cna-server's database tests; the `test` job runs them ignored.
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:18
+        env: { POSTGRES_USER: cna, POSTGRES_PASSWORD: cna, POSTGRES_DB: cna }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cna" --health-interval 2s
+          --health-timeout 5s --health-retries 30
+    env:
+      DATABASE_URL: postgres://cna:cna@localhost:5432/cna
+    steps:
+      - uses: actions/checkout@v7
+        with: { submodules: true }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - run: cargo clippy -p cna-server --all-targets --features db-tests,test-auth,fake -- -D warnings
+      - run: cargo test -p cna-server --features db-tests,test-auth,fake
   web:
     runs-on: ubuntu-latest
+    # The two-player e2e's database (tests/multiplayer/serve.sh takes
+    # DATABASE_URL over a container of its own).
+    services:
+      db:
+        image: postgres:18
+        env: { POSTGRES_USER: cna, POSTGRES_PASSWORD: cna, POSTGRES_DB: cna }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cna" --health-interval 2s
+          --health-timeout 5s --health-retries 30
     defaults:
       run: { working-directory: web }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { submodules: true }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: wasm32-unknown-unknown }
       - uses: taiki-e/install-action@v2
         with: { tool: wasm-pack@0.15.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: npm ci
       - run: npm run wasm
       - run: npm run check
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - run: npx playwright test --project chromium
         env:
           CNA_SHOTS: ${{ github.workspace }}/web/test-results/shots
-      - uses: actions/upload-artifact@v4
+      - run: npx playwright test -c playwright.multiplayer.config.ts --project multiplayer
+        env:
+          DATABASE_URL: postgres://cna:cna@localhost:5432/cna
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots

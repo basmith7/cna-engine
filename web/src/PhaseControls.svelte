@@ -53,7 +53,8 @@
   const unit = $derived(supply === null ? (ticked.find((id) => view.pieces[id]?.kind === "combat") ?? null) : null);
   // Points short of its TOE (none, or a unit reinforced since) leave it walking: it may top up, and any it has it may give back.
   const unitPoints = $derived(unit ? (view.pieces[unit].motorised ?? 0) : 0);
-  const riding = $derived(unit ? unitPoints >= view.pieces[unit].toe : false);
+  // Ticked units are the side to act's own, whose TOE the view always carries.
+  const riding = $derived(unit ? unitPoints >= (view.pieces[unit].toe ?? Infinity) : false);
   // Two ticked real supply units: the first gives the second ammunition and fuel (32.1x).
   const loaded = $derived(ticked.filter((id) => view.pieces[id]?.load));
   // The movement segment: the selected hex holds the side to act's supply units, which it may destroy before moving anything (32.1x).

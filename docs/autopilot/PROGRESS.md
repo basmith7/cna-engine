@@ -10,10 +10,56 @@ writes is **Feedback**.
 
 ## Addressed
 
+- 2026-10-29 (Brian) approved the Mission 4 spec, PR #25, with the defaults for all three questions → #25 merged 2026-11-02 (main merged in, the spec's header marked approved, the answers written in); slice 1 under way as PR #92.
 - 2026-10-13 (Brian, interactive session) asked for a multiplayer server with real accounts and many games, ahead of the rest of the Land Game turn; chose Discord sign-in, open sign-up and turn alerts by Discord DM → queue row 4, land rules moved to row 5.
 - 2026-10-12 (Brian) approved the Mission 2 spec, PR #5, in an interactive session → merged 2026-10-12; that session builds slices 1–6 and holds the autopilot lock while it does.
 
 ## Status
+
+**MISSION 4** (the multiplayer server) is under way: spec merged
+(#25, approved 2026-10-29). **Slice 1, per-side knowledge in the
+engine, merged as #92 (2026-11-02):** `crates/cna-embed` (the data compiled in, shared
+by the browser and the server; `CNA_RULES_COMMIT` for a Docker build),
+`cna_game::view` with `view_for` (the state as one side may see it,
+3.61), `events_for` (all 73 event kinds classified), `refusal_for`,
+keyed supply aliases (a dummy's id no longer gives it away), the
+shared `leaks` predicate and a test that replays the golden game and
+finds nothing either side may not know; `preview` now refuses to show
+events that rolled dice. The hot-seat browser is unchanged (it plays
+with open information). Golden hashes now live beside their fixtures
+(`tests/games/*.sha256`), written by the regenerate tests. Its
+choices ledger is `docs/plans/2026-10-13-m4-choices.md`. **Slice 2,
+the server headless, merged as #93 (2026-11-02):** `crates/cna-server`
+(axum, sqlx on Postgres 18), health, schema, the game registry,
+orders applied in one transaction with snapshots, restart by replay,
+old games moved to new rules or marked stale, the HTTP API, the SSE
+live channel, the golden game over HTTP hashing to its pin, and a CI
+`server` job. A fresh review found no leaks; its fixes are in (a failed
+commit no longer wedges a game, seats are checked before a game loads,
+the creator is seated with the game, catch-up replays from a
+snapshot). **Slice 3, accounts, merged as #94 (2026-11-03):** the fake Discord,
+Discord sign-in with PKCE and sessions in Postgres (our own store:
+the sqlx store crate lags sqlx 0.9), rate limits (IPv6 by /64) and
+CSRF checks, admins and suspension, the fake Discord and server in the
+dev compose; a curl sign-in as `alice` works. A fresh review's fixes
+are in. **Slice 4, the lobby and the network client, merged as
+#95 (2026-11-03):** the lobby API, the browser's
+engine behind an `Engine` interface (hot-seat unchanged, its 46
+Playwright tests green), a `NetworkEngine` over the API and live
+stream, the lobby screens (my games with my move first, open games,
+create with an invite link shown once, the alerts switch, an admin's
+account list with suspend/restore), the game page `/game/{id}` and
+invite links `/join/{id}`, and a two-player Playwright run (alice and
+bob sign in through the fake Discord and play the golden game's first
+77 orders by clicks over the server, bob's traffic checked for leaks,
+the final hash equal to a pinned replay) with Postgres in CI. A fresh review found no leak; its fixes are in. **Slice
+5, turn alerts, is PR #96, ready and waiting on CI:** the guild
+join at sign-in, the outbox written with the order (none within 15
+minutes or while the player watches the game), the DM sender with
+retries (none once the game ends or the move has passed), the
+lobby's switch and its "can't reach you" notice, an e2e that bob is
+DM'd once and not with alerts off, and the enemy's log lines no
+longer print "undefined" where the server withholds a number.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -55,14 +101,11 @@ module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
 on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
-Mission 4 resumes first the moment **Feedback** approves #25.
+Mission 5's open PR #80 (rail: one stack each way) waits while Mission 4 goes first.
 
-**MISSION 4, Part 0** (2026-10-13): the multiplayer server's spec and six
-slice plans are PR #25, labelled `needs-brian`. Nothing for Mission 4 is
-built until **Feedback** approves it. The spec asks three questions, each
-with a default: how the bot reaches DMs (`guilds.join` and a small CNA
-Discord server), host port 3240, and the image name
-`ghcr.io/basmith7/cna`.
+**MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
+`docs/designs/2026-10-13-multiplayer-server-design.md` and six slice
+plans (#25).
 
 **MISSION 3 COMPLETE** (2026-10-13): a minimal browser UI for Graziani's
 Offensive in `web/` on `cna-game` compiled to WebAssembly (`crates/cna-web`,
@@ -93,9 +136,35 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- **Review the Mission 4 spec: PR #25.** Approve (or ask for changes)
-  under **Feedback**, answering its three questions if the defaults are
-  wrong. Building starts with slice 1 once approved.
+- Nothing waits on Brian. Mission 4 goes on unattended: merge #96
+  once CI is green, then slice 6 (ship).
+- Two turn-alert calls to glance at (#96's body): a second handover
+  within 15 minutes of the last alert sends nothing, as the plan says,
+  so a quick reply can leave a player untold (delaying it instead is a
+  small change); and the design says turning alerts off leaves the
+  Discord server, while the plan and code leave that to the player.
+  #95's review left two follow-ups: the other player's live stream
+  hears nothing when a game starts or ends (a reload shows it), and
+  the two-player e2e judges each message's leaks against the state at
+  check time, not send time. Slice 6 must bind the
+  server behind Pangolin only: `CNA_TRUST_PROXY=1` trusts
+  `X-Forwarded-For` from whoever reaches the port.
+- The online game page reuses Mission 3's panels; a fresh critique of
+  its screenshots found Mission 3's own residue (map names over hex
+  numbers, the sidebar's counter grids clipped, small tray counters),
+  for the polish slice below.
+- One provisional call to glance at, ledger entry 1.3 in
+  `docs/plans/2026-10-13-m4-choices.md`: a game with open information
+  still hides the owner's secrets the hot-seat view hid (loads,
+  motorisation, minefields, project items). The outside steps
+  (Discord application, Tower, Pangolin) stay on the spec's checklist
+  for after slice 6.
+- Slice 1 took stricter readings of 3.61 where the code had more than
+  the spec named (#92's body lists them): an enemy's losses,
+  disorganisation and combat CP are not shown to the other side at all;
+  barrage points against a hex are (12.0), anti-armour numbers are not.
+  POW and guard numbers are now their owner's, though `GameState`'s
+  docs called them open information.
 - Mission 3's accepted residue, for a polish slice when it matters: the
   count badge touches the top counter's CPA; frontier stacks overlap at
   the fitted view; the 390 px layout is the slice 2 one (mobile is a
@@ -137,6 +206,19 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **3.61's per-event details** (Mission 4, slice 1: what a networked
+  player is shown; not blocking, the engine takes the stricter reading
+  meanwhile). The *Limited intelligence* table leaves these open:
+  (1) does a side learn that an enemy unit took losses or was
+  disorganised, as a bare fact with no numbers (now: no); (2) after an
+  Axis convoy is bombed (56.x), does the Commonwealth learn how many
+  supply units sailed and how many sank (now: no); (3) 12.0 states the
+  actual barrage points against a target while 3.61 says only totals,
+  never the units behind them: is the target side told the points
+  total but not the firers (now: yes); (4) the escape and liberation of
+  prisoners: are those numbers known to both sides (now: yes), given
+  "POWs, camps, guards: numbers secret". Wanted: a ruling or a line in
+  the 3.61 table for each.
 - **Which 19.3 chart slot each counter fills** (Mission 5: 9.26 shells
   by slot, and 19.x substitution). `formation-organisation.json` names
   its components by slugs (`infantry-battalion`, `artillery-group`,
@@ -286,3 +368,6 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-10-26 11:53 | 61 | 38→39 | 16→5 | $11.62 | 206 | I merged three PRs this run: the new Rommel ruling, two missing rule tests, and a 3× faster move search. Mission 4 is still waiting on your review of the spec,  |
 | 2026-10-26 16:53 | 75 | 40→? | 7→? | $10.41 | 3 | cna answered all three of this repo's open rulings requests (R-139, R-140, R-141). All three are now built and merged into the engine, with the docs updated. Yo |
 | 2026-10-26 18:53 | 59 | 41→42 | 9→13 | $13.25 | 5 | I merged three PRs this run (#77, #78, #79), plus `PROGRESS.md` updates on `main`. Each one passed clippy, `cargo test` and `cna-probe check` locally and was gr |
+| 2026-11-02 13:44 | 81 | 36→39 | none→none | $19.65 | 1 | That notification is only the 22:05 timer I set, and nothing has changed since my last summary. The run is wrapped up: the work is pushed, the hand-off is writt |
+| 2026-11-02 16:44 | 76 | 40→43 | none→none | $15.44 | 2 | Slices 2 and 3 of Mission 4 are merged, and slice 4 is partly built as draft PR #95 with CI green. - **Slice 2, the headless server (#93), merged.** A separate  |
+| 2026-11-02 19:44 | 79 | 44→? | none→? | $19.87 | 2 | #96 isn't merged: its `server` and `test` checks pass, but `web` is still running and should finish around 04:11Z, too close to the 04:14Z cutoff to merge safel |

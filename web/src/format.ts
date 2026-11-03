@@ -42,6 +42,9 @@ const REASON: Record<RetreatReason, string> = {
 
 const STEP = { "gun-positions": "gun positions", barrage: "barrage", "assign-forces": "force assignment" } as const;
 
+/** "N <unit>" for a count the other side may know, `withheld` when the server held it back (3.61). */
+const count = (n: number | undefined, unit: string, withheld: string) => (n === undefined ? withheld : `${n} ${unit}`);
+
 export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
   if (e === "rommel-recalled") return "Rommel is recalled to Germany for this Game-Turn.";
@@ -64,7 +67,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("unplaced" in e) return `${name(e.unplaced.piece)} taken back, to be placed again.`;
   if ("arrived" in e) return `${list(e.arrived.pieces, name)} arrive at ${where(e.arrived.at)}.`;
   if ("moved-off-map" in e) return `${name(e["moved-off-map"].piece)} moves off-map to ${where(e["moved-off-map"].location)}.`;
-  if ("moved" in e) return `${list(e.moved.pieces, name)}: ${e.moved.from} → ${e.moved.to} for ${e.moved.cost} CP.`;
+  if ("moved" in e) return `${list(e.moved.pieces, name)}: ${e.moved.from} → ${e.moved.to}${e.moved.cost === undefined ? "" : ` for ${e.moved.cost} CP`}.`;
   if ("disorganised" in e) {
     const d = e.disorganised;
     return `${name(d.piece)} takes ${d.dp} DP, now cohesion level ${d.level}.`;
@@ -75,7 +78,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("zoc-declared" in e) return `${e["zoc-declared"].hex} ${e["zoc-declared"].exerts ? "exerts" : "does not exert"} a ZOC.`;
   if ("reaction-offered" in e) return `Reaction offered to ${list(e["reaction-offered"].pieces, name)} against ${e["reaction-offered"].at}.`;
-  if ("contact-broken" in e) return `${name(e["contact-broken"].piece)} breaks contact for ${e["contact-broken"].cost} CP.`;
+  if ("contact-broken" in e) return `${name(e["contact-broken"].piece)} breaks contact${e["contact-broken"].cost === undefined ? "" : ` for ${e["contact-broken"].cost} CP`}.`;
   if ("reserve-designated" in e) return `${list(e["reserve-designated"].pieces, name)} designated reserve.`;
   if ("reserve-released" in e) return `${list(e["reserve-released"].pieces, name)} released from Reserve ${e["reserve-released"].from}.`;
   if ("reserve-flipped" in e) return `${list(e["reserve-flipped"].pieces, name)} flip from Reserve I to Reserve II.`;
@@ -86,38 +89,42 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("barrage-plotted" in e) {
     const d = e["barrage-plotted"];
+    // The enemy's plot, online, comes without its fires (3.61).
+    if (d.fires === undefined) return `${sideName(d.side)} barrage plotted.`;
     const fires = d.fires.map((f) => `${name(f.piece)} ${f.points} at ${name(f.target)}`).join("; ");
     return `${sideName(d.side)} barrage plotted: ${fires || "none"}.`;
   }
   if ("barrage" in e) {
     const d = e.barrage;
-    return `${sideName(d.side)} barrage on ${name(d.target)} by ${list(d.firers, name)}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
+    return `${sideName(d.side)} barrage on ${name(d.target)}${d.firers === undefined ? "" : ` by ${list(d.firers, name)}`}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
   }
   if ("retreated-before-assault" in e) return `${list(e["retreated-before-assault"].pieces, name)} retreat before assault to ${e["retreated-before-assault"].to}.`;
   if ("anti-armour" in e) {
     const d = e["anti-armour"];
-    return `${sideName(d.side)} anti-armour fire at ${d.target}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${d.damage} point${d.damage === 1 ? "" : "s"} of damage.`;
+    const how = d.points === undefined || d.shift === undefined ? "" : `${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, `;
+    return `${sideName(d.side)} anti-armour fire at ${d.target}: ${how}reading ${d.reading}: ${d.damage} point${d.damage === 1 ? "" : "s"} of damage.`;
   }
   if ("assault" in e) {
     const d = e.assault;
     const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-    return `${d.probe ? "Probe" : "Assault"} on ${d.target} by ${list(d.attackers, name)}: ${d.attacker_raw} v ${d.defender_raw} raw, differential ${sign(d.basic)}, ${sign(d.shifts)} shifts, column ${d.column}; attacker rolls ${d.attacker.reading} and loses ${d.attacker.pct}% (${d.attacker.toe_lost} TOE), defender rolls ${d.defender.reading} and loses ${d.defender.pct}% (${d.defender.toe_lost} TOE)${d.defender.retreat ? `, retreats ${d.defender.retreat}` : ""}${d.defender.engaged ? ", engaged" : ""}${d.defender.captured ? ", captured" : ""}.`;
+    const toe = (r: { toe_lost?: number }) => (r.toe_lost === undefined ? "" : ` (${r.toe_lost} TOE)`);
+    return `${d.probe ? "Probe" : "Assault"} on ${d.target} by ${list(d.attackers, name)}: ${d.attacker_raw ?? "?"} v ${d.defender_raw ?? "?"} raw, differential ${sign(d.basic)}, ${sign(d.shifts)} shifts, column ${d.column}; attacker rolls ${d.attacker.reading} and loses ${d.attacker.pct}%${toe(d.attacker)}, defender rolls ${d.defender.reading} and loses ${d.defender.pct}%${toe(d.defender)}${d.defender.retreat ? `, retreats ${d.defender.retreat}` : ""}${d.defender.engaged ? ", engaged" : ""}${d.defender.captured ? ", captured" : ""}.`;
   }
-  if ("prisoners" in e) return `${e.prisoners.points} points of the ${sideName(e.prisoners.side)} losses are prisoners.`;
-  if ("prisoners-taken" in e) return `${sideName(e["prisoners-taken"].side)} takes ${e["prisoners-taken"].points} prisoner points in ${e["prisoners-taken"].hex}.`;
+  if ("prisoners" in e) return e.prisoners.points === undefined ? `Some of the ${sideName(e.prisoners.side)} losses are prisoners.` : `${e.prisoners.points} points of the ${sideName(e.prisoners.side)} losses are prisoners.`;
+  if ("prisoners-taken" in e) return `${sideName(e["prisoners-taken"].side)} takes ${count(e["prisoners-taken"].points, "prisoner points", "prisoners")} in ${e["prisoners-taken"].hex}.`;
   if ("prisoners-marched" in e) {
     const d = e["prisoners-marched"];
-    return `${sideName(d.side)} marches ${d.points} prisoner points ${d.path[0]} → ${d.path[d.path.length - 1]} (${d.cp} CP).`;
+    return `${sideName(d.side)} marches ${count(d.points, "prisoner points", "prisoners")} ${d.path[0]} → ${d.path[d.path.length - 1]}${d.cp === undefined ? "" : ` (${d.cp} CP)`}.`;
   }
   if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} repaired ${e.absorbed.weapon} points for ${e.absorbed.cp} CP.`;
-  if ("construction-begun" in e) return `${sideName(e["construction-begun"].side)} begins a ${itemName(e["construction-begun"].item)} in ${e["construction-begun"].hex}.`;
-  if ("construction-lost" in e) return `${sideName(e["construction-lost"].side)} loses its ${itemName(e["construction-lost"].item)} project in ${e["construction-lost"].hex}: a builder left.`;
+  if ("construction-begun" in e) return `${sideName(e["construction-begun"].side)} begins ${e["construction-begun"].item ? `a ${itemName(e["construction-begun"].item)}` : "a project"} in ${e["construction-begun"].hex}.`;
+  if ("construction-lost" in e) return `${sideName(e["construction-lost"].side)} loses its ${e["construction-lost"].item ? `${itemName(e["construction-lost"].item)} ` : ""}project in ${e["construction-lost"].hex}: a builder left.`;
   if ("fortification-built" in e) return `${sideName(e["fortification-built"].side)} fortifies ${e["fortification-built"].hex} to level ${e["fortification-built"].level}.`;
   if ("minefield-laid" in e) return `${sideName(e["minefield-laid"].side)} lays a minefield in ${e["minefield-laid"].hex}.`;
   if ("minefield-revealed" in e) return `The minefield in ${e["minefield-revealed"].hex} is ${e["minefield-revealed"].real ? "real" : "a dummy"}.`;
   if ("minefield-removed" in e) return `The minefield in ${e["minefield-removed"].hex} is taken off.`;
-  if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${e["guards-detailed"].points} guard points in ${e["guards-detailed"].hex}.`;
-  if ("guards-released" in e) return `${e["guards-released"].points} guard points rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
+  if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${count(e["guards-detailed"].points, "guard points", "guards")} in ${e["guards-detailed"].hex}.`;
+  if ("guards-released" in e) return `${count(e["guards-released"].points, "guard points", "Guards")} rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
   if ("prisoners-escaped" in e) {
     const d = e["prisoners-escaped"];
     const parts = [d.rejoined ? `${d.rejoined} rejoin their side` : "", d.escapees ? `${d.escapees} wait there as escapees` : ""].filter(Boolean);
@@ -126,10 +133,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("prisoners-freed" in e) return `${sideName(e["prisoners-freed"].side)} frees ${e["prisoners-freed"].points} of its men held prisoner in ${e["prisoners-freed"].hex}.`;
   if ("convoy-bombed" in e) {
     const c = e["convoy-bombed"];
-    return `The Axis convoy on lane ${c.lane} is bombed at ${c.bomb_points} points: ${c.reading}, ${c.percent} %; ${c.sunk} of ${c.units} supply units sunk.`;
+    return `The Axis convoy on lane ${c.lane} is bombed at ${c.bomb_points} points: ${c.reading}, ${c.percent} %; ${c.sunk === undefined || c.units === undefined ? "supply units sunk" : `${c.sunk} of ${c.units} supply units sunk`}.`;
   }
-  if ("prisoners-left-map" in e) return `${e["prisoners-left-map"].points} ${sideName(e["prisoners-left-map"].side)} prisoner points leave the map; they reach the Tripolitania box in ${e["prisoners-left-map"].stages} truck convoy phases.`;
-  if ("prisoners-gone" in e) return `${e["prisoners-gone"].points} ${sideName(e["prisoners-gone"].side)} prisoner points leave play at ${e["prisoners-gone"].hex}.`;
+  if ("prisoners-left-map" in e) return `${count(e["prisoners-left-map"].points, `${sideName(e["prisoners-left-map"].side)} prisoner points`, `${sideName(e["prisoners-left-map"].side)} prisoners`)} leave the map; they reach the Tripolitania box in ${e["prisoners-left-map"].stages} truck convoy phases.`;
+  if ("prisoners-gone" in e) return `${count(e["prisoners-gone"].points, `${sideName(e["prisoners-gone"].side)} prisoner points`, `${sideName(e["prisoners-gone"].side)} prisoners`)} leave play at ${e["prisoners-gone"].hex}.`;
   if ("surrendered" in e) return `${list(e.surrendered.pieces, name)} surrender.`;
   if ("engaged" in e) return `${list(e.engaged.pieces, name)} are engaged.`;
   if ("retreat-ordered" in e) {
@@ -172,7 +179,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("air-lifted" in e) {
     const d = e["air-lifted"];
-    return `${name(d.piece)} flown ${where(d.from)} → ${where(d.to)}, 12 fuel from ${name(d.fuel_from)}.`;
+    return `${name(d.piece)} flown ${where(d.from)} → ${where(d.to)}, 12 fuel${d.fuel_from === undefined ? "" : ` from ${name(d.fuel_from)}`}.`;
   }
   if ("railed" in e) {
     const d = e.railed;
@@ -185,6 +192,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
   if ("forces-assigned" in e) {
     const d = e["forces-assigned"];
+    if (d.assignments === undefined) return `${sideName(d.side)} forces assigned.`;
     const parts = d.assignments.map((a) => {
       const aa = (a.anti_armour ?? []).map((x) => `${x.points} anti-armour${x.target ? ` at ${x.target}` : ""}`);
       const ca = (a.close_assault ?? []).map((x) => `${x.points} assault${x.target ? ` at ${x.target}` : ""}`);

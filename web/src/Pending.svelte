@@ -11,7 +11,7 @@
   import { pendingKind, pendingTitle, zocQuestion } from "./pending";
   import { passConsequence, retreatOrderWords } from "./sealed";
   import SealedPanel from "./SealedPanel.svelte";
-  import type { ApplyResult, HexId, Illegal, Order, PieceId, Reach, SealedOptions, View } from "./types";
+  import type { PreviewResult, HexId, Illegal, Order, PieceId, Reach, SealedOptions, View } from "./types";
 
   let {
     view,
@@ -31,7 +31,7 @@
     /** The hexes the ticked stack may retreat to, for the counts. */
     reaches?: Reach[];
     /** The engine's preview of Pass while a forced retreat is pending. */
-    pass?: ApplyResult | null;
+    pass?: PreviewResult | null;
   } = $props();
 
   const pending = $derived(view.pending!);

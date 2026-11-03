@@ -106,3 +106,60 @@ describe("the log line of every event variant", () => {
     expect(formatEvent({ placed: { piece: "unit:it:x", hex: "C0101" } })).toBe("unit:it:x placed at C0101.");
   });
 });
+
+// Online, the enemy's sealed answers and firers reach a player with
+// those fields removed (`cna_game::view::events`, 3.61).
+describe("the log line of an event as the enemy's player receives it", () => {
+  it.each([
+    [{ "barrage-plotted": { side: "axis" } }, "Axis barrage plotted."],
+    [{ "forces-assigned": { side: "cw" } }, "Commonwealth forces assigned."],
+    [{ barrage: { side: "axis", target: "u:b", points: 6, shift: -1, reading: 3, result: "pinned" } }, "Axis barrage on B: 6 points, shift -1, reading 3: pinned."],
+  ] as Array<[Event, string]>)("%j", (event, line) => {
+    expect(formatEvent(event, name)).toBe(line);
+  });
+});
+
+// The fields `cna_game::view::events_for` takes out of an event for the
+// side not entitled to them (crates/cna-game/src/view/events.rs).
+const withheld: Record<string, string[]> = {
+  moved: ["cost"],
+  "contact-broken": ["cost"],
+  "barrage-plotted": ["fires"],
+  barrage: ["firers"],
+  "anti-armour": ["points", "shift"],
+  "forces-assigned": ["assignments"],
+  assault: ["attacker_raw", "defender_raw"],
+  prisoners: ["points"],
+  "prisoners-taken": ["points"],
+  "prisoners-left-map": ["points"],
+  "prisoners-gone": ["points"],
+  "prisoners-marched": ["points", "cp"],
+  "construction-begun": ["item"],
+  "construction-lost": ["item"],
+  "guards-detailed": ["points"],
+  "guards-released": ["points"],
+  "air-lifted": ["fuel_from"],
+  "convoy-bombed": ["units", "sunk"],
+};
+
+describe("an event with the fields the server withholds", () => {
+  const reduced = cases
+    .filter(([e]) => Object.keys(e as object)[0] in withheld)
+    .map(([e]) => {
+      const [kind, body] = Object.entries(structuredClone(e) as Record<string, Record<string, unknown>>)[0];
+      for (const f of withheld[kind]) delete body[f];
+      if (kind === "assault") for (const r of ["attacker", "defender"]) for (const f of ["raw_lost", "toe_lost"]) delete (body[r] as Record<string, unknown>)[f];
+      return { [kind]: body } as unknown as Event;
+    });
+
+  // The variant table above has no air lift; it gets its own.
+  reduced.push({ "air-lifted": { piece: "u:s", from: { box: "tripoli" }, to: { hex: "C4021" } } } as unknown as Event);
+
+  it("covers every reduced variant", () => {
+    expect(reduced.map((e) => Object.keys(e)[0]).sort()).toEqual(Object.keys(withheld).sort());
+  });
+
+  it.each(reduced)("%j reads without a hole", (event) => {
+    expect(formatEvent(event, name)).not.toMatch(/undefined|NaN|\?\?/);
+  });
+});

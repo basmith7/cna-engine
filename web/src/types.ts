@@ -83,31 +83,32 @@ export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-s
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
+/** A piece as a view shows it. An enemy's under limited intelligence (3.61) lacks the optional fields its owner sees (`ENEMY_PIECE_KEEPS` in cna-game's `view/state.rs`). */
 export interface Piece {
   id: PieceId;
   side: Side;
   kind: PieceKind;
   nation: Nation | null;
   id_code: string | null;
-  parent: string | null;
+  parent?: string | null;
   /** The unit this one is merged into (19.1x); absent when it stands alone. */
   attached_to?: string;
   /** A formation too depleted to count whole: it stacks one level smaller (9.26). */
   shell?: true;
-  toe: number;
+  toe?: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
   cpa: string | null;
-  morale: number | null;
-  status: "in-training" | "broken-down" | null;
+  morale?: number | null;
+  status?: "in-training" | "broken-down" | null;
   equivalent: Equivalent | null;
   garrison_of?: HexId;
   /** CPA Rommel lends it this OpStage (31.0, R-137); absent when none. */
   rommel_cpa?: number;
   location: Location;
-  cp_spent: number;
-  cp_enemy_half: number;
-  cohesion: { level: number; dp_tally: number };
+  cp_spent?: number;
+  cp_enemy_half?: number;
+  cohesion?: { level: number; dp_tally: number };
   contact: boolean;
   engaged: boolean;
   reserve?: Reserve;
@@ -252,8 +253,9 @@ export type BarrageResult = "no-effect" | "pinned" | { lose: number } | "unresol
 export interface AssaultRoll {
   reading: number;
   pct: number;
-  raw_lost: number;
-  toe_lost: number;
+  /** Withheld from the other side online (3.61). */
+  raw_lost?: number;
+  toe_lost?: number;
   engaged: boolean;
   retreat: number;
   captured: boolean;
@@ -273,22 +275,23 @@ export type Event =
   | "rommel-recalled"
   | { arrived: { pieces: PieceId[]; at: Location } }
   | { "moved-off-map": { piece: PieceId; location: Location } }
-  | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost: number } }
+  | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost?: number } }
   | { disorganised: { piece: PieceId; dp: number; level: number } }
   | { "move-interrupted": { pieces: PieceId[]; at: HexId; before: HexId; declare: HexId[] } }
   | { "zoc-declared": { hex: HexId; exerts: boolean } }
   | { "reaction-offered": { pieces: PieceId[]; at: HexId } }
-  | { "contact-broken": { piece: PieceId; cost: number } }
+  | { "contact-broken": { piece: PieceId; cost?: number } }
   | { "reserve-designated": { pieces: PieceId[] } }
   | { "reserve-released": { pieces: PieceId[]; from: Reserve } }
   | { "reserve-flipped": { pieces: PieceId[] } }
   | { sealed: { side: Side; step: SealedStep } }
   | { "gun-positions-set": { side: Side; forward: PieceId[] } }
-  | { "barrage-plotted": { side: Side; fires: Fire[] } }
+  | { "barrage-plotted": { side: Side; fires?: Fire[] } }
   | {
       barrage: {
         side: Side;
-        firers: PieceId[];
+        /** Absent for the enemy's barrage, online (3.61). */
+        firers?: PieceId[];
         target: PieceId;
         points: number;
         shift: number;
@@ -297,14 +300,14 @@ export type Event =
       };
     }
   | { "retreated-before-assault": { pieces: PieceId[]; to: HexId } }
-  | { "anti-armour": { side: Side; target: HexId; points: number; shift: number; reading: number; damage: number } }
+  | { "anti-armour": { side: Side; target: HexId; points?: number; shift?: number; reading: number; damage: number } }
   | {
       assault: {
         target: HexId;
         attackers: PieceId[];
         probe: boolean;
-        attacker_raw: number;
-        defender_raw: number;
+        attacker_raw?: number;
+        defender_raw?: number;
         basic: number;
         shifts: number;
         column: string;
@@ -312,7 +315,7 @@ export type Event =
         defender: AssaultRoll;
       };
     }
-  | { prisoners: { side: Side; points: number } }
+  | { prisoners: { side: Side; points?: number } }
   | { surrendered: { pieces: PieceId[] } }
   | { engaged: { pieces: PieceId[] } }
   | { "retreat-ordered": { pieces: PieceId[]; hexes: number; reason: RetreatReason } }
@@ -331,28 +334,28 @@ export type Event =
   | { "motorisation-lost": { side: Side; percent: number; of: number; points: number } }
   | { "load-transferred": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { railed: { pieces: PieceId[]; from: HexId; to: HexId } }
-  | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from: PieceId } }
+  | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from?: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
-  | { "prisoners-taken": { side: Side; hex: HexId; points: number } }
-  | { "prisoners-marched": { side: Side; path: HexId[]; points: number; cp: number } }
-  | { "prisoners-gone": { side: Side; hex: HexId; points: number } }
-  | { "prisoners-left-map": { side: Side; points: number; stages: number } }
-  | { "convoy-bombed": { lane: number; bomb_points: number; reading: number; percent: number; units: number; sunk: number } }
-  | { "construction-begun": { side: Side; item: BuildItem; hex: HexId; builders: PieceId[] } }
-  | { "construction-lost": { side: Side; item: BuildItem; hex: HexId } }
+  | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
+  | { "prisoners-marched": { side: Side; path: HexId[]; points?: number; cp?: number } }
+  | { "prisoners-gone": { side: Side; hex: HexId; points?: number } }
+  | { "prisoners-left-map": { side: Side; points?: number; stages: number } }
+  | { "convoy-bombed": { lane: number; bomb_points: number; reading: number; percent: number; units?: number; sunk?: number } }
+  | { "construction-begun": { side: Side; item?: BuildItem; hex: HexId; builders: PieceId[] } }
+  | { "construction-lost": { side: Side; item?: BuildItem; hex: HexId } }
   | { "fortification-built": { side: Side; hex: HexId; level: number } }
   | { "minefield-laid": { side: Side; hex: HexId } }
   | { "minefield-revealed": { hex: HexId; real: boolean } }
   | { "minefield-removed": { hex: HexId } }
-  | { "guards-detailed": { piece: PieceId; hex: HexId; points: number } }
-  | { "guards-released": { piece: PieceId; hex: HexId; points: number } }
+  | { "guards-detailed": { piece: PieceId; hex: HexId; points?: number } }
+  | { "guards-released": { piece: PieceId; hex: HexId; points?: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
   | { "prisoners-freed": { side: Side; hex: HexId; points: number } }
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
-  | { "forces-assigned": { side: Side; assignments: Assignment[] } }
+  | { "forces-assigned": { side: Side; assignments?: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
   | { captured: { piece: PieceId; hex: HexId } }
@@ -364,6 +367,9 @@ export interface Illegal {
 }
 
 export type ApplyResult = { ok: Event[] } | { illegal: Illegal };
+
+/** A preview's answer: `apply`'s, or `hidden` when the order rolls dice (the game's next rolls) or answers a sealed step (it would reveal the other side's answer). */
+export type PreviewResult = ApplyResult | { hidden: "dice" | "sealed" };
 
 /** What a legal-move query is for: the order the path will be sent as (`cna_game::reach::Purpose`). */
 export type Purpose = "move" | "react" | "retreat-before-assault" | "forced-retreat" | "rail";

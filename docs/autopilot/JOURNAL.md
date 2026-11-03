@@ -185,6 +185,12 @@ In flight: nothing.
 Next: merge PR #23 once CI passes; then Mission 4's spec (PROGRESS.md, Next steps). Not done from the review, recorded in PROGRESS.md: `check_invariants` extended to every piece and hex reference and duplicate `waiting` sides (a hostile save can still panic the engine later); the curtain on Load/Continue; the 390 px end-dialog table clipping MET.
 Blocked: none.
 
+## 2026-10-13 09:20 MST — autopilot/m4-spec
+Done: Mission 4 Part 0, PR #25 (`needs-brian`): the multiplayer server design `docs/designs/2026-10-13-multiplayer-server-design.md` (f20901c) and six slice plans (df496dc); a sub-agent review against the code found leaks the first draft missed (per-piece state maps, pending placements, `forced-retreat.raw`, refusal reasons, event numbers, alias direction, seed-keyed aliases) and server gaps (per-account order limits, stream caps, missing `Origin`, suspension and open streams), all folded in (fdf0208).
+In flight: nothing for Mission 4; it waits for Brian.
+Next: when **Feedback** approves PR #25 (and answers its three questions), merge it and start slice 1 (`docs/plans/2026-10-13-m4-slice-1-view.md`). Until then build nothing for Mission 4.
+Blocked: Brian's review of PR #25.
+
 ## 2026-10-13 09:25 MST — autopilot/hostile-saves
 Done: PR #26: `check_invariants` checks every piece and hex a save names, duplicate `waiting` sides, and reaction/forced-retreat pieces' sides (03629f4); 13 failing-first tests and a golden load sweep. Gates pass locally.
 In flight: nothing. Mission 4 waits on Brian's review of PR #25.
@@ -488,3 +494,63 @@ Done: #78 merged. #79 ready: combat units and HQs ride the railway, 2 SP a run, 
 In flight: #79 CI.
 Next: merge #79 on green CI; then the plan's remaining tasks (carry attached units, one stack each way, phase J for units alone with a golden re-pin).
 Blocked: Mission 4 on Brian's review of #25.
+
+## 2026-11-02 14:10 MST — autopilot/m4-slice-1-view
+Done: Feedback approved Mission 4 (2026-10-29): #25 merged with main, header marked approved. #92 (slice 1): cna-embed (2bd…), Aliases as keyed hashes (stable as supply units come and go; deviation from the plan's numbered permutation), view_for (allow-list for enemy pieces), events_for (73 variants, subagent), refusal_for + leaks, leak test over graziani-m5 and setup, dice-safe preview (subagent), golden hashes in tests/games/*.sha256. PROGRESS on main (4c47768) with a 3.61 request for cna.
+In flight: #92 gates/CI.
+Next: merge #92 on green CI; then slice 2 (`docs/plans/2026-10-13-m4-slice-2-server.md`), re-checking its names against main. #80 (Mission 5 rail stacks, draft) waits.
+Blocked: none.
+
+## 2026-11-02 14:45 MST — autopilot/m4-slice-2-server
+Done: server preview answers {"hidden":"sealed"} during sealed steps, tested over the golden game. #92 (slice 1) merged after a fresh review (barrage_involved leak and sealed preview fixed) and a choices ledger (docs/plans/2026-10-13-m4-choices.md). #93 (draft, slice 2): cna-server Tasks 1–5 by subagents: crate/healthz/compose (f8fb0af), schema (bd7ae20), registry + apply (baa481e), restart/eviction/old rules (29cceed, ab6ea98), HTTP API with test-auth header (ecb68e2); main merged in; SSE stream with catch-up and caps (b338df3).
+In flight: nothing running. DB tests need `--features cna-server/db-tests,cna-server/test-auth` and `docker compose -f deploy/compose.dev.yml up -d db` (port 5433).
+Next: Task 7 (golden over HTTP: play graziani-m5.json, games are Modules::ALL), Task 8 (CI `server` job with `--features db-tests,test-auth`).
+Blocked: none.
+
+## 2026-11-02 16:55 MST — autopilot/m4-slice-2-server
+Done: Tasks 7–8 were already committed (ead9751, 13b8e50); #93 ready, CI green. Slice 3 Task 1 (fake-discord, 3c83825) found local-only and pushed as autopilot/m4-slice-3-accounts.
+In flight: fresh review of #93; slice 3 Tasks 2–4 by a subagent in /tmp/cna-s3.
+Next: merge #93 after review fixes; merge main into slice 3, Task 5 (compose, curl sign-in), draft PR.
+Blocked: none.
+
+## 2026-11-02 17:15 MST — autopilot/m4-slice-3-accounts
+Done: #93 merged after review fixes (07d1953, e4b44bd). #94 (draft, slice 3): fake Discord (3c83825), sign-in + own sqlx session store (f40877d), limits/CSRF (8be75e4), admins/suspension (e6b96fc), dev compose `--profile stack` (822a061); curl sign-in as alice verified natively.
+In flight: fresh review of #94; slice 4 Task 1 (lobby API) in /tmp/cna-s4 on autopilot/m4-slice-4-lobby (based on #94); Task 2 (web Engine interface) in /tmp/cna-s4e on autopilot/m4-slice-4-engine (from main).
+Next: fix #94 review findings, mark ready, merge on green CI; merge main + the engine branch into slice-4-lobby; then slice 4 Tasks 3–5.
+Blocked: none. Shared dev Postgres on 5433 causes cross-run sqlx::test flakes: give each agent its own container.
+
+## 2026-11-02 17:32 MST — autopilot/m4-slice-4-lobby
+Done: #94 (slice 3) merged after review fixes (b3f72c6). #95 (draft, slice 4): lobby API (a9e681e), orders only in active games, SPA serving of CNA_WEB_DIST (006ddc6). Merged branches and the slice 2/3 worktrees removed.
+In flight: Task 2 (web Engine interface, LocalEngine) on autopilot/m4-slice-4-engine in /tmp/cna-s4e, by a subagent.
+Next: merge the engine branch into slice-4-lobby; Task 3 NetworkEngine (Vitest with mocked fetch/EventSource); Task 4 screens; Task 5 two-player Playwright + CI Postgres for web job.
+Blocked: none.
+
+## 2026-11-02 17:45 MST — autopilot/m4-slice-4-lobby
+Done: #95 (draft) has Tasks 1–3 and part of 4: lobby API (a9e681e), active-only orders, SPA serving (006ddc6), Engine/LocalEngine + "?" fields (4464409, 3e6b3b2), NetworkEngine (5448023), fuel-sources route (b17d61d), lobby client + StartScreen "Play online" + Lobby.svelte (b59f1ec, not yet seen against a server or screenshotted). Gates green.
+In flight: nothing running.
+Also: either-games offer both seats (879dbd5); leave/sign-out send JSON for CSRF (e59b81b); curl e2e against real binaries in #95's body.
+Next: Task 4 rest: /game/{id} page on NetworkEngine, /join/{id}?invite=, settings (disabled), admin list; then screenshots + screenshot-critique. Then Task 5 (two-player Playwright on compose, CI Postgres for web).
+Blocked: none. Shared target dir: removing a worktree leaves test binaries with its CARGO_MANIFEST_DIR baked in; `touch crates/*/src/lib.rs` before testing in a new worktree.
+
+## 2026-11-02 19:50 MST — autopilot/m4-slice-4-lobby
+Done: Task 4 rest (9abbe00): /game/{id} on NetworkEngine (no curtain/autosave, log from the stream, "Your move"/"Waiting for" panel), /join/{id}?invite= (sign-in returns via sessionStorage), alerts switch (disabled) and admin accounts list in the lobby (admin API is under /admin, outside the SPA fallback, so no /admin page). Fixed opponent lookup (lobby ids are numbers).
+In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this branch; manual stack run + screenshots by the main session.
+Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
+Blocked: none.
+
+## 2026-11-02 20:07 MST — autopilot/m4-slice-5-alerts
+Done: #96 (draft, based on #95): guild join at sign-in (76c3793), outbox + sender (c18b651), PATCH /api/me + lobby switch and unreachable notice (9926258). Gates green here (clippy, cargo test --no-fail-fast, probe check; server DB suite with db-tests,test-auth,fake).
+In flight: none on this branch.
+Next: after #95 merges, retarget #96 to main, merge main in; Task 4's Playwright DM check in two-players.spec.ts (alice's last set-up placement with bob's page closed → fake /_sent has one DM; none with alerts off); then ready and merge; then slice 6 (ship).
+Blocked: none.
+
+## 2026-11-02 20:26 MST — autopilot/m4-slice-4-lobby
+Done: Task 5 by a subagent (e5cad4d, 412deca, 605bcb8, f5482a8, 6facfba): two-player e2e by clicks, leaks + hash checked, CI Postgres. Fresh review fixes (6436420). Local: multiplayer e2e 1 passed on 6436420; hot-seat 46 passed; server DB suite and clippy green.
+In flight: CI on #95; then ready + merge, retarget #96 to main.
+Next: #96 Task 4's Playwright DM check; slice 6. Follow-ups: stream silent when a game ends/starts; e2e leak check judges against later state; enemy events with stripped fields log "undefined" (move cost, anti-armour points, prisoner points).
+
+## 2026-11-02 20:49 MST — autopilot/m4-slice-5-alerts
+Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 all four tasks: Task 4 PATCH /api/me + lobby switch/notice (9926258), alerts e2e (26c1bdc; multiplayer config 2 passed locally), enemy-event "undefined" fix (ae5c398). Clippy clean; server DB suite green before Task 4's e2e. Merged worktrees/branches from older runs removed.
+In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
+Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
+Blocked: none.
