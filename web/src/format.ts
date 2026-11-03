@@ -58,6 +58,9 @@ const STEP = { "gun-positions": "gun positions", barrage: "barrage", "assign-for
 /** "N <unit>" for a count the other side may know, `withheld` when the server held it back (3.61). */
 const count = (n: number | undefined, unit: string, withheld: string) => (n === undefined ? withheld : `${n} ${unit}`);
 
+/** Replacement points waiting in a hex: repaired ones by model, captured ones by class (R-152). */
+export const replacementName = (weapon: string) => (weapon.startsWith("captured ") ? weapon : `repaired ${weapon}`);
+
 export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
   if (e === "rommel-recalled") return "Rommel is recalled to Germany for this Game-Turn.";
@@ -172,7 +175,12 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["prisoners-marched"];
     return `${sideName(d.side)} marches ${count(d.points, "prisoner points", "prisoners")} ${d.path[0]} → ${d.path[d.path.length - 1]}${d.cp === undefined ? "" : ` (${d.cp} CP)`}.`;
   }
-  if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} repaired ${e.absorbed.weapon} points for ${e.absorbed.cp} CP.`;
+  if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} ${replacementName(e.absorbed.weapon)} points for ${e.absorbed.cp} CP.`;
+  if ("equipment-captured" in e) {
+    const d = e["equipment-captured"];
+    const what = d.weapon.replace(/^captured /, "");
+    return `${sideName(d.side)} captures ${count(d.points, `${what} replacement points`, `${what} equipment`)} in ${d.hex}.`;
+  }
   if ("construction-begun" in e) return `${sideName(e["construction-begun"].side)} begins ${e["construction-begun"].item ? `a ${itemName(e["construction-begun"].item)}` : "a project"} in ${e["construction-begun"].hex}.`;
   if ("construction-lost" in e) return `${sideName(e["construction-lost"].side)} loses its ${e["construction-lost"].item ? `${itemName(e["construction-lost"].item)} ` : ""}project in ${e["construction-lost"].hex}: a builder left.`;
   if ("fortification-built" in e) return `${sideName(e["fortification-built"].side)} fortifies ${e["fortification-built"].hex} to level ${e["fortification-built"].level}.`;

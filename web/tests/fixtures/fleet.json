@@ -14,7 +14,8 @@
     "breakdown": true,
     "construction": true,
     "fleet": true,
-    "patrols": true
+    "patrols": true,
+    "captured_equipment": true
   },
   "clock": {
     "game_turn": 1,
