@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LobbyError, createGame, freeSide, inviteLink, joinGame, leaveGame, me, myGames, openGames, signOut, type MyGame, type OpenGame } from "./lobby";
+import { LobbyError, createGame, freeSides, inviteLink, joinGame, leaveGame, me, myGames, openGames, signOut, type MyGame, type OpenGame } from "./lobby";
 
 type Call = { url: string; init: RequestInit };
 let calls: Call[];
@@ -86,9 +86,9 @@ describe("lobby client", () => {
 
   it("gives a joiner the seat the creator left free", () => {
     const g = (creator_side: OpenGame["creator_side"]) => ({ creator_side }) as OpenGame;
-    expect(freeSide(g("axis"))).toBe("cw");
-    expect(freeSide(g("cw"))).toBe("axis");
-    expect(freeSide(g("either"))).toBe("axis");
+    expect(freeSides(g("axis"))).toEqual(["cw"]);
+    expect(freeSides(g("cw"))).toEqual(["axis"]);
+    expect(freeSides(g("either"))).toEqual(["axis", "cw"]);
   });
 
   it("builds the invite link with the token escaped", () => {

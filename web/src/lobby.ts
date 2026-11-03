@@ -118,10 +118,10 @@ export async function signOut(): Promise<void> {
   await call("POST", "/auth/sign-out");
 }
 
-/** The seat a joiner of `g` takes: the one the creator left free (Axis when the creator would take either). */
-export function freeSide(g: OpenGame): Side {
-  if (g.creator_side === "either") return "axis";
-  return g.creator_side === "axis" ? "cw" : "axis";
+/** The seats a joiner of `g` may take: the one the creator left free, or either when the creator would take either. */
+export function freeSides(g: OpenGame): Side[] {
+  if (g.creator_side === "either") return ["axis", "cw"];
+  return [g.creator_side === "axis" ? "cw" : "axis"];
 }
 
 /** The link that lets the opponent join a game, private or not. */

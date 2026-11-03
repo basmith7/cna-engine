@@ -3,7 +3,8 @@
   // awaiting their move first; public games waiting for a player; and a
   // form to make one, whose invite link shows once.
   import { sideName } from "./clock";
-  import { type Account, type Created, type CreateSide, type MyGame, type OpenGame, createGame, freeSide, inviteLink, joinGame, myGames, openGames, signOut } from "./lobby";
+  import { type Account, type Created, type CreateSide, type MyGame, type OpenGame, createGame, freeSides, inviteLink, joinGame, myGames, openGames, signOut } from "./lobby";
+  import type { Side } from "./types";
 
   let { account, onback }: { account: Account; onback: () => void } = $props();
 
@@ -46,7 +47,7 @@
       copied = false;
     });
 
-  const join = (g: OpenGame) => act(() => joinGame(g.id, freeSide(g)));
+  const join = (g: OpenGame, side: Side) => act(() => joinGame(g.id, side));
 
   const link = $derived(created ? inviteLink(location.origin, created) : "");
 
@@ -101,7 +102,9 @@
         {#each open as g (g.id)}
           <li>
             <span>{g.creator ?? "someone"} as {creatorSide(g.creator_side)}</span>
-            <button type="button" disabled={busy} onclick={() => join(g)}>Join as {sideName(freeSide(g))}</button>
+            {#each freeSides(g) as side (side)}
+              <button type="button" disabled={busy} onclick={() => join(g, side)}>Join as {sideName(side)}</button>
+            {/each}
           </li>
         {/each}
       </ul>
