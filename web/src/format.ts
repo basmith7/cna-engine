@@ -69,7 +69,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("spot-tried" in e) {
     const d = e["spot-tried"];
-    return `${name(d.piece)} tries to spot at ${d.hex}: ${d.rolls.join(", ")}; ${d.eliminated.length > 0 ? `${list(d.eliminated, name)} spotted and eliminated` : "none spotted"}.`;
+    return `${name(d.piece)} spends 1 CP to spot at ${d.hex}: ${d.rolls.length > 1 ? "dice" : "die"} ${d.rolls.join(", ")} (a 6 spots); ${d.eliminated.length > 0 ? `${list(d.eliminated, name)} spotted and eliminated` : "none spotted"}.`;
   }
   if ("raider-formed" in e) {
     const d = e["raider-formed"];

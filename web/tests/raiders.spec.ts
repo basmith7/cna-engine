@@ -120,11 +120,11 @@ test("an Axis unit entering a hidden raider's hex is told of it and tries to spo
   const spot = page.locator(`[data-order="try-spot"][data-piece="${mover}"]`);
   // The move stopped in the raider's hex; the unit stays ticked there.
   await expect(page.getByTestId("move-panel")).toContainText("1 piece ticked");
-  await expect(spot).toHaveText("Try to spot");
+  await expect(spot).toHaveText("Try to spot (1 CP)");
   await shoot(page, "spot-offered.png");
   await spot.click();
 
-  await expect(log(page).filter({ hasText: /^.+ tries to spot at C1614: \d; (none spotted|.+ spotted and eliminated)\.$/ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^.+ spends 1 CP to spot at C1614: die \d \(a 6 spots\); (none spotted|.+ spotted and eliminated)\.$/ })).toHaveCount(1);
   await expect(page.getByTestId("toast")).toHaveCount(0);
   // Once a stage (27.44): the try is offered no more.
   await expect(page.locator('[data-order="try-spot"]')).toHaveCount(0);
