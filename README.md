@@ -21,10 +21,11 @@ cargo run -p cna-probe -- run
 
 ## Playing in a browser
 
-`web/` is a local, two-players-at-one-screen UI for Graziani's Offensive
-on the same engine, compiled to WebAssembly (`crates/cna-web`, with the
-`vendor/cna` data built in). Nothing is hosted: it runs on localhost only.
-See [the design](docs/designs/2026-10-13-minimal-ui-design.md).
+`web/` is the browser UI on the same engine. It plays two ways: hot-seat,
+two players at one screen on the engine compiled to WebAssembly
+(`crates/cna-web`, with the `vendor/cna` data built in), or online
+against `cna-server` (below). Nothing is hosted yet. See [the
+design](docs/designs/2026-10-13-minimal-ui-design.md).
 
 ```bash
 rustup target add wasm32-unknown-unknown   # once
@@ -51,13 +52,41 @@ is also autosaved to the browser's `localStorage` after every order.
 sealed combat answers until both are in, and a curtain asks for the
 keyboard to change hands (and comes down when a save or the autosave is
 opened); but the autosave, a downloaded save and (in
-test builds) `window.__cna` hold the whole state. Real hidden information
-waits for the server.
+test builds) `window.__cna` hold the whole state. Online play keeps
+secrets for real.
 
 Checks: `npm run check` (svelte-check and tsc), `npm test` (Vitest),
-`npm run build`, `npx playwright test` (headless Chromium against the
-production build; the golden game `tests/games/graziani-short.json` is
-played through by clicks and must end in the same state as `replay`).
+`npm run build`, `npx playwright test --project chromium` (headless
+Chromium against the production build; the golden game
+`tests/games/graziani-short.json` is played through by clicks and must
+end in the same state as `replay`), and `npx playwright test -c
+playwright.multiplayer.config.ts` (two players over a real server;
+`tests/multiplayer/serve.sh` starts it).
+
+## Playing online
+
+`crates/cna-server` holds every online game and sends each player only
+what their side may see, over HTTP and a live stream; accounts sign in
+with Discord. See [the design](docs/designs/2026-10-13-multiplayer-server-design.md).
+Locally, with a fake Discord that offers the accounts alice and bob:
+
+```bash
+docker compose -f deploy/compose.dev.yml up -d db   # Postgres on 5433
+cd web && npm run build && cd ..
+cargo run -p cna-server --features fake --bin fake-discord &
+DATABASE_URL=postgres://cna:cna@localhost:5433/cna CNA_DEV=1 \
+  CNA_PUBLIC_URL=http://localhost:3240 CNA_DISCORD_CLIENT_ID=dev \
+  CNA_DISCORD_CLIENT_SECRET=dev \
+  CNA_DISCORD_AUTHORIZE=http://localhost:3241/oauth2/authorize \
+  CNA_DISCORD_API=http://localhost:3241/api CNA_WEB_DIST=web/dist \
+  cargo run -p cna-server --bin cna-server
+```
+
+Open `http://localhost:3240`, choose "Play online", and sign in as alice;
+create a game and open its invite link in a private window as bob. The
+lobby lists your games, those awaiting your move first; a game's page is
+`/game/<id>`. Server tests need Postgres:
+`DATABASE_URL=… cargo test -p cna-server --features db-tests,test-auth,fake`.
 
 ## Playing headless
 

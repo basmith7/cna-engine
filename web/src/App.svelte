@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { clockLine } from "./clock";
+  import { clockLine, sideName } from "./clock";
   import Counters from "./Counters.svelte";
   import { label, stacks } from "./counters";
   import Curtain from "./Curtain.svelte";
   import { curtainAfter } from "./curtain";
   import EndDialog from "./EndDialog.svelte";
-  import { Engine, initEngine } from "./engine";
+  import { type Engine, LocalEngine, initEngine } from "./engine";
   import { formatEvent } from "./format";
   import GamePanel from "./GamePanel.svelte";
   import { withEvents, withIllegal, type LogEntry } from "./log";
@@ -22,6 +22,11 @@
   import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
+  import Lobby from "./Lobby.svelte";
+  import { type Account, SIGN_IN_URL, me } from "./lobby";
+  import JoinScreen from "./JoinScreen.svelte";
+  import { NetworkEngine } from "./network";
+  import { RETURN_KEY, parseRoute } from "./route";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
@@ -35,6 +40,49 @@
   let error: string | null = $state(null);
   /** The wasm is in; without a game yet the start screen shows. */
   let loaded = $state(false);
+  /** The signed-in account for "Play online", or null when signed out or there is no lobby server. */
+  let account: Account | null = $state(null);
+  /** The lobby shows in place of the start screen. */
+  let inLobby = $state(location.pathname.startsWith("/lobby"));
+  /** The page asked for: a game online, an invite, or the start screen. */
+  const route = parseRoute(location.pathname, location.search);
+  /** Whether `me()` has answered, so the invite page knows if a sign-in is needed. */
+  let known = $state(false);
+  me().then(
+    (a) => {
+      account = a;
+      known = true;
+      // Back from a sign-in an invite or a game page asked for: go back to it.
+      let back: string | null = null;
+      try {
+        back = sessionStorage.getItem(RETURN_KEY);
+        sessionStorage.removeItem(RETURN_KEY);
+      } catch {
+        back = null;
+      }
+      if (a && back && route.page === "start" && /^\/(join|game)\//.test(back)) location.replace(back);
+    },
+    () => {
+      account = null;
+      known = true;
+    },
+  );
+  /** Sign-in lands on `/`: this page is where it should come back to. */
+  function rememberPage() {
+    try {
+      sessionStorage.setItem(RETURN_KEY, location.pathname + location.search);
+    } catch {
+      // Without storage the player comes back to the start screen.
+    }
+  }
+  /** The online game on the page, if it is one: no curtain, no autosave, the log from its stream. */
+  const online = $derived(engine instanceof NetworkEngine ? engine : null);
+  /** Whether this screen may send orders now: always at hot-seat, on its own move online. */
+  const myTurn = $derived(!online || (!!view && view.to_act === online.side));
+  /** The online game's "Your move" / "Waiting for …" line. */
+  let turnText: string | null = $state(null);
+  /** Why the online game could not be opened. */
+  let onlineError: string | null = $state(null);
   /** The autosave's clock line on the start screen, or null when there is none. */
   let autosave: string | null = $state(null);
   /** The engine's refusal of the last file given to Load, until the next Load. */
@@ -73,12 +121,34 @@
 
   // Re-read from the engine whenever the view is replaced: the engine is
   // not reactive, the view standing in for its version.
-  const placements: HexId[] = $derived.by(() => (view && picked && engine ? engine.placements(picked) : []));
+  // The engine's answers are async: each query below reruns when its
+  // inputs change and keeps only the answer to its latest run, cleared
+  // meanwhile, so no answer outlives the view or the ticks it was for.
+  let placements: HexId[] = $state([]);
+  $effect(() => {
+    const e = engine, p = picked;
+    placements = [];
+    if (!view || !p || !e) return;
+    return answer(e.placements(p), (r) => (placements = r));
+  });
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
+
+  /** Hands `q`'s answer to `take` unless the effect that asked has rerun or gone first (its cleanup, returned). */
+  function answer<T>(q: Promise<T>, take: (r: T) => void): () => void {
+    let live = true;
+    q.then((r) => {
+      if (live) take(r);
+    }).catch((e: unknown) => {
+      if (live) error = e instanceof Error ? e.message : String(e);
+    });
+    return () => {
+      live = false;
+    };
+  }
 
   /** What a click on a reachable hex would send: a move in a movement segment or the truck convoy phase, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
-    if (!view || !view.to_act) return null;
+    if (!view || !view.to_act || !myTurn) return null;
     if (view.pending) {
       if ("reaction" in view.pending) return "react";
       if ("retreat-before-assault" in view.pending) return "retreat-before-assault";
@@ -92,15 +162,20 @@
     return view.clock.phase === "movement-combat" && view.clock.segment === "movement" ? "move" : null;
   });
   /** The engine's options for the pending sealed step, for the side to act (spec, *Sealed options*). */
-  const sealed: { ok: SealedOptions } | { ok: null; illegal: Illegal } | null = $derived.by(() => {
-    if (!engine || !view || !view.to_act || !view.pending || !("sealed" in view.pending)) return null;
-    const r = engine.sealedOptions(view.to_act);
-    return "ok" in r ? r : { ok: null, illegal: r.illegal };
+  let sealed: { ok: SealedOptions } | { ok: null; illegal: Illegal } | null = $state(null);
+  $effect(() => {
+    const e = engine;
+    sealed = null;
+    if (!e || !view || !view.to_act || !myTurn || !view.pending || !("sealed" in view.pending)) return;
+    return answer(e.sealedOptions(view.to_act), (r) => (sealed = "ok" in r ? r : { ok: null, illegal: r.illegal }));
   });
   /** The engine's preview of Pass while a forced retreat is pending: what standing still costs (spec, *Interrupts*). */
-  const passPreview: PreviewResult | null = $derived.by(() => {
-    if (!engine || !view || !view.to_act || !view.pending || !("forced-retreat" in view.pending)) return null;
-    return engine.preview(view.to_act, "pass");
+  let passPreview: PreviewResult | null = $state(null);
+  $effect(() => {
+    const e = engine;
+    passPreview = null;
+    if (!e || !view || !view.to_act || !myTurn || !view.pending || !("forced-retreat" in view.pending)) return;
+    return answer(e.preview(view.to_act, "pass"), (r) => (passPreview = r));
   });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
   const toAssault: HexId[] = $derived(view?.assaults_to_resolve ?? []);
@@ -124,14 +199,22 @@
   const onMap = $derived(view ? allOnMap(view, ticked) : false);
   const offMap = $derived(view ? allOffMapCapable(view, ticked) : false);
   /** The engine's answer for the ticked stack: the hexes, or why it cannot move. */
-  const reach: { ok: Reach[]; illegal: null } | { ok: []; illegal: Illegal } = $derived.by(() => {
-    if (!engine || !view || !view.to_act || !purpose || !onMap) return { ok: [], illegal: null };
-    const r = engine.reachable(view.to_act, ticked, purpose);
-    return "ok" in r ? { ok: r.ok, illegal: null } : { ok: [], illegal: r.illegal };
+  let reach: { ok: Reach[]; illegal: null } | { ok: []; illegal: Illegal } = $state({ ok: [], illegal: null });
+  $effect(() => {
+    const e = engine, p = purpose, t = ticked;
+    reach = { ok: [], illegal: null };
+    if (!e || !view || !view.to_act || !p || !onMap) return;
+    return answer(e.reachable(view.to_act, t, p), (r) => (reach = "ok" in r ? { ok: r.ok, illegal: null } : { ok: [], illegal: r.illegal }));
   });
   const reaches = $derived(reach.ok);
   /** Who could pay the ticked stack's fuel (32.17), and the player's pick; none picked lets the engine take the nearest. */
-  const fuelSources: PieceId[] = $derived(engine && view?.to_act && purpose === "move" && onMap && reaches.length > 0 ? engine.fuelSources(view.to_act, ticked) : []);
+  let fuelSources: PieceId[] = $state([]);
+  $effect(() => {
+    const e = engine, t = ticked;
+    fuelSources = [];
+    if (!e || !view?.to_act || purpose !== "move" || !onMap || reaches.length === 0) return;
+    return answer(e.fuelSources(view.to_act, t), (r) => (fuelSources = r));
+  });
   let fuelPick: PieceId | null = $state(null);
   const fuelFrom = $derived(fuelPick && fuelSources.includes(fuelPick) ? fuelPick : null);
   const occupied = $derived(new Set(view ? stacks(view).keys() : []));
@@ -147,11 +230,28 @@
    * Every order goes to the engine as the side it is waiting on; the UI
    * never picks one. On `ok` the events go to the log and the view is
    * replaced whole; on `illegal` nothing changes but the toast and a red
-   * log line.
+   * log line. Orders go one at a time: each is sent once the one before
+   * it has been answered and its view taken, as the side then to act.
    */
-  function send(order: Order): boolean {
-    if (!engine || !view || !view.to_act) return false;
-    const r = engine.apply(view.to_act, order);
+  function send(order: Order): Promise<boolean> {
+    const run = orders.then(() => sendNow(order));
+    orders = run.catch(() => false);
+    return run;
+  }
+  let orders: Promise<unknown> = Promise.resolve();
+
+  async function sendNow(order: Order): Promise<boolean> {
+    const e = engine;
+    if (!e || !view || !view.to_act) return false;
+    // Online, orders go as this seat; the server would refuse the other side's.
+    if (e instanceof NetworkEngine && view.to_act !== e.side) {
+      illegal = "Not your move: the other side is to act.";
+      refusals++;
+      return false;
+    }
+    const r = await e.apply(view.to_act, order);
+    // Another game was opened while the order was out: it is not this one's.
+    if (engine !== e) return false;
     if ("illegal" in r) {
       illegal = `Illegal (${r.illegal.case}): ${r.illegal.reason}`;
       // A refused sealed answer stays out of the log: the engine's reason
@@ -164,13 +264,18 @@
     flying = null;
     const before = view;
     const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
-    view = engine.view();
-    log = withEvents(
-      log,
-      clockLine(before),
-      r.ok.map((e) => formatEvent(e, name)),
-    );
-    curtain = curtainAfter(before.to_act, view.to_act);
+    const next = await e.view();
+    if (engine !== e) return false;
+    view = next;
+    // Online, the stream logs every order, this seat's own included.
+    if (!(e instanceof NetworkEngine)) {
+      log = withEvents(
+        log,
+        clockLine(before),
+        r.ok.map((e) => formatEvent(e, name)),
+      );
+      curtain = curtainAfter(before.to_act, view.to_act);
+    }
     custom = [];
     autosaveNow();
     if (curtain) {
@@ -192,7 +297,7 @@
   }
 
   /** The ticked stack along `path`, as the order the moment calls for. */
-  function sendPath(path: HexId[]): boolean {
+  async function sendPath(path: HexId[]): Promise<boolean> {
     if (!purpose || ticked.length === 0) return false;
     const order: Order =
       purpose === "react"
@@ -204,7 +309,7 @@
             : purpose === "rail"
               ? { rail: { pieces: ticked, path } }
               : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
-    const ok = send(order);
+    const ok = await send(order);
     if (ok) assault = false;
     return ok;
   }
@@ -215,13 +320,13 @@
     return p?.id ?? null;
   }
 
-  function onhex(h: HexId, shift = false) {
+  async function onhex(h: HexId, shift = false) {
     if (!view) return;
     if (picked && view.pending && "set-up" in view.pending) {
       hex = h;
       const side = view.to_act;
       const piece = picked;
-      if (send({ place: { piece, hex: h } })) {
+      if (await send({ place: { piece, hex: h } })) {
         placedNow = view!.pending && "set-up" in view!.pending && view!.to_act === side ? [...placedNow, piece] : [];
         picked = view!.to_act === side && side ? nextToPlace(view!, side) : null;
       }
@@ -313,9 +418,10 @@
    * loaded save, the autosave. `curtained` drops the curtain for the side
    * to act, for a game whoever opened it may not be entitled to see.
    */
-  function start(e: Engine, curtained = false) {
+  async function start(e: Engine, curtained = false) {
+    const first = await e.view();
     engine = e;
-    view = e.view();
+    view = first;
     hex = null;
     picked = null;
     ticked = [];
@@ -329,10 +435,10 @@
   }
 
   /** The state JSON into `localStorage` (spec, *Save and load*), after every accepted order; a full store is not an error worth stopping play for. */
-  function autosaveNow() {
-    if (!engine) return;
+  async function autosaveNow() {
+    if (!engine || engine instanceof NetworkEngine) return;
     try {
-      localStorage.setItem(AUTOSAVE_KEY, engine.save());
+      localStorage.setItem(AUTOSAVE_KEY, await engine.save());
     } catch {
       // Private mode or a full store: play goes on without the autosave.
     }
@@ -343,9 +449,9 @@
    * any, is kept and the reason shown. A player's load opens behind the
    * curtain (`curtained`): whoever loads may be the side not to act.
    */
-  function loadJson(json: string, curtained = true): boolean {
+  async function loadJson(json: string, curtained = true): Promise<boolean> {
     try {
-      start(Engine.load(json), curtained);
+      await start(LocalEngine.load(json), curtained);
       loadError = null;
       return true;
     } catch (e) {
@@ -364,40 +470,76 @@
   }
 
   /** Downloads the state JSON as `saveName`'s file. */
-  function saveFile() {
+  async function saveFile() {
     if (!engine || !view) return;
-    const blob = new Blob([engine.save()], { type: "application/json" });
+    const name = saveName(view);
+    const blob = new Blob([await engine.save()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = saveName(view);
+    a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function continueAutosave() {
+  async function continueAutosave() {
     const json = localStorage.getItem(AUTOSAVE_KEY);
     if (json === null) return;
-    if (!loadJson(json)) autosave = null;
+    if (!(await loadJson(json))) autosave = null;
+  }
+
+  /**
+   * Opens the online game `id` (spec, *Web client*): the seat's view,
+   * replaced whenever the stream brings an order, either side's; the
+   * stream's events go to the log under the clock they happened at.
+   */
+  async function openOnline(id: string) {
+    let e: NetworkEngine;
+    try {
+      e = await NetworkEngine.open(id);
+    } catch (err) {
+      onlineError = err instanceof Error ? err.message : String(err);
+      return;
+    }
+    await start(e);
+    turnText = e.turnText;
+    let logged = e.log.length;
+    e.onChange(async () => {
+      if (engine !== e) return;
+      const before = view;
+      const next = await e.view();
+      if (engine !== e) return;
+      const fresh = e.log.slice(logged);
+      logged = e.log.length;
+      if (before && fresh.length > 0) {
+        const name = (id: PieceId) => (before.pieces[id] ? label(before.pieces[id]).long : id);
+        log = withEvents(log, clockLine(before), fresh.map((ev) => formatEvent(ev, name)));
+      }
+      view = next;
+      turnText = e.turnText;
+    });
   }
 
   initEngine()
     .then(() => {
       loaded = true;
+      if (route.page === "game") openOnline(route.id);
       const stored = localStorage.getItem(AUTOSAVE_KEY);
       autosave = stored === null ? null : describeSave(stored);
       if (import.meta.env.MODE === "test") {
         // Test builds only: lets Playwright compare the DOM with the engine
-        // and start from a fixture state (what `save()` wrote).
+        // and start from a fixture state (what `save()` wrote). Hot-seat
+        // only: it reads the wasm game synchronously.
+        const game = () => (engine as LocalEngine).game;
         (window as unknown as { __cna: unknown }).__cna = {
-          view: () => engine!.view(),
-          save: () => engine!.save(),
+          view: () => JSON.parse(game().view()) as View,
+          save: () => game().save(),
           /** How many orders the engine has accepted: the e2e driver's sync point after each click. */
-          orders: () => (JSON.parse(engine!.save()) as { log: unknown[] }).log.length,
-          sealedOptions: () => engine!.sealedOptions(engine!.view().to_act!),
+          orders: () => (JSON.parse(game().save()) as { log: unknown[] }).log.length,
+          sealedOptions: () => JSON.parse(game().sealedOptions((JSON.parse(game().view()) as View).to_act!)) as unknown,
           /** A fixture state, opened without the curtain. */
-          load: (json: string) => {
-            if (!loadJson(json, false)) throw new Error(loadError ?? "not loaded");
+          load: async (json: string) => {
+            if (!(await loadJson(json, false))) throw new Error(loadError ?? "not loaded");
           },
         };
       }
@@ -422,7 +564,7 @@
     {#if view.over && reportOpen}
       <EndDialog {view} onclose={() => (reportOpen = false)} />
     {/if}
-    <TopBar {view} {hex} title={Engine.scenarioName(view.scenario)} />
+    <TopBar {view} {hex} title={LocalEngine.scenarioName(view.scenario)} />
     <div class="body">
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
@@ -439,7 +581,15 @@
       </main>
       <aside class="side">
         <div class="panels">
-          <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
+          {#if online}
+            <section class="panel online" data-testid="online">
+              <h2>Game {online.gameId} · you play {sideName(online.side)}</h2>
+              <p><strong data-testid="turn">{turnText ?? "Nobody is to act"}</strong>{online.opponent && turnText === "Your move" ? ` · against ${online.opponent}` : ""}{online.open ? " · open information" : ""}</p>
+              <p><a href="/lobby">Lobby</a></p>
+            </section>
+          {:else}
+            <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
+          {/if}
           {#if view.over}
             <section class="panel over" data-testid="over">
               <h2>Game over</h2>
@@ -452,13 +602,14 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
+          {#if myTurn}
           <PhaseControls {view} {ticked} {hex} {flying} onfly={(p) => (flying = p)} onorder={(o) => send(o)} />
           <MarchPanel
             {view}
             {march}
             onarm={(m) => (march = m)}
-            onsend={() => {
-              if (march && send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } })) march = null;
+            onsend={async () => {
+              if (march && (await send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } }))) march = null;
             }}
             oncancel={() => (march = null)}
           />
@@ -466,16 +617,15 @@
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
+          {/if}
           {#if purpose}
             <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} />
           {/if}
-          <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={(o) => {
-            const ok = send(o);
-            if (ok && typeof o === "object" && "unplace" in o) {
+          <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={async (o) => {
+            if ((await send(o)) && typeof o === "object" && "unplace" in o) {
               placedNow = placedNow.filter((id) => id !== o.unplace.piece);
               picked = o.unplace.piece;
             }
-            return ok;
           }} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />
         </div>
@@ -484,8 +634,18 @@
     </div>
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
+  {:else if route.page === "game" && onlineError}
+    <p class="status error" role="alert">Game {route.id} could not be opened: {onlineError}.
+      {#if known && !account}<a href={SIGN_IN_URL} onclick={rememberPage}>Sign in with Discord</a> ·{/if}
+      <a href="/">Start screen</a></p>
+  {:else if route.page === "game"}
+    <p class="status">Opening game {route.id}…</p>
+  {:else if route.page === "join" && known}
+    <JoinScreen {account} id={route.id} invite={route.invite} />
+  {:else if loaded && inLobby && account}
+    <Lobby {account} onback={() => { inLobby = false; me().then((a) => (account = a), () => (account = null)); }} />
   {:else if loaded}
-    <StartScreen {autosave} error={loadError} oncontinue={continueAutosave} scenarios={Engine.scenarios()} onnew={(scenario, seed) => start(Engine.newGame(scenario, seed))} onload={loadFile} />
+    <StartScreen {account} onlobby={() => (inLobby = true)} {autosave} error={loadError} oncontinue={continueAutosave} scenarios={LocalEngine.scenarios()} onnew={(scenario, seed) => start(LocalEngine.newGame(scenario, seed))} onload={loadFile} />
   {:else}
     <p class="status">Loading the engine…</p>
   {/if}
@@ -577,6 +737,13 @@
   .panel.assault {
     background: #fbe3e1;
     border: 1px solid #d9847d;
+  }
+  .panel.online {
+    background: #e9e4d8;
+    border: 1px solid #b9b2a2;
+  }
+  .panel.online p + p {
+    margin-top: 0.3rem;
   }
   .panel.over {
     background: #e9e4d8;

@@ -266,7 +266,7 @@ test("a forced retreat shows the order, says what standing costs as the engine t
   await shoot(page, "forced-retreat.png");
   // Pass does exactly what the line said: the log carries the shortfall
   // and each named loss, and the TOE went down by the total.
-  const toe = (v: View) => Object.values(v.pieces).reduce((n, p) => n + p.toe, 0);
+  const toe = (v: View) => Object.values(v.pieces).reduce((n, p) => n + (p.toe ?? 0), 0);
   const before = toe(await page.evaluate(() => window.__cna.view()));
   await pending(page).locator('[data-order="pass"]').click();
   await expect(log(page).filter({ hasText: "stand 2 hexes short of the ordered retreat and pay for it." })).toHaveCount(1);

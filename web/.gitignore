@@ -4,3 +4,4 @@ src/pkg
 test-results
 playwright-report
 *.local
+dist-multiplayer

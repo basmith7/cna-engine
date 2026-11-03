@@ -83,31 +83,32 @@ export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-s
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
+/** A piece as a view shows it. An enemy's under limited intelligence (3.61) lacks the optional fields its owner sees (`ENEMY_PIECE_KEEPS` in cna-game's `view/state.rs`). */
 export interface Piece {
   id: PieceId;
   side: Side;
   kind: PieceKind;
   nation: Nation | null;
   id_code: string | null;
-  parent: string | null;
+  parent?: string | null;
   /** The unit this one is merged into (19.1x); absent when it stands alone. */
   attached_to?: string;
   /** A formation too depleted to count whole: it stacks one level smaller (9.26). */
   shell?: true;
-  toe: number;
+  toe?: number;
   weapons?: { weapon: string; points: number }[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
   cpa: string | null;
-  morale: number | null;
-  status: "in-training" | "broken-down" | null;
+  morale?: number | null;
+  status?: "in-training" | "broken-down" | null;
   equivalent: Equivalent | null;
   garrison_of?: HexId;
   /** CPA Rommel lends it this OpStage (31.0, R-137); absent when none. */
   rommel_cpa?: number;
   location: Location;
-  cp_spent: number;
-  cp_enemy_half: number;
-  cohesion: { level: number; dp_tally: number };
+  cp_spent?: number;
+  cp_enemy_half?: number;
+  cohesion?: { level: number; dp_tally: number };
   contact: boolean;
   engaged: boolean;
   reserve?: Reserve;
@@ -284,11 +285,12 @@ export type Event =
   | { "reserve-flipped": { pieces: PieceId[] } }
   | { sealed: { side: Side; step: SealedStep } }
   | { "gun-positions-set": { side: Side; forward: PieceId[] } }
-  | { "barrage-plotted": { side: Side; fires: Fire[] } }
+  | { "barrage-plotted": { side: Side; fires?: Fire[] } }
   | {
       barrage: {
         side: Side;
-        firers: PieceId[];
+        /** Absent for the enemy's barrage, online (3.61). */
+        firers?: PieceId[];
         target: PieceId;
         points: number;
         shift: number;
@@ -352,7 +354,7 @@ export type Event =
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
-  | { "forces-assigned": { side: Side; assignments: Assignment[] } }
+  | { "forces-assigned": { side: Side; assignments?: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
   | { captured: { piece: PieceId; hex: HexId } }

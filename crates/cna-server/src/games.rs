@@ -13,6 +13,7 @@ use cna_game::state::{GameState, Modules};
 use cna_game::view::Aliases;
 use cna_rules::ruleset::Ruleset;
 use rand_core::{OsRng, RngCore};
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use sqlx::Row;
 use sqlx::types::Json;
@@ -63,6 +64,11 @@ pub enum GameError {
     Stale,
     /// The engine panicked on the order; the old state is kept.
     Panicked,
+    /// A lobby request the game's state refuses: joining one's own
+    /// game, a taken seat, a game no longer open, leaving one that is.
+    Refused(&'static str),
+    /// A private game joined without its invite token (or a wrong one).
+    BadInvite,
     Db(anyhow::Error),
 }
 
@@ -76,6 +82,8 @@ impl std::fmt::Display for GameError {
             GameError::Unknown(e) => write!(f, "{e}"),
             GameError::Stale => write!(f, "the game no longer replays under these rules"),
             GameError::Panicked => write!(f, "the engine failed on the order"),
+            GameError::Refused(why) => write!(f, "{why}"),
+            GameError::BadInvite => write!(f, "a private game: the invite is missing or wrong"),
             GameError::Db(e) => write!(f, "{e:#}"),
         }
     }
@@ -139,6 +147,9 @@ pub struct Games {
     pool: PgPool,
     live: Arc<std::sync::Mutex<HashMap<GameId, Slot>>>,
     streams: crate::stream::Streams,
+    /// The seed `create_as` takes next, once (`/test/next-seed`).
+    #[cfg(feature = "test-auth")]
+    next_seed: Arc<std::sync::Mutex<Option<u64>>>,
 }
 
 pub(crate) fn side_str(side: Side) -> &'static str {
@@ -148,6 +159,35 @@ pub(crate) fn side_str(side: Side) -> &'static str {
     }
 }
 
+/// How a new game is listed and joined.
+#[derive(Debug, Clone, Copy)]
+struct Listing<'a> {
+    /// Shown in the open games; else joined only with the invite.
+    public: bool,
+    /// The creator takes whichever side the joiner leaves.
+    creator_either: bool,
+    /// The SHA-256 of the invite token.
+    invite_hash: Option<&'a [u8]>,
+}
+
+impl Listing<'_> {
+    /// Public, no invite: the games tests and tools make directly.
+    const PUBLIC: Listing<'static> = Listing {
+        public: true,
+        creator_either: false,
+        invite_hash: None,
+    };
+}
+
+/// A new invite token (shown to the creator once) and its SHA-256 (stored).
+fn invite_token() -> (String, Vec<u8>) {
+    let mut raw = [0u8; 24];
+    OsRng.fill_bytes(&mut raw);
+    let token: String = raw.iter().map(|b| format!("{b:02x}")).collect();
+    let hash = Sha256::digest(token.as_bytes()).to_vec();
+    (token, hash)
+}
+
 /// Inserts a new game of `scenario`, waiting for its seats.
 async fn insert_game(
     tx: &mut sqlx::PgConnection,
@@ -155,6 +195,7 @@ async fn insert_game(
     created_by: AccountId,
     open: bool,
     seed: u64,
+    listing: Listing<'_>,
 ) -> Result<GameId, GameError> {
     let data = cna_embed::data(scenario)?;
     // Every module on, as the browser plays (`cna-web`'s new game).
@@ -165,8 +206,9 @@ async fn insert_game(
     OsRng.fill_bytes(&mut key);
     let id: GameId = sqlx::query_scalar(
         "INSERT INTO games (scenario, ruleset, modules, open_information, seed, \
-         alias_key, rules_commit, created_by, to_act) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+         alias_key, rules_commit, created_by, to_act, clock, public, creator_either, \
+         invite_token_hash) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
     )
     .bind(scenario)
     .bind(Json(state.ruleset))
@@ -177,6 +219,10 @@ async fn insert_game(
     .bind(RULES_COMMIT)
     .bind(created_by)
     .bind(state.to_act().map(side_str))
+    .bind(Json(state.clock))
+    .bind(listing.public)
+    .bind(listing.creator_either)
+    .bind(listing.invite_hash)
     .fetch_one(&mut *tx)
     .await?;
     Ok(id)
@@ -222,7 +268,28 @@ impl Games {
             pool,
             live: Default::default(),
             streams: Default::default(),
+            #[cfg(feature = "test-auth")]
+            next_seed: Default::default(),
         }
+    }
+
+    /// Makes the next lobby game's seed `seed` (tests replaying a known game).
+    #[cfg(feature = "test-auth")]
+    pub fn set_next_seed(&self, seed: u64) {
+        *self.next_seed.lock().unwrap_or_else(|e| e.into_inner()) = Some(seed);
+    }
+
+    fn lobby_seed(&self) -> u64 {
+        #[cfg(feature = "test-auth")]
+        if let Some(s) = self
+            .next_seed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+        {
+            return s;
+        }
+        OsRng.next_u64()
     }
 
     pub fn pool(&self) -> &PgPool {
@@ -255,25 +322,185 @@ impl Games {
         seed: u64,
     ) -> Result<GameId, GameError> {
         let mut tx = self.pool.begin().await?;
-        let id = insert_game(&mut tx, scenario, created_by, open, seed).await?;
+        let id = insert_game(&mut tx, scenario, created_by, open, seed, Listing::PUBLIC).await?;
         tx.commit().await?;
         Ok(id)
     }
 
-    /// A new game with its creator already in `side`'s seat, in one
-    /// transaction: the open-games list never shows it without them.
+    /// A lobby game: its creator already in `side`'s seat (none for
+    /// `None`, "either": seated at the join), in one transaction so the
+    /// open-games list never shows it without them. Returns the id and
+    /// the invite token, which only its hash outlives.
     pub async fn create_as(
         &self,
         scenario: &str,
         created_by: AccountId,
-        side: Side,
-        open: bool,
-    ) -> Result<GameId, GameError> {
+        side: Option<Side>,
+        public: bool,
+        open_information: bool,
+    ) -> Result<(GameId, String), GameError> {
+        let (token, hash) = invite_token();
+        let listing = Listing {
+            public,
+            creator_either: side.is_none(),
+            invite_hash: Some(&hash),
+        };
         let mut tx = self.pool.begin().await?;
-        let id = insert_game(&mut tx, scenario, created_by, open, OsRng.next_u64()).await?;
-        seat_in(&mut tx, id, side, created_by).await?;
+        let seed = self.lobby_seed();
+        let id = insert_game(
+            &mut tx,
+            scenario,
+            created_by,
+            open_information,
+            seed,
+            listing,
+        )
+        .await?;
+        if let Some(side) = side {
+            seat_in(&mut tx, id, side, created_by).await?;
+        }
         tx.commit().await?;
-        Ok(id)
+        Ok((id, token))
+    }
+
+    /// Seats `account` as `side` in an open game: refused for its own
+    /// creator, a taken side, or a private game without its invite. An
+    /// "either" creator takes the other side in the same transaction.
+    pub async fn join(
+        &self,
+        game: GameId,
+        account: AccountId,
+        side: Side,
+        invite: Option<&str>,
+    ) -> Result<(), GameError> {
+        let mut tx = self.pool.begin().await?;
+        type Row = (String, bool, Option<Vec<u8>>, Option<AccountId>, bool);
+        let row: Option<Row> = sqlx::query_as(
+            "SELECT status, public, invite_token_hash, created_by, creator_either \
+             FROM games WHERE id = $1 FOR UPDATE",
+        )
+        .bind(game)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some((status, public, hash, creator, either)) = row else {
+            return Err(GameError::NotFound);
+        };
+        let inside = creator == Some(account) || self.seat_in_tx(&mut tx, game, account).await?;
+        // The invite before anything else: without it a stranger learns
+        // nothing of a private game, not even whether it has started.
+        if !public && !inside {
+            let given = invite.map(|t| Sha256::digest(t.as_bytes()).to_vec());
+            if hash.is_none() || given != hash {
+                return Err(GameError::BadInvite);
+            }
+        }
+        if inside {
+            return Err(GameError::Refused("you are already in this game"));
+        }
+        if status != "open" {
+            return Err(GameError::Refused("the game is not open"));
+        }
+        let taken: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM seats WHERE game_id = $1 AND side = $2)",
+        )
+        .bind(game)
+        .bind(side_str(side))
+        .fetch_one(&mut *tx)
+        .await?;
+        if taken {
+            return Err(GameError::Refused("that seat is taken"));
+        }
+        if either {
+            let creator = creator.ok_or(GameError::Refused("the game has no creator"))?;
+            seat_in(&mut tx, game, side.other(), creator).await?;
+            sqlx::query("UPDATE games SET creator_either = false WHERE id = $1")
+                .bind(game)
+                .execute(&mut *tx)
+                .await?;
+        }
+        seat_in(&mut tx, game, side, account).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    async fn seat_in_tx(
+        &self,
+        tx: &mut sqlx::PgConnection,
+        game: GameId,
+        account: AccountId,
+    ) -> Result<bool, GameError> {
+        Ok(sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM seats WHERE game_id = $1 AND account_id = $2)",
+        )
+        .bind(game)
+        .bind(account)
+        .fetch_one(&mut *tx)
+        .await?)
+    }
+
+    /// `account` leaves `game`: it is `abandoned`, no winner declared.
+    /// A player may leave an open or active game; the seatless creator
+    /// of an "either" game may withdraw it while it waits.
+    pub async fn leave(&self, game: GameId, account: AccountId) -> Result<(), GameError> {
+        let mut tx = self.pool.begin().await?;
+        let row: Option<(String, Option<AccountId>, bool)> = sqlx::query_as(
+            "SELECT status, created_by, creator_either FROM games WHERE id = $1 FOR UPDATE",
+        )
+        .bind(game)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some((status, creator, either)) = row else {
+            return Err(GameError::NotFound);
+        };
+        let player =
+            self.seat_in_tx(&mut tx, game, account).await? || (either && creator == Some(account));
+        if !player {
+            return Err(GameError::NotYourSeat);
+        }
+        if status != "open" && status != "active" {
+            return Err(GameError::Refused("the game is already over"));
+        }
+        sqlx::query("UPDATE games SET status = 'abandoned', updated_at = now() WHERE id = $1")
+            .bind(game)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Marks `abandoned` every active game with no order (nor, with
+    /// none, a start) in the 60 days before `now` (Unix seconds);
+    /// returns how many. The clock is a parameter so tests can move it.
+    pub async fn sweep_idle(&self, now: i64) -> Result<u64, GameError> {
+        let done = sqlx::query(
+            "UPDATE games g SET status = 'abandoned', updated_at = now() \
+             WHERE g.status = 'active' AND COALESCE( \
+               (SELECT max(o.at) FROM orders o WHERE o.game_id = g.id), g.updated_at) \
+             < to_timestamp($1::double precision) - interval '60 days'",
+        )
+        .bind(now as f64)
+        .execute(&self.pool)
+        .await?;
+        Ok(done.rows_affected())
+    }
+
+    /// Runs `sweep_idle` now and every day until the runtime stops.
+    pub fn spawn_sweeper(&self) -> tokio::task::JoinHandle<()> {
+        let games = self.clone();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+            loop {
+                tick.tick().await;
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_secs() as i64);
+                match games.sweep_idle(now).await {
+                    Ok(0) => {}
+                    Ok(n) => tracing::info!("abandoned {n} games idle for 60 days"),
+                    Err(e) => tracing::error!("the idle sweep failed: {e}"),
+                }
+            }
+        })
     }
 
     /// Seats `account` as `side`; the game is `active` once both seats
@@ -323,6 +550,18 @@ impl Games {
         if self.seat_of(game, account).await? != Some(side) {
             return Err(GameError::NotYourSeat);
         }
+        // Play is for active games: not before both seats are taken,
+        // nor once the game is over, abandoned or stale.
+        let status: Option<String> = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
+            .bind(game)
+            .fetch_optional(&self.pool)
+            .await?;
+        match status.as_deref() {
+            Some("active") => {}
+            Some("stale") => return Err(GameError::Stale),
+            None => return Err(GameError::NotFound),
+            Some(_) => return Err(GameError::Refused("the game is not in play")),
+        }
         let mut live = self.get(game).await?;
         if seq != live.seq() {
             return Err(GameError::Conflict { seq: live.seq() });
@@ -358,6 +597,16 @@ impl Games {
         // this seq again for ever.
         let stored_ok: Result<(), GameError> = async {
             let mut tx = self.pool.begin().await?;
+            // Checked again under the row lock a leave also takes: an
+            // order racing a leave must not land in an abandoned game.
+            let status: String =
+                sqlx::query_scalar("SELECT status FROM games WHERE id = $1 FOR UPDATE")
+                    .bind(game)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            if status != "active" {
+                return Err(GameError::Refused("the game is not in play"));
+            }
             sqlx::query(r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4)"#)
                 .bind(game)
                 .bind(seq)
@@ -366,12 +615,13 @@ impl Games {
                 .execute(&mut *tx)
                 .await?;
             sqlx::query(
-                "UPDATE games SET to_act = $2, updated_at = now(), \
+                "UPDATE games SET to_act = $2, updated_at = now(), clock = $4, \
                  status = CASE WHEN $3 THEN 'over' ELSE status END WHERE id = $1",
             )
             .bind(game)
             .bind(next.to_act().map(side_str))
             .bind(next.is_over())
+            .bind(Json(next.clock))
             .execute(&mut *tx)
             .await?;
             if next.log.len() % SNAPSHOT_EVERY == 0 {

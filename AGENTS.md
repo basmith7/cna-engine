@@ -45,6 +45,8 @@ they're regenerated. In one commit:
    `tests/games/` and the final-state hashes pinned beside them (`*.sha256`).
 4. `cargo test -p cna-web -- --ignored regenerate_e2e_fixtures` rewrites the Playwright
    fixtures and their `.sha256` pins in `web/tests/fixtures/`.
+   `cargo test -p cna-server --test two_players -- --ignored regenerate_` rewrites the
+   two-player e2e's pin there too.
 5. Run the gates and the `web/` checks, with `cargo test --no-fail-fast` (plain
    `cargo test` stops at the first failing crate and skips the rest). A failure left after
    this is a real change in cna, such as a new ruling with no home, not a stale pin.

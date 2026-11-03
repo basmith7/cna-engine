@@ -518,3 +518,28 @@ Done: #93 merged after review fixes (07d1953, e4b44bd). #94 (draft, slice 3): fa
 In flight: fresh review of #94; slice 4 Task 1 (lobby API) in /tmp/cna-s4 on autopilot/m4-slice-4-lobby (based on #94); Task 2 (web Engine interface) in /tmp/cna-s4e on autopilot/m4-slice-4-engine (from main).
 Next: fix #94 review findings, mark ready, merge on green CI; merge main + the engine branch into slice-4-lobby; then slice 4 Tasks 3–5.
 Blocked: none. Shared dev Postgres on 5433 causes cross-run sqlx::test flakes: give each agent its own container.
+
+## 2026-11-02 17:32 MST — autopilot/m4-slice-4-lobby
+Done: #94 (slice 3) merged after review fixes (b3f72c6). #95 (draft, slice 4): lobby API (a9e681e), orders only in active games, SPA serving of CNA_WEB_DIST (006ddc6). Merged branches and the slice 2/3 worktrees removed.
+In flight: Task 2 (web Engine interface, LocalEngine) on autopilot/m4-slice-4-engine in /tmp/cna-s4e, by a subagent.
+Next: merge the engine branch into slice-4-lobby; Task 3 NetworkEngine (Vitest with mocked fetch/EventSource); Task 4 screens; Task 5 two-player Playwright + CI Postgres for web job.
+Blocked: none.
+
+## 2026-11-02 17:45 MST — autopilot/m4-slice-4-lobby
+Done: #95 (draft) has Tasks 1–3 and part of 4: lobby API (a9e681e), active-only orders, SPA serving (006ddc6), Engine/LocalEngine + "?" fields (4464409, 3e6b3b2), NetworkEngine (5448023), fuel-sources route (b17d61d), lobby client + StartScreen "Play online" + Lobby.svelte (b59f1ec, not yet seen against a server or screenshotted). Gates green.
+In flight: nothing running.
+Also: either-games offer both seats (879dbd5); leave/sign-out send JSON for CSRF (e59b81b); curl e2e against real binaries in #95's body.
+Next: Task 4 rest: /game/{id} page on NetworkEngine, /join/{id}?invite=, settings (disabled), admin list; then screenshots + screenshot-critique. Then Task 5 (two-player Playwright on compose, CI Postgres for web).
+Blocked: none. Shared target dir: removing a worktree leaves test binaries with its CARGO_MANIFEST_DIR baked in; `touch crates/*/src/lib.rs` before testing in a new worktree.
+
+## 2026-11-02 19:50 MST — autopilot/m4-slice-4-lobby
+Done: Task 4 rest (9abbe00): /game/{id} on NetworkEngine (no curtain/autosave, log from the stream, "Your move"/"Waiting for" panel), /join/{id}?invite= (sign-in returns via sessionStorage), alerts switch (disabled) and admin accounts list in the lobby (admin API is under /admin, outside the SPA fallback, so no /admin page). Fixed opponent lookup (lobby ids are numbers).
+In flight: Task 5 (two-player Playwright, CI Postgres) by a subagent on this branch; manual stack run + screenshots by the main session.
+Next: merge Task 5, screenshot-critique, fresh review, gates, #95 ready and merge; then slice 5 (alerts).
+Blocked: none.
+
+## 2026-11-02 20:26 MST — autopilot/m4-slice-4-lobby
+Done: Task 5 by a subagent (e5cad4d, 412deca, 605bcb8, f5482a8, 6facfba): two-player e2e by clicks, leaks + hash checked, CI Postgres. Fresh review fixes (6436420). Local: multiplayer e2e 1 passed on 6436420; hot-seat 46 passed; server DB suite and clippy green.
+In flight: CI on #95; then ready + merge, retarget #96 to main.
+Next: #96 Task 4's Playwright DM check; slice 6. Follow-ups: stream silent when a game ends/starts; e2e leak check judges against later state; enemy events with stripped fields log "undefined" (move cost, anti-armour points, prisoner points).
+Blocked: none.

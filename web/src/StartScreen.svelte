@@ -4,9 +4,12 @@
   // The engine judges the file; its refusal is shown here and nothing
   // starts.
   import { DEFAULT_SCENARIO, type Scenario } from "./engine";
+  import { type Account, SIGN_IN_URL } from "./lobby";
   import { parseSeed, randomSeed } from "./saves";
 
   let {
+    account,
+    onlobby,
     autosave,
     error,
     scenarios,
@@ -14,6 +17,9 @@
     onnew,
     onload,
   }: {
+    /** The signed-in account, or null when signed out (or no lobby server answered). */
+    account: Account | null;
+    onlobby: () => void;
     /** The autosave's clock line, or null when there is none. */
     autosave: string | null;
     /** The engine's refusal of the last file, or null. */
@@ -62,6 +68,15 @@
     <p class="load">
       <label class="file"><span>Load a save…</span><input type="file" accept="application/json,.json" aria-label="Load a save" onchange={onfile} /></label>
     </p>
+    <p class="online">
+      {#if account}
+        <button type="button" data-testid="play-online" onclick={onlobby}>Play online</button>
+        <span class="where">as {account.name}</span>
+      {:else}
+        <a class="button" href={SIGN_IN_URL} data-testid="play-online">Play online</a>
+        <span class="where">sign in with Discord</span>
+      {/if}
+    </p>
     {#if error}
       <p class="error" data-testid="load-error" role="alert">{error}</p>
     {/if}
@@ -102,7 +117,8 @@
     gap: 0.6rem;
   }
   button,
-  .file {
+  .file,
+  a.button {
     font: inherit;
     padding: 0.35rem 0.8rem;
     background: #f2efe6;
@@ -110,6 +126,13 @@
     border: 1px solid #b9b2a2;
     border-radius: 4px;
     cursor: pointer;
+  }
+  a.button {
+    text-decoration: none;
+  }
+  .online {
+    padding-top: 0.8rem;
+    border-top: 1px solid #d8d1c0;
   }
   button.primary {
     background: #1f2a33;

@@ -67,6 +67,8 @@ impl From<GameError> for ApiError {
             },
             GameError::Unknown(_) => unknown_piece(),
             GameError::Stale => ApiError::new(StatusCode::GONE, e),
+            GameError::Refused(_) => ApiError::new(StatusCode::CONFLICT, e),
+            GameError::BadInvite => ApiError::new(StatusCode::FORBIDDEN, e),
             // `Illegal` carries real ids: the routes answer it through
             // `refusal_for` before it gets here.
             GameError::Illegal(_) | GameError::Panicked | GameError::Db(_) => ApiError::internal(e),
@@ -91,12 +93,14 @@ pub fn routes() -> Router<App> {
         .route("/games", get(list).post(create))
         .route("/games/{id}", get(game))
         .route("/games/{id}/join", post(join))
+        .route("/games/{id}/leave", post(leave))
         .route("/games/{id}/events", get(events))
         .route("/games/{id}/stream", get(crate::stream::stream))
         .route("/games/{id}/orders", post(orders))
         .route("/games/{id}/placements", get(placements))
         .route("/games/{id}/reachable", get(reachable))
         .route("/games/{id}/sealed-options", get(sealed_options))
+        .route("/games/{id}/fuel-sources", get(fuel_sources))
         .route("/games/{id}/preview", post(preview))
         .route("/games/{id}/save", get(save))
         .layer(axum::extract::DefaultBodyLimit::max(MAX_BODY))
@@ -174,8 +178,10 @@ struct ListQuery {
     open: Option<String>,
 }
 
-/// `?mine`: the games the caller holds a seat in; `?open`: games
-/// waiting for a player that the caller is not in.
+/// `?mine`: the caller's games (seated, or waiting as an "either"
+/// creator), each with `my_side`, `to_act`, `my_move`, `clock`,
+/// `status` and the `opponent`'s name. `?open`: public games waiting
+/// for a player that the caller is not in. Neither holds an invite.
 async fn list(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -191,46 +197,95 @@ async fn list(
         String,
         String,
         Option<String>,
+        Option<Value>,
+        bool,
+        Option<String>,
+        Option<String>,
         Option<String>,
         Option<String>,
     );
     let rows: Vec<Row> = sqlx::query_as(
-        "SELECT g.id, g.scenario, g.status, g.to_act, \
+        "SELECT g.id, g.scenario, g.status, g.to_act, g.clock, g.creator_either, \
+         (SELECT a.name FROM accounts a WHERE a.id = g.created_by), \
          (SELECT a.name FROM seats s JOIN accounts a ON a.id = s.account_id \
           WHERE s.game_id = g.id AND s.side = 'axis'), \
          (SELECT a.name FROM seats s JOIN accounts a ON a.id = s.account_id \
-          WHERE s.game_id = g.id AND s.side = 'cw') \
+          WHERE s.game_id = g.id AND s.side = 'cw'), \
+         (SELECT s.side FROM seats s WHERE s.game_id = g.id AND s.account_id = $1) \
          FROM games g WHERE \
-         EXISTS (SELECT 1 FROM seats s WHERE s.game_id = g.id AND s.account_id = $1) = $2 \
-         AND ($2 OR g.status = 'open') \
+         (EXISTS (SELECT 1 FROM seats s WHERE s.game_id = g.id AND s.account_id = $1) \
+          OR (g.creator_either AND g.created_by = $1)) = $2 \
+         AND ($2 OR (g.status = 'open' AND g.public)) \
          ORDER BY g.updated_at DESC, g.id DESC LIMIT 200",
     )
     .bind(account.0)
     .bind(mine)
     .fetch_all(games.pool())
     .await?;
-    Ok(Json(json!(
-        rows.into_iter()
-            .map(|(id, scenario, status, to_act, axis, cw)| json!({
+    let out = rows.into_iter().map(
+        |(id, scenario, status, to_act, clock, either, creator, axis, cw, my_side)| {
+            let mut g = json!({
                 "id": id,
                 "scenario": scenario,
                 "status": status,
                 "to_act": to_act,
+                "clock": clock,
                 "seats": { "axis": axis, "cw": cw },
-            }))
-            .collect::<Vec<_>>()
-    )))
+            });
+            if mine {
+                let opponent = match my_side.as_deref() {
+                    Some("axis") => cw,
+                    Some("cw") => axis,
+                    _ => None,
+                };
+                let my_move = status == "active" && my_side.is_some() && to_act == my_side;
+                g["my_side"] = json!(my_side);
+                g["my_move"] = json!(my_move);
+                g["opponent"] = json!(opponent);
+            } else {
+                g["creator"] = json!(creator);
+                g["creator_side"] = json!(if either {
+                    "either"
+                } else if axis.is_some() {
+                    "axis"
+                } else {
+                    "cw"
+                });
+            }
+            g
+        },
+    );
+    Ok(Json(json!(out.collect::<Vec<_>>())))
+}
+
+/// The side a creator asks for: one of the two, or either.
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+enum CreateSide {
+    Axis,
+    Cw,
+    Either,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Deserialize)]
 struct CreateBody {
-    side: Side,
+    side: CreateSide,
     scenario: Option<String>,
-    #[serde(default)]
+    /// Public: listed in the open games. Private games are joined only
+    /// with the invite.
+    #[serde(default = "default_true")]
     open: bool,
+    #[serde(default)]
+    open_information: bool,
 }
 
-/// A new game with the caller in `side`'s seat: `{"id"}`, 201.
+/// A new game with the caller in `side`'s seat (or, for "either", to
+/// be seated at the join): `{"id", "invite"}`, 201. The invite token is
+/// shown here once; only its hash is kept.
 async fn create(
     State(games): State<Games>,
     State(limits): State<Arc<Limiters>>,
@@ -255,34 +310,38 @@ async fn create(
     if cna_embed::data(scenario).is_err() {
         return Err(bad(format!("no scenario {scenario:?}")));
     }
-    let id = games.create_as(scenario, account.0, b.side, b.open).await?;
-    Ok((StatusCode::CREATED, Json(json!({ "id": id }))))
+    let side = match b.side {
+        CreateSide::Axis => Some(Side::Axis),
+        CreateSide::Cw => Some(Side::Cw),
+        CreateSide::Either => None,
+    };
+    let (id, invite) = games
+        .create_as(scenario, account.0, side, b.open, b.open_information)
+        .await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({ "id": id, "invite": invite })),
+    ))
 }
 
 #[derive(Deserialize)]
 struct JoinBody {
     side: Side,
+    invite: Option<String>,
 }
 
-/// Takes the free `side` of an open game; 409 if it is held or the
-/// caller already sits in the game.
+/// Takes the free `side` of an open game; 409 if it is held, the game
+/// is not open or the caller is already in it; 403 for a private game
+/// without its invite.
 async fn join(
     State(games): State<Games>,
     account: CurrentAccount,
     Path(id): Path<GameId>,
     Json(b): Json<JoinBody>,
 ) -> ApiResult {
-    let status: Option<String> = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
-        .bind(id)
-        .fetch_optional(games.pool())
-        .await?;
-    match status.as_deref() {
-        None => return Err(ApiError::new(StatusCode::NOT_FOUND, "no such game")),
-        Some("open") => {}
-        Some(_) => return Err(ApiError::new(StatusCode::CONFLICT, "the game is not open")),
-    }
-    match games.seat(id, b.side, account.0).await {
+    match games.join(id, account.0, b.side, b.invite.as_deref()).await {
         Ok(()) => Ok(Json(json!({ "id": id, "side": b.side }))),
+        // Two joins at once: the second meets the first's seat.
         Err(GameError::Db(e))
             if e.downcast_ref::<sqlx::Error>()
                 .and_then(|e| e.as_database_error())
@@ -294,8 +353,21 @@ async fn join(
     }
 }
 
-/// `{"side", "seq", "view"}`: the caller's seat, the next order's
-/// `seq`, and the game as that seat may see it.
+/// The caller leaves the game, which is then `abandoned`: 403 for one
+/// not in it, 409 once it is over.
+async fn leave(
+    State(games): State<Games>,
+    account: CurrentAccount,
+    Path(id): Path<GameId>,
+) -> ApiResult {
+    games.leave(id, account.0).await?;
+    Ok(Json(json!({ "id": id, "status": "abandoned" })))
+}
+
+/// `{"side", "seq", "open", "status", "view"}`: the caller's seat, the
+/// next order's `seq`, whether nothing is hidden, the game's status
+/// (only an `active` game takes orders), and the game as that seat may
+/// see it.
 async fn game(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -304,9 +376,17 @@ async fn game(
     let (side, live) = seated(&games, id, account).await?;
     let view = view_for(&live.state, live.data, &live.aliases, Some(side), live.open)
         .map_err(ApiError::internal)?;
-    Ok(Json(
-        json!({ "side": side, "seq": live.seq(), "open": live.open, "view": view }),
-    ))
+    let status: String = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
+        .bind(id)
+        .fetch_one(games.pool())
+        .await?;
+    Ok(Json(json!({
+        "side": side,
+        "seq": live.seq(),
+        "open": live.open,
+        "status": status,
+        "view": view,
+    })))
 }
 
 #[derive(Deserialize)]
@@ -422,6 +502,45 @@ async fn reachable(
         Ok(reaches) => Ok(Json(json!({ "ok": reaches }))),
         Err(illegal) => Err(refused(&live, side, &illegal)),
     }
+}
+
+/// The caller's supply units that could pay the fuel of a move by
+/// `pieces` (the order's `fuel_from` choices): `{"ok": [id]}`, empty
+/// unless the caller is to act and owns every piece, as in the wasm
+/// engine.
+async fn fuel_sources(
+    State(games): State<Games>,
+    account: CurrentAccount,
+    Path(id): Path<GameId>,
+    Query(q): Query<PiecesQuery>,
+) -> ApiResult {
+    let (side, live) = seated(&games, id, account).await?;
+    let named: Vec<PieceId> = serde_json::from_str(&q.pieces).map_err(bad)?;
+    let pieces = named
+        .iter()
+        .map(|p| live.aliases.unalias(&live.state, side, p))
+        .collect::<anyhow::Result<Vec<_>>>()
+        .map_err(|_| unknown_piece())?;
+    let own = live.state.to_act() == Some(side)
+        && pieces
+            .iter()
+            .all(|p| live.state.pieces.get(p).is_some_and(|x| x.side == side));
+    let sources: Vec<PieceId> = if own {
+        live.state
+            .fuel_sources(live.data, &pieces)
+            .iter()
+            .map(|p| live.aliases.alias(Some(side), p))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    Ok(Json(json!({ "ok": sources })))
+}
+
+#[derive(Deserialize)]
+struct PiecesQuery {
+    /// A JSON array of piece ids.
+    pieces: String,
 }
 
 /// What the caller may answer the pending sealed step with.
