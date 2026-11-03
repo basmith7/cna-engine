@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-13
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** built for Graziani's Offensive, bar the items below (2026-10-27).
+**Status:** built for Graziani's Offensive, bar the items below (2026-11-03).
 Slices 1–9 merged as PRs #31–#60 (organisation, shells and the stack
 panel, prisoners off map by R-132, guards, replacements, construction);
 #59 adds formations to close assault's size table (15.55). Their plans
@@ -12,7 +12,7 @@ maps each counter to (R-142); #77 captures lone enemy supply entered
 (32.1x); #78 makes reactions and every retreat pay fuel (32.22, R-120);
 #80 rails combat units, one stack each way a stage with what is attached
 (8.7x, R-005; en-route pick-ups not built).
-#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). Graziani's land rules are complete bar the LRDG raid on Rommel (27.6x), planned with the desert raiders in `docs/plans/2026-11-03-m5-desert-raiders.md`. The fleet's ships, stations, port cycle (phase E, 30.1x), off-shore bombardment (30.2x), the Axis's strikes on it (32.7x, R-032), damage, sinking and repair (30.3x), and the *San Giorgio* on land (30.17, R-151), are built behind the `fleet` module, on in new games, with its browser panel (`docs/plans/2026-11-03-m5-fleet.md`), no ship sailing before its scenario's `first_sail`. The
+#101 builds substitution (19.4x) on the same slots; #102 the Axis's convoy lanes beyond Tripoli (32.63, 56.1x, 55.17). #103 lets a rail run pick up and set down en route (R-005). The desert raiders, their raids on supply dumps and the LRDG raid on Rommel (§27, #104–#109) and patrols (phase L, §16, #110, #115) are built. R-152's captured guns and tanks (28.3) are #121–#123. Facility repair of broken-down vehicles (22.3x, R-099) is #126; towing (21.6x) and destroyed tanks (14.5, 22.4x) follow in `docs/plans/2026-11-03-m5-repair-facilities.md`. The fleet's ships, stations, port cycle (phase E, 30.1x), off-shore bombardment (30.2x), the Axis's strikes on it (32.7x, R-032), damage, sinking and repair (30.3x), and the *San Giorgio* on land (30.17, R-151), are built behind the `fleet` module, on in new games, with its browser panel (`docs/plans/2026-11-03-m5-fleet.md`), no ship sailing before its scenario's `first_sail`. The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With
@@ -21,7 +21,7 @@ counters are made at set-up (R-096), so The Last Chance joins; with cna
 fc78330 (#67) the Italian divisions' hexes are listed and set up two
 apart (R-136), so all nine set up and play a Game-Turn. #66 builds 31.0's initiative, recall
 and morale, #68 his +5 CPA escort (R-137), reactions and free retreat
-through enemy ZOC, #70 his capture alone in an enemy ZOC once his escape is spent (R-138), #74 his own retreat when an assault destroys his stack (R-140); #73 makes a reaction pin only on an enemy ZOC the unit stood in before the mover came (R-139); the LRDG raid (27.9x) remains, with the desert raiders. Mission 4 still comes first the moment its spec
+through enemy ZOC, #70 his capture alone in an enemy ZOC once his escape is spent (R-138), #74 his own retreat when an assault destroys his stack (R-140); #73 makes a reaction pin only on an enemy ZOC the unit stood in before the mover came (R-139); Mission 4 still comes first the moment its spec
 (PR #25) is approved (see *Order against Mission 4*).
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
