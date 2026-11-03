@@ -524,3 +524,9 @@ Done: #94 (slice 3) merged after review fixes (b3f72c6). #95 (draft, slice 4): l
 In flight: Task 2 (web Engine interface, LocalEngine) on autopilot/m4-slice-4-engine in /tmp/cna-s4e, by a subagent.
 Next: merge the engine branch into slice-4-lobby; Task 3 NetworkEngine (Vitest with mocked fetch/EventSource); Task 4 screens; Task 5 two-player Playwright + CI Postgres for web job.
 Blocked: none.
+
+## 2026-11-02 17:45 MST — autopilot/m4-slice-4-lobby
+Done: #95 (draft) has Tasks 1–3 and part of 4: lobby API (a9e681e), active-only orders, SPA serving (006ddc6), Engine/LocalEngine + "?" fields (4464409, 3e6b3b2), NetworkEngine (5448023), fuel-sources route (b17d61d), lobby client + StartScreen "Play online" + Lobby.svelte (b59f1ec, not yet seen against a server or screenshotted). Gates green.
+In flight: nothing running.
+Next: Task 4 rest: /game/{id} page on NetworkEngine, /join/{id}?invite=, settings (disabled), admin list; then screenshots + screenshot-critique; joining an "either" game lets the joiner pick a side (now always Axis). Then Task 5 (two-player Playwright on compose, CI Postgres for web).
+Blocked: none. Shared target dir: removing a worktree leaves test binaries with its CARGO_MANIFEST_DIR baked in; `touch crates/*/src/lib.rs` before testing in a new worktree.
