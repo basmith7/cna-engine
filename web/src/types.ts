@@ -202,6 +202,7 @@ export type Order =
   | { "raid-rommel": { piece: PieceId } }
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
+  | { "try-spot": { piece: PieceId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -267,7 +268,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 74 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 82 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -280,6 +281,10 @@ export type Event =
   | "set-up-complete"
   | "rommel-recalled"
   | { "raider-spotted": { piece: PieceId; hex: HexId; roll: number; eliminated: boolean } }
+  /** Enemy combat units entered `hex`, where a raider of the other side stands (27.42); `pieces` may each try to spot it. */
+  | { "raider-announced": { hex: HexId; pieces: PieceId[] } }
+  /** A spotting try (27.43): one die per raider in `hex`, in id order; a 6 eliminates. */
+  | { "spot-tried": { piece: PieceId; hex: HexId; rolls: number[]; eliminated: PieceId[] } }
   | { "rommel-raided": { piece: PieceId; hex: HexId; roll: number; result: RaidResult; lrdg_eliminated: boolean } }
   | { "raider-formed": { piece: PieceId; from: PieceId; hex: HexId } }
   /** A raid on a supply unit as a dump (27.55, R-149); the losses and the guards' strength reach the dump's owner alone. */
@@ -500,6 +505,10 @@ export interface View {
   convoy_lanes?: number[];
   /** Whether the Axis has rolled its 12 for Bizerta (55.17). */
   bizerta_open?: boolean;
+  /** Phasing combat units told of an enemy raider in the hex they entered, and that hex (27.42): each may try to spot it there. */
+  spot_chances?: Record<PieceId, HexId>;
+  /** Units that have tried to spot a raider this OpStage, once each (27.44). */
+  spot_tried?: PieceId[];
   /** Hexes prisoners marched into this phase H: they go no further (28.13). */
   marched?: HexId[];
   /** Repaired points by hex and weapon system waiting for a unit there to absorb them (22.5, 20.41), the side to act's own only. */

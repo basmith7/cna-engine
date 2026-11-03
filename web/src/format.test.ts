@@ -19,6 +19,10 @@ const cases: [Event, string][] = [
   ["set-up-complete", "Set-up complete; play begins."],
   ["rommel-recalled", "Rommel is recalled to Germany for this Game-Turn."],
   [{ "raider-spotted": { piece: "u:a", hex: "C4131", roll: 6, eliminated: true } }, "A entering C4131 rolls 6 to stay unseen: spotted and eliminated."],
+  [{ "raider-announced": { hex: "C4131", pieces: ["u:a", "u:b"] } }, "A raider is reported at C4131; A, B may try to spot it (27.43)."],
+  [{ "raider-announced": { hex: "C4131", pieces: [] } }, "A raider is reported at C4131; no unit may try to spot it, each having tried this stage (27.44)."],
+  [{ "spot-tried": { piece: "u:a", hex: "C4131", rolls: [3], eliminated: [] } }, "A tries to spot at C4131: 3; none spotted."],
+  [{ "spot-tried": { piece: "u:a", hex: "C4131", rolls: [2, 6], eliminated: ["u:b"] } }, "A tries to spot at C4131: 2, 6; B spotted and eliminated."],
   [{ "rommel-raided": { piece: "u:a", hex: "C3618", roll: 7, result: "lrdg-eliminated", lrdg_eliminated: true } }, "A raids Rommel at C3618: 7, the raid fails; the raider is eliminated."],
   [{ "raider-formed": { piece: "u:a", from: "u:b", hex: "C3020" } }, "A is formed at C3020 from a TOE point of B."],
   [{ "dump-raided": { piece: "u:a", target: "u:b", hex: "C4808", guard_roll: 9, guard_strength: 7, roll: 2, dummy: false, ammo_lost: 4, fuel_lost: 5, removed: false, raider_eliminated: false } }, "A raids B at C4808: guards 9 against 7, die 2, 4 ammunition and 5 fuel burnt; the raider survives."],
@@ -103,9 +107,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 76 variants", () => {
+  it("covers all 78 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(76);
+    expect(tags.size).toBe(78);
   });
 
   it.each(cases)("%j", (event, line) => {

@@ -61,6 +61,16 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["raider-spotted"];
     return `${name(d.piece)} entering ${d.hex} rolls ${d.roll} to stay unseen: ${d.eliminated ? "spotted and eliminated" : "not spotted"}.`;
   }
+  if ("raider-announced" in e) {
+    const d = e["raider-announced"];
+    return d.pieces.length > 0
+      ? `A raider is reported at ${d.hex}; ${list(d.pieces, name)} may try to spot it (27.43).`
+      : `A raider is reported at ${d.hex}; no unit may try to spot it, each having tried this stage (27.44).`;
+  }
+  if ("spot-tried" in e) {
+    const d = e["spot-tried"];
+    return `${name(d.piece)} tries to spot at ${d.hex}: ${d.rolls.join(", ")}; ${d.eliminated.length > 0 ? `${list(d.eliminated, name)} spotted and eliminated` : "none spotted"}.`;
+  }
   if ("raider-formed" in e) {
     const d = e["raider-formed"];
     return `${name(d.piece)} is formed at ${d.hex} from a TOE point of ${name(d.from)}.`;

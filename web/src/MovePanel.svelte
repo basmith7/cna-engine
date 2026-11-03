@@ -72,6 +72,15 @@
   const fuel = $derived(fuelSummary(reaches));
   const under = $derived(hovered ? reaches.find((r) => r.hex === hovered) : undefined);
   const nameOf = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
+  /** Ticked units told of an enemy raider in the hex they still stand in (27.42): each may try to spot it. */
+  const spotters = $derived(
+    purpose !== "move"
+      ? []
+      : ticked.filter((id) => {
+          const at = view.spot_chances?.[id], loc = view.pieces[id]?.location;
+          return at !== undefined && typeof loc === "object" && "hex" in loc && loc.hex === at;
+        }),
+  );
   /** A rider's name: supply units all read "Supply", so theirs carries the counter's number. */
   const riderName = (id: PieceId) => {
     const p = view.pieces[id];
@@ -166,6 +175,13 @@
         {/each}
       </p>
     {/if}
+  {/if}
+  {#if spotters.length > 0 && onorder}
+    <p class="buttons" data-testid="spot-tries">
+      {#each spotters as piece (piece)}
+        <button type="button" data-order="try-spot" data-piece={piece} title="1 CP; one die per enemy raider in the hex, a 6 eliminates it; once a stage (27.43, 27.44)" onclick={() => onorder({ "try-spot": { piece } })}>Try to spot{ticked.length > 1 ? ` (${nameOf(piece)})` : ""}</button>
+      {/each}
+    </p>
   {/if}
   {#if offMap && purpose === "move"}
     <div class="offmap" data-testid="off-map-moves">

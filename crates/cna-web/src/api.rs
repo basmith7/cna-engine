@@ -861,6 +861,10 @@ mod tests {
     /// - `game-over`: the whole golden game, the report in.
     /// - `raid-rommel`: Operation Crusader at the Commonwealth's movement
     ///   segment, a test-only LRDG hidden next to Rommel, who may be raided.
+    /// - `spot-raider`: orders 0–60, the Axis movement segment, a
+    ///   test-only Commonwealth raider hidden in an empty hex a lone Axis
+    ///   combat unit may enter by a one-hex move: the move stops there and
+    ///   the unit may try to spot it (27.42–27.43).
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
         let set_up_done = golden_prefix(56);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
@@ -1198,10 +1202,91 @@ mod tests {
                 .any(|e| matches!(e, Event::RommelRaided { .. }))
         );
 
+        // Orders 0–60 again, with a test-only Commonwealth raider hidden
+        // in an empty hex one move from a lone Axis combat unit.
+        let mut spot = off_map.clone();
+        let hex_of = |s: &GameState, id: &PieceId| s.pieces[id].hex().cloned();
+        let (mover, target) = spot
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side == Side::Axis
+                    && p.kind == cna_game::piece::PieceKind::Combat
+                    && p.attached_to.is_none()
+            })
+            .filter_map(|p| Some((p.id.clone(), p.hex().cloned()?)))
+            .filter(|(id, at)| {
+                spot.pieces
+                    .values()
+                    .all(|q| q.id == *id || q.hex() != Some(at))
+            })
+            .find_map(|(id, _)| {
+                let reaches = spot
+                    .reachable(
+                        graziani(),
+                        Side::Axis,
+                        std::slice::from_ref(&id),
+                        Purpose::Move,
+                    )
+                    .ok()?;
+                let to = reaches
+                    .iter()
+                    .filter(|r| r.path.len() == 1 && !r.may_be_interrupted && r.short == 0)
+                    .map(|r| r.hex.clone())
+                    .find(|h| spot.pieces.values().all(|p| p.hex() != Some(h)))?;
+                Some((id, to))
+            })
+            .expect("a lone Axis unit with an empty hex one move away");
+        let mut raider = spot
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == cna_game::piece::PieceKind::Combat)
+            .expect("a Commonwealth unit")
+            .clone();
+        raider.id = PieceId::from("unit:cw:lrdg-test".to_owned());
+        raider.kind = cna_game::piece::PieceKind::Raider;
+        raider.id_code = None;
+        raider.toe = 0;
+        raider.weapons.clear();
+        raider.equivalent = None;
+        raider.cpa = None;
+        raider.parent = None;
+        raider.attached_to = None;
+        raider.reserve = None;
+        raider.hidden = true;
+        raider.location = cna_game::piece::Location::Hex(target.clone());
+        spot.pieces.insert(raider.id.clone(), raider);
+        let mut probe = spot.clone();
+        let events = probe
+            .apply(
+                graziani(),
+                Side::Axis,
+                Order::Move {
+                    pieces: vec![mover.clone()],
+                    path: vec![target.clone()],
+                    assault: false,
+                    fuel_from: None,
+                },
+            )
+            .expect("the Axis unit may enter the raider's hex");
+        assert!(
+            events.iter().any(|e| matches!(
+                e,
+                Event::RaiderAnnounced { hex, pieces } if *hex == target && pieces == std::slice::from_ref(&mover)
+            )),
+            "the raider is announced to the mover: {events:?}"
+        );
+        assert_eq!(hex_of(&probe, &mover), Some(target.clone()));
+        let events = probe
+            .apply(graziani(), Side::Axis, Order::TrySpot { piece: mover })
+            .expect("the mover may try to spot it");
+        assert!(events.iter().any(|e| matches!(e, Event::SpotTried { .. })));
+
         vec![
             ("set-up-done", set_up_done),
             ("crusader-set-up", crusader_set_up),
             ("raid-rommel", raid),
+            ("spot-raider", spot),
             ("reserve", reserve),
             ("reserve-release", reserve_release),
             ("off-map", off_map),

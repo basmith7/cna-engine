@@ -101,3 +101,35 @@ test("a hidden LRDG raids an Axis supply unit next to it as a dump by a click (2
   await expect(page.locator(".marker.hidden")).toHaveCount(0);
   await expect(page.getByTestId("raid-dumps")).toHaveCount(0);
 });
+
+test("an Axis unit entering a hidden raider's hex is told of it and tries to spot it by a click (27.42–27.44)", async ({ page }) => {
+  // The fixture's test-only raider is hidden at C1614, one move from the
+  // lone Italian garrison battalion at C1715.
+  const mover = "unit:it:egug-garrison-bn";
+  await openFixture(page, "spot-raider");
+  await expect(page.getByTestId("to-act")).toHaveText("Axis to act");
+  // The Axis sees no raider, and no try is offered before the move.
+  await expect(page.locator('[data-stack="C1614"]')).toHaveCount(0);
+  await clickHex(page, "C1715");
+  await expect(page.getByTestId("move-panel")).toContainText("1 piece ticked");
+  await expect(page.locator('[data-order="try-spot"]')).toHaveCount(0);
+
+  await page.locator('polygon.hex[data-hex="C1614"]').click();
+  await expect(log(page).filter({ hasText: /^A raider is reported at C1614; .+ may try to spot it \(27\.43\)\.$/ })).toHaveCount(1);
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  const spot = page.locator(`[data-order="try-spot"][data-piece="${mover}"]`);
+  // The move stopped in the raider's hex; the unit stays ticked there.
+  await expect(page.getByTestId("move-panel")).toContainText("1 piece ticked");
+  await expect(spot).toHaveText("Try to spot");
+  await shoot(page, "spot-offered.png");
+  await spot.click();
+
+  await expect(log(page).filter({ hasText: /^.+ tries to spot at C1614: \d; (none spotted|.+ spotted and eliminated)\.$/ })).toHaveCount(1);
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  // Once a stage (27.44): the try is offered no more.
+  await expect(page.locator('[data-order="try-spot"]')).toHaveCount(0);
+  const tried = await page.evaluate(() => window.__cna.view().spot_tried);
+  expect(tried).toEqual([mover]);
+  await shoot(page, "spot-tried.png");
+  await expectDomMatchesView(page);
+});
