@@ -645,3 +645,9 @@ Done: #109 merged c2e8e4a. Fresh review of #110's engine: W1 (the path check rea
 In flight: none.
 Next: merge origin/main in (it has spot_try: expect conflicts in state.rs, event.rs, view/). Then review items R1 (the 2-a-hex and 3-a-target limits need a per-phase tally, or else let the plan own the gap), R2 (recon counts units, not battalion equivalents: NOT_SIMULATED), R3 (`Reconnaissance::revealed` should error on a missing row), and the tidies: `Modules::ALL` carrying `patrols: false`, `start_stage` widened for a test, phase L opening under storms. Then Task 2 (browser), which turns `patrols` on in ALL.
 Blocked: none.
+
+## 2026-11-03 08:55 MST — autopilot/m5-patrols
+Done: main merged in; review R1 (16.13 limits tallied across the phase in `StageRecord`), R3 (recon table checked at load, `revealed` returns `Revealed`), phase L shut under storms: e86110d. `patrols` on in `Modules::ALL`, `cna-play new --no-patrols`, golden script passes phase L, all pins regenerated: ea2b800. R2 is a NOT_SIMULATED line.
+In flight: subagent building Task 2 (browser phase L panel, API, log lines, patrols.spec, existing Playwright drivers passing phase L) on this branch.
+Next: check the subagent's pasted gates; run Playwright in full; fresh review of the panel for leaks; `gh pr ready 110`, merge on green CI.
+Blocked: none.
