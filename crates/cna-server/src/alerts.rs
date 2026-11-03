@@ -141,36 +141,47 @@ impl Sender {
     /// Takes one due row and tries it: `None` when there is none.
     async fn send_one(&self) -> Result<Option<bool>> {
         let mut tx = self.pool.begin().await?;
-        type Due = (i64, AccountId, GameId, i32);
+        type Due = (i64, AccountId, GameId, i32, i64);
         let due: Option<Due> = sqlx::query_as(
-            "SELECT id, account_id, game_id, attempts FROM alerts \
+            "SELECT id, account_id, game_id, attempts, seq FROM alerts \
              WHERE sent_at IS NULL AND given_up_at IS NULL AND next_attempt_at <= now() \
              ORDER BY next_attempt_at, id LIMIT 1 FOR UPDATE SKIP LOCKED",
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let Some((id, account, game, attempts)) = due else {
+        let Some((id, account, game, attempts, seq)) = due else {
             return Ok(None);
         };
-        type Detail = (String, bool, String, Option<Json<Clock>>, Option<String>);
-        let (discord_id, wanted, scenario, clock, opponent): Detail = sqlx::query_as(
-            "SELECT a.discord_id, a.alerts AND a.suspended_at IS NULL, g.scenario, g.clock, \
+        type Detail = (
+            String,
+            bool,
+            bool,
+            String,
+            Option<Json<Clock>>,
+            Option<String>,
+        );
+        let (discord_id, wanted, current, scenario, clock, opponent): Detail = sqlx::query_as(
+            "SELECT a.discord_id, a.alerts AND a.suspended_at IS NULL, \
+             g.status = 'active' AND NOT EXISTS \
+              (SELECT 1 FROM orders o WHERE o.game_id = g.id AND o.seq > $3), \
+             g.scenario, g.clock, \
              (SELECT o.name FROM seats s JOIN accounts o ON o.id = s.account_id \
               WHERE s.game_id = g.id AND s.account_id <> a.id LIMIT 1) \
              FROM accounts a, games g WHERE a.id = $1 AND g.id = $2",
         )
         .bind(account)
         .bind(game)
+        .bind(seq)
         .fetch_one(&mut *tx)
         .await?;
-        if !wanted {
-            // Alerts turned off (or the account suspended) since: never sent.
-            sqlx::query(
-                "UPDATE alerts SET given_up_at = now(), last_error = 'alerts off' WHERE id = $1",
-            )
-            .bind(id)
-            .execute(&mut *tx)
-            .await?;
+        if !wanted || !current {
+            // Alerts turned off (or the account suspended) since, or the
+            // game is no longer in play or has moved on: never sent.
+            sqlx::query("UPDATE alerts SET given_up_at = now(), last_error = $2 WHERE id = $1")
+                .bind(id)
+                .bind(if wanted { "moved on" } else { "alerts off" })
+                .execute(&mut *tx)
+                .await?;
             tx.commit().await?;
             return Ok(Some(false));
         }

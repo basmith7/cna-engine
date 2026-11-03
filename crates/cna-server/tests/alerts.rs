@@ -415,3 +415,42 @@ async fn a_403_marks_the_account_unreachable_and_stops_until_a_dm_lands(pool: Pg
     assert_eq!(s.send_due().await.unwrap(), 1);
     assert!(!unreachable().await);
 }
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn no_dm_once_the_game_is_no_longer_active_or_the_move_has_passed(pool: PgPool) {
+    let token = bot_token();
+    let base = fake_discord_with(Some(token.clone())).await;
+    let (id, _) = one_alert(&pool).await;
+    sqlx::query("UPDATE games SET status = 'abandoned' WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let s = sender(&pool, &base, &token);
+    assert_eq!(s.send_due().await.unwrap(), 0);
+    assert!(
+        sent(&base).await.is_empty(),
+        "an abandoned game sends nothing"
+    );
+
+    // Active again, but an order after the alert's: the move has passed.
+    sqlx::query("UPDATE games SET status = 'active' WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE alerts SET given_up_at = NULL, seq = -1 WHERE game_id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(s.send_due().await.unwrap(), 0);
+    assert!(
+        sent(&base).await.is_empty(),
+        "a move already answered sends nothing"
+    );
+}
