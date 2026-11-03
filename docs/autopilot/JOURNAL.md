@@ -554,3 +554,9 @@ Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 al
 In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
 Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
 Blocked: none.
+
+## 2026-11-02 23:27 MST — autopilot/m4-stream-seats
+Done: follow-up from #95's review (12267cf): join and leave signal a per-game `seats` broadcast on `Live`; open streams send `event: seats` (data `{}`, no id); the web client reloads status and opponent. Server test red (30 s timeout) without the fix, green with it; vitest likewise.
+In flight: none.
+Next: slice 6 (ship). The stream still says nothing when a game ends by victory or the idle sweep (the client sees it on the next order or reload).
+Blocked: none. An "either" creator has no seat (so no stream) until someone joins; their open page, if any, still waits for a reload.
