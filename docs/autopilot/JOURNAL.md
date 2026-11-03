@@ -621,3 +621,9 @@ Done: #106 merged e04ecbd (vendor/cna 8e10e86). #107 ready: FormRaider (27.13/27
 In flight: CI on #107 and #108.
 Next: merge #107 on green CI (retarget #108 to main FIRST, then `gh pr merge 107 --merge --delete-branch`), then #108 on green. Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
 Blocked: none.
+
+## 2026-11-03 05:50 MST — autopilot/m5-spot-try
+Done: #107 merged f32770e (FormRaider, RaidDump, review fixes), #108 merged eb79b33 (Raid-the-dump button). PROGRESS on main afb7522. Worktrees, merged branches and scratch target dirs removed.
+In flight: none; this branch only plans Task 5 (the enemy's 1 CP spotting try, 27.42–27.44) in the raiders plan.
+Next: build Task 5 on this branch (draft PR open), TDD; then §28 commandos or the next NOT_SIMULATED land gap. Watch the cna request on 27.13's "maximum morale".
+Blocked: none.
