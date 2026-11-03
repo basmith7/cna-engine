@@ -512,3 +512,9 @@ Done: Tasks 7–8 were already committed (ead9751, 13b8e50); #93 ready, CI green
 In flight: fresh review of #93; slice 3 Tasks 2–4 by a subagent in /tmp/cna-s3.
 Next: merge #93 after review fixes; merge main into slice 3, Task 5 (compose, curl sign-in), draft PR.
 Blocked: none.
+
+## 2026-11-02 17:15 MST — autopilot/m4-slice-3-accounts
+Done: #93 merged after review fixes (07d1953, e4b44bd). #94 (draft, slice 3): fake Discord (3c83825), sign-in + own sqlx session store (f40877d), limits/CSRF (8be75e4), admins/suspension (e6b96fc), dev compose `--profile stack` (822a061); curl sign-in as alice verified natively.
+In flight: fresh review of #94; slice 4 Task 1 (lobby API) in /tmp/cna-s4 on autopilot/m4-slice-4-lobby (based on #94); Task 2 (web Engine interface) in /tmp/cna-s4e on autopilot/m4-slice-4-engine (from main).
+Next: fix #94 review findings, mark ready, merge on green CI; merge main + the engine branch into slice-4-lobby; then slice 4 Tasks 3–5.
+Blocked: none. Shared dev Postgres on 5433 causes cross-run sqlx::test flakes: give each agent its own container.
