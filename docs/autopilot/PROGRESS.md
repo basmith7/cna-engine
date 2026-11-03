@@ -42,15 +42,23 @@ Discord sign-in with PKCE and sessions in Postgres (our own store:
 the sqlx store crate lags sqlx 0.9), rate limits (IPv6 by /64) and
 CSRF checks, admins and suspension, the fake Discord and server in the
 dev compose; a curl sign-in as `alice` works. A fresh review's fixes
-are in. **Slice 4, the lobby and the network client, is draft PR
-#95:** the lobby API (create with an invite shown once, open and mine
-lists, join, leave, the 60-day sweep), orders only in active games,
-the server serving the built client, the browser's engine behind an
-`Engine` interface (hot-seat unchanged, full Playwright suite green),
-enemy fields the view withholds shown as "?", a `NetworkEngine` over
-the API and live stream, and fuel sources online. Left: the lobby
-screens (started), the game page and invite links, and a two-player
-Playwright run on the compose stack.
+are in. **Slice 4, the lobby and the network client, is PR
+#95 (2026-11-03), built, reviewed and waiting on CI to merge:** the lobby API, the browser's
+engine behind an `Engine` interface (hot-seat unchanged, its 46
+Playwright tests green), a `NetworkEngine` over the API and live
+stream, the lobby screens (my games with my move first, open games,
+create with an invite link shown once, the alerts switch, an admin's
+account list with suspend/restore), the game page `/game/{id}` and
+invite links `/join/{id}`, and a two-player Playwright run (alice and
+bob sign in through the fake Discord and play the golden game's first
+77 orders by clicks over the server, bob's traffic checked for leaks,
+the final hash equal to a pinned replay) with Postgres in CI. **Slice
+5, turn alerts, is draft PR #96** on top of it: the guild join at
+sign-in, the outbox written with the order (none within 15 minutes or
+while the player watches the game), the DM sender with retries, and
+the lobby's switch, and the enemy's log lines no longer print
+"undefined" where the server withholds a number; left, its Playwright
+DM check.
 
 **MISSION 5** (the rest of the Land Game turn, started ahead of Mission 4
 on 2026-10-13 while Brian reviews #25) is built for Graziani's Offensive
@@ -127,10 +135,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: finish slice 4
-  (#95), then slices 5–6 (alerts, ship). Slice 6 must bind the server
-  behind Pangolin only: `CNA_TRUST_PROXY=1` trusts `X-Forwarded-For`
-  from whoever reaches the port.
+- Nothing waits on Brian. Mission 4 goes on unattended: merge #95
+  after its fresh review and CI, then #96 (retarget to main, its
+  Playwright DM check), then slice 6 (ship). Slice 6 must bind the
+  server behind Pangolin only: `CNA_TRUST_PROXY=1` trusts
+  `X-Forwarded-For` from whoever reaches the port.
+- The online game page reuses Mission 3's panels; a fresh critique of
+  its screenshots found Mission 3's own residue (map names over hex
+  numbers, the sidebar's counter grids clipped, small tray counters),
+  for the polish slice below.
 - One provisional call to glance at, ledger entry 1.3 in
   `docs/plans/2026-10-13-m4-choices.md`: a game with open information
   still hides the owner's secrets the hot-seat view hid (loads,
