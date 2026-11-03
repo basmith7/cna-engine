@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { View } from "../src/types.ts";
-import { clickHex, expectDomMatchesView, openFixture, shoot as shootInto, shotsDir } from "./helpers.ts";
+import { readFileSync } from "node:fs";
+import { clickHex, expectDomMatchesView, here, openFixture, openStart, shoot as shootInto, shotsDir, throughCurtain } from "./helpers.ts";
 
 // Desert raiders (§27), plan Task 2's proving screenshots.
 const shots = shotsDir("m5-raiders");
@@ -48,4 +49,36 @@ test("a hidden LRDG next to Rommel raids him by clicks", async ({ page }) => {
   }
   await shoot(page, "raid-done.png");
   await expectDomMatchesView(page);
+});
+
+test("phase C: the Commonwealth forms LRDG 1 from the 11th Hussars by a click (27.13)", async ({ page }) => {
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  await page.locator("[data-stack]").first().waitFor();
+  await page.getByTestId("phase-controls").locator('[data-order="declare-initiative"][data-side="cw"]').click();
+  await expect(page.getByTestId("clock")).toContainText("C · organisation");
+  await throughCurtain(page, "cw");
+  await expect(page.getByTestId("to-act")).toHaveText("Commonwealth to act");
+  const hus = await page.evaluate(() => {
+    const view: View = window.__cna.view();
+    const p = view.pieces["unit:cw:11-hus"];
+    return { hex: (p.location as { hex: string }).hex, toe: p.toe ?? 0 };
+  });
+  await clickHex(page, hus.hex);
+  const form = page.getByTestId("stack-panel").locator('[data-order="form-raider"][data-raider="unit:cw:lrdg-1"]');
+  await expect(form).toHaveText(/^Form LRDG 1 from /);
+  await shoot(page, "form-offered.png");
+  await form.click();
+  await expect(log(page).filter({ hasText: `Long Range Desert Group 1 is formed at ${hus.hex} from a TOE point of 11th Hussars.` })).toHaveCount(1);
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  const after = await page.evaluate(() => {
+    const view: View = window.__cna.view();
+    return { lrdg: view.pieces["unit:cw:lrdg-1"], toe: view.pieces["unit:cw:11-hus"].toe };
+  });
+  expect(after.lrdg.kind).toBe("raider");
+  expect(after.lrdg.location).toEqual({ hex: hus.hex });
+  expect(after.toe).toBe(hus.toe - 1);
+  // The counter is in play now: it is offered no more.
+  await expect(form).toHaveCount(0);
+  await shoot(page, "formed.png");
 });

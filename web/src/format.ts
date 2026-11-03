@@ -61,6 +61,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["raider-spotted"];
     return `${name(d.piece)} entering ${d.hex} rolls ${d.roll} to stay unseen: ${d.eliminated ? "spotted and eliminated" : "not spotted"}.`;
   }
+  if ("raider-formed" in e) {
+    const d = e["raider-formed"];
+    return `${name(d.piece)} is formed at ${d.hex} from a TOE point of ${name(d.from)}.`;
+  }
   if ("rommel-raided" in e) {
     const d = e["rommel-raided"];
     return `${name(d.piece)} raids Rommel at ${d.hex}: ${d.roll}, ${RAID[d.result]}; the raider ${d.lrdg_eliminated ? "is eliminated" : "survives"}.`;

@@ -11,6 +11,7 @@ use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::cp::Cp;
+use cna_data::map::HexId;
 use cna_data::oa::UnitId;
 use cna_data::scenario::{Side, Status, Subject, UnitEntry};
 use cna_data::time::GameTime;
@@ -40,15 +41,14 @@ impl GameState {
         self.raiders_lost.insert(id.clone(), now);
     }
 
-    /// `Order::FormRaider` (27.13, 27.16, R-147): `raider`, a counter not
-    /// in play, is formed in `from`'s hex from one of its TOE points.
-    pub(crate) fn form_raider(
-        &mut self,
+    /// Whether `player` may form `raider` from `from` now, and where.
+    fn check_form(
+        &self,
         data: &Data,
         player: Side,
         raider: &PieceId,
         from: &PieceId,
-    ) -> Result<Vec<Event>, Illegal> {
+    ) -> Result<HexId, Illegal> {
         let bad = |why: String| Illegal::new("27.13", why);
         if self.clock.phase != Phase::Organisation {
             return Err(bad(format!(
@@ -125,6 +125,50 @@ impl GameState {
         if source.toe < 2 {
             return Err(bad(format!("{from} would have no TOE points left")));
         }
+        Ok(hex)
+    }
+
+    /// Every (raider counter, unit) pair `player` may form now (27.13),
+    /// for the browser's phase C control.
+    pub fn raider_formings(&self, data: &Data, player: Side) -> Vec<(PieceId, PieceId)> {
+        if self.clock.phase != Phase::Organisation {
+            return Vec::new();
+        }
+        let raiders: Vec<PieceId> = data
+            .oa
+            .units()
+            .filter(|u| u.raider.is_some() && side_of(&u.id) == player)
+            .map(|u| PieceId::from(&u.id))
+            .collect();
+        let mut out = Vec::new();
+        for raider in &raiders {
+            for p in self.pieces.values() {
+                if p.side == player
+                    && p.kind == PieceKind::Combat
+                    && self.check_form(data, player, raider, &p.id).is_ok()
+                {
+                    out.push((raider.clone(), p.id.clone()));
+                }
+            }
+        }
+        out
+    }
+
+    /// `Order::FormRaider` (27.13, 27.16, R-147): `raider`, a counter not
+    /// in play, is formed in `from`'s hex from one of its TOE points.
+    pub(crate) fn form_raider(
+        &mut self,
+        data: &Data,
+        player: Side,
+        raider: &PieceId,
+        from: &PieceId,
+    ) -> Result<Vec<Event>, Illegal> {
+        let hex = self.check_form(data, player, raider, from)?;
+        let unit = raider
+            .unit()
+            .and_then(|u| data.oa.unit(&u))
+            .expect("checked");
+        let side = player;
         let weapon = self.pieces[from]
             .weapons
             .iter()
@@ -308,5 +352,46 @@ mod tests {
             .unwrap();
         assert_eq!(state.pieces[&id].hex(), Some(&to));
         assert!(state.pieces[&id].hidden);
+    }
+
+    #[test]
+    fn the_view_offers_its_viewer_the_raiders_it_may_form() {
+        let data = graziani();
+        let state = organising(&data);
+        let offered = state.raider_formings(&data, Side::Cw);
+        assert!(offered.contains(&(pid("unit:cw:lrdg-1"), pid("unit:cw:11-hus"))));
+        assert!(
+            offered
+                .iter()
+                .all(|(r, _)| r.as_str().starts_with("unit:cw:lrdg-"))
+        );
+        let v = crate::view::view_for(
+            &state,
+            &data,
+            &crate::view::Aliases::new([0; 32]),
+            Some(Side::Cw),
+            false,
+        )
+        .unwrap();
+        let list = v["raider_formings"].as_array().unwrap();
+        assert!(list.iter().any(|f| f["raider"] == "unit:cw:lrdg-1"
+            && f["from"] == "unit:cw:11-hus"
+            && f["name"] == "LRDG 1"));
+        let axis = crate::view::view_for(
+            &state,
+            &data,
+            &crate::view::Aliases::new([0; 32]),
+            Some(Side::Axis),
+            false,
+        )
+        .unwrap();
+        let theirs = axis["raider_formings"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        assert!(theirs.iter().all(|f| f["raider"] == "unit:de:dsa"));
+        // Outside phase C nothing is offered.
+        let later = moving(&data, 3, Side::Cw);
+        assert!(later.raider_formings(&data, Side::Cw).is_empty());
     }
 }

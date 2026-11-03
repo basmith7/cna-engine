@@ -181,7 +181,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// `assaults_to_resolve` and, per piece, `unit_type` from the
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
-/// units), and `shell: true` on a formation that is a shell (9.26).
+/// units), `shell: true` on a formation that is a shell (9.26), and in
+/// phase C `raider_formings`, the viewer's raiders it may form (27.13).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -198,6 +199,22 @@ pub fn view_for(
         "assaults_to_resolve".into(),
         json!(state.assaults_to_resolve()),
     );
+    // The viewer's raiders it may form now, and from which units (27.13).
+    let formings: Vec<Value> = viewer
+        .map(|side| state.raider_formings(data, side))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(raider, from)| {
+            let name = raider
+                .unit()
+                .and_then(|u| data.oa.unit(&u))
+                .map(|u| u.abbreviation.clone().unwrap_or_else(|| u.name.clone()));
+            json!({"raider": raider, "name": name, "from": from})
+        })
+        .collect();
+    if !formings.is_empty() {
+        obj.insert("raider_formings".into(), json!(formings));
+    }
     label(state, data, &mut v)?;
     if state.is_over() {
         return Ok(v);

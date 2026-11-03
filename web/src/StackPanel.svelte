@@ -38,6 +38,8 @@
   /** The side to act's units in the hex, which may absorb repaired points in phase C (20.41). */
   const absorbers = $derived(pieces.filter((p) => p.side === view.to_act && (p.kind === "combat" || p.kind === "hq")));
   let absorbing: Record<string, { piece: PieceId | null; points: number }> = $state({});
+  /** Raiders the side to act may form here, from a unit in this hex (27.13). */
+  const formings = $derived((view.raider_formings ?? []).filter((f) => pieces.some((p) => p.id === f.from)));
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -96,6 +98,14 @@
         <input type="number" min="1" value={pick.points} aria-label="Guard points" oninput={(e) => (guarding = { ...pick, points: Number((e.target as HTMLInputElement).value) })} />
         <button type="button" data-order="detail-guards" title="Infantry TOE points become guards, one per five prisoners on the march (28.17, 28.21)" onclick={() => onorder({ "detail-guards": { piece: pick.piece, points: pick.points } })}>Detail</button>
         <button type="button" data-order="release-guards" title="Guards here rejoin the unit (28.22)" onclick={() => onorder({ "release-guards": { piece: pick.piece, points: pick.points } })}>Release</button>
+      </p>
+    {/if}
+    {#if onorder && view.clock?.phase === "organisation" && formings.length > 0}
+      <p class="guarding" data-testid="raider-controls">
+        {#each formings as f (f.raider + f.from)}
+          {@const from = pieces.find((p) => p.id === f.from)}
+          <button type="button" data-order="form-raider" data-raider={f.raider} title="One recce or armoured-car TOE point becomes the raider, for good (27.13)" onclick={() => onorder({ "form-raider": { raider: f.raider, from: f.from } })}>Form {f.name ?? "raider"} from {from ? label(from).short : f.from}</button>
+        {/each}
       </p>
     {/if}
     {#each repaired as r (r.weapon)}

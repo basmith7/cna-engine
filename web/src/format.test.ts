@@ -20,6 +20,7 @@ const cases: [Event, string][] = [
   ["rommel-recalled", "Rommel is recalled to Germany for this Game-Turn."],
   [{ "raider-spotted": { piece: "u:a", hex: "C4131", roll: 6, eliminated: true } }, "A entering C4131 rolls 6 to stay unseen: spotted and eliminated."],
   [{ "rommel-raided": { piece: "u:a", hex: "C3618", roll: 7, result: "lrdg-eliminated", lrdg_eliminated: true } }, "A raids Rommel at C3618: 7, the raid fails; the raider is eliminated."],
+  [{ "raider-formed": { piece: "u:a", from: "u:b", hex: "C3020" } }, "A is formed at C3020 from a TOE point of B."],
   [{ arrived: { pieces: ["u:a"], at: { box: "tripoli" } } }, "A arrive at the tripoli box."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
@@ -99,9 +100,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 74 variants", () => {
+  it("covers all 75 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(74);
+    expect(tags.size).toBe(75);
   });
 
   it.each(cases)("%j", (event, line) => {

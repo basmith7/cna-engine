@@ -200,6 +200,7 @@ export type Order =
   | { "detail-guards": { piece: PieceId; points: number } }
   | { "release-guards": { piece: PieceId; points: number } }
   | { "raid-rommel": { piece: PieceId } }
+  | { "form-raider": { raider: PieceId; from: PieceId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -279,6 +280,7 @@ export type Event =
   | "rommel-recalled"
   | { "raider-spotted": { piece: PieceId; hex: HexId; roll: number; eliminated: boolean } }
   | { "rommel-raided": { piece: PieceId; hex: HexId; roll: number; result: RaidResult; lrdg_eliminated: boolean } }
+  | { "raider-formed": { piece: PieceId; from: PieceId; hex: HexId } }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }
@@ -502,4 +504,6 @@ export interface View {
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];
+  /** Phase C: the viewer's raider counters it may form now, each with a unit that may give the TOE point (27.13). */
+  raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
 }
