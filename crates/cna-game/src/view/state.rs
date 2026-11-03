@@ -190,7 +190,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// units), `shell: true` on a formation that is a shell (9.26), and in
 /// phase C `raider_formings`, the viewer's raiders it may form (27.13),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
-/// and where (16.x): built from who holds each hex, which both sides see.
+/// and where (16.x): built from who holds each hex, which both sides see;
+/// and in phase E `station_options`, the ships the Commonwealth may
+/// place at sea and the hexes open to them (30.1x).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -228,6 +230,9 @@ pub fn view_for(
         .unwrap_or_default();
     if !patrols.is_empty() {
         obj.insert("patrol_options".into(), json!(patrols));
+    }
+    if let Some(o) = viewer.and_then(|side| state.station_options(data, side)) {
+        obj.insert("station_options".into(), json!(o));
     }
     label(state, data, &mut v)?;
     if state.is_over() {

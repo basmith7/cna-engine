@@ -60,7 +60,7 @@ export function defaultTicked(view: View, hex: HexId, side: Side | null): PieceI
 
 /** Whether a piece may be ticked at all: the side to act's, on the map. */
 export function tickable(p: Piece, side: Side | null): boolean {
-  return p.side === side && typeof p.location === "object" && ("hex" in p.location || "box" in p.location || "transit" in p.location);
+  return p.side === side && p.kind !== "ship" && typeof p.location === "object" && ("hex" in p.location || "box" in p.location || "transit" in p.location);
 }
 
 export function toggle(ticked: PieceId[], id: PieceId): PieceId[] {

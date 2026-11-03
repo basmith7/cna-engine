@@ -1315,8 +1315,74 @@ mod tests {
             )
             .expect("an offered patrol goes out");
 
+        // The fleet module on (it is not in `Modules::ALL` yet): the
+        // golden set-up, then its orders up to phase E, which opens
+        // with GT1/1's ships in Alexandria (30.1x, 30.59).
+        let mut fleet = golden_prefix(56);
+        fleet.modules.fleet = true;
+        for logged in &golden_log().orders[56..] {
+            if fleet.clock.phase == cna_game::clock::Phase::CwFleet {
+                break;
+            }
+            fleet
+                .apply(graziani(), logged.player, logged.order.clone())
+                .unwrap();
+        }
+        assert_eq!(fleet.clock.phase, cna_game::clock::Phase::CwFleet);
+        assert_eq!(fleet.to_act(), Some(Side::Cw));
+        assert!(fleet.station_options(graziani(), Side::Cw).is_some());
+
+        // The golden barrage step at Sollum with Valiant stationed on an
+        // Axis unit's coastal hex (30.2x): the fleet fixture's ship,
+        // placed by hand, since the golden game sails none.
+        let mut fleet_barrage = (0..golden_log().orders.len())
+            .map(golden_prefix)
+            .find(|s| {
+                matches!(
+                    s.pending,
+                    Some(Pending::Sealed {
+                        step: cna_game::combat::SealedStep::Barrage,
+                        ..
+                    })
+                )
+            })
+            .expect("the golden game barrages");
+        let valiant = cna_game::fleet::ship_id("valiant");
+        let coast = fleet_barrage
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == cna_game::piece::PieceKind::Combat)
+            .filter_map(|p| p.hex().cloned())
+            .find(|h| graziani().map.hex(h).is_some_and(|x| x.coastal))
+            .expect("an Axis unit on the coast");
+        let mut ship = fleet.pieces[&valiant].clone();
+        ship.location = cna_game::piece::Location::Hex(coast);
+        fleet_barrage.modules.fleet = true;
+        fleet_barrage.pieces.insert(valiant.clone(), ship);
+        fleet_barrage
+            .fleet
+            .insert(valiant.clone(), cna_game::fleet::PortRecord::default());
+        if fleet_barrage.to_act() == Some(Side::Axis) {
+            fleet_barrage
+                .apply(
+                    graziani(),
+                    Side::Axis,
+                    cna_game::order::Order::Barrage { fires: vec![] },
+                )
+                .unwrap();
+        }
+        assert_eq!(fleet_barrage.to_act(), Some(Side::Cw));
+        match fleet_barrage.sealed_options(graziani(), Side::Cw).unwrap() {
+            cna_game::combat::options::SealedOptions::Barrage { firers } => {
+                assert!(firers.iter().any(|f| f.piece == valiant), "{firers:?}")
+            }
+            o => panic!("{o:?}"),
+        }
+
         vec![
             ("set-up-done", set_up_done),
+            ("fleet", fleet),
+            ("fleet-barrage", fleet_barrage),
             ("patrol", patrol),
             ("crusader-set-up", crusader_set_up),
             ("raid-rommel", raid),

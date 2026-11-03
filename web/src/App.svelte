@@ -30,6 +30,8 @@
   import { RETURN_KEY, parseRoute } from "./route";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
   import PatrolPanel from "./PatrolPanel.svelte";
+  import FleetPanel from "./FleetPanel.svelte";
+  import Ships from "./Ships.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
   import Toast from "./Toast.svelte";
@@ -200,6 +202,13 @@
     const offered = new Set((view?.patrol_options ?? []).map((o) => o.piece));
     const kept = Object.fromEntries(Object.entries(patrolChosen).filter(([id]) => offered.has(id)));
     if (Object.keys(kept).length !== Object.keys(patrolChosen).length) patrolChosen = kept;
+  });
+  /** Phase E: the ship picked to station, and the hexes open to it, as the engine offers them (30.1x). */
+  let shipPick: PieceId | null = $state(null);
+  const stationHexes: HexId[] = $derived(shipPick !== null && view?.station_options?.ships.includes(shipPick) ? view.station_options.hexes : []);
+  // A ship the engine no longer offers (phase E over) drops out.
+  $effect(() => {
+    if (shipPick !== null && !view?.station_options?.ships.includes(shipPick)) shipPick = null;
   });
   const wrecked: HexId[] = $derived(Object.keys(view?.broken_down ?? {}));
   let map: Map | undefined = $state();
@@ -404,6 +413,13 @@
     // An armed prisoner march: each click is the path's next hex.
     if (march) {
       march = { ...march, path: [...march.path, h] };
+      return;
+    }
+    // Phase E: with a ship picked, the click is its station; the engine judges it.
+    if (!view.pending && shipPick !== null && view.station_options) {
+      const ship = shipPick;
+      hex = h;
+      if (await send({ station: { ship, hex: h } })) shipPick = null;
       return;
     }
     // Phase L: a click on a marked hex is the patrol's target.
@@ -650,9 +666,11 @@
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
             <Marks hexes={patrolTargets} kind="patrol" />
+            <Marks hexes={stationHexes} kind="station" />
             <Marks hexes={wrecked} kind="wreck" />
             <Reachable {reaches} {from} part="fill" />
             <Counters view={view!} selected={hex} {scale} />
+            <Ships view={view!} />
             <Reachable {reaches} {from} hovered={hover} {custom} {occupied} part="labels" />
           {/snippet}
         </Map>
@@ -702,6 +720,7 @@
               }
             }}
           />
+          <FleetPanel {view} bind:picked={shipPick} />
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />

@@ -20,9 +20,15 @@ export interface RoleRow {
   target: HexId | "";
 }
 
-/** A fresh row for a firer: its whole TOE at its first target, the usual answer. */
+/** A fresh row for a firer: its whole TOE at its first target, the usual answer; a ship fires the one count it has at that target (30.2x). */
 export function fireRowFor(f: Firer): FireRow {
-  return { piece: f.piece, points: f.points, target: f.targets[0] ?? "" };
+  const target = f.targets[0] ?? "";
+  return { piece: f.piece, points: shipPoints(f, target) ?? f.points, target };
+}
+
+/** A ship's only point count at `target` (30.2x); undefined for a land unit, which chooses its points. */
+export function shipPoints(f: Firer, target: PieceId | ""): number | undefined {
+  return f.ship_points ? (f.ship_points[target] ?? 0) : undefined;
 }
 
 /** A fresh row for a unit in a role: all its points, at its first target where it names one. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import charsFile from "../../vendor/cna/data/tables/unit-characteristics.json";
-import { glyphFor, label, markers, nameParts, nested, offMap, sizeMark, stacks, topFirst } from "./counters";
+import { glyphFor, label, markers, nameParts, nested, offMap, shipsAtSea, shipsInPort, sizeMark, stacks, topFirst } from "./counters";
 import type { Piece, View } from "./types";
 
 function piece(over: Partial<Piece> & { id: string }): Piece {
@@ -94,6 +94,22 @@ describe("counter glyphs", () => {
     const dummy = piece({ id: "supply:axis:dummy-1", kind: "dummy-supply-unit", nation: null, id_code: null, name: null, abbreviation: null });
     expect(label(real)).toEqual(label(dummy));
     expect(label(piece({ id: "unit:it:x" }))).toEqual({ short: "A bn", long: "A battalion" });
+  });
+});
+
+describe("ships", () => {
+  it("keeps warships out of the land stacks: at sea by hex, in port listed, named from the id (30.1x)", () => {
+    const ship = (id: string, location: Piece["location"]) =>
+      piece({ id, side: "cw", kind: "ship", nation: null, id_code: null, equivalent: null, unit_type: null, name: null, abbreviation: null, location });
+    const v = view([
+      piece({ id: "unit:it:a" }),
+      ship("ship:cw:valiant", { hex: "C4131" }),
+      ship("ship:cw:dido", { port: "alexandria" }),
+    ]);
+    expect(stacks(v).get("C4131")!.map((p) => p.id)).toEqual(["unit:it:a"]);
+    expect(shipsAtSea(v).get("C4131")!.map((p) => p.id)).toEqual(["ship:cw:valiant"]);
+    expect(shipsInPort(v).map((p) => p.id)).toEqual(["ship:cw:dido"]);
+    expect(label(v.pieces["ship:cw:valiant"])).toEqual({ short: "Valiant", long: "HMS Valiant" });
   });
 });
 

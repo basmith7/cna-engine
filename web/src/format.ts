@@ -20,7 +20,12 @@ function where(loc: Location): string {
   if ("hex" in loc) return loc.hex;
   if ("box" in loc) return `the ${loc.box} box`;
   if ("transit" in loc) return `in transit ${loc.transit.from} → ${loc.transit.to}`;
+  if ("port" in loc) return portName(loc.port);
   return "to be placed";
+}
+
+function portName(port: string): string {
+  return port.charAt(0).toUpperCase() + port.slice(1);
 }
 
 function weather(w: Weather): string {
@@ -261,6 +266,8 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["combat-cp-refunded"];
     return `${name(d.piece)} refunded ${d.cp} CP and ${d.dp} DP.`;
   }
+  if ("stationed" in e) return `${name(e.stationed.ship)} puts to sea at ${e.stationed.hex} (30.1x).`;
+  if ("in-port" in e) return `${list(e["in-port"].ships, name)} ${e["in-port"].ships.length === 1 ? "is" : "are"} back in Alexandria (30.1x).`;
   if ("captured" in e) return `${name(e.captured.piece)} captured at ${e.captured.hex}.`;
   if ("game-over" in e) {
     const r = e["game-over"].report;

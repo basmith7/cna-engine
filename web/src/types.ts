@@ -77,9 +77,11 @@ export type Location =
   | { box: OffMapBox }
   | { transit: { from: OffMapPlace; to: OffMapPlace; done: number } }
   | { pending: Placement }
+  /** A warship in port (30.1x). */
+  | { port: string }
   | "eliminated";
 
-export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit" | "raider";
+export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit" | "raider" | "ship";
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
@@ -205,6 +207,7 @@ export type Order =
   | { "try-spot": { piece: PieceId } }
   /** Phase L: a patrol of each source's points against `target` (16.x). */
   | { patrol: { sources: [PieceId, number][]; target: HexId; exclude?: PieceId[] } }
+  | { station: { ship: PieceId; hex: HexId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -293,6 +296,8 @@ export type Event =
   | { "dump-raided": { piece: PieceId; target: PieceId; hex: HexId; guard_roll: number | null; guard_strength?: number | null; roll: number | null; dummy: boolean; ammo_lost?: number; fuel_lost?: number; removed: boolean; raider_eliminated: boolean } }
   /** A patrol's three dice (16.x): public, its descriptions (each unit's stated TOE) included. */
   | { patrolled: PatrolReport }
+  | { stationed: { ship: PieceId; hex: HexId } }
+  | { "in-port": { ships: PieceId[] } }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }
@@ -436,6 +441,8 @@ export interface Firer {
   /** Abstract supply: the ammunition it owes (32.21), and whether no supply unit in range can pay it; 0 and false with the module off. */
   ammo: number;
   ammo_short: boolean;
+  /** A ship (30.2x): the one point count it fires at each target; absent for a land unit. */
+  ship_points?: Record<PieceId, number>;
 }
 
 /** A unit that may commit TOE points in step 4 (`cna_game::combat::options::Committer`). */
@@ -524,6 +531,10 @@ export interface View {
   raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
   patrol_options?: PatrolSource[];
+  /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
+  station_options?: { ships: PieceId[]; hexes: HexId[] };
+  /** Each warship's port record (30.1x), with the fleet module on. */
+  fleet?: Record<PieceId, { at_sea?: number; owed?: number; stationed?: true; fired?: true }>;
 }
 
 /** One unit the phasing player may patrol with (`cna_game::patrol::PatrolSource`). */
