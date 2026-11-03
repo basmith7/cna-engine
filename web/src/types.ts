@@ -200,6 +200,7 @@ export type Order =
   | { "detail-guards": { piece: PieceId; points: number } }
   | { "release-guards": { piece: PieceId; points: number } }
   | { "raid-rommel": { piece: PieceId } }
+  | { "raid-dump": { piece: PieceId; target: PieceId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -279,6 +280,8 @@ export type Event =
   | "rommel-recalled"
   | { "raider-spotted": { piece: PieceId; hex: HexId; roll: number; eliminated: boolean } }
   | { "rommel-raided": { piece: PieceId; hex: HexId; roll: number; result: RaidResult; lrdg_eliminated: boolean } }
+  /** A raid on a supply unit as a dump (27.55, R-149); the losses and the guards' strength reach the dump's owner alone. */
+  | { "dump-raided": { piece: PieceId; target: PieceId; hex: HexId; guard_roll: number | null; guard_strength?: number | null; roll: number | null; dummy: boolean; ammo_lost?: number; fuel_lost?: number; removed: boolean; raider_eliminated: boolean } }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }
