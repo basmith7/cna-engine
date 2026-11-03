@@ -55,7 +55,7 @@ impl GameState {
         let carries = piece.unit().is_some_and(|u| {
             self.attached_under(&u)
                 .iter()
-                .any(|q| q.parent != q.attached_to && !self.is_substitute(data, q))
+                .any(|q| q.parent != q.attached_to && !Self::is_substitute(q))
         });
         if substitute && !carries {
             return None;
@@ -100,7 +100,7 @@ impl GameState {
         let extra_of = |head: &UnitId| -> Vec<&Piece> {
             self.attached_under(head)
                 .into_iter()
-                .filter(|q| q.parent != q.attached_to && !self.is_substitute(data, q))
+                .filter(|q| q.parent != q.attached_to && !Self::is_substitute(q))
                 .collect()
         };
         let mut extra = extra_of(&unit);
@@ -179,26 +179,18 @@ impl GameState {
     }
 
     /// Whether attached `q` stands in for a missing assigned unit of
-    /// the parent it is attached to (19.4x substitution).
-    fn is_substitute(&self, data: &Data, q: &Piece) -> bool {
-        let Some(head) = &q.attached_to else {
-            return false;
-        };
-        if q.parent.as_ref() == Some(head) {
-            return false;
-        }
-        self.pieces
-            .values()
-            .find(|p| p.id.unit().as_ref() == Some(head))
-            .is_some_and(|p| self.substitutes_for(data, &p.id, None).contains(&q.id))
+    /// the parent it is attached to (19.4x substitution), as judged when
+    /// it attached.
+    fn is_substitute(q: &Piece) -> bool {
+        q.substitute && q.attached_to.is_some()
     }
 
-    /// The non-assigned units attached to `to` (and `new`, about to
-    /// attach) that stand in for its assigned units not in play: never
-    /// arrived, or gone (19.4x). A substitute must fill a chart slot the
-    /// missing unit fills (R-142), one substitute per missing unit. Those
-    /// already attached are matched first, so a new one never displaces
-    /// them.
+    /// The independent units attached to `to` as substitutes (and `new`,
+    /// about to attach, if it would be one) standing in for its assigned
+    /// units not in play: never arrived, or gone (19.4x). A substitute
+    /// has no parent of its own and fills a chart slot the missing unit
+    /// fills (R-142), one substitute per missing unit. Those already
+    /// standing in are matched first, so a newcomer never displaces them.
     pub(crate) fn substitutes_for(
         &self,
         data: &Data,
@@ -227,9 +219,11 @@ impl GameState {
         let mut candidates: Vec<&Piece> = self
             .pieces
             .values()
-            .filter(|q| q.attached_to.as_ref() == Some(&unit) && q.parent.as_ref() != Some(&unit))
+            .filter(|q| q.attached_to.as_ref() == Some(&unit) && q.substitute)
             .collect();
-        if let Some(n) = new.and_then(|n| self.pieces.get(n)) {
+        if let Some(n) = new.and_then(|n| self.pieces.get(n))
+            && n.parent.is_none()
+        {
             candidates.push(n);
         }
         let slots =

@@ -251,6 +251,7 @@ pub(crate) fn supply_piece(
         id_code: None,
         parent: None,
         attached_to: None,
+        substitute: false,
         toe: 0,
         weapons: Vec::new(),
         cpa: None,
@@ -516,6 +517,7 @@ fn piece(
         id_code: unit.id_code.clone(),
         parent,
         attached_to: None,
+        substitute: false,
         toe,
         weapons,
         cpa: match &unit.commander {
