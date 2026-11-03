@@ -174,6 +174,7 @@ impl GameState {
         }
         let unit = to.unit().expect("a unit has a sheet id");
         let assigned = p.parent.as_ref() == Some(&unit);
+        let substitute = !assigned && self.substitutes_for(data, to, Some(piece)).contains(piece);
         if !assigned {
             // A non-assigned unit attaches in phase C only, for 2 CP
             // each, within the parent's chart row (19.4x, 19.5).
@@ -191,7 +192,9 @@ impl GameState {
             self.charge_attachment(piece, to);
         }
         self.charge_attachment(piece, to);
-        self.pieces.get_mut(piece).expect("checked").attached_to = Some(unit);
+        let p = self.pieces.get_mut(piece).expect("checked");
+        p.attached_to = Some(unit);
+        p.substitute = substitute;
         Ok(vec![Event::Attached {
             piece: piece.clone(),
             to: to.clone(),
@@ -206,7 +209,9 @@ impl GameState {
         };
         let from = PieceId::from(&on);
         self.charge_attachment(piece, &from);
-        self.pieces.get_mut(piece).expect("checked").attached_to = None;
+        let p = self.pieces.get_mut(piece).expect("checked");
+        p.attached_to = None;
+        p.substitute = false;
         if self.clock.phase == Phase::MovementCombat {
             self.split.insert(piece.clone(), from.clone());
         }
@@ -606,6 +611,66 @@ mod tests {
             .apply(&data, Side::Axis, attach_to(bn1, bn2))
             .unwrap_err();
         assert_eq!(err.case, "19.5");
+    }
+
+    #[test]
+    fn a_substitute_for_a_missing_battalion_is_no_extra_attachment() {
+        // As the nesting case below, but the regiment has lost its XVII
+        // Libyan Battalion: the independent XVIII stands in its slot
+        // (19.4x), so it counts against neither the regiment's row nor
+        // Maletti's. The IX, assigned to another regiment, may not.
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let bn1 = "unit:it:viii-libyan-bn";
+        let (ix, xviii, xxxii) = (
+            "unit:it:ix-libyan-bn",
+            "unit:it:xviii-libyan-bn",
+            "unit:it:xxxii-libyan-bn",
+        );
+        let mut state = organising_with(&data, MALETTI, &[regt, bn1, ix, xviii, xxxii]);
+        state.put(&pid("unit:it:xvii-libyan-bn"), Location::Eliminated);
+        for (to, piece) in [(MALETTI, regt), (MALETTI, bn1)] {
+            state
+                .apply(&data, Side::Axis, attach_to(to, piece))
+                .unwrap();
+        }
+        let err = state
+            .apply(&data, Side::Axis, attach_to(regt, ix))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+        state
+            .apply(&data, Side::Axis, attach_to(regt, xviii))
+            .unwrap();
+        assert!(state.pieces[&pid(xviii)].substitute);
+        // One missing battalion takes one substitute: the next is an
+        // extra, over Maletti's row, and never displaces the first.
+        let err = state
+            .apply(&data, Side::Axis, attach_to(regt, xxxii))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+        assert_eq!(
+            state.substitutes_for(&data, &pid(regt), Some(&pid(xxxii))),
+            vec![pid(xviii)]
+        );
+    }
+
+    #[test]
+    fn only_a_unit_that_fills_the_missing_slot_substitutes() {
+        // An artillery regiment fills no infantry battalion's slot.
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let (arty, bn) = ("unit:it:xx-corps-artillery-regt", "unit:it:xviii-libyan-bn");
+        let mut state = organising_with(&data, MALETTI, &[regt, arty, bn]);
+        state.put(&pid("unit:it:xvii-libyan-bn"), Location::Eliminated);
+        assert!(
+            state
+                .substitutes_for(&data, &pid(regt), Some(&pid(arty)))
+                .is_empty()
+        );
+        assert_eq!(
+            state.substitutes_for(&data, &pid(regt), Some(&pid(bn))),
+            vec![pid(bn)]
+        );
     }
 
     #[test]

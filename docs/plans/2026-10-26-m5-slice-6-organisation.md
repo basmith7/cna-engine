@@ -86,7 +86,7 @@ on cna's HQ organisation types.
   strength reads its ID code's row where the sheet lists no TOE.
 - [x] Formations in the size table: a piece counts as the formation of
   the topmost HQ it is attached under on its hex (15.55, PR #59).
-- [ ] Open: the 19.3 chart as the shell denominator, substitution.
+- [x] The 19.3 chart as the shell denominator (#75, #100), substitution (#101).
 
 ### Task 4: dumps and prisoners
 

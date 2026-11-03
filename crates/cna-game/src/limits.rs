@@ -5,7 +5,7 @@
 //! shell (9.26–9.28), which stacks one level smaller.
 
 use crate::data::Data;
-use crate::piece::{Piece, PieceId, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
 use cna_data::max_attachments::Row;
@@ -51,9 +51,18 @@ impl GameState {
         piece: &PieceId,
         to: &PieceId,
     ) -> Option<String> {
+        let substitute = self.substitutes_for(data, to, Some(piece)).contains(piece);
+        let carries = piece.unit().is_some_and(|u| {
+            self.attached_under(&u)
+                .iter()
+                .any(|q| q.parent != q.attached_to && !Self::is_substitute(q))
+        });
+        if substitute && !carries {
+            return None;
+        }
         let mut parent = to.clone();
         loop {
-            if let Some(why) = self.one_cap_refusal(data, piece, &parent) {
+            if let Some(why) = self.one_cap_refusal(data, piece, &parent, substitute) {
                 return Some(why);
             }
             let up = self.pieces[&parent].attached_to.clone()?;
@@ -61,7 +70,13 @@ impl GameState {
         }
     }
 
-    fn one_cap_refusal(&self, data: &Data, piece: &PieceId, to: &PieceId) -> Option<String> {
+    fn one_cap_refusal(
+        &self,
+        data: &Data,
+        piece: &PieceId,
+        to: &PieceId,
+        substitute: bool,
+    ) -> Option<String> {
         let parent = &self.pieces[to];
         let unit = to.unit()?;
         let nation = parent.nation?;
@@ -80,20 +95,21 @@ impl GameState {
             ));
         };
         // The extra (non-assigned) attachments under the parent, nested
-        // ones included, and the new one with its own.
-        let mut extra: Vec<&Piece> = self
-            .attached_under(&unit)
-            .into_iter()
-            .filter(|q| q.parent != q.attached_to)
-            .collect();
+        // ones included, and the new one with its own; a substitute
+        // stands in an assigned slot and is no extra (19.4x).
+        let extra_of = |head: &UnitId| -> Vec<&Piece> {
+            self.attached_under(head)
+                .into_iter()
+                .filter(|q| q.parent != q.attached_to && !Self::is_substitute(q))
+                .collect()
+        };
+        let mut extra = extra_of(&unit);
         let new = &self.pieces[piece];
-        extra.push(new);
+        if !substitute {
+            extra.push(new);
+        }
         if let Some(u) = piece.unit() {
-            extra.extend(
-                self.attached_under(&u)
-                    .into_iter()
-                    .filter(|q| q.parent != q.attached_to),
-            );
+            extra.extend(extra_of(&u));
         }
         let new_kind = self.attachment_kind(data, new);
         match row.unit_kind.as_deref() {
@@ -160,6 +176,99 @@ impl GameState {
                 over.join(", ")
             )
         })
+    }
+
+    /// Whether attached `q` stands in for a missing assigned unit of
+    /// the parent it is attached to (19.4x substitution), as judged when
+    /// it attached.
+    fn is_substitute(q: &Piece) -> bool {
+        q.substitute && q.attached_to.is_some()
+    }
+
+    /// The independent units attached to `to` as substitutes (and `new`,
+    /// about to attach, if it would be one) standing in for its assigned
+    /// units not in play: never arrived, or gone (19.4x). A substitute
+    /// has no parent of its own and fills a chart slot the missing unit
+    /// fills (R-142), one substitute per missing unit. Those already
+    /// standing in are matched first, so a newcomer never displaces them.
+    pub(crate) fn substitutes_for(
+        &self,
+        data: &Data,
+        to: &PieceId,
+        new: Option<&PieceId>,
+    ) -> Vec<PieceId> {
+        let Some(unit) = to.unit() else {
+            return Vec::new();
+        };
+        let in_play = |id: &UnitId| {
+            self.pieces.values().any(|p| {
+                p.location != Location::Eliminated
+                    && p.id.unit().is_some_and(|u| {
+                        &u == id || data.oa.unit(&u).and_then(|s| s.replaces.as_ref()) == Some(id)
+                    })
+            })
+        };
+        let missing: Vec<&Unit> = data
+            .oa
+            .units()
+            .filter(|u| u.parent.as_ref() == Some(&unit) && !in_play(&u.id))
+            .collect();
+        if missing.is_empty() {
+            return Vec::new();
+        }
+        let mut candidates: Vec<&Piece> = self
+            .pieces
+            .values()
+            .filter(|q| q.attached_to.as_ref() == Some(&unit) && q.substitute)
+            .collect();
+        if let Some(n) = new.and_then(|n| self.pieces.get(n))
+            && n.parent.is_none()
+        {
+            candidates.push(n);
+        }
+        let slots =
+            |u: &Unit| -> Vec<String> { u.fills.iter().chain(&u.fills_part).cloned().collect() };
+        let fits: Vec<Vec<usize>> = candidates
+            .iter()
+            .map(|q| {
+                let mine =
+                    q.id.unit()
+                        .and_then(|u| data.oa.unit(&u))
+                        .map(slots)
+                        .unwrap_or_default();
+                (0..missing.len())
+                    .filter(|&m| slots(missing[m]).iter().any(|s| mine.contains(s)))
+                    .collect()
+            })
+            .collect();
+        // Kuhn's augmenting paths: a matched candidate stays matched.
+        let mut owner: Vec<Option<usize>> = vec![None; missing.len()];
+        fn augment(
+            c: usize,
+            fits: &[Vec<usize>],
+            owner: &mut [Option<usize>],
+            seen: &mut [bool],
+        ) -> bool {
+            for &m in &fits[c] {
+                if seen[m] {
+                    continue;
+                }
+                seen[m] = true;
+                if owner[m].is_none_or(|o| augment(o, fits, owner, seen)) {
+                    owner[m] = Some(c);
+                    return true;
+                }
+            }
+            false
+        }
+        for c in 0..candidates.len() {
+            augment(c, &fits, &mut owner, &mut vec![false; missing.len()]);
+        }
+        owner
+            .into_iter()
+            .flatten()
+            .map(|c| candidates[c].id.clone())
+            .collect()
     }
 
     fn attachment_kind(&self, data: &Data, p: &Piece) -> Kind {

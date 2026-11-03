@@ -168,6 +168,10 @@ pub struct Piece {
     /// usually `parent`, and always standing where this one does.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attached_to: Option<UnitId>,
+    /// Attached, as an independent unit, in place of an assigned unit of
+    /// `attached_to` not in play (19.4x substitution); set at each attach.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub substitute: bool,
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,
