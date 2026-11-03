@@ -254,20 +254,29 @@ impl GameState {
                     due
                 }
                 Side::Axis => {
-                    let mut left = due;
+                    let (mut left, mut held) = (due, 0);
                     for lane in self.convoy_lanes_in_use(data) {
                         if left == 0 {
                             break;
                         }
-                        let Some(at) = self.lane_port(data, lane, events) else {
+                        // Bizerta before its 12: the next lane takes its share.
+                        let Some(l) = data.convoy_lanes.lanes.iter().find(|l| l.lane == lane)
+                        else {
                             continue;
                         };
+                        if !self.lane_open(l) {
+                            continue;
+                        }
                         let sailing = left.min(LANE_SUPPLY);
                         left -= sailing;
+                        let Some(at) = self.lane_port(data, lane, events) else {
+                            held += sailing;
+                            continue;
+                        };
                         let landed = sailing - self.bomb_convoy(data, lane, sailing, events);
                         landings.push((at, landed, landed / 3));
                     }
-                    due - left
+                    due - left - held
                 }
             };
             if due > sailed {
@@ -300,8 +309,9 @@ impl GameState {
         self.convoy_lanes.clone()
     }
 
-    /// Where a convoy on `lane` lands this turn; none if the lane is not
-    /// open, or its port is in Commonwealth hands (56.15, with an event).
+    /// Where a convoy on open `lane` lands this turn; none if its port is
+    /// in Commonwealth hands (56.15, with an event): the convoy does not
+    /// sail, and its share waits for the next turn's.
     fn lane_port(
         &self,
         data: &Data,
@@ -310,9 +320,6 @@ impl GameState {
     ) -> Option<crate::piece::Location> {
         use crate::piece::{Location, PieceKind};
         let l = data.convoy_lanes.lanes.iter().find(|l| l.lane == lane)?;
-        if !self.lane_open(l) {
-            return None;
-        }
         if let Some(b) = &l.destination.off_map_box {
             let b = serde_json::from_value(serde_json::Value::String(b.clone())).ok()?;
             return Some(Location::Box(b));
@@ -378,12 +385,15 @@ impl GameState {
     }
 
     /// The Axis's roll to open Bizerta (55.17): two dice each Game-Turn
-    /// from the lane's first, until a 12; from a stream of their own.
+    /// from the lane's first while the Axis names the lane, until a 12;
+    /// from a stream of their own. A game that never names it never
+    /// rolls, as games before the lanes did not.
     fn roll_for_bizerta(&mut self, data: &Data, events: &mut Vec<Event>) {
         let Some(lane) = data.convoy_lanes.lanes.iter().find(|l| l.activation_roll) else {
             return;
         };
         if self.bizerta_open
+            || !self.convoy_lanes.contains(&lane.lane)
             || lane
                 .first_game_turn
                 .is_some_and(|t| self.clock.game_turn < t)
@@ -405,7 +415,10 @@ impl GameState {
     }
 
     /// `Order::ConvoyLanes` (32.63): the Axis, in phase C, names the lanes
-    /// its convoys sail by, each one open this Game-Turn, none twice.
+    /// its convoys sail by, none twice, each past its first Game-Turn
+    /// (56.14). Bizerta may be named before its 12 is rolled (55.17):
+    /// naming it starts the rolls, and until a 12 its share goes on to
+    /// the next lane named.
     pub(crate) fn set_convoy_lanes(
         &mut self,
         data: &Data,
@@ -431,11 +444,8 @@ impl GameState {
             let Some(l) = data.convoy_lanes.lanes.iter().find(|l| l.lane == *n) else {
                 return refuse(format!("there is no lane {n}"));
             };
-            if !self.lane_open(l) {
-                return refuse(format!(
-                    "lane {n} ({}) is not open yet (56.14, 55.17)",
-                    l.name
-                ));
+            if l.first_game_turn.is_some_and(|t| self.clock.game_turn < t) {
+                return refuse(format!("lane {n} ({}) is not open yet (56.14)", l.name));
             }
         }
         self.convoy_lanes = lanes.to_vec();
@@ -657,17 +667,26 @@ mod tests {
             .id
             .clone();
         state.pieces.get_mut(&cw).unwrap().location = Location::Hex(tobruk.clone());
-        state.convoy_lanes = vec![6];
-        axis_convoy_of(&mut state, 2);
+        // Lane 6's three wait for the next turn; lane 2 still takes two.
+        state.convoy_lanes = vec![6, 2];
+        axis_convoy_of(&mut state, 5);
         let mut events = Vec::new();
-        assert!(!state.supply_arrivals(&data, &mut events));
+        assert!(state.supply_arrivals(&data, &mut events));
         assert!(events.contains(&Event::ConvoyCancelled { lane: 6 }));
+        let landed: usize = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::Arrived { pieces, .. } => Some(pieces.len()),
+                _ => None,
+            })
+            .sum();
+        assert_eq!(landed, 2);
         assert_eq!(
             state.planned,
             vec![Planned {
                 side: Side::Axis,
                 arrives: 6,
-                units: 2
+                units: 3
             }]
         );
     }
@@ -685,9 +704,8 @@ mod tests {
         // Greece's lanes open in GT32 (56.14); Bizerta needs its roll.
         assert!(refused(&mut state, Side::Axis, &[4]).contains("not open"));
         assert!(refused(&mut state, Side::Axis, &[2, 2]).contains("twice"));
-        state.clock.game_turn = 40;
         assert!(refused(&mut state, Side::Axis, &[1]).contains("not open"));
-        state.bizerta_open = true;
+        state.clock.game_turn = 40;
         let events = state.set_convoy_lanes(&data, Side::Axis, &[1, 4]).unwrap();
         assert_eq!(events, vec![Event::ConvoyLanesSet { lanes: vec![1, 4] }]);
         assert_eq!(state.convoy_lanes, vec![1, 4]);
@@ -700,6 +718,7 @@ mod tests {
         let data = Data::load("grazianis-offensive").unwrap();
         let rolls = |turn: u8, open: bool| {
             let mut state = at_turn(&data, turn);
+            state.convoy_lanes = vec![1, 2];
             state.bizerta_open = open;
             let mut events = Vec::new();
             state.roll_for_bizerta(&data, &mut events);
@@ -718,6 +737,28 @@ mod tests {
             opened |= open;
         }
         assert!(opened, "a 12 in 77 turns");
+        // Not named, never rolled for.
+        let mut state = at_turn(&data, 50);
+        let mut events = Vec::new();
+        state.roll_for_bizerta(&data, &mut events);
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn bizerta_before_its_twelve_passes_its_share_to_the_next_lane_55_17() {
+        use crate::piece::Location;
+        use cna_data::scenario::OffMapBox;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 40);
+        state.convoy_lanes = vec![1, 2];
+        axis_convoy_of(&mut state, 3);
+        let mut events = Vec::new();
+        assert!(state.supply_arrivals(&data, &mut events));
+        // Three real and a dummy, all at Tripoli.
+        assert!(events.iter().any(|e| matches!(
+            e,
+            Event::Arrived { at: Location::Box(OffMapBox::Tripoli), pieces } if pieces.len() == 4
+        )));
     }
 
     #[test]
