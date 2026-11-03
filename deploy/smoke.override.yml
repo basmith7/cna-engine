@@ -1,0 +1,23 @@
+# deploy/smoke.sh's changes to docker-compose.prod.yml: the server on the
+# host network (to reach the native fake Discord on localhost) on
+# CNA_SMOKE_PORT, Postgres published on loopback for it, no fixed
+# container names (a smoke run beside a real deployment would clash).
+services:
+  cna-db:
+    container_name: !reset null
+    ports:
+      - "127.0.0.1:${CNA_SMOKE_DB_PORT}:5432"
+  cna:
+    container_name: !reset null
+    network_mode: host
+    ports: !reset []
+    depends_on:
+      cna-db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: "postgres://cna:${POSTGRES_PASSWORD}@127.0.0.1:${CNA_SMOKE_DB_PORT}/cna"
+      CNA_BIND: "127.0.0.1:${CNA_SMOKE_PORT}"
+      CNA_TRUST_PROXY: "0"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${CNA_SMOKE_PORT}/healthz"]
+      interval: 2s
+      retries: 30

@@ -161,4 +161,14 @@ only that phase.
 | The Commonwealth fleet and the Axis convoy (phases E, II) | skipped; reinforcements arrive by the schedule at Cairo and Tripoli |
 | The Air Game (§33–47) | left out, as 60.9 allows |
 | The Logistics Game (§48–58) | left out, as 60.92 allows; victory's supply clause is R-110's route trace |
-| Limited intelligence (3.6x), dummy supply units as hidden information | the state holds everything; a per-player view waits for the server |
+| Limited intelligence (3.6x), dummy supply units as hidden information | online, each side sees only `view_for` its side (Mission 4); hot-seat in the browser shows the whole state |
+
+# Online play leaves out (Mission 4)
+
+| What | Instead |
+|---|---|
+| Spectators | only the two seated players see a game |
+| Chat | none; players talk on Discord |
+| Clocks, teams, ratings, rematch, undo | none; a game with no order for 60 days is marked abandoned, and either player may leave one |
+| Simultaneous sealed answers | the phasing side's sealed answer is taken first; the other side's view never holds it |
+| More than one server process | the game registry lives in one process; a second would not see the first's live streams |

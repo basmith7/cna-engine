@@ -16,7 +16,16 @@ writes is **Feedback**.
 
 ## Status
 
-**MISSION 4** (the multiplayer server) is under way: spec merged
+**MISSION 4 COMPLETE** (2026-11-03): online play, built and tested
+locally, not hosted. **Slice 6, ship, merged as #97:** one image
+(`Dockerfile`: the server plus the browser client, 180 MB, non-root,
+stops cleanly on SIGTERM), `docker-compose.prod.yml` with Postgres for
+Tower, a `v*` tag build of `ghcr.io/basmith7/cna` through the shared
+`basmith7/workflows` template, `deploy-now` through `.tower-deploy`
+(project `cna`), `deploy/smoke.sh` (the prod compose file with a fake
+Discord: health, sign-in, a game created; it passes), README
+*Self-hosting*. The outside steps are Brian's checklist in the spec.
+Spec merged
 (#25, approved 2026-10-29). **Slice 1, per-side knowledge in the
 engine, merged as #92 (2026-11-02):** `crates/cna-embed` (the data compiled in, shared
 by the browser and the server; `CNA_RULES_COMMIT` for a Docker build),
@@ -53,7 +62,7 @@ invite links `/join/{id}`, and a two-player Playwright run (alice and
 bob sign in through the fake Discord and play the golden game's first
 77 orders by clicks over the server, bob's traffic checked for leaks,
 the final hash equal to a pinned replay) with Postgres in CI. A fresh review found no leak; its fixes are in. **Slice
-5, turn alerts, is PR #96, ready and waiting on CI:** the guild
+5, turn alerts, merged as #96 (2026-11-03):** the guild
 join at sign-in, the outbox written with the order (none within 15
 minutes or while the player watches the game), the DM sender with
 retries (none once the game ends or the move has passed), the
@@ -101,7 +110,7 @@ module-on golden game changes with it: 4 RHA has no fuel to react on
 GT1 and surrenders with Halfaya. #75's ledger item 1 is real and waits
 on a cna request (below). #79 (merged) builds combat units and HQs by rail,
 2 SP a run (8.7x), the first task of its plan.
-Mission 5's open PR #80 (rail: one stack each way) waits while Mission 4 goes first.
+Mission 5 is the current mission again. #80 (rail: one stack each way, attached units ride, phase J opens for a unit alone; main merged in, a Playwright test rails a battalion by clicks; no golden re-pin was needed) is ready, local gates green.
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
 `docs/designs/2026-10-13-multiplayer-server-design.md` and six slice
@@ -136,19 +145,23 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: merge #96
-  once CI is green, then slice 6 (ship).
+- **Ship Mission 4: Brian's checklist in the Mission 4 spec**
+  (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
+  checklist*): the Discord application and bot, the first tag, the GHCR
+  package made public, the `cna` project on Tower, Pangolin, backups.
+  The tag build has not run yet (no tag is pushed unattended).
+- Mission 5 goes on unattended: merge #80 on green CI. #95's
+  stream follow-up (the other player's page hears a join or leave only
+  on reload) is in a PR from this run if it got that far.
 - Two turn-alert calls to glance at (#96's body): a second handover
   within 15 minutes of the last alert sends nothing, as the plan says,
   so a quick reply can leave a player untold (delaying it instead is a
   small change); and the design says turning alerts off leaves the
   Discord server, while the plan and code leave that to the player.
-  #95's review left two follow-ups: the other player's live stream
-  hears nothing when a game starts or ends (a reload shows it), and
-  the two-player e2e judges each message's leaks against the state at
-  check time, not send time. Slice 6 must bind the
-  server behind Pangolin only: `CNA_TRUST_PROXY=1` trusts
-  `X-Forwarded-For` from whoever reaches the port.
+  #95's review left a follow-up: the two-player e2e judges each
+  message's leaks against the state at check time, not send time.
+  `CNA_TRUST_PROXY=1` trusts `X-Forwarded-For` from anyone reaching
+  port 3240 on the LAN or tailnet; it only picks a rate-limit bucket.
 - The online game page reuses Mission 3's panels; a fresh critique of
   its screenshots found Mission 3's own residue (map names over hex
   numbers, the sidebar's counter grids clipped, small tray counters),
@@ -156,9 +169,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 - One provisional call to glance at, ledger entry 1.3 in
   `docs/plans/2026-10-13-m4-choices.md`: a game with open information
   still hides the owner's secrets the hot-seat view hid (loads,
-  motorisation, minefields, project items). The outside steps
-  (Discord application, Tower, Pangolin) stay on the spec's checklist
-  for after slice 6.
+  motorisation, minefields, project items). 
 - Slice 1 took stricter readings of 3.61 where the code had more than
   the spec named (#92's body lists them): an enemy's losses,
   disorganisation and combat CP are not shown to the other side at all;

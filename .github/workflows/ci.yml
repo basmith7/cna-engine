@@ -1,5 +1,10 @@
 name: ci
-on: [push, pull_request]
+on:
+  # Branches only: a v* tag's tests run through build.yml's workflow_call.
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_call:
 jobs:
   test:
     runs-on: ubuntu-latest

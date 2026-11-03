@@ -1,0 +1,11 @@
+.git
+.claude
+target
+vendor/cna
+web/node_modules
+web/src/pkg
+web/dist
+web/test-results
+web/playwright-report
+state.json
+web/dist-multiplayer
