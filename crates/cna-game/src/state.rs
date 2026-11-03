@@ -574,7 +574,14 @@ impl GameState {
             ) => self.air_lift(data, player, piece, to, fuel_from.as_ref()),
             (None, Order::ConvoyLanes { lanes }) => self.set_convoy_lanes(data, player, lanes),
             (None, Order::DestroySupply { hex }) => self.destroy_supply(data, player, hex),
-            (None, Order::Rail { pieces, path }) => self.rail(data, pieces, path),
+            (
+                None,
+                Order::Rail {
+                    pieces,
+                    path,
+                    stops,
+                },
+            ) => self.rail(data, pieces, path, stops),
             (
                 None,
                 Order::Repair {

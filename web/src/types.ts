@@ -188,7 +188,7 @@ export type Order =
   | { "attach-motorisation": { piece: PieceId } }
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
-  | { rail: { pieces: PieceId[]; path: HexId[] } }
+  | { rail: { pieces: PieceId[]; path: HexId[]; stops?: { at: HexId; off?: PieceId[]; on?: PieceId[] }[] } }
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { "convoy-lanes": { lanes: number[] } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }

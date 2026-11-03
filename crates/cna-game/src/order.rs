@@ -116,10 +116,13 @@ pub enum Order {
     /// units in `hex` are put to the torch, one die each (32.1x).
     DestroySupply { hex: HexId },
     /// Phase J, abstract supply: the Commonwealth's supply units ride the
-    /// railway hex by hex along `path` (8.7x, 32.3x).
+    /// railway hex by hex along `path` (8.7x, 32.3x), changing the load at
+    /// `stops` on the way (8.77, R-005).
     Rail {
         pieces: Vec<PieceId>,
         path: Vec<HexId>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        stops: Vec<RailStop>,
     },
     /// Phase K: one field-repair roll for the player's broken-down
     /// `weapon` in `hex` (22.2x); with abstract supply `fuel_from` pays a
@@ -194,4 +197,15 @@ pub struct Assignment {
 pub struct LoggedOrder {
     pub player: Side,
     pub order: Order,
+}
+
+/// A hex of a rail run's path, before its end, where pieces aboard get
+/// `off` and pieces standing there get `on` (8.77, R-005).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RailStop {
+    pub at: HexId,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub off: Vec<PieceId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub on: Vec<PieceId>,
 }

@@ -3,13 +3,14 @@
 //! Matruh railway, each up to 2 SP of units with what is attached to
 //! them, and up to two supply units a stage, all one way.
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
+use crate::order::RailStop;
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use crate::zoc::Zoc;
@@ -167,7 +168,11 @@ impl GameState {
         self.pieces
             .values()
             .filter(|p| p.side == Side::Cw && p.hex().is_some_and(|h| line.contains(h)))
-            .any(|p| !self.rail_destinations(data, std::slice::from_ref(&p.id)).is_empty())
+            .any(|p| {
+                !self
+                    .rail_destinations(data, std::slice::from_ref(&p.id))
+                    .is_empty()
+            })
     }
 
     /// Why a stack may not run `way` this stage: that way's stack has
@@ -329,6 +334,7 @@ impl GameState {
         data: &Data,
         pieces: &[PieceId],
         path: &[HexId],
+        stops: &[RailStop],
     ) -> Result<Vec<Event>, Illegal> {
         let Some(end) = path.last() else {
             return Err(Illegal::new("8.7x", "a rail run goes somewhere"));
@@ -359,29 +365,130 @@ impl GameState {
             ));
         }
         let from = line[stack.at].clone();
-        let supply = stack
+        let is_supply = |id: &PieceId| self.pieces[id].kind.is_supply();
+        let refuse = |case: &'static str, why: String| Err(Illegal::new(case, why));
+        // The load, stop by stop (8.77, R-005): who is aboard and where
+        // each got on; the legs ridden, in the order they end.
+        let mut aboard: Vec<(PieceId, HexId)> = stack
             .pieces
             .iter()
-            .filter(|id| self.pieces[*id].kind.is_supply())
-            .count();
-        if supply > 0
-            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, supply)
+            .map(|id| (id.clone(), from.clone()))
+            .collect();
+        let mut rode: BTreeSet<PieceId> = stack.pieces.iter().cloned().collect();
+        let mut legs: Vec<(Vec<PieceId>, HexId, HexId)> = Vec::new();
+        let mut supply = stack.pieces.iter().filter(|id| is_supply(id)).count();
+        let mut last = None;
+        for stop in stops {
+            let Some(i) = path.iter().position(|h| *h == stop.at) else {
+                return refuse("8.7x", format!("{} is not on the run's path", stop.at));
+            };
+            if i + 1 >= path.len() || last.is_some_and(|l| i <= l) {
+                return refuse(
+                    "8.7x",
+                    format!(
+                        "stops come in order along the path, before its end: not {}",
+                        stop.at
+                    ),
+                );
+            }
+            last = Some(i);
+            let off = self.carried(&stop.off)?;
+            let mut alighting = Vec::new();
+            for id in &off {
+                let Some(k) = aboard.iter().position(|(a, _)| a == id) else {
+                    return refuse("8.7x", format!("{id} is not aboard at {}", stop.at));
+                };
+                alighting.push(aboard.remove(k));
+            }
+            let dropped = alighting.iter().filter(|(id, _)| is_supply(id)).count();
+            if dropped > 0
+                && let Some(e) =
+                    self.supply_stack_refusal(data, PieceKind::SupplyUnit, &stop.at, dropped)
+            {
+                return Err(e);
+            }
+            let mut by_start: Vec<(HexId, Vec<PieceId>)> = Vec::new();
+            for (id, start) in alighting {
+                match by_start.iter_mut().find(|(s, _)| *s == start) {
+                    Some((_, ids)) => ids.push(id),
+                    None => by_start.push((start, vec![id])),
+                }
+            }
+            legs.extend(
+                by_start
+                    .into_iter()
+                    .map(|(start, ids)| (ids, start, stop.at.clone())),
+            );
+            for id in self.carried(&stop.on)? {
+                if !rode.insert(id.clone()) {
+                    return refuse("32.3x", format!("{id} rides the railway once a stage"));
+                }
+                if line[self.may_rail(data, &line, &id)?] != stop.at {
+                    return refuse("8.7x", format!("{id} does not stand at {}", stop.at));
+                }
+                if is_supply(&id) {
+                    supply += 1;
+                }
+                aboard.push((id, stop.at.clone()));
+            }
+            let sp: u32 = aboard
+                .iter()
+                .map(|(id, _)| &self.pieces[id])
+                .filter(|p| !p.kind.is_supply())
+                .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
+                .sum();
+            if sp > RAIL_SP {
+                return refuse(
+                    "8.7x",
+                    format!(
+                        "a rail run carries at most {RAIL_SP} SP of units, not {sp} after {}",
+                        stop.at
+                    ),
+                );
+            }
+            if supply > 0 && self.railed_supply() + supply > RAIL_SUPPLY {
+                return refuse(
+                    "32.3x",
+                    format!("two supply units a stage ride the railway, not {supply}"),
+                );
+            }
+            if supply > 0
+                && let Some(e) = self.way_refusal(way, true)
+            {
+                return Err(e);
+            }
+        }
+        let at_end = aboard.iter().filter(|(id, _)| is_supply(id)).count();
+        if at_end > 0
+            && let Some(e) = self.supply_stack_refusal(data, PieceKind::SupplyUnit, end, at_end)
         {
             return Err(e);
         }
-        for id in &stack.pieces {
-            self.pieces.get_mut(id).expect("checked").location = Location::Hex(end.clone());
-            self.railed.insert(id.clone());
+        let mut by_start: Vec<(HexId, Vec<PieceId>)> = Vec::new();
+        for (id, start) in aboard {
+            match by_start.iter_mut().find(|(s, _)| *s == start) {
+                Some((_, ids)) => ids.push(id),
+                None => by_start.push((start, vec![id])),
+            }
+        }
+        legs.extend(
+            by_start
+                .into_iter()
+                .map(|(start, ids)| (ids, start, end.clone())),
+        );
+        let mut events = Vec::new();
+        for (pieces, from, to) in legs {
+            for id in &pieces {
+                self.pieces.get_mut(id).expect("checked").location = Location::Hex(to.clone());
+                self.railed.insert(id.clone());
+            }
+            events.push(Event::Railed { pieces, from, to });
         }
         self.rail_runs.insert(way);
-        if stack.supply {
+        if supply > 0 {
             self.rail_supply_way = Some(way);
         }
-        Ok(vec![Event::Railed {
-            pieces: stack.pieces,
-            from,
-            to: end.clone(),
-        }])
+        Ok(events)
     }
 }
 
@@ -448,6 +555,7 @@ mod tests {
         Order::Rail {
             pieces: pieces.to_vec(),
             path: path.to_vec(),
+            stops: Vec::new(),
         }
     }
 
@@ -702,8 +810,7 @@ mod tests {
         let data = graziani();
         let line = railway(&data);
         let path = vec![line[line.len() - 2].clone()];
-        let (mut state, ids) =
-            units_at_alexandria(&data, &["unit:cw:1-krrc", "unit:cw:3-cldgds"]);
+        let (mut state, ids) = units_at_alexandria(&data, &["unit:cw:1-krrc", "unit:cw:3-cldgds"]);
         state.pieces.get_mut(&ids[1]).unwrap().attached_to = ids[0].unit();
         let err = state
             .apply(&data, Side::Cw, run(&ids[1..], &path))
@@ -772,5 +879,97 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "32.3x", "{}", err.reason);
     }
-}
 
+    #[test]
+    fn a_run_drops_a_battalion_and_takes_on_supply_en_route_r_005() {
+        let data = graziani();
+        let line = railway(&data);
+        let n = line.len();
+        let (mut state, ids) = units_at_alexandria(&data, &["unit:cw:1-krrc"]);
+        let stop = line[n - 3].clone();
+        let end = line[n - 4].clone();
+        let supply = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == PieceKind::SupplyUnit && p.hex().is_some())
+            .unwrap()
+            .id
+            .clone();
+        state.put(&supply, Location::Hex(stop.clone()));
+        let path = vec![line[n - 2].clone(), stop.clone(), end.clone()];
+        let order = Order::Rail {
+            pieces: ids.clone(),
+            path,
+            stops: vec![RailStop {
+                at: stop.clone(),
+                off: ids.clone(),
+                on: vec![supply.clone()],
+            }],
+        };
+        let events = state.apply(&data, Side::Cw, order).unwrap();
+        assert_eq!(
+            events,
+            vec![
+                Event::Railed {
+                    pieces: ids.clone(),
+                    from: line[n - 1].clone(),
+                    to: stop.clone()
+                },
+                Event::Railed {
+                    pieces: vec![supply.clone()],
+                    from: stop.clone(),
+                    to: end.clone()
+                },
+            ]
+        );
+        assert_eq!(state.pieces[&ids[0]].hex(), Some(&stop));
+        assert_eq!(state.pieces[&supply].hex(), Some(&end));
+        assert!(state.railed.contains(&ids[0]) && state.railed.contains(&supply));
+    }
+
+    #[test]
+    fn the_limits_hold_at_every_stop_r_005() {
+        let data = graziani();
+        let line = railway(&data);
+        let n = line.len();
+        let (mut state, ids) = units_at_alexandria(
+            &data,
+            &["unit:cw:1-krrc", "unit:cw:3-cldgds", "unit:cw:1-rnf"],
+        );
+        let stop = line[n - 3].clone();
+        state.put(&ids[2], Location::Hex(stop.clone()));
+        let path = vec![line[n - 2].clone(), stop.clone(), line[n - 4].clone()];
+        let with = |stops: Vec<RailStop>| Order::Rail {
+            pieces: ids[..2].to_vec(),
+            path: path.clone(),
+            stops,
+        };
+        let before = state.clone();
+        // A third battalion on board makes 3 SP (8.7x).
+        let on = |off: Vec<PieceId>| RailStop {
+            at: stop.clone(),
+            off,
+            on: vec![ids[2].clone()],
+        };
+        let err = state
+            .apply(&data, Side::Cw, with(vec![on(vec![])]))
+            .unwrap_err();
+        assert!(err.reason.contains("SP"), "{}", err.reason);
+        // A stop off the path, or at its end, is refused.
+        for at in [line[n - 6].clone(), line[n - 4].clone()] {
+            let stop = RailStop {
+                at,
+                off: vec![],
+                on: vec![],
+            };
+            let err = state.apply(&data, Side::Cw, with(vec![stop])).unwrap_err();
+            assert_eq!(err.case, "8.7x", "{}", err.reason);
+        }
+        assert_eq!(state, before);
+        // Dropping one first keeps it at 2 SP.
+        state
+            .apply(&data, Side::Cw, with(vec![on(vec![ids[0].clone()])]))
+            .unwrap();
+        assert_eq!(state.pieces[&ids[2]].hex(), Some(&line[n - 4]));
+    }
+}
