@@ -101,7 +101,11 @@ impl GameState {
     /// As a combat segment closes: whether the phasing player fired
     /// anti-armour or close-assaulted in it, and which hexes were
     /// barraged (16.21, 16.22).
+    /// Only with the module on, so a game without it saves as before.
     pub(crate) fn record_for_patrols(&mut self) {
+        if !self.modules.patrols {
+            return;
+        }
         if let Some(side) = self.phasing() {
             let fought = self.combat.assignments.get(&side).is_some_and(|all| {
                 all.iter()
@@ -160,11 +164,15 @@ impl GameState {
         }
     }
 
-    /// The enemy's units in `hex` a patrol meets: ground-holding pieces.
+    /// The enemy's units in `hex` a patrol meets: combat units and HQs.
+    /// Supply units and Rommel are neither described nor lose TOE here
+    /// (trucks among the losses are not simulated).
     fn patrolled(&self, hex: &HexId, side: Side) -> Vec<PieceId> {
         self.pieces_at(hex)
             .into_iter()
-            .filter(|p| p.side == side.other() && p.kind.holds_ground())
+            .filter(|p| {
+                p.side == side.other() && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+            })
             .map(|p| p.id.clone())
             .collect()
     }
@@ -824,5 +832,27 @@ mod tests {
             );
         }
         assert!(described);
+    }
+
+    #[test]
+    fn a_supply_unit_in_the_target_is_never_described_nor_loses_toe() {
+        let data = graziani();
+        let mut base = hussars(&data);
+        let supply = base
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind.is_supply())
+            .map(|p| p.id.clone())
+            .expect("an Axis supply unit");
+        base.pieces.get_mut(&supply).unwrap().location = Location::Hex(hex("C4020"));
+        for seed in 0..30 {
+            let mut state = base.clone();
+            state.rng = crate::rng::GameRng::new(seed);
+            let events = state
+                .apply(&data, Side::Cw, patrol(&[(HUS, 2)], "C4020"))
+                .unwrap();
+            assert!(report(&events).described.iter().all(|d| d.piece != supply));
+            assert_eq!(state.pieces[&supply].toe, base.pieces[&supply].toe);
+        }
     }
 }
