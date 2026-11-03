@@ -190,6 +190,7 @@ export type Order =
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
   | { rail: { pieces: PieceId[]; path: HexId[] } }
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
+  | { "convoy-lanes": { lanes: number[] } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
@@ -273,6 +274,9 @@ export type Event =
   | { unplaced: { piece: PieceId } }
   | "set-up-complete"
   | "rommel-recalled"
+  | "bizerta-opened"
+  | { "convoy-lanes-set": { lanes: number[] } }
+  | { "convoy-cancelled": { lane: number } }
   | { arrived: { pieces: PieceId[]; at: Location } }
   | { "moved-off-map": { piece: PieceId; location: Location } }
   | { moved: { pieces: PieceId[]; from: HexId; to: HexId; cost?: number } }
@@ -479,6 +483,10 @@ export interface View {
   escapees?: Partial<Record<Side, Record<HexId, number>>>;
   /** Prisoner points each side has had back by escape or liberation (28.24). */
   escaped?: Partial<Record<Side, number>>;
+  /** The Axis's convoy lanes in the order it fills them (32.63); the Axis's alone. Absent: the Tripoli lane. */
+  convoy_lanes?: number[];
+  /** Whether the Axis has rolled its 12 for Bizerta (55.17). */
+  bizerta_open?: boolean;
   /** Hexes prisoners marched into this phase H: they go no further (28.13). */
   marched?: HexId[];
   /** Repaired points by hex and weapon system waiting for a unit there to absorb them (22.5, 20.41), the side to act's own only. */

@@ -319,3 +319,23 @@ test("phase K: field repair of broken-down tanks at Alexandria, one roll a type 
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).not.toContainText("repair");
 });
+
+test("phase C: the Axis names its convoy lanes in order; Greece's are shut in 1940 (32.63, 56.14)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  const lanes = page.getByTestId("convoy-lanes");
+  await expect(lanes).toContainText("Convoys: lane 2 (Tripoli)");
+  await lanes.locator('[data-lane="6"]').click();
+  await lanes.locator('[data-lane="2"]').click();
+  await expect(lanes).toContainText("Convoys: lane 6 (Tobruk) → lane 2 (Tripoli)");
+  await expect(lanes.locator('[data-lane="6"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(log(page).filter({ hasText: "Axis convoys sail by lane 6 (Tobruk), then lane 2 (Tripoli)." })).toHaveCount(1);
+  expect(await page.evaluate(() => window.__cna.view().convoy_lanes)).toEqual([6, 2]);
+  await lanes.locator('[data-lane="4"]').click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (32.63)");
+  await expect(page.getByTestId("toast")).toContainText("lane 4 (Greece to Benghazi) is not open yet");
+  // A second click drops a lane.
+  await lanes.locator('[data-lane="6"]').click();
+  await expect(lanes).toContainText("Convoys: lane 2 (Tripoli)");
+});

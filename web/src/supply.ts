@@ -35,3 +35,17 @@ export function ammoNote(q: { ammo?: number; ammo_short?: boolean }, act: "fire"
   if (!q.ammo) return null;
   return `${act === "fire" ? "firing" : "assaulting"} costs ${q.ammo} ammunition${q.ammo_short ? ": none in range" : ""}`;
 }
+
+/** Each Axis convoy lane's port, as cna's `convoy-lanes.json` numbers them (56.1). */
+export const LANE_PORTS: Record<number, string> = { 1: "Bizerta", 2: "Tripoli", 3: "Benghazi", 4: "Benghazi", 5: "Tobruk", 6: "Tobruk" };
+
+/** "lane 6 (Tobruk)". */
+export function laneName(lane: number): string {
+  const port = LANE_PORTS[lane];
+  return port ? `lane ${lane} (${port})` : `lane ${lane}`;
+}
+
+/** The lanes with `lane` dropped if named, else added last: the order fills them (32.63). */
+export function toggleLane(lanes: readonly number[], lane: number): number[] {
+  return lanes.includes(lane) ? lanes.filter((l) => l !== lane) : [...lanes, lane];
+}
