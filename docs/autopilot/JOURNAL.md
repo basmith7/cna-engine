@@ -590,3 +590,9 @@ Done: #98 merged. #99 (bump vendor/cna 442a172, homes for R-142..R-145, R-145 `e
 In flight: CI on #100 (base main), #101 (base m5-r142-slots), #102, #103.
 Next: merge the stack in order, retargeting each child to main BEFORE merging its parent with --delete-branch (deleting #99's branch closed #100; reopened). #103's rail-stop panel went through a screenshot critique; each stop is now grouped and supply units are named (b06a1f6). Then §27 raiders / LRDG.
 Blocked: none.
+
+## 2026-11-03 01:00 MST — autopilot/m5-desert-raiders
+Done: #100, #101, #102 and #103 merged in stack order, each child retargeted to main before its parent merged. Main's gates pass locally (clippy clean, 608 tests pass with 0 failed, probe check up to date). #104 (draft) is the §27 plan: raiders, hidden movement in the enemy view, spotting, and the raid on Rommel. The other 27.5x targets are left out because they don't exist under the abstract block.
+Blocked: two cna requests in PROGRESS: raider counters are missing from the OA data (Rommel's Arrival's Jalo LRDG has `units: []`), and raider supply and dump raids under 32.11.
+Next: #104 Task 1 with a test-only raider piece. Hidden pieces must leave every per-piece map in `view/state.rs` and every event that names them.
+
