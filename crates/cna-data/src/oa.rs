@@ -332,6 +332,10 @@ pub struct Formation {
     pub id: String,
     pub name: String,
     pub basic_morale: Option<i32>,
+    /// The untrained morale printed in parentheses beside it, if any
+    /// (17.3x): its units start below their assigned morale.
+    #[serde(default)]
+    pub basic_morale_alt: Option<i32>,
     #[serde(default)]
     pub attached: Vec<Attachment>,
     pub units: Vec<Unit>,
@@ -441,6 +445,14 @@ impl Oa {
     pub fn morale(&self, id: &UnitId) -> Option<i32> {
         let u = self.unit(id)?;
         u.morale.or(self.formation_of(id).basic_morale)
+    }
+
+    /// Whether the unit uses its sheet's morale and the sheet prints an
+    /// untrained rating beside it: it starts below its assigned morale
+    /// (17.3x, R-150).
+    pub fn untrained(&self, id: &UnitId) -> bool {
+        self.unit(id)
+            .is_some_and(|u| u.morale.is_none() && self.formation_of(id).basic_morale_alt.is_some())
     }
 
     pub fn formations(&self) -> impl Iterator<Item = &Formation> {

@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "8e10e866399c4e8f4d8925244c604bfef259aa42",
+  "rules_commit": "50e66bfff320df33d8d4c12275f41720d7ae3b92",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,

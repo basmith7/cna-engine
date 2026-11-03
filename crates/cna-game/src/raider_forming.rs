@@ -113,8 +113,14 @@ impl GameState {
                 "{from} is not a recce or armoured-car unit (R-147)"
             )));
         }
-        // Morale training (17.3x) is not simulated: every unit is at its
-        // basic morale but one still in training.
+        // Morale training (17.3x) is not simulated, so a unit whose sheet
+        // prints an untrained rating never trains up to its assigned
+        // morale (R-150); every other unit is at it, bar one in training.
+        if data.oa.untrained(&source_unit.id) {
+            return Err(bad(format!(
+                "{from} is untrained, below its assigned morale (27.12, R-150)"
+            )));
+        }
         if source.status == Some(Status::InTraining) {
             return Err(bad(format!(
                 "{from} is in training, not at its maximum morale"
@@ -288,6 +294,25 @@ mod tests {
         let mut moving = moving(&data, 3, Side::Cw);
         let late = moving.apply(&data, Side::Cw, form("unit:cw:lrdg-1", "unit:cw:11-hus"));
         assert!(late.unwrap_err().reason.contains("organisation phase"));
+    }
+
+    #[test]
+    fn an_untrained_unit_forms_no_raider_27_12_r150() {
+        let data = graziani();
+        let mut state = organising(&data);
+        // The 6th Australian Division's sheet prints an untrained morale.
+        let cav = pid("unit:cw:6-auscav");
+        assert!(state.pieces[&cav].hex().is_some(), "6 AusCav on the map");
+        let e = state
+            .apply(&data, Side::Cw, form("unit:cw:lrdg-1", "unit:cw:6-auscav"))
+            .unwrap_err();
+        assert!(e.reason.contains("untrained"), "{e:?}");
+        assert!(
+            state
+                .raider_formings(&data, Side::Cw)
+                .iter()
+                .all(|(_, from)| from != &cav)
+        );
     }
 
     #[test]
