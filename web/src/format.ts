@@ -276,6 +276,17 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("stationed" in e) return `${name(e.stationed.ship)} puts to sea at ${e.stationed.hex} (30.1x).`;
   if ("in-port" in e) return `${list(e["in-port"].ships, name)} ${e["in-port"].ships.length === 1 ? "is" : "are"} back in Alexandria (30.1x).`;
+  if ("fleet-strikes-rolled" in e) {
+    const n = e["fleet-strikes-rolled"].strikes;
+    return `The Axis rolls ${n} ${n === 1 ? "strike" : "strikes"} on the fleet (32.72).`;
+  }
+  if ("fleet-struck" in e) {
+    const d = e["fleet-struck"];
+    const hits = Object.entries(d.hits ?? {}).map(([ship, n]) => `${name(ship)} ${n}`);
+    const sunk = (d.sunk ?? []).length > 0 ? ` ${list(d.sunk!, name)} ${d.sunk!.length === 1 ? "is" : "are"} sunk.` : "";
+    return `Axis strike on Alexandria: column ${d.column}, dice ${d.reading}, ${d.damage} gun ${d.damage === 1 ? "point" : "points"} of damage${hits.length > 0 ? ` (${hits.join(", ")})` : ""}.${sunk}`;
+  }
+  if ("ship-repaired" in e) return `${name(e["ship-repaired"].ship)} repairs a gun point, guns ${e["ship-repaired"].guns} now (30.37).`;
   if ("captured" in e) return `${name(e.captured.piece)} captured at ${e.captured.hex}.`;
   if ("game-over" in e) {
     const r = e["game-over"].report;

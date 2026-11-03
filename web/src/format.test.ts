@@ -36,6 +36,11 @@ const cases: [Event, string][] = [
   [{ arrived: { pieces: ["u:a", "u:b"], at: { port: "alexandria" } } }, "A, B arrive at Alexandria."],
   [{ stationed: { ship: "u:a", hex: "C4131" } }, "A puts to sea at C4131 (30.1x)."],
   [{ "in-port": { ships: ["u:a"] } }, "A is back in Alexandria (30.1x)."],
+  [{ "fleet-strikes-rolled": { strikes: 1 } }, "The Axis rolls 1 strike on the fleet (32.72)."],
+  [{ "fleet-struck": { column: 4, reading: 16, damage: 1, hits: { "u:a": 1 } } }, "Axis strike on Alexandria: column 4, dice 16, 1 gun point of damage (A 1)."],
+  [{ "fleet-struck": { column: 1, reading: 2, damage: 0 } }, "Axis strike on Alexandria: column 1, dice 2, 0 gun points of damage."],
+  [{ "fleet-struck": { column: 6, reading: 66, damage: 9, hits: { "u:a": 5, "u:b": 4 }, sunk: ["u:b"] } }, "Axis strike on Alexandria: column 6, dice 66, 9 gun points of damage (A 5, B 4). B is sunk."],
+  [{ "ship-repaired": { ship: "u:a", guns: 4 } }, "A repairs a gun point, guns 4 now (30.37)."],
   [{ "moved-off-map": { piece: "u:a", location: { transit: { from: "nofilia", to: "tripoli", done: 1 } } } }, "A moves off-map to in transit nofilia → tripoli."],
   [{ moved: { pieces: ["u:a", "u:b"], from: "C4131", to: "C4130", cost: 3 } }, "A, B: C4131 → C4130 for 3 CP."],
   [{ disorganised: { piece: "u:a", dp: 2, level: 1 } }, "A takes 2 DP, now cohesion level 1."],
@@ -116,9 +121,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 82 variants", () => {
+  it("covers all 85 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(82);
+    expect(tags.size).toBe(85);
   });
 
   it.each(cases)("%j", (event, line) => {
