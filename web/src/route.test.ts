@@ -13,8 +13,13 @@ describe("parseRoute", () => {
     expect(parseRoute("/join/3", "?invite=")).toEqual({ page: "join", id: "3", invite: null });
   });
 
+  it("reads the lobby", () => {
+    expect(parseRoute("/lobby", "")).toEqual({ page: "lobby" });
+    expect(parseRoute("/lobby/", "")).toEqual({ page: "lobby" });
+  });
+
   it("sends anything else to the start screen", () => {
-    for (const p of ["/", "", "/game", "/game/", "/game/abc", "/game/1/x", "/join/-1", "/lobby"]) {
+    for (const p of ["/", "", "/game", "/game/", "/game/abc", "/game/1/x", "/join/-1", "/lobbyx"]) {
       expect(parseRoute(p, "")).toEqual({ page: "start" });
     }
   });

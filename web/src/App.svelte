@@ -23,7 +23,7 @@
   import SetupPanel from "./SetupPanel.svelte";
   import StartScreen from "./StartScreen.svelte";
   import Lobby from "./Lobby.svelte";
-  import { type Account, me } from "./lobby";
+  import { type Account, SIGN_IN_URL, me } from "./lobby";
   import JoinScreen from "./JoinScreen.svelte";
   import { NetworkEngine } from "./network";
   import { RETURN_KEY, parseRoute } from "./route";
@@ -43,7 +43,7 @@
   /** The signed-in account for "Play online", or null when signed out or there is no lobby server. */
   let account: Account | null = $state(null);
   /** The lobby shows in place of the start screen. */
-  let inLobby = $state(false);
+  let inLobby = $state(location.pathname.startsWith("/lobby"));
   /** The page asked for: a game online, an invite, or the start screen. */
   const route = parseRoute(location.pathname, location.search);
   /** Whether `me()` has answered, so the invite page knows if a sign-in is needed. */
@@ -52,7 +52,7 @@
     (a) => {
       account = a;
       known = true;
-      // Back from a sign-in an invite asked for: follow the invite again.
+      // Back from a sign-in an invite or a game page asked for: go back to it.
       let back: string | null = null;
       try {
         back = sessionStorage.getItem(RETURN_KEY);
@@ -60,15 +60,25 @@
       } catch {
         back = null;
       }
-      if (a && back && route.page === "start" && back.startsWith("/join/")) location.replace(back);
+      if (a && back && route.page === "start" && /^\/(join|game)\//.test(back)) location.replace(back);
     },
     () => {
       account = null;
       known = true;
     },
   );
+  /** Sign-in lands on `/`: this page is where it should come back to. */
+  function rememberPage() {
+    try {
+      sessionStorage.setItem(RETURN_KEY, location.pathname + location.search);
+    } catch {
+      // Without storage the player comes back to the start screen.
+    }
+  }
   /** The online game on the page, if it is one: no curtain, no autosave, the log from its stream. */
   const online = $derived(engine instanceof NetworkEngine ? engine : null);
+  /** Whether this screen may send orders now: always at hot-seat, on its own move online. */
+  const myTurn = $derived(!online || (!!view && view.to_act === online.side));
   /** The online game's "Your move" / "Waiting for …" line. */
   let turnText: string | null = $state(null);
   /** Why the online game could not be opened. */
@@ -138,7 +148,7 @@
 
   /** What a click on a reachable hex would send: a move in a movement segment or the truck convoy phase, a reaction while one is offered, a retreat while one is asked. */
   const purpose: Purpose | null = $derived.by(() => {
-    if (!view || !view.to_act) return null;
+    if (!view || !view.to_act || !myTurn) return null;
     if (view.pending) {
       if ("reaction" in view.pending) return "react";
       if ("retreat-before-assault" in view.pending) return "retreat-before-assault";
@@ -156,7 +166,7 @@
   $effect(() => {
     const e = engine;
     sealed = null;
-    if (!e || !view || !view.to_act || !view.pending || !("sealed" in view.pending)) return;
+    if (!e || !view || !view.to_act || !myTurn || !view.pending || !("sealed" in view.pending)) return;
     return answer(e.sealedOptions(view.to_act), (r) => (sealed = "ok" in r ? r : { ok: null, illegal: r.illegal }));
   });
   /** The engine's preview of Pass while a forced retreat is pending: what standing still costs (spec, *Interrupts*). */
@@ -164,7 +174,7 @@
   $effect(() => {
     const e = engine;
     passPreview = null;
-    if (!e || !view || !view.to_act || !view.pending || !("forced-retreat" in view.pending)) return;
+    if (!e || !view || !view.to_act || !myTurn || !view.pending || !("forced-retreat" in view.pending)) return;
     return answer(e.preview(view.to_act, "pass"), (r) => (passPreview = r));
   });
   /** The hexes the phasing player still has to assault: a click on one resolves it (spec, *Combat*). */
@@ -575,7 +585,7 @@
             <section class="panel online" data-testid="online">
               <h2>Game {online.gameId} · you play {sideName(online.side)}</h2>
               <p><strong data-testid="turn">{turnText ?? "Nobody is to act"}</strong>{online.opponent ? ` · against ${online.opponent}` : ""}{online.open ? " · open information" : ""}</p>
-              <p><a href="/">Lobby</a></p>
+              <p><a href="/lobby">Lobby</a></p>
             </section>
           {:else}
             <GamePanel error={loadError} onsave={saveFile} onload={loadFile} />
@@ -592,6 +602,7 @@
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
             </section>
           {/if}
+          {#if myTurn}
           <PhaseControls {view} {ticked} {hex} {flying} onfly={(p) => (flying = p)} onorder={(o) => send(o)} />
           <MarchPanel
             {view}
@@ -605,6 +616,7 @@
           <SetupPanel {view} picked={pickedPiece} hexes={placements} />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
+          {/if}
           {/if}
           {#if purpose}
             <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} />
@@ -623,7 +635,9 @@
   {:else if error}
     <p class="status error">The engine failed to load: {error}</p>
   {:else if route.page === "game" && onlineError}
-    <p class="status error" role="alert">Game {route.id} could not be opened: {onlineError}. <a href="/">Start screen</a></p>
+    <p class="status error" role="alert">Game {route.id} could not be opened: {onlineError}.
+      {#if known && !account}<a href={SIGN_IN_URL} onclick={rememberPage}>Sign in with Discord</a> ·{/if}
+      <a href="/">Start screen</a></p>
   {:else if route.page === "game"}
     <p class="status">Opening game {route.id}…</p>
   {:else if route.page === "join" && known}
