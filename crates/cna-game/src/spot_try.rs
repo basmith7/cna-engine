@@ -170,7 +170,9 @@ mod tests {
                     let mut s = base.clone();
                     let path = [a.to_string(), b.to_string()];
                     let path: Vec<&str> = path.iter().map(String::as_str).collect();
-                    if s.apply(data, Side::Axis, mv(&[p.id.as_str()], &path)).is_ok() {
+                    if s.apply(data, Side::Axis, mv(&[p.id.as_str()], &path))
+                        .is_ok()
+                    {
                         let mut state = base.clone();
                         let r = raider(&mut state, &a);
                         return (state, p.id.clone(), a, b, r);
@@ -277,7 +279,9 @@ mod tests {
             .unwrap();
         assert!(!s.spot_chances.contains_key(&mover));
         assert_eq!(
-            s.apply(&data, Side::Axis, try_spot(&mover)).unwrap_err().case,
+            s.apply(&data, Side::Axis, try_spot(&mover))
+                .unwrap_err()
+                .case,
             "27.44"
         );
         // A unit that walked on has left the hex it was told of.
@@ -303,7 +307,9 @@ mod tests {
         without.pieces.remove(&r);
         let draws = with.rng.draws();
         let a = with.apply(&data, Side::Axis, try_spot(&mover)).unwrap_err();
-        let b = without.apply(&data, Side::Axis, try_spot(&mover)).unwrap_err();
+        let b = without
+            .apply(&data, Side::Axis, try_spot(&mover))
+            .unwrap_err();
         assert_eq!(a, b);
         assert_eq!(with.rng.draws(), draws);
     }
