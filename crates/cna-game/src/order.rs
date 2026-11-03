@@ -166,6 +166,10 @@ pub enum Order {
     /// `from`'s hex from one of its recce or armoured-car TOE points
     /// (27.13, 27.16).
     FormRaider { raider: PieceId, from: PieceId },
+    /// The raider's movement segment: raider `piece`, in or next to the
+    /// hex of enemy supply unit `target` (its alias, to the raider's
+    /// side), spends 5 CP to raid it as a supply dump (27.55, R-149).
+    RaidDump { piece: PieceId, target: PieceId },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

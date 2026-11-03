@@ -78,8 +78,9 @@ Task 3 waits on request 1.
   `Order::FormRaider` (engine); a raider that moves is hidden again
   (27.31). Morale training (17.3x) is not in the engine, so "at maximum
   morale" reads as "not in training".
-- [ ] The browser: a *Form raider* control in phase C.
+- [x] The browser: a *Form raider* control in phase C.
 
 ### Task 4: raids on supply dumps (R-149)
 
-- [ ] `Order::RaidDump` on a §32 supply unit (27.55, R-149).
+- [x] `Order::RaidDump` on a §32 supply unit (27.55, R-149), engine only;
+  the browser logs it but has no control for it yet.
