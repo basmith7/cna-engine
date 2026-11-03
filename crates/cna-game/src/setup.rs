@@ -468,6 +468,14 @@ fn members(
         subtree(r, oa, NEVER, &mut gone)?;
         out.retain(|m| !gone.iter().any(|g| g.id == m.id));
     }
+    // A head the roster puts under another unit than its sheet's parent.
+    if let (Some(h), Some(under)) = (&head, &e.under) {
+        oa.unit(under)
+            .with_context(|| format!("{under}: not on any OA sheet"))?;
+        for m in out.iter_mut().filter(|m| &m.id == h) {
+            m.parent = Some(under.clone());
+        }
+    }
     out.retain(|m| Some(&m.id) == head.as_ref() || !named.contains(&m.id));
     for a in e.attached.iter().chain(&e.assigned) {
         let mut added = Vec::new();
@@ -509,6 +517,8 @@ fn piece(
         side,
         kind: if unit.commander.is_some() {
             PieceKind::Commander
+        } else if unit.raider.is_some() {
+            PieceKind::Raider
         } else if equivalent == Some(Equivalent::Hq) {
             PieceKind::Hq
         } else {
@@ -519,14 +529,20 @@ fn piece(
         parent,
         attached_to: None,
         substitute: false,
-        hidden: false,
+        // A raider starts off the map in 27.31's sense, formed (R-147).
+        hidden: unit.raider.is_some(),
         toe,
         weapons,
-        cpa: match &unit.commander {
-            Some(c) => Some(Rating {
-                value: i32::try_from(c.cpa).ok(),
+        cpa: match unit
+            .commander
+            .as_ref()
+            .map(|c| c.cpa)
+            .or(unit.raider.as_ref().map(|r| r.cpa))
+        {
+            Some(cpa) => Some(Rating {
+                value: i32::try_from(cpa).ok(),
                 mark: None,
-                raw: c.cpa.to_string(),
+                raw: cpa.to_string(),
             }),
             None => row.and_then(|r| r.cpa.clone()),
         },
@@ -577,6 +593,7 @@ pub fn reinforcement(
         detached: Vec::new(),
         attached: Vec::new(),
         consists_of: None,
+        under: None,
         alone: false,
         status: None,
         toe: None,
@@ -587,7 +604,11 @@ pub fn reinforcement(
         .filter_map(|m| {
             let unit = oa.unit(&m.id)?;
             // A heading with no counter; Rommel's has none but is one.
-            if unit.id_code.is_none() && unit.toe.is_empty() && unit.commander.is_none() {
+            if unit.id_code.is_none()
+                && unit.toe.is_empty()
+                && unit.commander.is_none()
+                && unit.raider.is_none()
+            {
                 return None;
             }
             Some(piece(
@@ -882,6 +903,56 @@ mod tests {
         assert_eq!(rtr.len(), 1);
         assert_eq!(rtr[0].parent, Some(uid("unit:cw:3-armd-bde-hq")));
         assert_eq!(rtr[0].location, Location::Hex(hex("A2022")));
+    }
+
+    #[test]
+    fn a_set_up_raider_starts_formed_and_off_the_map_r147() {
+        // Rommel's Arrival places LRDG 1 at Jalo (B0513).
+        let setup = load("rommels-arrival").unwrap();
+        let lrdg = setup
+            .pieces
+            .iter()
+            .find(|p| p.id == PieceId::from(uid("unit:cw:lrdg-1")))
+            .expect("LRDG 1 is placed");
+        assert_eq!(lrdg.kind, PieceKind::Raider);
+        assert!(lrdg.hidden, "27.31: a raider starts off the map");
+        assert_eq!(lrdg.cpa.as_ref().and_then(|r| r.value), Some(50));
+        assert_eq!(lrdg.location, Location::Hex(hex("B0513")));
+        assert!(
+            setup
+                .pieces
+                .iter()
+                .all(|p| p.hidden == (p.kind == PieceKind::Raider))
+        );
+    }
+
+    #[test]
+    fn an_entry_under_another_unit_starts_there() {
+        // The Last Chance's 7th Armoured roster holds the 22nd Armoured
+        // Brigade, whose sheet parent is another division (`under`).
+        let setup = load("the-last-chance").unwrap();
+        let get = |id: &str| {
+            setup
+                .pieces
+                .iter()
+                .find(|p| p.id == PieceId::from(uid(id)))
+                .unwrap_or_else(|| panic!("{id} placed"))
+        };
+        let oa = Oa::load_all().unwrap();
+        let bde = uid("unit:cw:22-armd-bde-hq");
+        assert_ne!(
+            oa.unit(&bde).unwrap().parent,
+            Some(uid("unit:cw:7th-armored-div-hq"))
+        );
+        assert_eq!(
+            get("unit:cw:22-armd-bde-hq").parent,
+            Some(uid("unit:cw:7th-armored-div-hq"))
+        );
+        assert_eq!(get("unit:cw:1-rtr").parent, Some(bde));
+        assert_eq!(
+            get("unit:cw:7-mtr-hq").parent,
+            Some(uid("unit:cw:1-armd-div-hq"))
+        );
     }
 
     #[test]

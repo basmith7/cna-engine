@@ -230,8 +230,39 @@ pub struct Unit {
     /// row.
     #[serde(default)]
     pub commander: Option<Commander>,
+    /// A desert raider's counter only (27.1x, 27.2, R-147): a piece of
+    /// its own whose values stand in for a characteristics row.
+    #[serde(default)]
+    pub raider: Option<Raider>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// 27.1x's values for a desert raider counter (R-147).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Raider {
+    pub kind: RaiderKind,
+    pub cpa: u32,
+    /// Always `recce` (27.32): a recce unit's movement rules.
+    pub moves_as: String,
+    pub combat_ratings: bool,
+    pub stacking_points: u32,
+    pub breaks_down: bool,
+    /// The vehicle classes of the units whose TOE point may form it
+    /// (27.13, 27.2b).
+    pub formed_from_vehicle: Vec<ReconVehicle>,
+    /// How many raiders of this kind may be in play at once (27.11,
+    /// 27.2a).
+    pub max_in_play: u32,
+}
+
+/// Which desert raider: only the LRDG may raid Rommel (27.61).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RaiderKind {
+    Lrdg,
+    Dsa,
 }
 
 /// 31.0's values for Rommel (R-135).
@@ -459,10 +490,18 @@ mod tests {
         let oa = Oa::load_all().unwrap();
         let count = |n| oa.units().filter(|u| u.id.nation() == n).count();
         assert_eq!(count(Nation::It), 436);
-        assert_eq!(count(Nation::Cw), 436);
-        // 149 with Rommel's own counter (R-135).
-        assert_eq!(count(Nation::De), 149);
-        assert_eq!(oa.units().count(), 1021);
+        // With the two LRDG counters (R-147).
+        assert_eq!(count(Nation::Cw), 438);
+        // With Rommel's own counter (R-135) and Almasy's (R-147).
+        assert_eq!(count(Nation::De), 150);
+        assert_eq!(oa.units().count(), 1024);
+        let raiders: Vec<_> = oa.units().filter_map(|u| u.raider.as_ref()).collect();
+        assert_eq!(raiders.len(), 3);
+        assert!(
+            raiders
+                .iter()
+                .all(|r| r.cpa == 50 && r.stacking_points == 0)
+        );
     }
 
     #[test]
