@@ -11,6 +11,8 @@ pub mod fake_discord;
 pub mod games;
 pub mod limits;
 pub mod stream;
+#[cfg(feature = "test-auth")]
+pub mod test_routes;
 
 use anyhow::{Context, Result};
 use axum::Router;
@@ -134,7 +136,10 @@ impl FromRef<App> for games::Games {
 /// The routes. The client's address comes from `ConnectInfo`, so serve
 /// with `into_make_service_with_connect_info::<SocketAddr>()`.
 pub fn router(app: App) -> Router {
-    Router::new()
+    let routes = Router::new();
+    #[cfg(feature = "test-auth")]
+    let routes = routes.nest("/test", test_routes::routes());
+    routes
         .route("/healthz", get(healthz))
         .nest("/api", api::routes())
         .nest("/admin", admin::routes())
@@ -160,7 +165,7 @@ pub fn with_web(router: Router, dist: PathBuf) -> Router {
         let files = files.clone();
         async move {
             let path = req.uri().path();
-            if ["/api", "/admin", "/auth"]
+            if ["/api", "/admin", "/auth", "/test"]
                 .iter()
                 .any(|p| path == *p || path.starts_with(&format!("{p}/")))
             {
