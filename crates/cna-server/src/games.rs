@@ -523,6 +523,18 @@ impl Games {
         if self.seat_of(game, account).await? != Some(side) {
             return Err(GameError::NotYourSeat);
         }
+        // Play is for active games: not before both seats are taken,
+        // nor once the game is over, abandoned or stale.
+        let status: Option<String> = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
+            .bind(game)
+            .fetch_optional(&self.pool)
+            .await?;
+        match status.as_deref() {
+            Some("active") => {}
+            Some("stale") => return Err(GameError::Stale),
+            None => return Err(GameError::NotFound),
+            Some(_) => return Err(GameError::Refused("the game is not in play")),
+        }
         let mut live = self.get(game).await?;
         if seq != live.seq() {
             return Err(GameError::Conflict { seq: live.seq() });

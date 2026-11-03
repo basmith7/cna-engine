@@ -7,6 +7,7 @@ mod common;
 
 use axum::Router;
 use axum::http::StatusCode;
+use cna_data::scenario::Side;
 use cna_server::accounts;
 use cna_server::games::{GameId, Games};
 use common::*;
@@ -270,4 +271,29 @@ async fn the_sweep_abandons_active_games_idle_for_60_days(pool: PgPool) {
         .unwrap();
     assert_eq!(games.sweep_idle(now + 61 * day).await.unwrap(), 0);
     assert_eq!(status(&pool, open).await, "open");
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn orders_wait_for_both_seats_and_stop_once_abandoned(pool: PgPool) {
+    let app = lobby(&pool).await;
+    let first = &golden().orders[0];
+    let (mine, theirs) = match first.player {
+        Side::Axis => ("axis", "cw"),
+        Side::Cw => ("cw", "axis"),
+    };
+    let (id, _) = create(&app, ALICE, json!({"side": mine})).await;
+    let orders = format!("/api/games/{id}/orders");
+    let body = json!({"side": mine, "order": first.order, "seq": 0});
+    let (s, b) = call(&app, "POST", &orders, Some(ALICE), Some(body.clone())).await;
+    assert_eq!(s, StatusCode::CONFLICT, "no opponent yet: {b}");
+    join(&app, BOB, id, json!({"side": theirs})).await;
+    let leave = format!("/api/games/{id}/leave");
+    let (s, _) = call(&app, "POST", &leave, Some(BOB), Some(json!({}))).await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, b) = call(&app, "POST", &orders, Some(ALICE), Some(body)).await;
+    assert_eq!(s, StatusCode::CONFLICT, "abandoned: {b}");
 }
