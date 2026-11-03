@@ -603,3 +603,9 @@ Done: #105 merged 9dca053 (vendor/cna ccc285d, R-146 homed as-decided, slot test
 In flight: #104 gates (cargo test --no-fail-fast, clippy, probe check, web checks, Playwright) then ready + merge.
 Next: merge #104 on green CI; Task 3 waits on cna (raider counters, supply under 32.11). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
 Blocked: none.
+
+## 2026-11-03 02:47 MST — autopilot/m5-desert-raiders
+Done: Task 2 browser (eda2532..5654824, Playwright 50 passed per subagent), reach capped at CPA 50 (5d90281), main merged + raid-rommel fixture re-pinned to ccc285d (a4a9318; CI's merge-ref caught it). Screenshot critique: accepted (PR comment). PROGRESS on main 535586a.
+In flight: CI on #104 (ready).
+Next: merge #104 on green CI if not merged (`gh pr merge 104 --merge --delete-branch`); then next NOT_SIMULATED land gap a scenario sets up. Task 3 waits on cna.
+Blocked: none.
