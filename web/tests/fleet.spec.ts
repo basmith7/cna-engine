@@ -42,6 +42,8 @@ test("phase E: a ship in Alexandria is stationed by clicks, drawn at sea, and Pa
   await expect(page.locator(`svg.map g[data-ship="${ship}"][data-hex="${empty}"]`)).toHaveCount(1);
   await expect(panel.getByTestId("ships-at-sea").locator(`li[data-unit="${ship}"]`)).toContainText(`Valiant at ${empty}`);
   await expect(panel.getByTestId("ships-in-port").locator("li[data-unit]")).toHaveCount(10);
+  await expect(page.getByTestId("stack-panel").getByTestId("ship")).toContainText("HMS Valiant");
+  await expect(page.getByTestId("stack-panel")).not.toContainText("Nothing here");
   await shoot(page, "ship-stationed.png");
   await expectDomMatchesView(page);
 
@@ -64,8 +66,8 @@ test("the barrage step offers a stationed ship its one point count, and it fires
   await expect(page.locator(`svg.map g[data-ship="${ship}"]`)).toHaveCount(1);
   await pending.locator(`[data-add-fire="${ship}"]`).click();
   const fire = pending.locator('[data-fire="0"]');
-  await expect(fire.locator("[data-points]")).toHaveValue(String(points));
-  await expect(fire.locator("[data-points]")).toHaveAttribute("readonly", "");
+  await expect(fire.locator("[data-points]")).toHaveText(String(points));
+  await expect(fire.locator("input[data-points]")).toHaveCount(0);
   await shoot(page, "ship-barrage-entry.png");
   await pending.locator('[data-order="barrage"]').click();
   await expect(log(page).filter({ hasText: new RegExp(`^Commonwealth barrage on .+ by HMS Valiant: ${points} points`) })).toHaveCount(1);

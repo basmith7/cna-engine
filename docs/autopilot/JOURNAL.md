@@ -673,3 +673,9 @@ Done: #116 (vendor/cna b142151, ratings, R-151 row) and #117 (fleet Task 2 bomba
 In flight: CI on #118/#119; merge #118 (retarget #119 to main FIRST), then #119.
 Next: put `fleet` in `Modules::ALL` (cna-play `--no-fleet`): golden.rs's `play` needs a CwFleet auto-Pass (tried: works for regenerate_), but cna-web's e2e_fixtures index the golden log (`golden_prefix(n)`, asserts at api.rs ~880) and the Playwright golden/two-player drivers must pass phase E; enforce Graziani's "no warship moves before GT2 OpStage 1" (scenario prose; ask cna for data if not structured). Then the San Giorgio (R-151).
 Blocked: none.
+
+## 2026-11-03 12:10 MST — autopilot/m5-fleet-display
+Done: #119 (fleet Task 4 panel, behind the module) merged. #120 (this branch, ready): screenshot-critique fixes (ship listed in hex details, label centred, fixed points as text) d3303e3 + centring commit; svelte-check 0, vitest 231, fleet.spec 2 passed; full Playwright not run on it.
+In flight: CI on #120.
+Next: merge #120 on green (`gh pr merge 120 --merge --delete-branch`). Then put `fleet` in `Modules::ALL` (see the 11:50 entry: golden.rs CwFleet auto-Pass, cna-web e2e_fixtures' golden_prefix indices, Playwright golden/two-player drivers), enforce Graziani's GT2 sailing bar, then the San Giorgio (R-151).
+Blocked: none.

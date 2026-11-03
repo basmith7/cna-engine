@@ -2,7 +2,7 @@
   // What is in the clicked hex (spec, *Moving*): the side to act's own
   // pieces carry a tick, and the ticked ones are the stack an order
   // moves. The app owns the ticks; this only shows and toggles them.
-  import { glyphFor, label, markers, nameParts, nested, shown, stacks } from "./counters";
+  import { glyphFor, label, markers, nameParts, nested, shipsAtSea, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
   import { attachmentOrder, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
@@ -22,6 +22,8 @@
 
   const info = $derived(hex ? hexInfo(hex) : null);
   const pieces = $derived(hex ? (stacks(view).get(hex) ?? []) : []);
+  /** Warships stationed here (30.1x), drawn apart from the land stack and listed apart too. */
+  const ships = $derived(hex ? (shipsAtSea(view).get(hex) ?? []) : []);
   const points = $derived(hex ? motorisationAt(view, hex) : null);
   const wrecks = $derived(hex ? (view.broken_down?.[hex] ?? []) : []);
   const prisoners = $derived(hex ? prisonersAt(view, hex) : []);
@@ -123,9 +125,12 @@
         {/if}
       </p>
     {/each}
-    {#if pieces.length === 0}
+    {#each ships as p (p.id)}
+      <p class="prisoners side-{p.side}" data-testid="ship" data-ship={p.id}>{label(p).long} · {sideName(p.side)} warship at sea{view.fleet?.[p.id]?.fired ? " · fired" : ""}</p>
+    {/each}
+    {#if pieces.length === 0 && ships.length === 0}
       <p class="empty">Nothing here.</p>
-    {:else}
+    {:else if pieces.length > 0}
       <ol>
         {#each nested(pieces) as { piece: p, depth } (p.id)}
           {@const text = label(p)}
