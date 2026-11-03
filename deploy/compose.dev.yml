@@ -36,7 +36,7 @@ services:
       FAKE_DISCORD_BIND: 0.0.0.0:3241
       CARGO_TARGET_DIR: /target
     ports:
-      - "3241:3241"
+      - "127.0.0.1:3241:3241"
     volumes:
       - ..:/src
       - cna-target:/target
@@ -61,7 +61,7 @@ services:
       CNA_ADMINS: "1001"
       CARGO_TARGET_DIR: /target
     ports:
-      - "3240:3240"
+      - "127.0.0.1:3240:3240"
     volumes:
       - ..:/src
       - cna-target:/target

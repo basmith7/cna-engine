@@ -158,6 +158,14 @@ async fn signing_in_through_discord_makes_the_account_and_a_session(pool: PgPool
         format!("{PUBLIC_URL}/auth/discord/callback")
     );
     assert_eq!(accounts(&pool).await, 0);
+    // A sign-in nobody finishes lives minutes, not the signed-in month.
+    let short: bool = sqlx::query_scalar(
+        "SELECT bool_and(expiry_date < now() + interval '1 hour') FROM sessions",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(short, "a pending sign-in's session expires within the hour");
 
     let back = consent(&authorize, "alice").await;
     let r = send(&app, "GET", &path_and_query(&back), Some(&cookie)).await;

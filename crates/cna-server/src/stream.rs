@@ -202,6 +202,17 @@ pub async fn stream(
         .streams()
         .open(account.0, id)
         .ok_or_else(|| ApiError::new(StatusCode::TOO_MANY_REQUESTS, "too many open streams"))?;
+    // Suspension marks the account before it closes its streams, so a
+    // stream opened while a suspension lands is caught here or closed.
+    let suspended: bool =
+        sqlx::query_scalar("SELECT suspended_at IS NOT NULL FROM accounts WHERE id = $1")
+            .bind(account.0)
+            .fetch_one(games.pool())
+            .await?;
+    if suspended {
+        drop(ticket);
+        return Err(ApiError::new(StatusCode::UNAUTHORIZED, "suspended"));
+    }
     // Subscribed under the game's lock, so no order falls between the
     // catch-up and the first live message.
     let (rx, sent) = {

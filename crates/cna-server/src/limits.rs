@@ -55,8 +55,10 @@ impl Limiters {
         }
     }
 
+    /// An IPv6 address counts as its /64: one host can hold a whole
+    /// /64, and would otherwise get a fresh bucket per address.
     pub fn sign_in(&self, ip: IpAddr) -> bool {
-        self.sign_ins.check_key(&ip).is_ok()
+        self.sign_ins.check_key(&rate_key(ip)).is_ok()
     }
 
     pub fn order(&self, account: AccountId) -> bool {
@@ -73,6 +75,18 @@ impl Limiters {
         self.sign_ins.retain_recent();
         self.orders.retain_recent();
         self.games.retain_recent();
+    }
+}
+
+/// The key a client's address is limited under: IPv4 as it is, IPv6 by
+/// its /64.
+fn rate_key(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V4(_) => ip,
+        IpAddr::V6(v6) => {
+            let bits = u128::from(v6) & !((1u128 << 64) - 1);
+            IpAddr::V6(std::net::Ipv6Addr::from(bits))
+        }
     }
 }
 
@@ -136,6 +150,17 @@ pub async fn csrf(State(app): State<App>, req: Request, next: Next) -> Response 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_ipv6_client_is_limited_by_its_slash_64() {
+        let a: IpAddr = "2001:db8:1:2:aaaa::1".parse().unwrap();
+        let b: IpAddr = "2001:db8:1:2:ffff::9".parse().unwrap();
+        let other: IpAddr = "2001:db8:1:3::1".parse().unwrap();
+        assert_eq!(rate_key(a), rate_key(b));
+        assert_ne!(rate_key(a), rate_key(other));
+        let v4: IpAddr = "192.0.2.7".parse().unwrap();
+        assert_eq!(rate_key(v4), v4);
+    }
 
     #[test]
     fn the_origin_of_a_url_drops_its_path() {
