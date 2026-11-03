@@ -13,6 +13,7 @@ use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use cna_rules::barrage::BarrageResult;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -324,6 +325,29 @@ pub enum Event {
     /// Warships back in Alexandria, not placed this OpStage (30.1x).
     InPort {
         ships: Vec<PieceId>,
+    },
+    /// The Axis rolled for its strikes on the fleet (32.72): its secret.
+    FleetStrikesRolled {
+        strikes: u8,
+    },
+    /// An Axis strike on the ships in Alexandria (32.73, 32.74): the
+    /// column die picked `column` (1 the leftmost) of the Air Bombardment
+    /// Table, two dice read `reading` in it for `damage` gun points, laid
+    /// on the ships in `hits`; those in `sunk` went to the bottom.
+    FleetStruck {
+        column: u8,
+        reading: u8,
+        damage: u32,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        hits: BTreeMap<PieceId, u32>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        sunk: Vec<PieceId>,
+    },
+    /// A damaged ship got a gun point back after six OpStages in
+    /// Alexandria (30.37).
+    ShipRepaired {
+        ship: PieceId,
+        guns: u32,
     },
     /// A patrol's three rolls and what came of them (16.x).
     Patrolled(Box<crate::patrol::PatrolReport>),

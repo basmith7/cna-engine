@@ -61,7 +61,8 @@ pub struct Data {
     pub simplified_supply: cna_data::calendar::SimplifiedSupply,
     pub convoy_lanes: cna_data::convoy::ConvoyLanes,
     pub convoy_bombing: cna_data::convoy::ConvoyBombing,
-    pub convoy_bombardment: cna_data::convoy::ConvoyBombardment,
+    pub convoy_bombardment: cna_data::convoy::BombardmentGroup,
+    pub fleet_bombardment: cna_data::convoy::BombardmentGroup,
     pub raid_on_rommel: cna_data::raid::RaidOnRommel,
     pub fleet: cna_data::fleet::FleetSchedule,
 }
@@ -105,7 +106,8 @@ impl Data {
             simplified_supply: cna_data::calendar::SimplifiedSupply::load_from(src)?,
             convoy_lanes: cna_data::convoy::ConvoyLanes::load_from(src)?,
             convoy_bombing: cna_data::convoy::ConvoyBombing::load_from(src)?,
-            convoy_bombardment: cna_data::convoy::ConvoyBombardment::load_from(src)?,
+            convoy_bombardment: cna_data::convoy::BombardmentGroup::load_convoy(src)?,
+            fleet_bombardment: cna_data::convoy::BombardmentGroup::load_fleet(src)?,
             raid_on_rommel: cna_data::raid::RaidOnRommel::load_from(src)?,
             fleet: cna_data::fleet::FleetSchedule::load_from(src)?,
         })
@@ -117,6 +119,11 @@ impl Data {
             .id
             .strip_prefix("scenario:")
             .unwrap_or(&self.scenario.id)
+    }
+
+    /// A campaign game: cna names each of its campaign scenarios one.
+    pub fn is_campaign(&self) -> bool {
+        self.slug().contains("campaign")
     }
 }
 

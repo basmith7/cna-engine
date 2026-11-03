@@ -51,7 +51,7 @@ impl GameState {
             | Phase::Patrol => {}
             Phase::CwFleet => {
                 let mut events = Vec::new();
-                self.close_fleet_phase(&mut events);
+                self.close_fleet_phase(data, &mut events);
                 self.clock = self.clock.next();
                 self.advance(data, &mut events);
                 return Ok(events);
@@ -180,7 +180,7 @@ impl GameState {
                     return;
                 }
                 Phase::CwFleet => {
-                    self.close_fleet_phase(events);
+                    self.close_fleet_phase(data, events);
                     events.push(Event::PhaseSkipped { clock });
                 }
                 Phase::Patrol if self.patrols_to_send(data) => {

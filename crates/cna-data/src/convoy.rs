@@ -99,40 +99,48 @@ struct BombardmentFile {
     groups: Vec<Group>,
 }
 
-/// The Air Bombardment Table's Axis naval convoy rows: per column, the
-/// percentage lost for each two-dice reading (41.66).
+/// One numeric target group of the Air Bombardment Table: per column,
+/// the result for each two-dice reading. The Axis naval convoy rows give
+/// the percentage lost (41.66); the units rows, among them the
+/// Commonwealth fleet's, give damage points (41.34, 32.74).
 #[derive(Debug, Clone)]
-pub struct ConvoyBombardment {
+pub struct BombardmentGroup {
     columns: Vec<BombPoints>,
-    /// (percent, the reading range per column).
+    /// (result, the reading range per column).
     rows: Vec<(u32, Vec<Option<Range>>)>,
 }
 
-impl ConvoyBombardment {
-    pub fn load() -> Result<Self> {
-        Self::load_from(&crate::source::Fs)
+impl BombardmentGroup {
+    /// The Axis naval convoy rows.
+    pub fn load_convoy(src: &dyn crate::source::Source) -> Result<Self> {
+        Self::load_group(src, "axis-naval-convoy")
     }
 
-    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+    /// The units rows, which the Commonwealth fleet is read on.
+    pub fn load_fleet(src: &dyn crate::source::Source) -> Result<Self> {
+        Self::load_group(src, "units")
+    }
+
+    fn load_group(src: &dyn crate::source::Source, id: &str) -> Result<Self> {
         let file: BombardmentFile =
             serde_json::from_value(crate::errata::load_table(src, "air-bombardment")?)?;
         let group = file
             .groups
             .into_iter()
-            .find(|g| g.id == "axis-naval-convoy")
-            .context("air-bombardment.json has no axis-naval-convoy group")?;
+            .find(|g| g.id == id)
+            .with_context(|| format!("air-bombardment.json has no {id} group"))?;
         let rows = group
             .rows
             .into_iter()
             .map(|r| {
-                let pct = r
+                let n = r
                     .result
                     .as_u64()
-                    .context("a convoy result is a percentage")?;
-                Ok((u32::try_from(pct)?, r.dice))
+                    .with_context(|| format!("a {id} result is a number"))?;
+                Ok((u32::try_from(n)?, r.dice))
             })
             .collect::<Result<_>>()?;
-        Ok(ConvoyBombardment {
+        Ok(BombardmentGroup {
             columns: file.columns.into_iter().map(|c| c.bomb).collect(),
             rows,
         })
@@ -142,10 +150,21 @@ impl ConvoyBombardment {
     /// `reading` (11–66, read in order); none off the table.
     pub fn percent(&self, bomb_points: u32, reading: u8) -> Option<u32> {
         let col = self.columns.iter().position(|c| c.contains(bomb_points))?;
+        self.in_column(col, reading)
+    }
+
+    /// The result in column `col` (0 the leftmost) on a two-dice
+    /// `reading`; none off the table.
+    pub fn in_column(&self, col: usize, reading: u8) -> Option<u32> {
         self.rows
             .iter()
-            .find(|(_, dice)| dice[col].is_some_and(|r| r.contains(reading)))
-            .map(|(pct, _)| *pct)
+            .find(|(_, dice)| {
+                dice.get(col)
+                    .copied()
+                    .flatten()
+                    .is_some_and(|r| r.contains(reading))
+            })
+            .map(|(n, _)| *n)
     }
 }
 
@@ -222,7 +241,7 @@ mod tests {
 
     #[test]
     fn a_reading_gives_the_percentage_lost_41_66() {
-        let t = ConvoyBombardment::load().unwrap();
+        let t = BombardmentGroup::load_convoy(&crate::source::Fs).unwrap();
         // 1-20 bomb points: nothing on any reading.
         assert_eq!(t.percent(10, 66), Some(0));
         // 21-40: 55-64 is 5 %, 65-66 is 10 %.
@@ -243,6 +262,19 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn the_fleet_reads_damage_points_on_the_units_rows_32_74() {
+        let t = BombardmentGroup::load_fleet(&crate::source::Fs).unwrap();
+        // The leftmost column: 63-66 is a point, below it none.
+        assert_eq!(t.in_column(0, 62), Some(0));
+        assert_eq!(t.in_column(0, 63), Some(1));
+        // The eighth (a 6 rolled in a campaign game): 11-34 is 3.
+        assert_eq!(t.in_column(7, 34), Some(3));
+        assert_eq!(t.in_column(7, 66), Some(5));
+        assert_eq!(t.in_column(11, 11), None, "no twelfth column");
+    }
+
     #[test]
     fn six_lanes_and_lane_2_runs_to_tripoli_from_the_start_56_1() {
         let lanes = ConvoyLanes::load().unwrap();

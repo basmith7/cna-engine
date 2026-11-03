@@ -32,7 +32,7 @@
 //! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
-//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped` | own only: 3.61 keeps POW and guard numbers secret, and R-145 the count of escapees back with their own side |
+//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
 //! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
@@ -151,6 +151,7 @@ const STATE_KEEPS: &[&str] = &[
 const STATE_FILTERS: &[&str] = &[
     "convoy_lanes",
     "escaped",
+    "fleet_strikes",
     "prisoners",
     "prisoners_out",
     "prisoners_off_map",
@@ -359,6 +360,7 @@ pub fn view_for(
         "prisoners_off_map",
         "guards",
         "escaped",
+        "fleet_strikes",
     ] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {

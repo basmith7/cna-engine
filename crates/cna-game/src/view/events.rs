@@ -62,6 +62,8 @@
 //! | `reaction-offered` | public | | the non-phasing player must answer it |
 //! | `contact-broken` | reduced | `piece` | `cost` (CP, status) |
 //! | `stationed`, `in-port` | public | | 30.1x: the ships' counters are on the map, open to both |
+//! | `fleet-struck`, `ship-repaired` | public | | 30.3x: the Commonwealth sees its own ships' damage, and the Axis what its strike did; neither carries the strikes left |
+//! | `fleet-strikes-rolled` | own | the Axis | 32.72: the number of strikes is rolled secretly |
 //! | `reserve-designated` | public | | a board marker |
 //! | `reserve-released` | public | | a board marker |
 //! | `reserve-flipped` | public | | a board marker |
@@ -276,6 +278,10 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::Arrived { .. }
         | E::Stationed { .. }
         | E::InPort { .. }
+        // 30.3x: the damage shows on the Commonwealth's own counters, and
+        // the Axis, who struck, sees what it did; the count left is not in it.
+        | E::FleetStruck { .. }
+        | E::ShipRepaired { .. }
         | E::MovedOffMap { .. }
         | E::MoveInterrupted { .. }
         | E::ZocDeclared { .. }
@@ -330,6 +336,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::SupplyPlanned { side, .. } | E::MotorisationLost { side, .. } => Own(Some(*side)),
         // R-144: the Commonwealth learns only the lanes it bombs.
         E::ConvoyLanesSet { .. } | E::ConvoyCancelled { .. } => Own(Some(Side::Axis)),
+        // 32.72: the number of strikes is rolled secretly.
+        E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
         E::FieldRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {
                 state
