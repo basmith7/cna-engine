@@ -548,3 +548,9 @@ Blocked: none.
 Done: Task 5 by a subagent (e5cad4d, 412deca, 605bcb8, f5482a8, 6facfba): two-player e2e by clicks, leaks + hash checked, CI Postgres. Fresh review fixes (6436420). Local: multiplayer e2e 1 passed on 6436420; hot-seat 46 passed; server DB suite and clippy green.
 In flight: CI on #95; then ready + merge, retarget #96 to main.
 Next: #96 Task 4's Playwright DM check; slice 6. Follow-ups: stream silent when a game ends/starts; e2e leak check judges against later state; enemy events with stripped fields log "undefined" (move cost, anti-armour points, prisoner points).
+
+## 2026-11-02 20:49 MST — autopilot/m4-slice-5-alerts
+Done: #95 (slice 4) merged 914521d after CI green and fresh-review fixes. #96 all four tasks: Task 4 PATCH /api/me + lobby switch/notice (9926258), alerts e2e (26c1bdc; multiplayer config 2 passed locally), enemy-event "undefined" fix (ae5c398). Clippy clean; server DB suite green before Task 4's e2e. Merged worktrees/branches from older runs removed.
+In flight: a fresh review of #96 (findings, if any, in the PR or not yet triaged); CI on #96.
+Next: triage the review, gates, `gh pr ready 96`, merge on green CI; then slice 6 (ship: docs/plans/2026-10-13-m4-slice-6-ship.md).
+Blocked: none.
