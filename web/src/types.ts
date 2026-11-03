@@ -203,6 +203,8 @@ export type Order =
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
   | { "try-spot": { piece: PieceId } }
+  /** Phase L: a patrol of each source's points against `target` (16.x). */
+  | { patrol: { sources: [PieceId, number][]; target: HexId; exclude?: PieceId[] } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -289,6 +291,8 @@ export type Event =
   | { "raider-formed": { piece: PieceId; from: PieceId; hex: HexId } }
   /** A raid on a supply unit as a dump (27.55, R-149); the losses and the guards' strength reach the dump's owner alone. */
   | { "dump-raided": { piece: PieceId; target: PieceId; hex: HexId; guard_roll: number | null; guard_strength?: number | null; roll: number | null; dummy: boolean; ammo_lost?: number; fuel_lost?: number; removed: boolean; raider_eliminated: boolean } }
+  /** A patrol's three dice (16.x): public, its descriptions (each unit's stated TOE) included. */
+  | { patrolled: PatrolReport }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }
@@ -518,4 +522,26 @@ export interface View {
   assaults_to_resolve: HexId[];
   /** Phase C: the viewer's raider counters it may form now, each with a unit that may give the TOE point (27.13). */
   raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
+  /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
+  patrol_options?: PatrolSource[];
 }
+
+/** One unit the phasing player may patrol with (`cna_game::patrol::PatrolSource`). */
+export type PatrolSource = { piece: PieceId; hex: HexId; points: number; targets: HexId[] };
+
+/** One patrol's dice and what came of them (`cna_game::patrol::PatrolReport`). */
+export type PatrolReport = {
+  side: Side;
+  target: HexId;
+  sources: [PieceId, number][];
+  /** None when the target held no combat unit (16.31). */
+  survival_die?: number;
+  killed: number;
+  captured: number;
+  /** None for a patrol wiped out. */
+  recon_die?: number;
+  described?: { piece: PieceId; toe: number }[];
+  objective_die: number;
+  objective_killed: number;
+  objective_captured: number;
+};

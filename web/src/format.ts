@@ -88,6 +88,17 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const parts = [guards, die, loss].filter((x) => x !== null);
     return `${name(d.piece)} raids ${name(d.target)} at ${d.hex}: ${parts.join(", ")}; the raider ${d.raider_eliminated ? "is eliminated" : "survives"}.`;
   }
+  if ("patrolled" in e) {
+    const d = e.patrolled;
+    const sent = d.sources.map(([id, n]) => `${name(id)} ${n}`).join(", ");
+    const lost = [d.killed > 0 ? `${d.killed} killed` : null, d.captured > 0 ? `${d.captured} captured` : null].filter((x) => x !== null);
+    const survival = d.survival_die === undefined ? "no combat unit to meet it" : `survival ${d.survival_die}, ${lost.length > 0 ? lost.join(" and ") : "none lost"}`;
+    const seen = (d.described ?? []).map((u) => `${name(u.piece)} (${u.toe} TOE)`);
+    const recon = d.recon_die === undefined ? "none came back to report" : `reconnaissance ${d.recon_die}, ${seen.length > 0 ? `sees ${seen.join(", ")}` : "sees nothing"}`;
+    const hit = [d.objective_killed > 0 ? `${d.objective_killed} TOE killed` : null, d.objective_captured > 0 ? `${d.objective_captured} captured` : null].filter((x) => x !== null);
+    const objective = `objective loss ${d.objective_die}, ${hit.length > 0 ? hit.join(" and ") : "no loss"}`;
+    return `${sideName(d.side)} patrols ${d.target} with ${sent}: ${survival}; ${recon}; ${objective}.`;
+  }
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;
     return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${PHASE_NAMES[c.phase]}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${SEGMENT_NAMES[c.segment]}` : ""} begins.`;
