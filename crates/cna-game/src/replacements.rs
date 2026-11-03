@@ -18,6 +18,9 @@ impl GameState {
     /// class fits a recce unit of that class (R-125); a model the unit
     /// lists fits it; any tank fits a unit with tanks.
     pub(crate) fn fits(&self, data: &Data, piece: &Piece, weapon: &str) -> bool {
+        if let Some(fits) = self.fits_captured(data, piece, weapon) {
+            return fits;
+        }
         let unit = piece.id.unit().and_then(|u| data.oa.unit(&u));
         if unit
             .and_then(|u| u.vehicle)
@@ -121,10 +124,15 @@ impl GameState {
             .filter(|id| self.pieces.get(id).is_some_and(|q| q.hex() == Some(&hex)));
         // A model joins the unit's weapon list; a recce class's points
         // are unlisted, rated by the unit's ID code.
-        let listed = p.weapons.iter().any(|w| w.weapon == weapon)
+        // Captured points join the unit's own weapon of their class
+        // (R-152), or its ID code's points.
+        let joins = self.captured_joins(data, p, weapon);
+        let listed = joins.is_some()
+            || p.weapons.iter().any(|w| w.weapon == weapon)
             || p.nation.is_some_and(|n| {
                 data.weapons.resolve(n, weapon).is_some() || data.chars.row(n, weapon).is_some()
             });
+        let entry = joins.unwrap_or_else(|| weapon.to_string());
         let cp = Cp::whole(points.div_ceil(2));
         let mut events = vec![Event::Absorbed {
             piece: piece.clone(),
@@ -135,10 +143,10 @@ impl GameState {
         let unit = self.pieces.get_mut(piece).expect("checked");
         unit.toe += points;
         if listed {
-            match unit.weapons.iter_mut().find(|w| w.weapon == weapon) {
+            match unit.weapons.iter_mut().find(|w| w.weapon == entry) {
                 Some(w) => w.points += points,
                 None => unit.weapons.push(ToeEntry {
-                    weapon: weapon.to_string(),
+                    weapon: entry,
                     points,
                 }),
             }

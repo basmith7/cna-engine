@@ -616,6 +616,7 @@ impl GameState {
             .unwrap_or_else(|| target.clone());
         if !surrendering.is_empty() {
             let prisoners = self.prisoner_points(data, &surrendering);
+            let spoils = self.spoils(data, &surrendering);
             for id in &surrendering {
                 let toe = self.pieces[id].toe;
                 self.take_loss(id, toe, &mut events);
@@ -624,6 +625,7 @@ impl GameState {
                 pieces: surrendering,
             });
             self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
+            self.capture_spoils(phasing, &captor_hex, spoils, &mut events);
         }
 
         let mut defenders = self.defending_commits(data, other, target, true);
@@ -651,12 +653,14 @@ impl GameState {
                 .map(|p| p.id.clone())
                 .collect();
             let prisoners = self.prisoner_points(data, &all);
+            let spoils = self.spoils(data, &all);
             for id in &all {
                 let toe = self.pieces[id].toe;
                 self.take_loss(id, toe, &mut events);
             }
             events.push(Event::Surrendered { pieces: all });
             self.capture_prisoners(data, phasing, &captor_hex, prisoners, &mut events);
+            self.capture_spoils(phasing, &captor_hex, spoils, &mut events);
             defenders.clear();
         } else {
             defenders.retain(|c| !out.contains(&c.piece));

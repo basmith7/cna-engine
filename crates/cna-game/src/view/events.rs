@@ -361,6 +361,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         }
         E::Prisoners { side, .. } => Reduced(Some(side.other()), &["points"]),
         E::PrisonersTaken { side, .. }
+        | E::EquipmentCaptured { side, .. }
         | E::PrisonersLeftMap { side, .. }
         | E::PrisonersGone { side, .. } => Reduced(Some(*side), &["points"]),
         E::PrisonersMarched { side, .. } => Reduced(Some(*side), &["points", "cp"]),
