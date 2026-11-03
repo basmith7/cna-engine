@@ -547,8 +547,10 @@ impl GameState {
         self.fleet.keys().any(|id| {
             let ship = &self.pieces[id];
             self.pieces.values().any(|t| {
+                // What the step's opening reveals must be open to both
+                // sides (3.61): a counter's kind, not its TOE.
                 t.side != ship.side
-                    && self.is_target(data, t)
+                    && matches!(t.kind, PieceKind::Combat | PieceKind::Hq)
                     && t.hex()
                         .is_some_and(|at| self.bombardment_points(data, ship, at).is_ok())
             })
@@ -1301,6 +1303,40 @@ mod tests {
 
         /// The Commonwealth's plot, then the Axis's empty one: the barrage
         /// rolled. Returns the ship's barrage's points.
+        #[test]
+        fn a_ship_in_the_barraged_hex_pays_no_combat_cp() {
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let ship = put(&mut state, "valiant", &at);
+            state.apply(&data, Side::Cw, fire(&ship, 6)).unwrap();
+            let events = state
+                .apply(&data, Side::Axis, Order::Barrage { fires: vec![] })
+                .unwrap();
+            assert!(
+                !events
+                    .iter()
+                    .any(|e| matches!(e, Event::CombatCp { piece, .. } if *piece == ship)),
+                "a ship is charged combat CP: {events:?}"
+            );
+            assert!(!state.combat.charged.contains_key(&ship));
+        }
+
+        #[test]
+        fn whether_a_ship_may_fire_reads_only_what_both_sides_see() {
+            // 3.61: the step's opening must not tell the Commonwealth an
+            // enemy's TOE, so a spent enemy unit still counts.
+            let data = graziani();
+            let mut state = at_barrage(&data);
+            let at = target_hex(&state);
+            let off = offshore(&data, &at);
+            put(&mut state, "valiant", &off);
+            let with = state.ships_may_fire(&data);
+            state.pieces.get_mut(&pid(TARGET)).unwrap().toe = 0;
+            assert_eq!(state.ships_may_fire(&data), with);
+            assert!(with);
+        }
+
         fn resolve(data: &Data, state: &mut GameState, ship: &PieceId, points: u32) -> u32 {
             state.apply(data, Side::Cw, fire(ship, points)).unwrap();
             let events = state
