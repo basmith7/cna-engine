@@ -150,9 +150,23 @@ both fixed. #108 (merged) adds a Raid-the-dump button.
 (27.42–27.44), merged. An Axis unit entering a raider's hex is told a raider is
 there, unnamed, and stops; it may spend 1 CP on a die, and a 6
 eliminates the raider. Previews online never give the raider away. A
-fresh review found two faults, both fixed. #110 (draft): patrols. Phase
+fresh review found two faults, both fixed. #110: patrols. Phase
 L had been skipped on the wrong ground that patrols are an Air Game
-rule. The engine now has them, behind an off-by-default module.
+rule.
+
+**2026-11-03, sixth run:** #110 merged: patrols (phase L, §16), engine
+and browser, on for new games; a second fresh review found no server
+leak (whether phase L opens says a little about the phasing side's own
+units, as phase K's does: accepted). #111 merged: `vendor/cna` to
+50e66bf and R-150 (an untrained unit forms no raider; 6th Australian
+Cavalry may not). #112 merged: the fleet plan. #113: fleet Task 1
+(ships arrive in Alexandria by the schedule, phase E, `Station`, the
+port cycle, R-019's row limit), behind an off-by-default `fleet`
+module; its review found ships captured by an Axis ZOC and blocking a
+prisoner march, both fixed. #114: a set-up bug: "west of Mersa
+Matruh" compared hex rows, not columns, so CW supply could set up south
+of Matruh; fixed, golden game re-pinned. #115: the patrol panel's skip
+list (16.53).
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -189,14 +203,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #109 (the enemy's spotting try against
-  desert raiders, 27.42–27.44) merged 2026-11-03. Its
-  two-way calls are listed in its body: the move stops at a raider's
-  hex, the try burns no fuel, one die per raider, and no module flag.
-  Next: #110, patrols (phase L, §16). Its plan and engine are built
-  behind a new `patrols` module that is off by default. Still to do: a
-  fresh review, then the browser panel, which turns the module on for
-  new games.
+- Nothing waits on Brian. Open: #113 (fleet Task 1), #114 (west-of
+  set-up fix), #115 (patrol skip list); each merges on green CI. The
+  fleet's bombardment, strikes and damage (Tasks 2–3) wait on cna's
+  warship ratings, and its browser panel (Task 4) on those, since ships
+  that cannot fire give phase E nothing to decide. 28.3's captured
+  equipment waits on a new cna request (below).
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
@@ -258,14 +270,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Forming raiders without morale training** (Mission 5: 27.13, R-147).
-  27.13 forms a raider from a unit "at maximum morale through training",
-  and R-147's rationale notes no set-up unit is shown so trained. The
-  engine has no morale training (17.3x), so it reads the condition as
-  "not in training" and lets any armoured-car or recce unit form one.
-  Wanted: a ruling on which units qualify in play (every unit at its
-  basic morale, or only those trained under 17.3x, which would leave the
-  engine forming none until training is built).
 - **Warship ratings for the fleet** (Mission 5: phase E, §30, 32.7x).
   `data/tables/cw-fleet-schedule.json` names each warship and its type
   but not its counter's **gun rating** (barrage points, also its hit
@@ -274,6 +278,14 @@ the bullet once it lands and `vendor/cna` is bumped.
   them the engine cannot place, fire or damage a ship, so phase E stays
   skipped. Wanted: both ratings per ship (in the schedule or a counter
   table), and the *San Giorgio*'s barrage, AA and vulnerability values.
+- **Captured equipment** (Mission 5: 28.3). cna restates 28.3 in one
+  sentence ("once repaired, may be used against their former owners").
+  The engine loses captured guns and tanks (`NOT_SIMULATED.md`). Wanted:
+  how captured weapons enter play under the Land Game and abstract
+  supply: which repair (field repair 22.2x or a facility), which units
+  may take them (any unit, or only units of the captor with that weapon
+  type), how they count for TOE and in 19.3's chart slots, and whether
+  captured wrecks (15.84/14.14, already counted as captured) qualify.
 
 ## Runs and quota
 
