@@ -500,3 +500,15 @@ Done: Feedback approved Mission 4 (2026-10-29): #25 merged with main, header mar
 In flight: #92 gates/CI.
 Next: merge #92 on green CI; then slice 2 (`docs/plans/2026-10-13-m4-slice-2-server.md`), re-checking its names against main. #80 (Mission 5 rail stacks, draft) waits.
 Blocked: none.
+
+## 2026-11-02 14:45 MST — autopilot/m4-slice-2-server
+Done: server preview answers {"hidden":"sealed"} during sealed steps, tested over the golden game. #92 (slice 1) merged after a fresh review (barrage_involved leak and sealed preview fixed) and a choices ledger (docs/plans/2026-10-13-m4-choices.md). #93 (draft, slice 2): cna-server Tasks 1–5 by subagents: crate/healthz/compose (f8fb0af), schema (bd7ae20), registry + apply (baa481e), restart/eviction/old rules (29cceed, ab6ea98), HTTP API with test-auth header (ecb68e2); main merged in; SSE stream with catch-up and caps (b338df3).
+In flight: nothing running. DB tests need `--features cna-server/db-tests,cna-server/test-auth` and `docker compose -f deploy/compose.dev.yml up -d db` (port 5433).
+Next: Task 7 (golden over HTTP: play graziani-m5.json, games are Modules::ALL), Task 8 (CI `server` job with `--features db-tests,test-auth`).
+Blocked: none.
+
+## 2026-11-02 16:55 MST — autopilot/m4-slice-2-server
+Done: Tasks 7–8 were already committed (ead9751, 13b8e50); #93 ready, CI green. Slice 3 Task 1 (fake-discord, 3c83825) found local-only and pushed as autopilot/m4-slice-3-accounts.
+In flight: fresh review of #93; slice 3 Tasks 2–4 by a subagent in /tmp/cna-s3.
+Next: merge #93 after review fixes; merge main into slice 3, Task 5 (compose, curl sign-in), draft PR.
+Blocked: none.

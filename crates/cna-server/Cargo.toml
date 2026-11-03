@@ -1,0 +1,40 @@
+[package]
+name = "cna-server"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "The multiplayer server: games in Postgres and memory, orders over HTTP"
+
+[[bin]]
+name = "cna-server"
+path = "src/main.rs"
+
+[features]
+# The tests that need Postgres at `DATABASE_URL`. `#[sqlx::test]` panics
+# without it, so they are ignored unless this is on and a plain
+# `cargo test` at the workspace root needs no database.
+db-tests = []
+# The `X-Cna-Test-Account` sign-in (`auth::test_auth`). Debug builds only:
+# a release build with it refuses to compile.
+test-auth = []
+
+[dependencies]
+cna-data = { path = "../cna-data" }
+cna-game = { path = "../cna-game" }
+cna-embed = { path = "../cna-embed" }
+cna-rules = { path = "../cna-rules" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rand_core = { workspace = true, features = ["getrandom"] }
+axum = "0.8"
+futures-util = { version = "0.3", default-features = false }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
+sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "macros", "json"] }
+tower-http = { version = "0.7", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+sha2 = "0.10"

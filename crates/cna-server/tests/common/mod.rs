@@ -1,0 +1,74 @@
+//! Helpers shared by the database tests.
+#![allow(dead_code)]
+
+use cna_data::scenario::Side;
+use cna_game::log::Log;
+use cna_game::state::{GameState, Modules};
+use cna_server::accounts;
+use cna_server::games::{AccountId, GameId, Games};
+use sqlx::PgPool;
+
+/// The module-on golden game: the orders the server's games (every
+/// module on) accept.
+pub fn golden() -> Log {
+    let path = cna_data::repo_root().join("tests/games/graziani-m5.json");
+    let log: Log = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    assert_eq!(log.modules, Modules::ALL);
+    log
+}
+
+/// A game on the golden seed, Axis seated by `axis`, Commonwealth by `cw`.
+pub async fn seated(pool: &PgPool) -> (Games, GameId, AccountId, AccountId) {
+    let games = Games::new(pool.clone());
+    let axis = accounts::insert(pool, "1", "Axis").await.unwrap();
+    let cw = accounts::insert(pool, "2", "Commonwealth").await.unwrap();
+    let id = games
+        .create_seeded(&golden().scenario, axis, false, golden().seed)
+        .await
+        .unwrap();
+    games.seat(id, Side::Axis, axis).await.unwrap();
+    games.seat(id, Side::Cw, cw).await.unwrap();
+    (games, id, axis, cw)
+}
+
+/// Plays the golden game's first `n` orders, each as the side it names.
+pub async fn play(games: &Games, id: GameId, axis: AccountId, cw: AccountId, n: usize) {
+    for (i, o) in golden().orders.iter().take(n).enumerate() {
+        let account = if o.player == Side::Axis { axis } else { cw };
+        games
+            .apply(id, account, o.player, &o.order, i as i64)
+            .await
+            .unwrap_or_else(|e| panic!("order {i}: {e}"));
+    }
+}
+
+/// The state the first `n` golden orders lead to, in process.
+pub fn expected(n: usize) -> String {
+    let log = golden();
+    let data = cna_embed::data(&log.scenario).unwrap();
+    let mut s = GameState::with_modules(data, log.seed, log.modules).unwrap();
+    assert_eq!(
+        s.ruleset, log.ruleset,
+        "the golden game plays the default rules"
+    );
+    for o in &log.orders[..n] {
+        s.apply(data, o.player, o.order.clone()).unwrap();
+    }
+    s.to_json().unwrap()
+}
+
+pub async fn count(pool: &PgPool, sql: &'static str, id: GameId) -> i64 {
+    sqlx::query_scalar(sql)
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+pub async fn status(pool: &PgPool, id: GameId) -> String {
+    sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
