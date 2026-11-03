@@ -405,3 +405,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 00:06 | 74 | 53→57 | none→none | $23.95 | 2 | All four stacked PRs (#100–#103) are merged, and main's CI on the #103 merge (run 41600130717) passed: web, test and server. Locally on main, clippy is clean, 6 |
 | 2026-11-03 01:45 | 79 | 58→61 | none→none | $12.84 | 3 | #105 merged, and #104 is ready but not merged: its browser CI job (`web`, the Playwright run) was still running at 10:04Z with the deadline at 10:15Z. **#105: m |
 | 2026-11-03 04:45 | 63 | 61→62 | none→none | $14.94 | 8 | Everything planned for this run is merged: forming raiders, raids on supply dumps, and the `vendor/cna` bump for cna's answers. Nothing needs you, apart from Mi |
+| 2026-11-03 05:48 | 69 | 62→64 | none→none | $15.42 | 124 | #109 is merged, and draft #110 (patrols) has its plan and engine built, reviewed and fixed. Nothing needs you. **#109, the spotting try against desert raiders ( |
