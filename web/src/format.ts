@@ -86,12 +86,14 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   }
   if ("barrage-plotted" in e) {
     const d = e["barrage-plotted"];
+    // The enemy's plot, online, comes without its fires (3.61).
+    if (d.fires === undefined) return `${sideName(d.side)} barrage plotted.`;
     const fires = d.fires.map((f) => `${name(f.piece)} ${f.points} at ${name(f.target)}`).join("; ");
     return `${sideName(d.side)} barrage plotted: ${fires || "none"}.`;
   }
   if ("barrage" in e) {
     const d = e.barrage;
-    return `${sideName(d.side)} barrage on ${name(d.target)} by ${list(d.firers, name)}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
+    return `${sideName(d.side)} barrage on ${name(d.target)}${d.firers === undefined ? "" : ` by ${list(d.firers, name)}`}: ${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, reading ${d.reading}: ${barrageResult(d.result)}.`;
   }
   if ("retreated-before-assault" in e) return `${list(e["retreated-before-assault"].pieces, name)} retreat before assault to ${e["retreated-before-assault"].to}.`;
   if ("anti-armour" in e) {
@@ -185,6 +187,7 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
   if ("forces-assigned" in e) {
     const d = e["forces-assigned"];
+    if (d.assignments === undefined) return `${sideName(d.side)} forces assigned.`;
     const parts = d.assignments.map((a) => {
       const aa = (a.anti_armour ?? []).map((x) => `${x.points} anti-armour${x.target ? ` at ${x.target}` : ""}`);
       const ca = (a.close_assault ?? []).map((x) => `${x.points} assault${x.target ? ` at ${x.target}` : ""}`);

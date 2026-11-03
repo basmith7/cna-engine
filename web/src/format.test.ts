@@ -106,3 +106,15 @@ describe("the log line of every event variant", () => {
     expect(formatEvent({ placed: { piece: "unit:it:x", hex: "C0101" } })).toBe("unit:it:x placed at C0101.");
   });
 });
+
+// Online, the enemy's sealed answers and firers reach a player with
+// those fields removed (`cna_game::view::events`, 3.61).
+describe("the log line of an event as the enemy's player receives it", () => {
+  it.each([
+    [{ "barrage-plotted": { side: "axis" } }, "Axis barrage plotted."],
+    [{ "forces-assigned": { side: "cw" } }, "Commonwealth forces assigned."],
+    [{ barrage: { side: "axis", target: "u:b", points: 6, shift: -1, reading: 3, result: "pinned" } }, "Axis barrage on B: 6 points, shift -1, reading 3: pinned."],
+  ] as Array<[Event, string]>)("%j", (event, line) => {
+    expect(formatEvent(event, name)).toBe(line);
+  });
+});
