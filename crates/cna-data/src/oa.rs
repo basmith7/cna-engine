@@ -208,6 +208,14 @@ pub struct Unit {
     /// O/A notes govern or for a non-HQ unit.
     #[serde(default)]
     pub organisation: Option<String>,
+    /// The Formation Organisation Chart slots (`units` slugs) this
+    /// counter fills on its own, one at a time (R-142).
+    #[serde(default)]
+    pub fills: Vec<String>,
+    /// Slots it fills only together with others of its kind, sized by
+    /// the chart's `part_slots` (R-142).
+    #[serde(default)]
+    pub fills_part: Vec<String>,
     /// The counter this one replaces in a historical reorganisation:
     /// at this one's arrival it takes the other's hex, TOE and units
     /// (R-096's scenarios start with the replacement made).

@@ -7,6 +7,7 @@ use crate::max_attachments::Turns;
 use crate::oa::Nation;
 use anyhow::Result;
 use serde::Deserialize;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Component {
@@ -56,9 +57,20 @@ impl Row {
     }
 }
 
+/// A slot several counters fill together (R-142): it holds up to
+/// `parts` counters that name it in `fills_part`, and is filled once
+/// `min` of them are in it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct PartSlot {
+    pub parts: u32,
+    pub min: u32,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Organisation {
     pub rows: Vec<Row>,
+    #[serde(default)]
+    pub part_slots: BTreeMap<String, PartSlot>,
 }
 
 impl Organisation {

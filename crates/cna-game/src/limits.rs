@@ -9,7 +9,9 @@ use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
 use cna_data::max_attachments::Row;
-use cna_data::oa::{Echelon, UnitId};
+use cna_data::oa::{Echelon, Unit, UnitId};
+use cna_data::organisation::{Organisation, Row as ChartRow};
+use std::collections::BTreeMap;
 
 /// What a non-assigned attachment is, for the chart's type limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -217,15 +219,35 @@ impl GameState {
             .and_then(|key| {
                 let turn = u32::from(self.clock.game_turn);
                 data.organisation.row(unit.nation(), key, turn)
-            })
-            .map(|row| row.shell_count());
+            });
+        let is_shell = |q: &Piece| self.shell_at_depth(data, &q.id, depth + 1);
+        // With a chart row (R-141), the counted slots its attached
+        // counters fill (R-142): (filled by whole units, filled by all).
+        let filled = |row: &ChartRow| -> (u32, u32) {
+            let attached: Vec<(&Unit, bool)> = self
+                .pieces
+                .values()
+                .filter(|q| q.attached_to.as_ref() == Some(&unit))
+                .filter_map(|q| Some((data.oa.unit(&q.id.unit()?)?, is_shell(q))))
+                .collect();
+            let whole: Vec<&Unit> = attached
+                .iter()
+                .filter(|(_, s)| !s)
+                .map(|(u, _)| *u)
+                .collect();
+            let all: Vec<&Unit> = attached.iter().map(|(u, _)| *u).collect();
+            (
+                slots_filled(&data.organisation, row, &whole),
+                slots_filled(&data.organisation, row, &all),
+            )
+        };
         let assigned = |pred: &dyn Fn(&Piece) -> bool| -> (u32, u32, u32) {
             let (mut total, mut whole, mut shells) = (0, 0, 0);
             for q in self.pieces.values() {
                 if q.parent.as_ref() == Some(&unit) && pred(q) {
                     total += 1;
                     if q.attached_to.as_ref() == Some(&unit) {
-                        if self.shell_at_depth(data, &q.id, depth + 1) {
+                        if is_shell(q) {
                             shells += 1;
                         } else {
                             whole += 1;
@@ -237,21 +259,32 @@ impl GameState {
         };
         match (p.kind, sheet.and_then(|u| u.echelon)) {
             (PieceKind::Hq, Some(Echelon::Division)) => {
-                let (total, whole, _) = assigned(&|q| {
-                    q.kind == PieceKind::Hq || q.equivalent == Some(Equivalent::Brigade)
-                });
-                let total = chart.unwrap_or(total);
+                let (total, whole) = match chart {
+                    Some(row) => (row.shell_count(), filled(row).0),
+                    None => {
+                        let (total, whole, _) = assigned(&|q| {
+                            q.kind == PieceKind::Hq || q.equivalent == Some(Equivalent::Brigade)
+                        });
+                        (total, whole)
+                    }
+                };
                 total > 0 && 2 * whole <= total
             }
             (PieceKind::Hq, Some(Echelon::Brigade)) => {
-                // A chart row may build a brigade of regiments (the
-                // German 15th Infantry Brigade, R-141): their HQs count.
-                let (total, whole, shells) = assigned(&|q| {
-                    (q.kind == PieceKind::Combat && q.equivalent == Some(Equivalent::Battalion))
-                        || (chart.is_some() && q.kind == PieceKind::Hq)
-                });
-                let total = chart.unwrap_or(total);
-                if total == 2 && whole + shells == 2 && whole >= 1 {
+                let (total, whole, all) = match chart {
+                    Some(row) => {
+                        let (whole, all) = filled(row);
+                        (row.shell_count(), whole, all)
+                    }
+                    None => {
+                        let (total, whole, shells) = assigned(&|q| {
+                            q.kind == PieceKind::Combat
+                                && q.equivalent == Some(Equivalent::Battalion)
+                        });
+                        (total, whole, whole + shells)
+                    }
+                };
+                if total == 2 && all == 2 && whole >= 1 {
                     return false;
                 }
                 total > 0 && 3 * whole < 2 * total
@@ -282,6 +315,91 @@ impl GameState {
     }
 }
 
+/// The most of `row`'s counted slots (9.26, R-141) that `counters` can
+/// fill at once (R-142): each counter fills one slot, a slot it names in
+/// `fills`, or with others of its kind one it names in `fills_part`,
+/// filled once the chart's `part_slots` minimum of them are in it.
+fn slots_filled(org: &Organisation, row: &ChartRow, counters: &[&Unit]) -> u32 {
+    let slots: Vec<Vec<&str>> = row
+        .components
+        .iter()
+        .filter(|c| c.counts_for_shell)
+        .flat_map(|c| {
+            let accepts: Vec<&str> = c.unit.iter().chain(&c.any_of).map(String::as_str).collect();
+            std::iter::repeat_n(accepts, c.count as usize)
+        })
+        .collect();
+    // Counters beyond 64 never stand under one HQ; ignore the rest.
+    let counters = &counters[..counters.len().min(64)];
+    let mut memo = BTreeMap::new();
+    best_fill(org, &slots, counters, 0, 0, &mut memo)
+}
+
+fn best_fill(
+    org: &Organisation,
+    slots: &[Vec<&str>],
+    counters: &[&Unit],
+    slot: usize,
+    used: u64,
+    memo: &mut BTreeMap<(usize, u64), u32>,
+) -> u32 {
+    let Some(accepts) = slots.get(slot) else {
+        return 0;
+    };
+    if let Some(&b) = memo.get(&(slot, used)) {
+        return b;
+    }
+    let free = |i: usize| used & (1 << i) == 0;
+    let names = |list: &[String], s: &str| list.iter().any(|f| f == s);
+    let mut best = best_fill(org, slots, counters, slot + 1, used, memo);
+    let left = (slots.len() - slot) as u32;
+    for (i, c) in counters.iter().enumerate() {
+        if best == left {
+            break;
+        }
+        if free(i) && accepts.iter().any(|s| names(&c.fills, s)) {
+            best = best.max(1 + best_fill(org, slots, counters, slot + 1, used | 1 << i, memo));
+        }
+    }
+    for s in accepts {
+        let Some(part) = org.part_slots.get(*s) else {
+            continue;
+        };
+        let parts: Vec<usize> = (0..counters.len())
+            .filter(|&i| free(i) && names(&counters[i].fills_part, s))
+            .collect();
+        // The fewest that fill it: more in one slot fill nothing more.
+        for combo in combinations(&parts, part.min as usize) {
+            if best == left {
+                break;
+            }
+            let mask = combo.iter().fold(used, |m, i| m | 1 << i);
+            best = best.max(1 + best_fill(org, slots, counters, slot + 1, mask, memo));
+        }
+    }
+    memo.insert((slot, used), best);
+    best
+}
+
+/// Every `k`-element subset of `items`, in order.
+fn combinations(items: &[usize], k: usize) -> Vec<Vec<usize>> {
+    if k == 0 {
+        return vec![Vec::new()];
+    }
+    if items.len() < k {
+        return Vec::new();
+    }
+    let mut out: Vec<Vec<usize>> = combinations(&items[1..], k - 1)
+        .into_iter()
+        .map(|mut rest| {
+            rest.insert(0, items[0]);
+            rest
+        })
+        .collect();
+    out.extend(combinations(&items[1..], k));
+    out
+}
+
 /// Whether `brigades` brigade-equivalents and `units` battalion-
 /// equivalents fit a row: its alternatives where it has them, else
 /// units only (the chart counts battalion-equivalents).
@@ -292,5 +410,77 @@ fn fits(row: &Row, brigades: u32, units: u32) -> bool {
         row.alternatives
             .iter()
             .any(|a| brigades <= a.brigades && units <= a.units)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cna_data::oa::Nation;
+
+    fn data() -> Data {
+        Data::load("grazianis-offensive").unwrap()
+    }
+
+    fn filled(data: &Data, nation: Nation, row: &str, turn: u32, ids: &[&str]) -> u32 {
+        let row = data.organisation.row(nation, row, turn).unwrap();
+        let units: Vec<&Unit> = ids
+            .iter()
+            .map(|id| data.oa.unit(&UnitId::parse(id).unwrap()).unwrap())
+            .collect();
+        slots_filled(&data.organisation, row, &units)
+    }
+
+    #[test]
+    fn three_artillery_counters_fill_the_german_artillery_group_r142() {
+        let data = data();
+        let arty = [
+            "unit:de:33-arty-regt",
+            "unit:de:140-arty-regt",
+            "unit:de:i-115-arty-bn",
+        ];
+        let at = |ids: &[&str]| filled(&data, Nation::De, "15-panzer-division", 30, ids);
+        assert_eq!(at(&arty), 1);
+        assert_eq!(at(&arty[..2]), 0, "two of three fill nothing");
+        // A regiment HQ fills the group alone.
+        assert_eq!(at(&["unit:de:220-arty-regt-hq"]), 1);
+    }
+
+    #[test]
+    fn surplus_battalions_fill_no_other_slot_r142() {
+        // The 1st Free French Brigade's five infantry battalions fill its
+        // three infantry slots; its artillery fills the fourth.
+        let data = data();
+        let inf = [
+            "unit:cw:2-lgetr",
+            "unit:cw:3-lgetr",
+            "unit:cw:2-mrch",
+            "unit:cw:1-marine",
+            "unit:cw:1-pacf",
+        ];
+        let at = |ids: &[&str]| filled(&data, Nation::Cw, "infantry-brigade-3sp", 30, ids);
+        assert_eq!(at(&inf), 3);
+        let mut with_arty = inf.to_vec();
+        with_arty.push("unit:cw:1-ff-arty");
+        assert_eq!(at(&with_arty), 4);
+    }
+
+    #[test]
+    fn a_company_fills_only_the_any_unit_slot_r142() {
+        // The Kopanski MG Company fills no counted slot of the Polish
+        // brigade; a battalion in its place would.
+        let data = data();
+        let at = |ids: &[&str]| filled(&data, Nation::Cw, "infantry-brigade-3sp", 30, ids);
+        let pol = [
+            "unit:cw:1-pol",
+            "unit:cw:2-pol",
+            "unit:cw:3-pol",
+            "unit:cw:1-pol-arty",
+        ];
+        assert_eq!(at(&pol), 4);
+        let mut with_mg = pol.to_vec();
+        with_mg.push("unit:cw:kopanski-mg");
+        assert_eq!(at(&with_mg), 4);
+        assert_eq!(at(&[]), 0);
     }
 }
