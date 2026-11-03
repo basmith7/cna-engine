@@ -221,6 +221,31 @@ test("phase J: two Commonwealth supply units ride the railway west from Alexandr
   await expect(page.getByTestId("clock")).not.toContainText("rail");
 });
 
+test("phase J: a Commonwealth battalion rides the railway west from Alexandria, 2 SP a stack (8.7x)", async ({ page }) => {
+  // The rail fixture with the NZ cavalry detached from its HQ, so it may ride alone.
+  const save = JSON.parse(readFileSync(here("fixtures/rail.json"), "utf8"));
+  delete save.pieces["unit:cw:2-nz-cv"].attached_to;
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  await expect(page.getByTestId("clock")).toContainText("rail");
+  await clickHex(page, "E3613");
+  await expect(page.getByTestId("move-panel")).toHaveAttribute("data-purpose", "rail");
+  // Everything at Alexandria starts ticked: far over a stack's 2 SP.
+  await expect(page.getByTestId("move-refusal")).toBeVisible();
+  const ticks = page.locator("[data-unit] input.tick:checked");
+  while ((await ticks.count()) > 0) await ticks.first().uncheck();
+  await page.locator('[data-unit="unit:cw:2-nz-cv"] input.tick').check();
+  await expect(page.getByTestId("reach-count")).toContainText("along the railway");
+  await expect(page.locator('polygon.reach[data-hex="E3312"]')).toHaveCount(1);
+  await page.locator('polygon.hex[data-hex="E3312"]').click();
+  await expect(log(page).filter({ hasText: "by rail E3613 → E3312." })).toHaveCount(1);
+  const at = await page.evaluate(() => ["unit:cw:2-nz-cv", "unit:cw:2-nz-hq"].map((id) => window.__cna.view().pieces[id].location));
+  expect(at).toEqual([{ hex: "E3312" }, { hex: "E3613" }]);
+  await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
+  await expect(page.getByTestId("clock")).not.toContainText("rail");
+});
+
 test("a supply unit takes its points in phase C and moves with a combat unit in G (32.31)", async ({ page }) => {
   // The set-up, with 30 motorisation points at Bardia (C4321) to attach.
   const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
