@@ -283,6 +283,9 @@ pub struct GameState {
     /// secret (3.61).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fleet_strikes: BTreeMap<Side, u8>,
+    /// The *San Giorgio* has fired this OpStage (R-151).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub blockship_fired: bool,
     /// This OpStage's anti-armour fire, close assaults and barraged
     /// hexes, for patrols (16.21, 16.22).
     #[serde(default, skip_serializing_if = "crate::patrol::StageRecord::is_empty")]
@@ -417,6 +420,7 @@ impl GameState {
             marched: BTreeSet::new(),
             fleet: BTreeMap::new(),
             fleet_strikes: BTreeMap::new(),
+            blockship_fired: false,
             stage_record: Default::default(),
             air_lifted: BTreeMap::new(),
             convoy_lanes: Vec::new(),
@@ -439,6 +443,7 @@ impl GameState {
             log: Vec::new(),
         };
         state.check_weapons(data)?;
+        state.place_blockship(data)?;
         state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {

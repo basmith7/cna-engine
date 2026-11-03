@@ -118,6 +118,7 @@ impl GameState {
             match clock.phase {
                 Phase::InitiativeDeclaration => {
                     self.count_construction(data, events);
+                    self.clear_blockship(data, events);
                     self.start_stage();
                     if clock.stage == 1 {
                         self.roll_rommel_recall(data, events);
@@ -206,6 +207,7 @@ impl GameState {
         self.stage_record = Default::default();
         self.rail_runs.clear();
         self.rail_supply_way = None;
+        self.blockship_fired = false;
         for p in self.pieces.values_mut() {
             if p.cp_spent == Cp::ZERO {
                 p.cohesion.rest();

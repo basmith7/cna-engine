@@ -78,15 +78,29 @@ pub enum PieceKind {
     /// A Commonwealth warship (30.1x): no stacking value, no ZOC, never
     /// affects land movement; stationed each OpStage in phase E.
     Ship,
+    /// The *San Giorgio* (30.17, R-151): an Italian wreck in Tobruk
+    /// harbour that fires as an immobile gun; no stacking value, no ZOC,
+    /// never a target and never moves.
+    Blockship,
 }
 
 impl PieceKind {
     /// Whether the piece holds its hex against the enemy: everything bar a
     /// raider, which an enemy may enter, attack past and retreat through
     /// (27.32, 27.42), so a hidden one gives nothing away, and a ship,
-    /// which never affects land movement (30.1x).
+    /// which never affects land movement (30.1x), nor does the *San
+    /// Giorgio* (R-151).
     pub fn holds_ground(self) -> bool {
-        !matches!(self, PieceKind::Raider | PieceKind::Ship)
+        !matches!(
+            self,
+            PieceKind::Raider | PieceKind::Ship | PieceKind::Blockship
+        )
+    }
+
+    /// A ship or the *San Giorgio*: fires as a ship does, alone and
+    /// paying no combat CP (30.2x, 30.17).
+    pub fn is_vessel(self) -> bool {
+        matches!(self, PieceKind::Ship | PieceKind::Blockship)
     }
 
     /// A supply unit, real or dummy (32.1x).
