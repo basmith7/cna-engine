@@ -14,6 +14,7 @@
   import Marks from "./Marks.svelte";
   import MovePanel from "./MovePanel.svelte";
   import { allOffMapCapable, allOnMap, defaultTicked, extendPath, toggle, toggleOffMap } from "./moves";
+  import { addStop, stopsOn, type RailStop } from "./rail";
   import OffMap from "./OffMap.svelte";
   import Pending from "./Pending.svelte";
   import PhaseControls from "./PhaseControls.svelte";
@@ -114,6 +115,9 @@
   let assault = $state(false);
   /** The custom path shift-clicks build; Enter sends it. */
   let custom: HexId[] = $state([]);
+  /** Phase J: the stops the ticked stack's rail run makes on its way (8.77, R-005), and whether the next click adds one. */
+  let railStops: RailStop[] = $state([]);
+  let stopping = $state(false);
   /** The hex under the pointer, for the path preview. */
   let hover: HexId | null = $state(null);
   /** The end-of-game dialog, closed to look at the map and reopened from a button. */
@@ -277,6 +281,8 @@
       curtain = curtainAfter(before.to_act, view.to_act);
     }
     custom = [];
+    railStops = [];
+    stopping = false;
     autosaveNow();
     if (curtain) {
       picked = null;
@@ -307,7 +313,7 @@
           : purpose === "forced-retreat"
             ? { retreat: { path } }
             : purpose === "rail"
-              ? { rail: { pieces: ticked, path } }
+              ? { rail: { pieces: ticked, path, ...(stopsOn(railStops, path).length > 0 ? { stops: stopsOn(railStops, path) } : {}) } }
               : { move: { pieces: ticked, path, assault, ...(fuelFrom ? { fuel_from: fuelFrom } : {}) } };
     const ok = await send(order);
     if (ok) assault = false;
@@ -351,6 +357,12 @@
       send({ assault: { target: h } });
       return;
     }
+    // Phase J: an armed stop takes the clicked hex of the line.
+    if (purpose === "rail" && stopping && ticked.length > 0) {
+      if (reaches.some((r) => r.hex === h)) railStops = addStop(railStops, h);
+      stopping = false;
+      return;
+    }
     // A shift-click extends the custom path; the engine judges it on Enter.
     if (shift && purpose && ticked.length > 0) {
       custom = extendPath(custom, h);
@@ -376,12 +388,14 @@
   function select(h: HexId) {
     hex = h;
     custom = [];
+    railStops = [];
     ticked = view ? defaultTicked(view, h, view.to_act) : [];
   }
 
   function ontoggle(id: PieceId) {
     ticked = toggle(ticked, id);
     custom = [];
+    railStops = [];
   }
 
   /** A click on a piece in a box or in transit: ticks it with the others of its place. */
@@ -619,7 +633,7 @@
           {/if}
           {/if}
           {#if purpose}
-            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} />
+            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} bind:railStops bind:stopping />
           {/if}
           <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={async (o) => {
             if ((await send(o)) && typeof o === "object" && "unplace" in o) {
