@@ -126,6 +126,14 @@ cancelled convoy was rerouted; the Bizerta roll changed old logs).
 the LRDG raid on Rommel (27.6x). Draft #104 plans it together with the
 desert raiders (§27); two cna requests are filed below.
 
+**2026-11-03, third run:** #105 merged: `vendor/cna` to ccc285d and
+R-146 (a support group fills the type IV armoured division's infantry
+brigade slot). #104 builds the desert raiders (§27) bar forming them:
+hidden movement in the enemy's view, spotting, and the LRDG raid on
+Rommel, engine and browser, with a Playwright raid by clicks. A fresh
+review found a hidden raider's hex leaking three ways; all fixed. With
+it Graziani's land rules are complete.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -166,14 +174,19 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   checklist*): the Discord application and bot, the first tag, the GHCR
   package made public, the `cna` project on Tower, Pangolin, backups.
   The tag build has not run yet (no tag is pushed unattended).
-- Nothing else waits on Brian. Next run: #104's Task 1 (`docs/plans/2026-11-03-m5-desert-raiders.md`),
-  with a test-only raider piece: spotting and the raid on Rommel (hidden
-  pieces already leave the enemy's view and events on #104). Task 3 (forming raiders) waits on
-  the cna raider-counter request.
+- Nothing else waits on Brian. #104 (desert raiders, §27, Tasks 1–2)
+  is ready: its body lists four two-way calls to glance at (the raid on
+  Rommel made from the next hex; "campaign game" read as any campaign
+  scenario; a surviving spotting roll kept secret; the enemy's 1 CP
+  spotting try left out). Task 3 (forming raiders) waits on the cna
+  raider-counter request. Next run: merge #104 if not yet merged, then
+  the next land gap in `NOT_SIMULATED.md` that a scenario sets up.
 - #100 changes starting shells outside Graziani's (its body lists them):
   the 15th Panzer is whole in The Last Chance now, and the 7th Support
-  Group, the 21st Panzer and the 1st and 7th Armoured are shells; the
-  last two wait on the cna request below.
+  Group, the 21st Panzer and the 1st and 7th Armoured are shells. R-146
+  (#105) lets their support groups fill the turn-92 infantry brigade
+  slot, but the two divisions stay shells until cna lists their
+  battalions (request below).
 - Two turn-alert calls to glance at (#96's body): a second handover
   within 15 minutes of the last alert sends nothing, as the plan says,
   so a quick reply can leave a player untold (delaying it instead is a
