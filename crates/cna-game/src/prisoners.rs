@@ -279,7 +279,7 @@ impl GameState {
             if let Some(enemy) = self
                 .pieces
                 .values()
-                .find(|q| q.side != player && q.hex() == Some(step))
+                .find(|q| q.side != player && q.kind.holds_ground() && q.hex() == Some(step))
             {
                 return Err(Illegal::new(
                     "28.12",

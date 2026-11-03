@@ -603,4 +603,25 @@ mod tests {
         assert_eq!(v["fleet"][valiant.as_str()]["at_sea"], serde_json::json!(0));
         assert_eq!(leaks(&state, &v, Side::Cw), Vec::<String>::new());
     }
+
+    /// A ship off a coast the Axis holds is no lone piece to capture: it
+    /// holds no ground (30.1x), so an enemy ZOC never takes it.
+    #[test]
+    fn a_ship_beside_the_axis_is_never_captured() {
+        let data = graziani();
+        let mut state = set_up(&data, fleet_on());
+        to_phase_e(&data, &mut state);
+        let dido = ship_id("dido");
+        state
+            .apply(&data, Side::Cw, station(&dido, "C4221"))
+            .unwrap();
+        let events = pass_stage(&data, &mut state);
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::Captured { piece, .. } if *piece == dido)),
+            "{events:?}"
+        );
+        assert_ne!(state.pieces[&dido].location, Location::Eliminated);
+    }
 }
