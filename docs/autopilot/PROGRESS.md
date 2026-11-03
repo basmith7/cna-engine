@@ -201,6 +201,16 @@ but left unpushed; behind the fleet module, so off in new games. A fresh
 review's retreat bug is fixed; its ammunition and removal points are
 open on the PR.
 
+**2026-11-03, ninth run:** #124 merged: the *San Giorgio* (R-151), a
+fixed Axis wreck in Tobruk that barrages an adjacent hex and is removed
+by a Commonwealth engineer; its ammunition waits on cna (below). #125
+merged: the fleet is on in new games (`cna-play new --no-fleet` turns it
+off), no ship sailing before its scenario's `first_sail` (cna #288);
+CI caught the browser throwing on the Axis's first strike on GT1 (no
+log lines for the strike events), fixed there. #126 (ready, CI): facility repair of broken-down vehicles in
+phase K (22.3x) at the scenario's repair facilities (R-099), engine
+and browser; towing and destroyed tanks are planned next.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -236,12 +246,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. R-152 is merged (#121–#123). #124 (the
-  *San Giorgio*) needs its ammunition charged (it has no battalion or
-  company size to charge by) and two small review points before it is
-  ready. Then the fleet in new games
-  waits on the first-sail request below (re-pin the scripted games and
-  Playwright drivers with phase E open).
+- Nothing waits on Brian. #126 (facility repair) merges on green CI;
+  then towing (21.6x) and destroyed tanks (14.5, 22.4x) per
+  `docs/plans/2026-11-03-m5-repair-facilities.md`. Its review's
+  readings are in #126's body: an Axis-held Tobruk counts as a major
+  facility in Rommel's Arrival, and facilities never change hands
+  (no hex control yet). The *San Giorgio* fires free until cna
+  answers the ammunition request below.
+
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
   checklist*): the Discord application and bot, the first tag, the GHCR
@@ -302,15 +314,6 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
-
-- **When the fleet may first sail, as data** (Mission 5: fleet in new
-  games). Graziani's Offensive says in prose that no warship moves before
-  Game-Turn 2 OpStage 1 (`fleet.movement`), and Rommel's Arrival that none
-  leaves Alexandria before Game-Turn 27 OpStage 1. The engine needs it
-  structured to enforce it, e.g. `fleet.first_sail: {"game_turn": 2,
-  "op_stage": 1}` beside the prose, in every scenario that has such a
-  limit (and an explicit statement where a scenario has none). Blocks
-  turning the fleet on in new games.
 
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
