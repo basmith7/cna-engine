@@ -118,6 +118,7 @@ rulings*). Each names where it is enforced.
 | R-149 | as decided: `Order::RaidDump` names an enemy supply unit, real or dummy (by its alias), as the dump (`cna-game::raiders`); a 1-2 burns 10 % of its ammunition and 10 % of its fuel, each rounded up, a unit left with neither is removed (32.11), and a raided dummy is revealed and removed. Options 2 and 3 are not built |
 | R-150 | as decided: morale training (17.3x) is not simulated, so a unit that takes its OA sheet's morale where the sheet prints an untrained rating beside it (`basic_morale_alt`) never forms a raider; every other unit, at its assigned morale, does unless it is in training (`cna-game::raider_forming`, `cna-data::oa::Oa::untrained`). A sheet with no morale whose units take another's is read as printing none |
 | R-151 | not yet: the *San Giorgio* (30.17, 30.39) is not placed or fired; its values load (`cna-data::oa::Blockship`) for the fleet's later tasks |
+| R-152 | not yet: captured guns and tanks are lost, not turned into the captor's replacement points (see *Captured equipment* below) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)
