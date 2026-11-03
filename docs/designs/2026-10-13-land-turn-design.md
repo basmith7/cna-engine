@@ -12,7 +12,7 @@ maps each counter to (R-142); #77 captures lone enemy supply entered
 (32.1x); #78 makes reactions and every retreat pay fuel (32.22, R-120);
 #80 rails combat units, one stack each way a stage with what is attached
 (8.7x, R-005; en-route pick-ups not built).
-Still open for Graziani's: convoy lanes beyond Tripoli, substitution (19.x; cna's slot map, R-142, is now in). The
+#101 builds substitution (19.4x) on the same slots. Still open for Graziani's: convoy lanes beyond Tripoli. The
 mission's second half, other scenarios' land rules (*Non-goals*), has
 begun: #61 smoke-tests every scenario (`cna-game::scenarios`), #63
 scores points victories, #62 lets the browser start any of them. With

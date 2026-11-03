@@ -609,6 +609,58 @@ mod tests {
     }
 
     #[test]
+    fn a_substitute_for_a_missing_battalion_is_no_extra_attachment() {
+        // As the nesting case below, but the regiment has lost its XVII
+        // Libyan Battalion: the IX stands in its slot (19.4x), so it
+        // counts against neither the regiment's nor Maletti's row.
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let (bn1, bn2) = ("unit:it:viii-libyan-bn", "unit:it:ix-libyan-bn");
+        let mut state = organising_with(&data, MALETTI, &[regt, bn1, bn2]);
+        state.put(&pid("unit:it:xvii-libyan-bn"), Location::Eliminated);
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, regt))
+            .unwrap();
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, bn1))
+            .unwrap();
+        state
+            .apply(&data, Side::Axis, attach_to(regt, bn2))
+            .unwrap();
+        assert_eq!(
+            state.substitutes_for(&data, &pid(regt), None),
+            vec![pid(bn2)]
+        );
+        // One missing battalion takes one substitute: the next is extra.
+        assert!(
+            state
+                .substitutes_for(&data, &pid(regt), Some(&pid("unit:it:x-libyan-bn")))
+                .len()
+                == 1
+        );
+    }
+
+    #[test]
+    fn only_a_unit_that_fills_the_missing_slot_substitutes() {
+        // An artillery battalion fills no infantry battalion's slot.
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let arty = "unit:it:1st-maletti-artillery-bn";
+        let mut state = organising_with(&data, MALETTI, &[regt, arty]);
+        state.put(&pid("unit:it:xvii-libyan-bn"), Location::Eliminated);
+        assert!(
+            state
+                .substitutes_for(&data, &pid(regt), Some(&pid(arty)))
+                .is_empty()
+        );
+        let bn = "unit:it:viii-libyan-bn";
+        assert_eq!(
+            state.substitutes_for(&data, &pid(regt), Some(&pid(bn))),
+            vec![pid(bn)]
+        );
+    }
+
+    #[test]
     fn nesting_counts_against_the_larger_parent_too() {
         // A battalion attached to a regiment attached to the division
         // counts against the division's row as well (19.4x).
