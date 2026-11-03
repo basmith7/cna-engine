@@ -219,6 +219,15 @@
     if (!e || !view?.to_act || purpose !== "move" || !onMap || reaches.length === 0) return;
     return answer(e.fuelSources(view.to_act, t), (r) => (fuelSources = r));
   });
+  /** A lone ticked raider that may raid Rommel now: the engine's preview of the raid does not refuse it (27.6x). */
+  let raid: PieceId | null = $state(null);
+  $effect(() => {
+    const e = engine, t = ticked;
+    raid = null;
+    if (!e || !view?.to_act || purpose !== "move" || t.length !== 1 || view.pieces[t[0]]?.kind !== "raider") return;
+    const piece = t[0];
+    return answer(e.preview(view.to_act, { "raid-rommel": { piece } }), (r) => (raid = "illegal" in r ? null : piece));
+  });
   let fuelPick: PieceId | null = $state(null);
   const fuelFrom = $derived(fuelPick && fuelSources.includes(fuelPick) ? fuelPick : null);
   const occupied = $derived(new Set(view ? stacks(view).keys() : []));
@@ -633,7 +642,7 @@
           {/if}
           {/if}
           {#if purpose}
-            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} bind:railStops bind:stopping />
+            <MovePanel {view} {purpose} {ticked} {reaches} {fuelSources} bind:fuelPick hovered={hover} refusal={reach.illegal} bind:assault {custom} {onMap} {offMap} {raid} onsend={() => sendPath(custom)} onclear={() => (custom = [])} {onoffmap} onorder={(o) => send(o)} bind:railStops bind:stopping />
           {/if}
           <StackPanel {view} {hex} {ticked} {ontoggle} takeBack={placedNow} onorder={async (o) => {
             if ((await send(o)) && typeof o === "object" && "unplace" in o) {

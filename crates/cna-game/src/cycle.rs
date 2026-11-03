@@ -77,6 +77,10 @@ impl GameState {
     /// A unit that takes no stacking space here (9.16): a garrison unit
     /// in the hex it garrisons, or an anti-air unit in a major city.
     fn stacks_free(&self, data: &Data, piece: &Piece, hex: &HexId) -> bool {
+        // Raiders have no stacking points (27.12).
+        if piece.kind == PieceKind::Raider {
+            return true;
+        }
         if piece.garrison_of.as_ref() == Some(hex) {
             return true;
         }

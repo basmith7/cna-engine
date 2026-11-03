@@ -79,7 +79,7 @@ export type Location =
   | { pending: Placement }
   | "eliminated";
 
-export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit";
+export type PieceKind = "combat" | "hq" | "commander" | "supply-unit" | "dummy-supply-unit" | "raider";
 export type Equivalent = "brigade" | "battalion" | "company" | "hq" | "by-unit";
 export type Reserve = "I" | "II";
 
@@ -105,6 +105,8 @@ export interface Piece {
   garrison_of?: HexId;
   /** CPA Rommel lends it this OpStage (31.0, R-137); absent when none. */
   rommel_cpa?: number;
+  /** A raider off the map in 27.31's sense: its owner alone sees it (the other side's view drops it). */
+  hidden?: true;
   location: Location;
   cp_spent?: number;
   cp_enemy_half?: number;
@@ -197,6 +199,7 @@ export type Order =
   | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
   | { "detail-guards": { piece: PieceId; points: number } }
   | { "release-guards": { piece: PieceId; points: number } }
+  | { "raid-rommel": { piece: PieceId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -262,7 +265,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 46 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 74 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -274,6 +277,8 @@ export type Event =
   | { unplaced: { piece: PieceId } }
   | "set-up-complete"
   | "rommel-recalled"
+  | { "raider-spotted": { piece: PieceId; hex: HexId; roll: number; eliminated: boolean } }
+  | { "rommel-raided": { piece: PieceId; hex: HexId; roll: number; result: RaidResult; lrdg_eliminated: boolean } }
   | "bizerta-opened"
   | { "convoy-lanes-set": { lanes: number[] } }
   | { "convoy-cancelled": { lane: number } }
@@ -364,6 +369,9 @@ export type Event =
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
   | { captured: { piece: PieceId; hex: HexId } }
   | { "game-over": { report: VictoryReport } };
+
+/** A row of the Raid on Rommel Table (27.92, `cna_data::raid::RaidResult`). */
+export type RaidResult = "axis-initiative-3-temporary" | "lrdg-eliminated" | "none" | "rommel-removed";
 
 export interface Illegal {
   case: string;

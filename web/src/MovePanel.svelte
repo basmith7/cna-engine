@@ -22,6 +22,7 @@
     custom,
     onMap,
     offMap,
+    raid = null,
     onsend,
     onclear,
     onoffmap,
@@ -46,6 +47,8 @@
     onMap: boolean;
     /** The ticked stack is in a box, in transit or at Nofilia: it may move off-map (8.8x). */
     offMap: boolean;
+    /** The ticked raider, when the engine would take its raid on Rommel (27.6x). */
+    raid?: PieceId | null;
     onsend: () => void;
     onclear: () => void;
     onoffmap: (to: OffMapPlace) => void;
@@ -144,6 +147,12 @@
       {#if maybe > 0}<li><span class="swatch maybe"></span>the engine may stop the stack short ({maybe})</li>{/if}
       {#if shorts > 0}<li><span class="swatch short"></span>short of the ordered distance: stands and pays ({shorts})</li>{/if}
     </ul>
+  {/if}
+  {#if raid && onorder}
+    {@const piece = raid}
+    <p class="buttons">
+      <button type="button" data-testid="raid-rommel" title="10 CP and two dice on the Raid on Rommel Table (27.6x)" onclick={() => onorder({ "raid-rommel": { piece } })}>Raid Rommel</button>
+    </p>
   {/if}
   {#if offMap && purpose === "move"}
     <div class="offmap" data-testid="off-map-moves">

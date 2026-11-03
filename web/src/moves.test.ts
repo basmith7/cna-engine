@@ -24,6 +24,11 @@ describe("defaultTicked", () => {
     expect(defaultTicked(view, "C4020", null)).toEqual([]);
     expect(defaultTicked(view, "C9999", "axis")).toEqual([]);
   });
+  it("ticks the raiders of a hex with no unit of the side's, as raiders move only with raiders", () => {
+    const v = { pieces: { ...view.pieces, lrdg: piece("lrdg", "cw", "raider", "C4021"), sk: piece("sk", "axis", "raider", "C4020") } } as unknown as View;
+    expect(defaultTicked(v, "C4021", "cw")).toEqual(["lrdg"]);
+    expect(defaultTicked(v, "C4020", "axis")).toEqual(["hq", "bn"]);
+  });
   it("in phases H and J ticks the side's supply units instead, the only pieces that move there (32.31, 32.3x)", () => {
     for (const phase of ["truck-convoy", "rail"]) {
       const v = { ...view, clock: { phase } } as unknown as View;

@@ -61,6 +61,7 @@ pub struct Data {
     pub convoy_lanes: cna_data::convoy::ConvoyLanes,
     pub convoy_bombing: cna_data::convoy::ConvoyBombing,
     pub convoy_bombardment: cna_data::convoy::ConvoyBombardment,
+    pub raid_on_rommel: cna_data::raid::RaidOnRommel,
 }
 
 impl Data {
@@ -102,6 +103,7 @@ impl Data {
             convoy_lanes: cna_data::convoy::ConvoyLanes::load_from(src)?,
             convoy_bombing: cna_data::convoy::ConvoyBombing::load_from(src)?,
             convoy_bombardment: cna_data::convoy::ConvoyBombardment::load_from(src)?,
+            raid_on_rommel: cna_data::raid::RaidOnRommel::load_from(src)?,
         })
     }
 

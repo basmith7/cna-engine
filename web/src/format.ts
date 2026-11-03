@@ -4,7 +4,7 @@
 import { itemName } from "./construction";
 import { PHASE_NAMES, SEGMENT_NAMES, sideName } from "./clock";
 import { laneName } from "./supply";
-import type { BarrageResult, Event, Location, PieceId, RetreatReason, Weather } from "./types";
+import type { BarrageResult, Event, Location, PieceId, RaidResult, RetreatReason, Weather } from "./types";
 
 /** How a piece is named in a line; the app passes the view's labels. */
 export type Namer = (id: PieceId) => string;
@@ -41,6 +41,13 @@ const REASON: Record<RetreatReason, string> = {
   "rommel-alone": "Rommel's stack destroyed",
 };
 
+const RAID: Record<RaidResult, string> = {
+  "rommel-removed": "Rommel is removed for good",
+  "lrdg-eliminated": "the raid fails",
+  "axis-initiative-3-temporary": "the Axis initiative rating drops to 3 for a while",
+  none: "no effect",
+};
+
 const STEP = { "gun-positions": "gun positions", barrage: "barrage", "assign-forces": "force assignment" } as const;
 
 /** "N <unit>" for a count the other side may know, `withheld` when the server held it back (3.61). */
@@ -50,6 +57,14 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if (e === "set-up-complete") return "Set-up complete; play begins.";
   if (e === "rommel-recalled") return "Rommel is recalled to Germany for this Game-Turn.";
   if (e === "bizerta-opened") return "The Axis may now sail convoys to Bizerta (55.17).";
+  if ("raider-spotted" in e) {
+    const d = e["raider-spotted"];
+    return `${name(d.piece)} entering ${d.hex} rolls ${d.roll} to stay unseen: ${d.eliminated ? "spotted and eliminated" : "not spotted"}.`;
+  }
+  if ("rommel-raided" in e) {
+    const d = e["rommel-raided"];
+    return `${name(d.piece)} raids Rommel at ${d.hex}: ${d.roll}, ${RAID[d.result]}; the raider ${d.lrdg_eliminated ? "is eliminated" : "survives"}.`;
+  }
   if ("phase-started" in e) {
     const c = e["phase-started"].clock;
     return `Game-Turn ${c.game_turn} OpStage ${c.stage}: ${PHASE_NAMES[c.phase]}${c.half ? ` (Player ${c.half})` : ""}${c.segment ? `, ${SEGMENT_NAMES[c.segment]}` : ""} begins.`;

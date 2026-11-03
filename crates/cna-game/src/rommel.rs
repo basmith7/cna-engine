@@ -45,6 +45,13 @@ impl GameState {
     /// map, his `initiative_while_recalled` while he is in Germany, else
     /// by the German combat units on the map.
     pub(crate) fn axis_initiative_rating(&self, data: &Data) -> u8 {
+        // A raid on Rommel's 2 (27.92).
+        if self
+            .axis_initiative_pinned_through
+            .is_some_and(|t| self.clock.game_turn <= t)
+        {
+            return crate::raiders::PINNED_AXIS_INITIATIVE;
+        }
         if let Some(c) = self.rommel_on_map().and_then(|p| commander(data, p)) {
             if self.rommel_recalled {
                 return u8::try_from(c.initiative_while_recalled).unwrap_or(0);

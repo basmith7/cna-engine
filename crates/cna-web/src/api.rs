@@ -859,6 +859,8 @@ mod tests {
     ///   its Halfaya infantry in place of order 72, the assault (order
     ///   73) applied: the defenders must retreat three hexes or pay.
     /// - `game-over`: the whole golden game, the report in.
+    /// - `raid-rommel`: Operation Crusader at the Commonwealth's movement
+    ///   segment, a test-only LRDG hidden next to Rommel, who may be raided.
     fn e2e_fixtures() -> Vec<(&'static str, GameState)> {
         let set_up_done = golden_prefix(56);
         assert_eq!(set_up_done.to_act(), Some(Side::Axis));
@@ -1111,9 +1113,95 @@ mod tests {
         }
         assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
 
+        // Operation Crusader played on to the Commonwealth's first
+        // movement segment (every other step passed, the Commonwealth
+        // Player A), with a test-only LRDG hidden next to Rommel: cna has
+        // no raider counters yet (desert raiders plan, Task 3).
+        let mut raid = crusader_set_up.clone();
+        let cw_moving = |s: &GameState| {
+            s.clock.phase == cna_game::clock::Phase::MovementCombat
+                && s.clock.segment == Some(cna_game::clock::Segment::Movement)
+                && s.to_act() == Some(Side::Cw)
+                && s.pending.is_none()
+        };
+        while !cw_moving(&raid) {
+            let player = raid.to_act().expect("the game goes on");
+            let order = match &raid.pending {
+                Some(Pending::Sealed {
+                    step: SealedStep::GunPositions,
+                    ..
+                }) => Order::GunPositions { forward: vec![] },
+                Some(Pending::Sealed {
+                    step: SealedStep::Barrage,
+                    ..
+                }) => Order::Barrage { fires: vec![] },
+                Some(Pending::Sealed {
+                    step: SealedStep::AssignForces,
+                    ..
+                }) => Order::AssignForces {
+                    assignments: vec![],
+                },
+                Some(Pending::DeclareZoc { .. }) => Order::DeclareZoc { exerting: vec![] },
+                _ if raid.clock.phase == cna_game::clock::Phase::InitiativeDeclaration => {
+                    Order::DeclareInitiative { player_a: Side::Cw }
+                }
+                _ => Order::Pass,
+            };
+            raid.apply(crusader, player, order.clone())
+                .unwrap_or_else(|e| panic!("{order:?} at {:?}: {e:?}", raid.clock));
+        }
+        assert!(!raid.rommel_recalled, "Rommel commands this turn");
+        let rommel = raid
+            .pieces
+            .values()
+            .find(|p| p.kind == cna_game::piece::PieceKind::Commander)
+            .and_then(|p| p.hex().cloned())
+            .expect("Rommel is on the map");
+        let beside = crusader
+            .map
+            .neighbours(&rommel)
+            .into_iter()
+            .find(|h| raid.pieces.values().all(|p| p.hex() != Some(h)))
+            .expect("an empty hex next to Rommel");
+        let mut lrdg = raid
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Cw && p.kind == cna_game::piece::PieceKind::Combat)
+            .expect("a Commonwealth unit")
+            .clone();
+        lrdg.id = PieceId::from("unit:cw:lrdg-test".to_owned());
+        lrdg.kind = cna_game::piece::PieceKind::Raider;
+        lrdg.id_code = None;
+        lrdg.toe = 0;
+        lrdg.weapons.clear();
+        lrdg.equivalent = None;
+        lrdg.cpa = None;
+        lrdg.parent = None;
+        lrdg.attached_to = None;
+        lrdg.reserve = None;
+        lrdg.hidden = true;
+        lrdg.location = cna_game::piece::Location::Hex(beside);
+        raid.pieces.insert(lrdg.id.clone(), lrdg.clone());
+        let mut probe = raid.clone();
+        let events = probe
+            .apply(
+                crusader,
+                Side::Cw,
+                Order::RaidRommel {
+                    piece: lrdg.id.clone(),
+                },
+            )
+            .expect("the LRDG next to Rommel may raid him");
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, Event::RommelRaided { .. }))
+        );
+
         vec![
             ("set-up-done", set_up_done),
             ("crusader-set-up", crusader_set_up),
+            ("raid-rommel", raid),
             ("reserve", reserve),
             ("reserve-release", reserve_release),
             ("off-map", off_map),

@@ -419,7 +419,7 @@ impl GameState {
         if !self
             .pieces
             .values()
-            .any(|q| q.side != p.side && q.hex() == Some(h))
+            .any(|q| q.side != p.side && q.kind.holds_ground() && q.hex() == Some(h))
         {
             return Err(Illegal::new("15.0", format!("{h} holds no enemy unit")));
         }

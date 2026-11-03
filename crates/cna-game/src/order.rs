@@ -159,6 +159,9 @@ pub enum Order {
         weapon: String,
         points: u32,
     },
+    /// The phasing Commonwealth player's movement segment: LRDG `piece`,
+    /// next to Rommel's hex, spends 10 CP to raid him (27.6x).
+    RaidRommel { piece: PieceId },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

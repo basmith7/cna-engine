@@ -590,3 +590,22 @@ Done: #98 merged. #99 (bump vendor/cna 442a172, homes for R-142..R-145, R-145 `e
 In flight: CI on #100 (base main), #101 (base m5-r142-slots), #102, #103.
 Next: merge the stack in order, retargeting each child to main BEFORE merging its parent with --delete-branch (deleting #99's branch closed #100; reopened). #103's rail-stop panel went through a screenshot critique; each stop is now grouped and supply units are named (b06a1f6). Then §27 raiders / LRDG.
 Blocked: none.
+
+## 2026-11-03 01:00 MST — autopilot/m5-desert-raiders
+Done: #100, #101, #102 and #103 merged in stack order, each child retargeted to main before its parent merged. Main's gates pass locally (clippy clean, 608 tests pass with 0 failed, probe check up to date). #104 (draft) is the §27 plan: raiders, hidden movement in the enemy view, spotting, and the raid on Rommel. The other 27.5x targets are left out because they don't exist under the abstract block.
+Blocked: two cna requests in PROGRESS: raider counters are missing from the OA data (Rommel's Arrival's Jalo LRDG has `units: []`), and raider supply and dump raids under 32.11.
+Also on #104 (29c0b8c): `Piece.hidden`. The enemy's view and events drop a hidden piece and everything naming it, open information or not. Gates pass locally (612 tests).
+Next: the rest of #104's Task 1: `PieceKind::Raider`, spotting on its own stream, and `Order::RaidRommel`.
+
+
+## 2026-11-03 02:15 MST — autopilot/m5-desert-raiders
+Done: #105 merged 9dca053 (vendor/cna ccc285d, R-146 homed as-decided, slot test). PROGRESS on main 62eee4e: new cna request (The Last Chance's CW armoured rosters are notes, so its brigades start empty and every division is a shell). #104 Task 1 (subagent, 99fbe5a 487b6bb), raid cap 4 in every campaign scenario (b9c0763), Task 2 browser (subagent, eda2532 7b1dddc), fresh review's leaks fixed (5668a91: raiders hold no ground, move apart, moves secret once revealed).
+In flight: #104 gates (cargo test --no-fail-fast, clippy, probe check, web checks, Playwright) then ready + merge.
+Next: merge #104 on green CI; Task 3 waits on cna (raider counters, supply under 32.11). Then §28 commandos (reuse hidden movement) or the next NOT_SIMULATED land gap.
+Blocked: none.
+
+## 2026-11-03 02:47 MST — autopilot/m5-desert-raiders
+Done: Task 2 browser (eda2532..5654824, Playwright 50 passed per subagent), reach capped at CPA 50 (5d90281), main merged + raid-rommel fixture re-pinned to ccc285d (a4a9318; CI's merge-ref caught it). Screenshot critique: accepted (PR comment). PROGRESS on main 535586a.
+In flight: CI on #104 (ready).
+Next: merge #104 on green CI if not merged (`gh pr merge 104 --merge --delete-branch`); then next NOT_SIMULATED land gap a scenario sets up. Task 3 waits on cna.
+Blocked: none.

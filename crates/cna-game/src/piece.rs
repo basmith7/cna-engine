@@ -71,9 +71,20 @@ pub enum PieceKind {
     Commander,
     SupplyUnit,
     DummySupplyUnit,
+    /// A desert raider (27.1x): an LRDG or Sonderkommando Almasy. CPA 50,
+    /// no ratings, no stacking points, no ZOC; never fights or breaks
+    /// down.
+    Raider,
 }
 
 impl PieceKind {
+    /// Whether the piece holds its hex against the enemy: everything bar a
+    /// raider, which an enemy may enter, attack past and retreat through
+    /// (27.32, 27.42), so a hidden one gives nothing away.
+    pub fn holds_ground(self) -> bool {
+        self != PieceKind::Raider
+    }
+
     /// A supply unit, real or dummy (32.1x).
     pub fn is_supply(self) -> bool {
         matches!(self, PieceKind::SupplyUnit | PieceKind::DummySupplyUnit)
@@ -172,6 +183,10 @@ pub struct Piece {
     /// `attached_to` not in play (19.4x substitution); set at each attach.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub substitute: bool,
+    /// Off the map under hidden movement (27.31): its owner alone knows
+    /// where it is, so the enemy's view drops it and everything naming it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
     /// TOE strength points at set-up: the printed points, the row's
     /// `max_toe` for `N`, or the `U@x`/`O@x` figure.
     pub toe: u32,

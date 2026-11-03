@@ -110,10 +110,11 @@
 
 use super::Aliases;
 use crate::event::Event;
-use crate::piece::PieceId;
+use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::scenario::Side;
 use serde_json::Value;
+use std::collections::BTreeSet;
 
 /// What a viewer who is not the side concerned gets.
 enum Seen {
@@ -130,7 +131,8 @@ enum Seen {
 const ID_LISTS: [&str; 5] = ["pieces", "attackers", "firers", "builders", "forward"];
 
 /// Each of `events` as `viewer` may see it (3.61), in order; an *own*
-/// event of the other side is left out.
+/// event of the other side is left out, and so is any event naming one of
+/// its hidden pieces (27.31), even with open information.
 pub fn events_for(
     state: &GameState,
     aliases: &Aliases,
@@ -138,10 +140,30 @@ pub fn events_for(
     viewer: Option<Side>,
     open: bool,
 ) -> Vec<Value> {
+    let hidden = super::state::hidden_from(state, viewer);
+    // A raider moves in secret whatever it is now (27.31): a raid or a
+    // spotting later on must not let its earlier moves through, so the
+    // other side sees it only in the events that put it on the map.
+    let raiders: BTreeSet<&str> = state
+        .pieces
+        .values()
+        .filter(|p| p.kind == PieceKind::Raider && Some(p.side) != viewer)
+        .map(|p| p.id.as_str())
+        .collect();
     events
         .iter()
         .filter_map(|event| {
             let mut v = serde_json::to_value(event).expect("an event serialises");
+            if super::state::names_any(&v, &hidden) {
+                return None;
+            }
+            let reveals = matches!(
+                event,
+                Event::RaiderSpotted { .. } | Event::RommelRaided { .. }
+            );
+            if !reveals && super::state::names_any(&v, &raiders) {
+                return None;
+            }
             if open {
                 return Some(v);
             }
@@ -226,6 +248,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::PhaseSkipped { .. }
         | E::InitiativeDetermined { .. }
         | E::RommelRecalled
+        | E::RaiderSpotted { .. }
+        | E::RommelRaided { .. }
         | E::InitiativeDeclared { .. }
         | E::WeatherSet { .. }
         | E::Placed { .. }
@@ -808,6 +832,63 @@ mod tests {
         assert_eq!(seen_by(&s, &e, Some(Side::Axis)), vec![axis]);
         assert_eq!(seen_by(&s, &e, Some(Side::Cw)), vec![cw]);
         assert_eq!(seen_by(&s, &e, None), vec![neither]);
+    }
+
+    #[test]
+    fn a_revealed_raider_s_earlier_moves_stay_its_own_side_s_27_31() {
+        // Spotted and eliminated, or raiding, the raider is no longer
+        // hidden; the moves that brought it there still are.
+        let mut s = state();
+        let raider = ids(&s).enemy_unit;
+        let p = s.pieces.get_mut(&raider).unwrap();
+        p.kind = PieceKind::Raider;
+        p.hidden = false;
+        let moved = Event::Moved {
+            pieces: vec![raider.clone()],
+            from: hex("C4807"),
+            to: hex("C4808"),
+            cost: Cp::whole(3),
+        };
+        let spotted = Event::RaiderSpotted {
+            piece: raider.clone(),
+            hex: hex("C4808"),
+            roll: 6,
+            eliminated: true,
+        };
+        let both = [moved.clone(), spotted.clone()];
+        for open in [false, true] {
+            let seen = |viewer| events_for(&s, &Aliases::new(KEY), &both, viewer, open);
+            assert_eq!(seen(Some(Side::Axis)), vec![whole(&spotted)], "open {open}");
+            assert_eq!(seen(None), vec![whole(&spotted)], "open {open}");
+            assert_eq!(seen(Some(Side::Cw)).len(), 2, "open {open}");
+        }
+    }
+
+    #[test]
+    fn a_hidden_piece_s_moves_reach_its_own_side_alone_27_31() {
+        let mut s = state();
+        let raider = ids(&s).enemy_unit;
+        s.pieces.get_mut(&raider).unwrap().hidden = true;
+        let e = Event::Moved {
+            pieces: vec![raider.clone()],
+            from: hex("C4807"),
+            to: hex("C4808"),
+            cost: Cp::whole(3),
+        };
+        for open in [false, true] {
+            let seen = |viewer| {
+                events_for(
+                    &s,
+                    &Aliases::new(KEY),
+                    std::slice::from_ref(&e),
+                    viewer,
+                    open,
+                )
+            };
+            assert!(seen(Some(Side::Axis)).is_empty(), "open {open}");
+            assert!(seen(None).is_empty(), "open {open}");
+            assert_eq!(seen(Some(Side::Cw)), vec![whole(&e)], "open {open}");
+        }
     }
 
     #[test]

@@ -159,7 +159,10 @@ impl GameState {
     /// an empty neighbour free of enemy ZOC.
     pub(crate) fn retreat_path_exists(&self, data: &Data, start: &HexId, side: Side) -> bool {
         data.map.neighbours(start).iter().any(|n| {
-            !self.pieces.values().any(|q| q.hex() == Some(n))
+            !self
+                .pieces
+                .values()
+                .any(|q| q.kind.holds_ground() && q.hex() == Some(n))
                 && self.zoc_at(data, n, side) == Zoc::Clear
         })
     }

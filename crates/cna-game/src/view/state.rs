@@ -17,6 +17,11 @@
 //! 3. **Aliases:** every enemy supply id in the result, values and keys,
 //!    is replaced by its alias (`Aliases`), unless information is open.
 //!
+//! Hidden movement (27.31), with or without open information: a piece of
+//! the other side marked `hidden` goes from the view, with every key,
+//! element and entry that names it; `events_for` drops each event that
+//! names it.
+//!
 //! Once the game is over nothing is secret: everything bar `log` and
 //! `rng` is shown to everyone.
 //!
@@ -47,6 +52,7 @@ use crate::state::{GameState, Pending};
 use anyhow::{Context, Result};
 use cna_data::scenario::Side;
 use serde_json::{Map, Value, json};
+use std::collections::BTreeSet;
 
 /// The `Piece` fields an enemy sees: the counter's face and the markers
 /// the board shows.
@@ -96,6 +102,8 @@ pub const ENEMY_PIECE_REMOVES: &[&str] = &[
     "breakdown_checked",
     "flown",
     "shell",
+    // The whole piece goes from the enemy's view while hidden (27.31).
+    "hidden",
 ];
 
 /// Top-level fields shown to the enemy as they are (aliased).
@@ -270,13 +278,22 @@ pub fn view_for(
             }
         }
     }
+    // Hidden movement (27.31) is a rule, not limited intelligence: an
+    // enemy piece off the map goes even with open information.
+    let hidden = hidden_from(state, viewer);
+    if !hidden.is_empty() {
+        strip_hidden(&mut v, &hidden);
+    }
     if open {
         return Ok(v);
     }
 
     // Layer 2: limited intelligence.
     for p in state.pieces.values().filter(|p| is_enemy(p.side)) {
-        let Some(o) = v["pieces"][p.id.as_str()].as_object_mut() else {
+        let Some(o) = v["pieces"]
+            .get_mut(p.id.as_str())
+            .and_then(Value::as_object_mut)
+        else {
             continue;
         };
         o.retain(|k, _| ENEMY_PIECE_KEEPS.contains(&k.as_str()));
@@ -359,6 +376,53 @@ pub fn view_for(
 }
 
 /// The labels every piece carries, and the shell flag (9.26).
+/// The ids of pieces `viewer` may not see at all: the other side's
+/// hidden ones (27.31).
+pub(super) fn hidden_from(state: &GameState, viewer: Option<Side>) -> BTreeSet<&str> {
+    state
+        .pieces
+        .values()
+        .filter(|p| p.hidden && Some(p.side) != viewer)
+        .map(|p| p.id.as_str())
+        .collect()
+}
+
+/// Whether `v` names any of `hidden`, as a key or a string anywhere.
+pub(super) fn names_any(v: &Value, hidden: &BTreeSet<&str>) -> bool {
+    match v {
+        Value::String(s) => hidden.contains(s.as_str()),
+        Value::Array(a) => a.iter().any(|x| names_any(x, hidden)),
+        Value::Object(o) => o
+            .iter()
+            .any(|(k, x)| hidden.contains(k.as_str()) || names_any(x, hidden)),
+        _ => false,
+    }
+}
+
+/// Removes every mention of a hidden piece: a key naming it, an array
+/// element that is its id, and an object or element whose own field is
+/// its id (a `moved` entry, a pending step).
+fn strip_hidden(v: &mut Value, hidden: &BTreeSet<&str>) {
+    let names = |x: &Value| match x {
+        Value::String(s) => hidden.contains(s.as_str()),
+        Value::Object(o) => o
+            .values()
+            .any(|f| f.as_str().is_some_and(|s| hidden.contains(s))),
+        _ => false,
+    };
+    match v {
+        Value::Array(a) => {
+            a.retain(|x| !names(x));
+            a.iter_mut().for_each(|x| strip_hidden(x, hidden));
+        }
+        Value::Object(o) => {
+            o.retain(|k, x| !hidden.contains(k.as_str()) && !names(x));
+            o.values_mut().for_each(|x| strip_hidden(x, hidden));
+        }
+        _ => {}
+    }
+}
+
 fn label(state: &GameState, data: &Data, v: &mut Value) -> Result<()> {
     for p in state.pieces.values() {
         let unit_type = p
@@ -624,6 +688,36 @@ mod tests {
         for key in ["prisoners", "guards", "prisoners_out", "escaped"] {
             assert!(v[key].get("axis").is_none(), "{key}");
             assert!(v[key].get("cw").is_some(), "{key}");
+        }
+    }
+
+    fn mentions(v: &Value, id: &str) -> bool {
+        names_any(v, &BTreeSet::from([id]))
+    }
+
+    #[test]
+    fn a_hidden_raider_is_gone_from_the_enemy_s_view_27_31() {
+        let data = data();
+        let mut s = golden(&data, 70);
+        let full = view_for(&s, &data, &a(), Some(Side::Axis), true).unwrap();
+        // A Commonwealth piece the board names somewhere besides `pieces`.
+        let id = s
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind == PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .find(|id| {
+                let mut f = full.clone();
+                f.as_object_mut().unwrap().remove("pieces");
+                mentions(&f, id.as_str())
+            })
+            .unwrap();
+        s.pieces.get_mut(&id).unwrap().hidden = true;
+        for open in [false, true] {
+            let v = view_for(&s, &data, &a(), Some(Side::Axis), open).unwrap();
+            assert!(!mentions(&v, id.as_str()), "open {open}");
+            let own = view_for(&s, &data, &a(), Some(Side::Cw), open).unwrap();
+            assert!(own["pieces"].get(id.as_str()).is_some(), "open {open}");
         }
     }
 
