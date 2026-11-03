@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use cna_embed::RULES_COMMIT;
 use cna_server::games::{Games, MAX_IDLE};
-use cna_server::{App, Config, migrate, router};
+use cna_server::{App, Config, migrate, router, with_web};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -42,7 +42,12 @@ async fn main() -> Result<()> {
             }
         });
     }
-    let app = router(app).layer(TraceLayer::new_for_http());
+    let routes = router(app);
+    let routes = match config.web_dist.clone() {
+        Some(dist) => with_web(routes, dist),
+        None => routes,
+    };
+    let app = routes.layer(TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(config.bind)
         .await
         .with_context(|| format!("binding {}", config.bind))?;

@@ -16,6 +16,7 @@ use anyhow::{Context, Result};
 use axum::Router;
 use axum::extract::{FromRef, State};
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::routing::get;
 use sqlx::PgPool;
 use std::collections::BTreeSet;
@@ -147,6 +148,32 @@ pub fn router(app: App) -> Router {
         .with_state(app)
 }
 
+/// `router` serving the built client from `dist` too: its files as they
+/// are, and `index.html` for any other path the client routes itself
+/// (`/game/{id}`, `/join/{id}`, the lobby). Paths under the server's
+/// own prefixes stay 404s rather than pages.
+pub fn with_web(router: Router, dist: PathBuf) -> Router {
+    use tower::ServiceExt;
+    use tower_http::services::{ServeDir, ServeFile};
+    let files = ServeDir::new(&dist).fallback(ServeFile::new(dist.join("index.html")));
+    router.fallback(move |req: axum::extract::Request| {
+        let files = files.clone();
+        async move {
+            let path = req.uri().path();
+            if ["/api", "/admin", "/auth"]
+                .iter()
+                .any(|p| path == *p || path.starts_with(&format!("{p}/")))
+            {
+                return StatusCode::NOT_FOUND.into_response();
+            }
+            match files.oneshot(req).await {
+                Ok(r) => r.into_response(),
+                Err(e) => match e {},
+            }
+        }
+    })
+}
+
 /// 200 `ok` when the database answers, 503 when it does not.
 async fn healthz(State(games): State<games::Games>) -> (StatusCode, &'static str) {
     match sqlx::query("SELECT 1").execute(games.pool()).await {
@@ -164,6 +191,52 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn the_client_is_served_with_its_own_routes_and_the_servers_kept() {
+        let dist = std::env::temp_dir().join(format!("cna-web-dist-{}", std::process::id()));
+        std::fs::create_dir_all(dist.join("assets")).unwrap();
+        std::fs::write(dist.join("index.html"), "<!doctype html>app").unwrap();
+        std::fs::write(dist.join("assets/app.js"), "let x = 1;").unwrap();
+        let app = with_web(
+            Router::new().route("/api/known", get(|| async { "known" })),
+            dist.clone(),
+        );
+        let get = |uri: &'static str| {
+            let app = app.clone();
+            async move {
+                let r = app
+                    .oneshot(Request::get(uri).body(Body::empty()).unwrap())
+                    .await
+                    .unwrap();
+                let status = r.status();
+                let body = axum::body::to_bytes(r.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                (status, String::from_utf8_lossy(&body).into_owned())
+            }
+        };
+        assert_eq!(
+            get("/").await,
+            (StatusCode::OK, "<!doctype html>app".into())
+        );
+        assert_eq!(
+            get("/game/12").await,
+            (StatusCode::OK, "<!doctype html>app".into())
+        );
+        assert_eq!(get("/join/3?invite=abc").await.1, "<!doctype html>app");
+        assert_eq!(
+            get("/assets/app.js").await,
+            (StatusCode::OK, "let x = 1;".into())
+        );
+        assert_eq!(get("/api/known").await, (StatusCode::OK, "known".into()));
+        for uri in ["/api/nope", "/api", "/admin/x", "/auth/nope"] {
+            assert_eq!(get(uri).await.0, StatusCode::NOT_FOUND, "{uri}");
+        }
+        // Outside dist is never served.
+        assert_eq!(get("/../Cargo.toml").await.1, "<!doctype html>app");
+        std::fs::remove_dir_all(&dist).unwrap();
+    }
 
     async fn get_healthz(pool: PgPool) -> (StatusCode, String) {
         let config = Config::from_vars(|k| match k {

@@ -39,7 +39,8 @@ axum = "0.8"
 futures-util = { version = "0.3", default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
 sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "macros", "json"] }
-tower-http = { version = "0.7", features = ["trace", "limit"] }
+tower-http = { version = "0.7", features = ["trace", "limit", "fs"] }
+tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
 base64 = { version = "0.22", optional = true }
 url = { version = "2", optional = true }
