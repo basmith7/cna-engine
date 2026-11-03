@@ -396,7 +396,20 @@ pub fn view_for(
     Ok(v)
 }
 
-/// The labels every piece carries, and the shell flag (9.26).
+/// `state` with every piece hidden from `viewer` off the board, for
+/// trying an order on (a preview): it then answers as `viewer`'s own
+/// view would have it, so a hidden raider's hex walks as empty and
+/// announces nothing (27.31, 27.42).
+pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
+    let mut s = state.clone();
+    for p in s.pieces.values_mut() {
+        if p.hidden && p.side != viewer {
+            p.location = crate::piece::Location::Eliminated;
+        }
+    }
+    s
+}
+
 /// The ids of pieces `viewer` may not see at all: the other side's
 /// hidden ones (27.31).
 pub(super) fn hidden_from(state: &GameState, viewer: Option<Side>) -> BTreeSet<&str> {

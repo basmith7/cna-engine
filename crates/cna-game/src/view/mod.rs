@@ -9,7 +9,7 @@ mod state;
 pub use aliases::Aliases;
 pub use events::events_for;
 pub use leaks::{leaks, refusal_for};
-pub use state::{ENEMY_PIECE_KEEPS, ENEMY_PIECE_REMOVES, view_for};
+pub use state::{ENEMY_PIECE_KEEPS, ENEMY_PIECE_REMOVES, as_known_to, view_for};
 
 #[cfg(test)]
 mod tests {

@@ -142,7 +142,7 @@ mod tests {
     use crate::order::Order;
     use crate::raiders::tests::{graziani, raider};
     use crate::rng::GameRng;
-    use crate::view::{Aliases, events_for};
+    use crate::view::{Aliases, as_known_to, events_for};
 
     fn try_spot(id: &PieceId) -> Order {
         Order::TrySpot { piece: id.clone() }
@@ -325,5 +325,25 @@ mod tests {
         s.apply(&data, Side::Axis, Order::Pass).unwrap();
         assert!(s.clock.phase != Phase::MovementCombat || s.clock.stage != stage);
         assert!(s.spot_tried.is_empty() && s.spot_chances.is_empty());
+    }
+
+    #[test]
+    fn a_preview_on_what_the_mover_knows_walks_through_unannounced() {
+        let data = graziani();
+        let (s, mover, a, b, _) = crossing(&data);
+        let mut known = as_known_to(&s, Side::Axis);
+        let events = walk(&data, &mut known, &mover, &a, &b);
+        assert_eq!(known.pieces[&mover].hex(), Some(&b));
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::RaiderAnnounced { .. })),
+            "{events:?}"
+        );
+        // The raider's own side previews on the full board.
+        assert_eq!(
+            serde_json::to_string(&as_known_to(&s, Side::Cw)).unwrap(),
+            serde_json::to_string(&s).unwrap()
+        );
     }
 }
