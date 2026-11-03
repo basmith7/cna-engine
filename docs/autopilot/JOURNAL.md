@@ -651,3 +651,9 @@ Done: main merged in; review R1 (16.13 limits tallied across the phase in `Stage
 In flight: subagent building Task 2 (browser phase L panel, API, log lines, patrols.spec, existing Playwright drivers passing phase L) on this branch.
 Next: check the subagent's pasted gates; run Playwright in full; fresh review of the panel for leaks; `gh pr ready 110`, merge on green CI.
 Blocked: none.
+
+## 2026-11-03 09:58 MST — autopilot/m5-patrols
+Done: #112 (fleet plan) merged. Fresh review of #110: no server leak beyond phase L's open/skip signal (accepted, documented in view/events.rs as phase K's is); points box clamped; the 16.53 exclusion has no browser control (NOT_SIMULATED). Local: svelte-check 0, vitest 226, patrols.spec 1 passed, view tests ok.
+In flight: CI on #110 (ready); subagent building fleet Task 1 on autopilot/m5-fleet (/tmp/cna-fleet-1).
+Next: merge #110 on green CI; then merge main into #111 (r150), regenerate pins per AGENTS.md, merge.
+Blocked: none.

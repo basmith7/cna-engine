@@ -36,6 +36,13 @@
 //! |---|---|---|---|
 //! | `phase-started` | public | | |
 //! | `phase-skipped` | public | | |
+//!
+//! (Whether phases K and L open is public, and each reads its side's own
+//! units: a skipped phase L tells the enemy that no unit near it has
+//! light-tank points to patrol with, as a skipped phase K tells it there
+//! is nothing to repair. Accepted: the signal is coarse, and opening the
+//! phases on public facts alone would make every player pass them.)
+//!
 //! | `die-rolled` | public, but *own* for `mines at <hex> for <piece>` | that piece | the mine roll tells a 1-point TOE loss of a named piece (status, 3.61); other rolls are made in the open |
 //! | `initiative-determined` | public | | |
 //! | `rommel-recalled` | public | | |

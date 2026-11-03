@@ -32,7 +32,10 @@
   }
 
   function setPoints(o: PatrolSource, n: number) {
-    if (o.piece in chosen) chosen = { ...chosen, [o.piece]: n };
+    // Whole points between 1 and what the unit has (16.11): a typed 3 of
+    // 2 or a 1.5 would only draw a refusal or a parse error.
+    const points = Math.min(Math.max(Math.floor(n) || 1, 1), o.points);
+    if (o.piece in chosen) chosen = { ...chosen, [o.piece]: points };
   }
 </script>
 
