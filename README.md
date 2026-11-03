@@ -24,7 +24,7 @@ cargo run -p cna-probe -- run
 `web/` is the browser UI on the same engine. It plays two ways: hot-seat,
 two players at one screen on the engine compiled to WebAssembly
 (`crates/cna-web`, with the `vendor/cna` data built in), or online
-against `cna-server` (below). Nothing is hosted yet. See [the
+against `cna-server` (below). See [the
 design](docs/designs/2026-10-13-minimal-ui-design.md).
 
 ```bash
@@ -87,6 +87,27 @@ create a game and open its invite link in a private window as bob. The
 lobby lists your games, those awaiting your move first; a game's page is
 `/game/<id>`. Server tests need Postgres:
 `DATABASE_URL=… cargo test -p cna-server --features db-tests,test-auth,fake`.
+
+### Self-hosting
+
+A `v*` tag builds the release image `ghcr.io/basmith7/cna` (the server
+with the browser client built in; `.github/workflows/build.yml`). To run
+your own:
+
+1. Create a Discord application; its OAuth2 redirect is
+   `<your URL>/auth/discord/callback`. For turn alerts, give it a bot and a
+   Discord server of its own that the bot is in (with *Create Instant
+   Invite*): players join it at sign-in, since a bot only DMs people it
+   shares a server with.
+2. Copy `docker-compose.prod.yml` and fill a `.env` beside it from
+   `deploy/.env.example`; set `CNA_PUBLIC_URL` and, if you are not behind a
+   reverse proxy, drop `CNA_TRUST_PROXY`.
+3. `docker compose -f docker-compose.prod.yml up -d`; `/healthz` answers
+   `ok` once Postgres does. Put it behind HTTPS: session cookies are
+   `Secure`.
+
+`deploy/smoke.sh` runs that compose file locally against a fake Discord:
+health, a sign-in and one game created.
 
 ## Playing headless
 

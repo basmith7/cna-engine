@@ -41,18 +41,20 @@ fake_pid=$!
 
 compose up -d --wait
 base=http://localhost:$port
-echo "healthz: $(curl -fsS "$base/healthz")"
-echo "index: $(curl -fsS "$base/" | grep -o '<title>[^<]*</title>')"
+# Each check is assigned before it is printed, so a failing curl stops the run.
+health=$(curl -fsS "$base/healthz"); echo "healthz: $health"
+title=$(curl -fsS "$base/" | grep -o '<title>[^<]*</title>'); echo "index: $title"
 
 # Sign in: our /auth/discord → the fake's consent page → alice's link → our callback.
 consent=$(curl -fsS -c "$jar" -b "$jar" -o /dev/null -w '%{redirect_url}' "$base/auth/discord")
 alice=$(curl -fsS "$consent" | grep -o 'href="[^"]*">alice<' | sed 's/^href="//; s/">alice<$//; s/&amp;/\&/g')
 curl -fsS -c "$jar" -b "$jar" -o /dev/null "$alice"
-echo "me: $(curl -fsS -b "$jar" "$base/api/me")"
+me=$(curl -fsS -b "$jar" "$base/api/me"); echo "me: $me"
 
 game=$(curl -fsS -b "$jar" -H 'Content-Type: application/json' -H "Origin: $base" \
-  -d '{"side":"axis"}' "$base/api/games")
-echo "created: $game"
-echo "my games: $(curl -fsS -b "$jar" "$base/api/games")"
-echo "image health: $(docker inspect -f '{{.State.Health.Status}}' "$(compose ps -q cna)")"
+  -d '{"side":"axis"}' "$base/api/games"); echo "created: $game"
+mine=$(curl -fsS -b "$jar" "$base/api/games?mine"); echo "my games: $mine"
+health=$(docker inspect -f '{{.State.Health.Status}}' "$(compose ps -q cna)")
+echo "container: $health"
+[[ $health == healthy ]]
 echo "smoke: ok"
