@@ -42,8 +42,8 @@ Discord sign-in with PKCE and sessions in Postgres (our own store:
 the sqlx store crate lags sqlx 0.9), rate limits (IPv6 by /64) and
 CSRF checks, admins and suspension, the fake Discord and server in the
 dev compose; a curl sign-in as `alice` works. A fresh review's fixes
-are in. **Slice 4, the lobby and the network client, is PR
-#95 (2026-11-03), built, reviewed and waiting on CI to merge:** the lobby API, the browser's
+are in. **Slice 4, the lobby and the network client, merged as
+#95 (2026-11-03):** the lobby API, the browser's
 engine behind an `Engine` interface (hot-seat unchanged, its 46
 Playwright tests green), a `NetworkEngine` over the API and live
 stream, the lobby screens (my games with my move first, open games,
@@ -52,8 +52,8 @@ account list with suspend/restore), the game page `/game/{id}` and
 invite links `/join/{id}`, and a two-player Playwright run (alice and
 bob sign in through the fake Discord and play the golden game's first
 77 orders by clicks over the server, bob's traffic checked for leaks,
-the final hash equal to a pinned replay) with Postgres in CI. **Slice
-5, turn alerts, is draft PR #96** on top of it: the guild join at
+the final hash equal to a pinned replay) with Postgres in CI. A fresh review found no leak; its fixes are in. **Slice
+5, turn alerts, is draft PR #96:** the guild join at
 sign-in, the outbox written with the order (none within 15 minutes or
 while the player watches the game), the DM sender with retries, and
 the lobby's switch, and the enemy's log lines no longer print
@@ -135,9 +135,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 4 goes on unattended: merge #95
-  after its fresh review and CI, then #96 (retarget to main, its
-  Playwright DM check), then slice 6 (ship). Slice 6 must bind the
+- Nothing waits on Brian. Mission 4 goes on unattended: finish #96
+  (its Playwright DM check, a fresh review), then slice 6 (ship).
+  #95's review left two follow-ups: the other player's live stream
+  hears nothing when a game starts or ends (a reload shows it), and
+  the two-player e2e judges each message's leaks against the state at
+  check time, not send time. Slice 6 must bind the
   server behind Pangolin only: `CNA_TRUST_PROXY=1` trusts
   `X-Forwarded-For` from whoever reaches the port.
 - The online game page reuses Mission 3's panels; a fresh critique of
