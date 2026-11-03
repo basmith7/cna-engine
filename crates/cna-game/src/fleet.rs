@@ -253,7 +253,7 @@ impl GameState {
         let ships: Vec<PieceId> = self
             .fleet
             .iter()
-            .filter(|(id, r)| r.stationed || self.free_to_sail(id))
+            .filter(|(id, r)| r.stationed || self.free_to_sail(data, id))
             .map(|(id, _)| id.clone())
             .collect();
         if ships.is_empty() {

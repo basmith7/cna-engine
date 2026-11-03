@@ -113,6 +113,9 @@
       "owed": 0
     }
   },
+  "fleet_strikes": {
+    "axis": 1
+  },
   "attachment_tracked": true,
   "weather": "hot",
   "pieces": {
