@@ -2,8 +2,9 @@
 
 <script lang="ts">
   // The Commonwealth's warships at sea (30.1x): a navy hull with the
-  // ship's name, drawn in the top half of its hex so a land stack on the
-  // same coastal hex stays readable. Ships in port are listed in the
+  // ship's name, drawn inside the top half of its hex, clear of the hex
+  // number at the bottom, so a land stack on the same coastal hex stays
+  // readable. Ships in port are listed in the
   // phase E panel, not drawn.
   import { COUNTER, shipName, shipsAtSea } from "./counters";
   import { centre } from "./geom";
@@ -17,10 +18,10 @@
 <g class="ships" data-testid="ships" data-count={groups.reduce((n, [, ps]) => n + ps.length, 0)}>
   {#each groups as [hex, ships] (hex)}
     {@const [cx, cy] = centre(hex)}
-    <g class="at" data-hex={hex} transform="translate({cx} {cy - S * 0.55})">
+    <g class="at" data-hex={hex} transform="translate({cx} {cy - S * 0.3})">
       {#each ships as p, i (p.id)}
         <g class="ship" class:fired={view.fleet?.[p.id]?.fired} data-unit={p.id} data-ship={p.id} data-hex={hex} transform="translate(0 {-i * S * 0.32})">
-          <path d="M {-S * 0.55} {-S * 0.12} L {S * 0.55} {-S * 0.12} L {S * 0.4} {S * 0.14} L {-S * 0.45} {S * 0.14} Z" />
+          <path d="M {-S * 0.45} {-S * 0.12} L {S * 0.45} {-S * 0.12} L {S * 0.32} {S * 0.14} L {-S * 0.36} {S * 0.14} Z" />
           <text y={S * 0.07}>{shipName(p.id)}</text>
         </g>
       {/each}
