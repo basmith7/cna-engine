@@ -767,3 +767,9 @@ Done: the killed third run's work recovered. #140 (campaign victory) merged; #14
 In flight: this PR #142 (vendor/cna → e5479f0 + roads_built) conflicts with main since #141: merge origin/main, take either side of fixtures/tests/games pins, union-resolve Modules fields in state.rs / cna-play main.rs, regenerate pins (AGENTS.md), gates, merge.
 Next: merge #139/#144 if green (re-pin #142 after #139). Then follow-ups: #141 review's open points (Bardia forts may be optional: cna question; set-up placement ignores enemy ZOC; view_for at The Last Chance set-up ~210 ms native: work_placements recomputed per view); #139's open points (0-TOE battalion can't be eliminated; player can't pick which unit a repair credits). 61.72 waits on the cna request filed on main.
 Blocked: none.
+
+## 2026-11-06 07:20 MST — autopilot/m5-unattached-motorisation
+Done: cna answered the motorisation request (R-160, cna #293). b230864 on #145 (draft): vendor/cna → e9a90b3, pins regenerated; `unattached_motorisation` module (`cna-game::unattached`): owners divide 61.72's points at set-up with `PlaceMotorisation`; set-up panel control + Playwright test. Gates green locally.
+In flight: fresh review of #145; full Playwright run; CI.
+Next: fix review findings, ready + merge #145, delete the Requests-for-cna bullet. Then close the set-ups plan (Task 8's rows were already rewritten: tick it) and Mission 5's docs PR (design Status, README, queue row 5 done) → MISSION 5 COMPLETE → next mission's Part 0 spec (Logistics Game, §48–58; large, so `needs-brian`).
+Blocked: none.
