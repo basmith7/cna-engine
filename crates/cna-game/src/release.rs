@@ -581,7 +581,7 @@ mod tests {
         else {
             return false;
         };
-        let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false);
+        let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false, None);
         s.credit_repaired(Side::Cw, &hex, &weapon, taken);
         true
     }
@@ -597,7 +597,7 @@ mod tests {
                 .find(|(_, w)| w.unit.as_ref() == Some(&unit))
                 .map(|(h, w)| (h.clone(), w.weapon.clone()))
                 .expect("a point held for the unit");
-            let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false);
+            let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false, None);
             assert_eq!(taken, vec![(Some(unit.clone()), 1)], "took the unit's own point");
             s.credit_repaired(Side::Cw, &hex, &weapon, taken);
         }

@@ -6,6 +6,7 @@
   // included, so the controls stand down.
   import { sideName } from "./clock";
   import { label } from "./counters";
+  import { wreckOwners } from "./replacements";
   import { LANE_PORTS, laneName, toggleLane } from "./supply";
   import type { HexId, Location, PieceId, Side, View } from "./types";
 
@@ -37,8 +38,8 @@
         | { "destroy-supply": { hex: HexId } }
         | { "air-lift": { piece: PieceId; to: Location } }
         | { "convoy-lanes": { lanes: number[] } }
-        | { repair: { hex: HexId; weapon: string } }
-        | { "facility-repair": { hex: HexId; weapon: string } }
+        | { repair: { hex: HexId; weapon: string; unit?: PieceId } }
+        | { "facility-repair": { hex: HexId; weapon: string; unit?: PieceId } }
         | { "repair-destroyed-tanks": { hex: HexId; weapon: string; points: number } },
     ) => void;
   } = $props();
@@ -79,6 +80,8 @@
   const destroyedRepairs = $derived(c.phase === "repair" && hex !== null ? (view.destroyed_tank_repairs ?? []).filter((o) => o.hex === hex) : []);
   // Phase C, the Axis: the convoy lanes its supply sails by, filled in the order named (32.63); a click names or drops one.
   const lanes = $derived(view.convoy_lanes ?? []);
+  /** A wreck owner's name on a repair button: its counter's short label, else its id. */
+  const ownerName = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
   let ammo = $state(0);
   let fuel = $state(0);
 </script>
@@ -146,12 +149,18 @@
     {/if}
     {#each facilityRepairs as o (o.weapon)}
       <button type="button" data-order="facility-repair" data-weapon={o.weapon} onclick={() => onorder({ "facility-repair": { hex: o.hex, weapon: o.weapon } })}>Repair {o.points} {o.weapon} at the {o.kind} facility</button>
+      {#each wreckOwners(view, o.hex, o.weapon) as unit (unit)}
+        <button type="button" data-order="facility-repair" data-weapon={o.weapon} data-unit={unit} title="Repaired points go back to this unit's wreck first (61.38)" onclick={() => onorder({ "facility-repair": { hex: o.hex, weapon: o.weapon, unit } })}>Repair {o.weapon} at the {o.kind} facility, {ownerName(unit)}'s first</button>
+      {/each}
     {/each}
     {#each destroyedRepairs as o (o.weapon)}
       <button type="button" data-order="repair-destroyed-tanks" data-weapon={o.weapon} onclick={() => onorder({ "repair-destroyed-tanks": { hex: o.hex, weapon: o.weapon, points: o.points } })}>Try {o.points} destroyed {o.weapon} at the {o.kind} facility</button>
     {/each}
     {#each repairs as weapon (weapon)}
       <button type="button" data-order="repair" data-weapon={weapon} onclick={() => hex && onorder({ repair: { hex, weapon } })}>Repair {weapon} at {hex}</button>
+      {#each hex ? wreckOwners(view, hex, weapon) : [] as unit (unit)}
+        <button type="button" data-order="repair" data-weapon={weapon} data-unit={unit} title="Repaired points go back to this unit's wreck first (61.38)" onclick={() => hex && onorder({ repair: { hex, weapon, unit } })}>Repair {weapon} at {hex}, {ownerName(unit)}'s first</button>
+      {/each}
     {/each}
     {#if endSegment}
       <button type="button" data-order="end-segment" onclick={() => onorder("end-segment")}>End segment</button>

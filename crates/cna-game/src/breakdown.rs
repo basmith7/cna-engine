@@ -431,7 +431,8 @@ impl GameState {
     /// in the unit's hex, at the unit's OA maximum, held for that unit
     /// (61.38). Run once set-up is done, since the 7th Armoured is placed
     /// by its owner. A battalion left with no TOE is not eliminated: its
-    /// tanks are its own, waiting for repair.
+    /// tanks are its own, waiting for repair, unless an assault leaves it
+    /// alone (`eliminate_bare`).
     pub(crate) fn place_tanks_with_units(&mut self, data: &Data) {
         if !(self.modules.tanks_with_units && self.modules.breakdown) {
             return;
@@ -679,6 +680,7 @@ mod tests {
                 hex: hex.clone(),
                 weapon: weapon.clone(),
                 fuel_from: None,
+                unit: None,
             };
             let events = s.apply(&data, Side::Cw, order).unwrap();
             let crate::event::Event::FieldRepaired { repaired: n, .. } = events[0] else {

@@ -4,6 +4,7 @@
 
 use crate::piece::PieceId;
 use cna_data::map::HexId;
+use cna_data::oa::UnitId;
 use cna_data::off_map::OffMapPlace;
 use cna_data::scenario::Side;
 use serde::{Deserialize, Serialize};
@@ -142,6 +143,11 @@ pub enum Order {
         weapon: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
+        /// The unit whose broken-down `weapon` points in `hex` the
+        /// repaired points go back to first (61.38's `all_tanks`); none
+        /// takes the wrecks in the order they are held.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        unit: Option<UnitId>,
     },
     /// Phase K: one facility-repair roll for the player's broken-down
     /// `weapon` in `hex`, a repair facility of its own (22.3x); with
@@ -152,6 +158,9 @@ pub enum Order {
         weapon: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
+        /// As for `Repair`: the unit whose wreck is repaired first.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        unit: Option<UnitId>,
     },
     /// Phase K: attempt `points` of the player's destroyed `weapon` tanks
     /// in `hex`, a repair facility of its own, a die each on the

@@ -4,9 +4,11 @@
 //! leaves the map.
 
 use super::strength::Part;
+use cna_data::map::HexId;
+use cna_data::scenario::Side;
 use crate::data::Data;
 use crate::event::Event;
-use crate::piece::{Location, PieceId};
+use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 
 /// A piece and how many of its TOE points may be taken.
@@ -87,6 +89,44 @@ impl GameState {
         }
     }
 
+    /// With `tanks_with_units` on, `side`'s combat units in `hex` with no
+    /// TOE left (their tanks broken down for them, 61.38's `all_tanks`)
+    /// are eliminated once no unit of theirs there with TOE remains: an
+    /// assault that finds nothing to fight, or that kills every point
+    /// beside them, clears the hex. A counter with no points has only its
+    /// CPA (3.5), so it has nothing to defend with (15.55) and no point
+    /// for a loss to take; zero by combat is gone (19.62). Their tanks
+    /// stay broken down where they are.
+    pub(crate) fn eliminate_bare(
+        &mut self,
+        hex: &HexId,
+        side: Side,
+        events: &mut Vec<Event>,
+    ) {
+        if !self.modules.tanks_with_units {
+            return;
+        }
+        let ours = || {
+            self.pieces.values().filter(|p| {
+                p.side == side
+                    && p.hex() == Some(hex)
+                    && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+            })
+        };
+        if ours().any(|p| p.toe > 0) {
+            return;
+        }
+        let bare: Vec<PieceId> = ours()
+            .filter(|p| p.kind == PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .collect();
+        for id in bare {
+            self.pieces.get_mut(&id).expect("listed").location = Location::Eliminated;
+            events.push(Event::Eliminated { piece: id.clone() });
+            self.release_attached(&id);
+        }
+    }
+
     /// Removes TOE points from `shares` until their `rate` (raw rating,
     /// armour protection, vulnerability) absorbs at least `needed`, the
     /// highest rate first; points rated zero absorb nothing and stay.
@@ -164,7 +204,6 @@ mod tests {
     use crate::movement::test_support::{hex, pid};
     use crate::piece::Location;
     use crate::state::Modules;
-    use cna_data::scenario::Side;
 
     /// 1 RTR's A9 cruisers at C4021 absorbing 9 damage by protection.
     fn shoot_1_rtr(modules: Modules) -> (GameState, Vec<Event>, u32) {

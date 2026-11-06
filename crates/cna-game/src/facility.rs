@@ -20,6 +20,7 @@ use crate::state::GameState;
 use crate::zoc::Zoc;
 use cna_data::cp::Cp;
 use cna_data::map::{HexId, PlaceKind};
+use cna_data::oa::UnitId;
 use cna_data::scenario::{FacilityKind, Locator, Side};
 use cna_rules::movement::Weather;
 use cna_rules::movement::{Mobility, Step, step_cost};
@@ -199,6 +200,7 @@ impl GameState {
         hex: &HexId,
         weapon: &str,
         fuel_from: Option<&PieceId>,
+        unit: Option<&UnitId>,
     ) -> Result<Vec<Event>, Illegal> {
         if !self.modules.breakdown || self.clock.phase != Phase::Repair {
             return Err(Illegal::new(
@@ -224,6 +226,9 @@ impl GameState {
                 format!("no broken-down {weapon} of yours began this OpStage at {hex}"),
             ));
         }
+        if let Some(u) = unit {
+            self.wreck_owner_bar(hex, player, weapon, u, true)?;
+        }
         let (attempted, paid_by) = self.pay_repair_fuel(data, player, hex, points, fuel_from)?;
         self.field_rolled.insert(key);
         let die = self.rng.d6();
@@ -248,7 +253,7 @@ impl GameState {
         } else {
             (attempted * percent).div_ceil(100)
         };
-        let taken = self.take_wrecks(hex, player, weapon, repaired, true);
+        let taken = self.take_wrecks(hex, player, weapon, repaired, true, unit);
         self.credit_repaired(player, hex, weapon, taken);
         Ok(vec![Event::FacilityRepaired {
             hex: hex.clone(),
@@ -494,6 +499,7 @@ mod tests {
             hex: hex.clone(),
             weapon: "Matilda".into(),
             fuel_from: None,
+            unit: None,
         }
     }
 
