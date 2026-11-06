@@ -46,19 +46,19 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-094 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-095 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-096 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-097 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-097 | Group One's pre-play convoys: every scenario loads now (#61, #67), but whether the Game-Turn 1 and 2 convoys sail as planned and unbombed has not been checked against `cna-game::convoy` yet (`docs/plans/2026-11-06-m5-scenario-set-ups.md`) |
 | R-098 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-099 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-099 | as decided (#126): `cna-game::facility` reads each side's `repair` blocks, else 22.31's list, so Tobruk is temporary in Graziani's Offensive and the Italian Campaign |
 | R-100 | which arrival wins (schedule over OA sheet): no game state yet; Mission 2 slice 2 follows the schedule, which is the accepted option (spec, PR #5) |
-| R-101 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-102 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-103 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-104 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-105 | scenario ruling (other scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-101 | applied through the scenario's victory data (`cna-game::victory`, #63): Rommel's Arrival is judged by the places each side's combat units hold, with no supply condition |
+| R-102 | not built: Group Two's printed starting motorisation points (61.72, the scenario's `motorisation` block) are not read; Task 5 of `docs/plans/2026-11-06-m5-scenario-set-ups.md` |
+| R-103 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
+| R-104 | the Desert Fox campaign's set-up and length come from its data (it extends Rommel's Arrival); the campaign game's victory rules (64.7) it is judged by are not built (Task 7 of the scenario set-ups plan) |
+| R-105 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-106 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-107 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-108 | scenario ruling (El Alamein scenarios); the engine loads only Graziani's Offensive so far (Mission 2) |
-| R-109 | scenario ruling (campaign games); the engine loads only Graziani's Offensive so far (Mission 2) |
+| R-108 | applied in cna's scenario data (`start`, `end`), which the engine's clock follows |
+| R-109 | not built: the campaign game's victory rules (64.7x); Task 7 of `docs/plans/2026-11-06-m5-scenario-set-ups.md` |
 | R-111 | Air Game: not in the engine yet |
 | R-112 | Air Game: not in the engine yet |
 | R-113 | Air Game: not in the engine yet |
