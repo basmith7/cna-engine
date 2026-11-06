@@ -24,6 +24,18 @@ test("Operation Crusader starts from the start screen, its pieces pending set-up
   await expect(page.locator("[data-stack]").first()).toBeVisible();
 });
 
+test("Operation Crusader: roads the scenario builds at set-up are drawn finished over the map's unfinished ones (59.12)", async ({ page }) => {
+  await openFixture(page, "crusader-set-up");
+  const built = (await page.evaluate(() => window.__cna.view())).built_hexsides!;
+  expect(built.roads.length).toBeGreaterThan(0);
+  const drawn = page.getByTestId("built-hexsides").locator("path.hexside.road");
+  await expect(drawn).toHaveCount(built.roads.length);
+  const [a, b] = built.roads[0];
+  // Under it, the base map's own unfinished road on the same hexside.
+  const base = page.locator(`g.hexsides path.hexside.unfinished-road[data-a="${a}"][data-b="${b}"], g.hexsides path.hexside.unfinished-road[data-a="${b}"][data-b="${a}"]`);
+  await expect(base).toHaveCount(1);
+});
+
 test("Operation Crusader set up: Rommel stands with the Savona Division, whose units show his +5 CPA (31.0, R-137)", async ({ page }) => {
   await openFixture(page, "crusader-set-up");
   await clickHex(page, "C3618");

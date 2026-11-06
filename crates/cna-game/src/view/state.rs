@@ -211,7 +211,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// `facility_repairs`, the phasing viewer's facility rolls (22.3x), and
 /// `destroyed_tank_repairs`, its destroyed tanks it may try (22.4x); and
 /// at set-up `work_options`, where the viewer may place its set-up works
-/// and whether it may pass on the rest (59.12).
+/// and whether it may pass on the rest (59.12); and `built_hexsides`, the
+/// scenario's roads and railroads finished at set-up (`roads_built`).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -249,6 +250,16 @@ pub fn view_for(
         .unwrap_or_default();
     if !patrols.is_empty() {
         obj.insert("patrol_options".into(), json!(patrols));
+    }
+    // The scenario's roads and railroads built at set-up, which the map
+    // as drawn shows unfinished (`roads_built`): open to everyone.
+    if state.modules.roads_built
+        && (!data.built.roads.is_empty() || !data.built.railroads.is_empty())
+    {
+        obj.insert(
+            "built_hexsides".into(),
+            json!({"roads": data.built.roads, "railroads": data.built.railroads}),
+        );
     }
     if let Some(o) = viewer.and_then(|side| state.work_options(data, side)) {
         obj.insert("work_options".into(), o);
