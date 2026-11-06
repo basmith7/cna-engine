@@ -24,7 +24,18 @@ each side divides among cna's hexes at set-up from the set-up panel;
 scenario builds at set-up as finished; #146 closes the mission's docs
 (design Status, README, queue). **Mission 6, the Logistics Game, Part 0:**
 spec and plan in PR #148, labelled `needs-brian`, waiting on your review;
-it posts two requests to cna (below).
+cna has since answered both of its requests (R-163, R-166).
+
+**2026-11-06 evening:** #154 (merged) bumps `vendor/cna` to 9336fcc (cna's
+answers to four requests) and builds two of them. R-161: the Tobruk
+forts in Rommel's Arrival and the Bardia forts in The Last Chance are a
+maximum, so the set-up panel offers Done before they are placed. R-162:
+a set-up work whose hex the owner chooses may not stand in an enemy ZOC
+or enemy-held hex. If the other side's set-up later puts it in one, the
+work comes off and its owner places it again, works only. A fresh review
+caught a redeploy loop, now fixed. R-163 and R-166 belong to the
+Logistics Game and wait for Mission 6. #155 (merged) brings `NOT_SIMULATED.md`'s
+lagging rows up to date (ammunition and fuel, replacements).
 
 **MISSION 4 COMPLETE** (2026-11-03): online play, built and tested
 locally, not hosted. **Slice 6, ship, merged as #97:** one image
@@ -317,9 +328,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   #151 (Mission 3's polish residue: hex labels, tray counters, badge,
   "More below" cue, end dialog at 390 px) merged; a fresh
   critique's fixes are in. #153 (merged): `cargo fmt` over the
-  workspace and `cargo fmt --all --check` in CI. Still open: Bardia's set-up forts and set-up
-  works vs enemy ZOC, both asked of cna below.
-- `vendor/cna` is at cna e9a90b3 (#145).
+  workspace and `cargo fmt --all --check` in CI. Bardia's forts and
+  set-up works vs enemy ZOC: answered by cna and built in #154.
+- `vendor/cna` is at cna 9336fcc (#154).
+- Next Land Game gap for a run with nothing else: reassignment (19.2x:
+  an independent unit taking a free slot, the Commonwealth battalion
+  shuffle), listed under *Not yet* in `NOT_SIMULATED.md`'s Organisation row.
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -382,29 +396,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **What units hold at the start of a Logistics Game** (Mission 6, slice 1
-  of `docs/plans/2026-11-06-logistics-game.md`, spec PR #148). 59.4–59.6
-  list dumps and trucks, but no case says what a combat unit itself holds
-  when play begins: fuel in its tanks (49.14), the one fire of ammunition a
-  TOE point carries without trucks (50.15.2), water and stores. A ruling
-  (the spec's working default: tanks full, one fire a TOE point, one
-  stage's water, nothing else) or data per scenario.
-- **Pipelines as typed data** (Mission 6, slice 7, spec PR #148). Scenarios
-  name pipelines only in notes (Crusader's "from the railhead to Bir
-  Khamsa", "along railroad hexes"); neither `data/map/` nor a scenario's
-  `construction` block lists pipeline hexes, which 52.2x needs.
-- **Whether The Last Chance's Bardia forts are optional** (Mission 5
-  follow-up, #141's review). The prose (63.76) says the Axis *may* add
-  three level-1 forts among the four hexes next to Bardia; the typed
-  `fortifications` row says it picks three, so the engine requires all
-  three before set-up ends. A ruling: exactly three, up to three, or none
-  at all, so the row's count matches.
-- **Whether works placed at set-up obey enemy ZOC** (Mission 5 follow-up,
-  #141's review). 24.4x bars starting a fort in an enemy ZOC, and the
-  engine's set-up placement (`placed_works`: Rommel's Arrival's Tobruk
-  forts, The Last Chance's forts and minefields) ignores ZOC because
-  set-up is not construction. A ruling on whether set-up placement is
-  construction for 24.35/24.44, or a note in the scenarios that it is not.
 - **A combat unit at 0 TOE** (Mission 5 follow-up, #150). With
   61.38's tanks broken down with their units, a battalion can stand at 0
   TOE. The engine now eliminates such units when an assault leaves their
