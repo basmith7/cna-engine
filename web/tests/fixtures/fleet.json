@@ -23,7 +23,8 @@
     "pre_play_convoys": true,
     "withdrawals": true,
     "broken_down_starts": true,
-    "release_schedule": true
+    "release_schedule": true,
+    "tanks_with_units": true
   },
   "clock": {
     "game_turn": 2,
