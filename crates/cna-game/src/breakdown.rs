@@ -151,7 +151,7 @@ impl GameState {
             .iter()
             .map(|id| &self.pieces[id])
             .find(|p| {
-                p.kind == PieceKind::Combat
+                self.is_combatant(p)
                     && matches!(
                         p.equivalent,
                         Some(Equivalent::Battalion | Equivalent::Brigade)

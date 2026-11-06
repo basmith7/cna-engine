@@ -6,7 +6,7 @@ use super::strength::Kind;
 use crate::clock::Segment;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Location, PieceId, PieceKind};
+use crate::piece::{Location, PieceId};
 use crate::reach::Purpose;
 use crate::state::GameState;
 use crate::state::Pending;
@@ -151,7 +151,7 @@ impl GameState {
         data.map.neighbours(hex).iter().any(|n| {
             self.pieces
                 .values()
-                .any(|q| q.side != player && q.kind == PieceKind::Combat && q.hex() == Some(n))
+                .any(|q| q.side != player && self.is_combatant(q) && q.hex() == Some(n))
         })
     }
 

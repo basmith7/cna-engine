@@ -134,7 +134,7 @@ impl GameState {
         let reach = self.within_line(data, side, line);
         self.pieces
             .values()
-            .filter(|p| p.side == side && p.kind == PieceKind::Combat)
+            .filter(|p| p.side == side && self.is_combatant(p))
             .filter(|p| p.hex().is_some_and(|h| reach.contains(h)))
             .map(|p| p.id.clone())
             .collect()
@@ -158,7 +158,7 @@ impl GameState {
             let here: Vec<_> = self
                 .pieces
                 .values()
-                .filter(|p| p.kind == PieceKind::Combat && p.hex() == Some(h))
+                .filter(|p| self.is_combatant(p) && p.hex() == Some(h))
                 .collect();
             here.iter().all(|p| p.side == Side::Axis) && here.iter().any(|p| traced.contains(&p.id))
         })

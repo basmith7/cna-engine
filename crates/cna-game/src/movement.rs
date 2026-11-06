@@ -257,7 +257,7 @@ impl GameState {
         let kind = |id: &PieceId| self.pieces[id].kind;
         let escorted = |s: &PieceId| {
             pieces.iter().any(|c| {
-                kind(c) == PieceKind::Combat
+                self.is_combatant(&self.pieces[c])
                     && if self.moved.contains(s) {
                         self.escorts.get(s).is_some_and(|e| e.contains(c))
                     } else {
@@ -905,7 +905,7 @@ impl GameState {
             let in_g = self.clock.phase == Phase::MovementCombat;
             let combat: Vec<PieceId> = pieces
                 .iter()
-                .filter(|id| self.pieces[*id].kind == PieceKind::Combat)
+                .filter(|id| self.is_combatant(&self.pieces[*id]))
                 .cloned()
                 .collect();
             for id in pieces {

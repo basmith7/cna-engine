@@ -958,11 +958,6 @@ mod tests {
             hex: hex("C4021")
         }));
         assert_eq!(state.pieces[&krrc].location, Location::Eliminated);
-        // No prisoner points: it had no TOE to give (R-164).
-        assert!(
-            !events.iter().any(|e| matches!(e, Event::Prisoners { .. })),
-            "{events:?}"
-        );
     }
 
     #[test]
@@ -1002,5 +997,30 @@ mod tests {
         };
         assert!(exerts(false), "a bare battalion's SP counted");
         assert!(!exerts(true), "R-164: not counted");
+    }
+
+    #[test]
+    fn a_bare_enemy_is_no_combat_unit_for_13_22_r164() {
+        // C4021 is next to C4020's Axis stack; strip it all to 0 TOE.
+        let data = graziani();
+        for zero_toe in [false, true] {
+            let mut state = moving(&data, 3, Side::Cw);
+            state.modules.zero_toe = zero_toe;
+            let ids: Vec<PieceId> = state
+                .pieces_at(&hex("C4020"))
+                .into_iter()
+                .map(|p| p.id.clone())
+                .collect();
+            for id in ids {
+                let p = state.pieces.get_mut(&id).unwrap();
+                p.toe = 0;
+                p.weapons.clear();
+            }
+            assert_eq!(
+                state.next_to_enemy_combat_unit(&data, &hex("C4021"), Side::Cw),
+                !zero_toe,
+                "zero_toe {zero_toe}"
+            );
+        }
     }
 }

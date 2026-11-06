@@ -4,7 +4,7 @@
 //! checked and what the data could only state in prose.
 
 use crate::data::Data;
-use crate::piece::{PieceId, PieceKind};
+use crate::piece::PieceId;
 use crate::state::GameState;
 use cna_data::map::HexId;
 use cna_data::scenario::{
@@ -181,7 +181,7 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
         let sides: BTreeSet<Side> = state
             .pieces
             .values()
-            .filter(|p| p.kind == PieceKind::Combat && p.hex().is_some_and(|h| hexes.contains(h)))
+            .filter(|p| state.is_combatant(p) && p.hex().is_some_and(|h| hexes.contains(h)))
             .map(|p| p.side)
             .collect();
         let holder = (sides.len() == 1).then(|| *sides.first().unwrap());
@@ -190,9 +190,7 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             let ids: Vec<&PieceId> = state
                 .pieces
                 .values()
-                .filter(|p| {
-                    p.kind == PieceKind::Combat && p.hex().is_some_and(|h| hexes.contains(h))
-                })
+                .filter(|p| state.is_combatant(p) && p.hex().is_some_and(|h| hexes.contains(h)))
                 .map(|p| &p.id)
                 .collect();
             if !ids.iter().any(|id| state.passes_end_supply(data, id)) {
@@ -343,7 +341,7 @@ impl<'a> Tracer<'a> {
     fn holders(&self, hex: &HexId) -> Vec<PieceId> {
         let mut ids: Vec<PieceId> = Vec::new();
         for p in self.state.pieces.values() {
-            if p.hex() != Some(hex) || p.kind != PieceKind::Combat {
+            if p.hex() != Some(hex) || !self.state.is_combatant(p) {
                 continue;
             }
             if p.side != self.side {
@@ -441,6 +439,7 @@ impl<'a> Tracer<'a> {
 mod tests {
     use super::*;
     use crate::piece::Location;
+    use crate::piece::PieceKind;
     use crate::state::test_support::set_up;
 
     fn graziani() -> Data {

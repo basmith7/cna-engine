@@ -1022,7 +1022,7 @@ impl GameState {
             .collect();
         let cleared = !survivors
             .iter()
-            .any(|id| self.pieces[id].kind == PieceKind::Combat);
+            .any(|id| self.is_combatant(&self.pieces[id]));
         if cleared {
             // A hex cleared is a victory for every attacker (6.24).
             for id in &attacker_ids {
