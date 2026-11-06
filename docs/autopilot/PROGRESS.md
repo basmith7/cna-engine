@@ -212,6 +212,19 @@ phase K (22.3x) at the scenario's repair facilities (R-099), engine
 and browser. #127 (draft): towing them toward a facility (21.6x), engine
 only so far; destroyed tanks are planned after it.
 
+**2026-11-06 run:** #127 (towing, 21.6x, with a browser tow panel)
+and #128 (destroyed tanks: markers, capture by a battalion, repair at a
+facility, 14.5x, 22.4x, R-014) merged; a fresh review of #128 found tank
+losses counted twice with captured equipment on (marker and the
+captor's share), fixed there. #129 bumps `vendor/cna` to 4cedfb7 for
+R-153 (the *San Giorgio* needs no ammunition, as the engine already
+played it). #130: The Long Retreat now sets up (a child scenario's
+`sides` replaced its parent's, so it had no units); the scenario smoke
+test now checks both sides have units. #132 (draft → ready, CI):
+Operation Crusader's railway starts at its railhead (C3430) and
+Crusader and The Last Chance start with their forts round Tobruk and
+Bardia, behind two new modules.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -247,14 +260,14 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. #126 (facility repair) is merged; #127
-  (towing, 21.6x) needs a browser control and its web checks, then
-  destroyed tanks (14.5, 22.4x) follow per
-  `docs/plans/2026-11-03-m5-repair-facilities.md`. Its review's
-  readings are in #126's body: an Axis-held Tobruk counts as a major
-  facility in Rommel's Arrival, and facilities never change hands
-  (no hex control yet). The *San Giorgio* fires free until cna
-  answers the ammunition request below.
+- Nothing waits on Brian. Mission 5's second half is under way:
+  `docs/plans/2026-11-06-m5-scenario-set-ups.md` (an audit found the
+  other eight scenarios' set-up blocks read by nothing). #132 (rail ends
+  and set-up forts, carrying #131) is in CI. Withdrawals, forts and
+  minefields a player places, tanks that start broken down, Rommel's
+  Arrival's release rule and the campaigns' ratio levels wait on the two
+  cna requests below. The Long Retreat started with no units until #130.
+- `vendor/cna` is at cna 4cedfb7 (#129).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -353,15 +366,6 @@ the bullet once it lands and `vendor/cna` is bumped.
   (the three campaign games, Desert Fox by R-104), 64.76's ratio levels
   as data on `victory` (as The Long Retreat's `margins` are), so the
   engine need not key on scenario ids.
-- **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
-  R-151's Rationale says ammunition and the rest of the artillery rules
-  apply to the wreck unchanged, but 32.21 charges a barrage by battalion
-  or company equivalent and its OA entry (`unit:it:the-san-giorgio`) has
-  no `id_code`, TOE or size. Wanted: what one barrage costs it under the
-  abstract block (e.g. a size to charge it as, or a fixed figure), and
-  whether it draws from supply in range like any gun. Until then #124
-  fires it free.
-
 ## Runs and quota
 
 | Started | Minutes | Weekly before→after | 5h before→after | Cost | Turns | Result |
