@@ -769,6 +769,43 @@ mod tests {
     }
 
     #[test]
+    fn a_voided_real_minefield_leaves_its_set_and_the_count_r_162() {
+        let data = Data::load("the-last-chance").unwrap();
+        let mut s = ready(&data, Side::Cw);
+        let works = data.scenario.works().unwrap();
+        // An Axis field it chose beyond a set's list, real.
+        let (i, field) = s
+            .works_to_place
+            .iter()
+            .enumerate()
+            .filter(|(_, q)| q.side == Side::Axis && q.minefields)
+            .find_map(|(i, q)| {
+                q.placed
+                    .iter()
+                    .find(|h| q.chosen(&works, h) && s.minefields[*h].real)
+                    .map(|h| (i, h.clone()))
+            })
+            .expect("a chosen real Axis field");
+        let real = s.works_to_place[i].real;
+        let placed = s.works_to_place[i].placed.len();
+        exert_on(&data, &mut s, Side::Cw, &field);
+        let events = fill_works(&data, &mut s, Side::Cw);
+        assert!(events.contains(&Event::SetUpWorkVoided {
+            side: Side::Axis,
+            hex: field.clone(),
+            minefield: true,
+        }));
+        let q = &s.works_to_place[i];
+        assert_eq!((q.real, q.placed.len()), (real - 1, placed - 1));
+        assert!(!s.minefields.contains_key(&field));
+        assert_eq!(s.pending, Some(Pending::SetUp { side: Side::Axis }));
+        // The Axis re-places (or declines) and play begins.
+        let events = fill_works(&data, &mut s, Side::Axis);
+        assert!(events.contains(&Event::SetUpComplete), "{events:?}");
+        assert!(!s.works_reopened);
+    }
+
+    #[test]
     fn no_set_up_fort_in_a_major_city_24_44() {
         // A city keeps its own level (2): a fort there would lower it.
         let data = Data::load("rommels-arrival").unwrap();
