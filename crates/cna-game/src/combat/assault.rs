@@ -681,6 +681,7 @@ impl GameState {
             .collect();
         if fighters.is_empty() {
             // Nothing left to fight: the hex is taken without a roll.
+            self.eliminate_bare(target, other, &mut events);
             self.combat.assaults.insert(
                 target.clone(),
                 AssaultRecord {
@@ -1010,6 +1011,7 @@ impl GameState {
         self.charge_assault_cp(&attackers, target, probe, adjusted <= -4, &mut events);
 
         // What is left in the hex decides the rest.
+        self.eliminate_bare(target, other, &mut events);
         let survivors: Vec<PieceId> = in_hex
             .iter()
             .filter(|id| self.pieces[*id].hex() == Some(target))
@@ -3067,5 +3069,80 @@ mod tests {
         assert!(state.combat.assaults[&hex("C4020")].probe);
         assert_eq!(state.pieces[&rtr].cp_spent, Cp::whole(2));
         assert!(!state.pieces[&rtr].engaged && !state.pieces[&rtr].contact);
+    }
+
+    /// C4020 assaulted by 1 KRRC after every combat unit and HQ there has
+    /// lost its TOE as `all_tanks` leaves a tank battalion (61.38): the
+    /// points are broken down for it, not destroyed.
+    fn assault_a_hex_of_bare_units(tanks_with_units: bool) -> (GameState, Vec<PieceId>, Vec<Event>) {
+        let data = graziani();
+        let mut state = assigning(&data);
+        state.modules.tanks_with_units = tanks_with_units;
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-krrc",
+                        vec![],
+                        vec![alloc(Some("C4020"), 6)],
+                    )],
+                },
+            )
+            .unwrap();
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let bare: Vec<PieceId> = c4020_ids(&state)
+            .into_iter()
+            .filter(|id| matches!(state.pieces[id].kind, PieceKind::Combat | PieceKind::Hq))
+            .collect();
+        for id in &bare {
+            let p = state.pieces.get_mut(id).unwrap();
+            p.toe = 0;
+            p.weapons.clear();
+        }
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        let bare = bare
+            .into_iter()
+            .filter(|id| state.pieces[id].kind == PieceKind::Combat)
+            .collect();
+        (state, bare, events)
+    }
+
+    #[test]
+    fn a_combat_unit_with_no_toe_left_alone_in_an_assaulted_hex_is_eliminated_19_62() {
+        let (state, bare, events) = assault_a_hex_of_bare_units(true);
+        assert!(!bare.is_empty());
+        for id in &bare {
+            assert_eq!(state.pieces[id].location, Location::Eliminated, "{id}");
+            assert!(events.contains(&Event::Eliminated { piece: id.clone() }), "{id}");
+        }
+        // The hex is cleared: a victory for the attacker (6.24).
+        assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cohesion.level, 3);
+        assert_eq!(state.pending, None);
+    }
+
+    #[test]
+    fn without_tanks_with_units_a_bare_combat_unit_stands_as_before() {
+        let (state, bare, _) = assault_a_hex_of_bare_units(false);
+        for id in &bare {
+            assert_eq!(state.pieces[id].hex(), Some(&hex("C4020")), "{id}");
+        }
     }
 }
