@@ -3,7 +3,8 @@
 **Date:** 2026-11-06
 **Mission:** 6 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
 **Status:** proposed; waiting on Brian's review (PR label `needs-brian`).
-Nothing in this spec is built.
+Nothing in this spec is built. Read against cna e9a90b3 (main pins
+e5479f0); slice 1 bumps `vendor/cna` first, per AGENTS.md.
 
 Written by the autopilot under Brian's delegation of 2026-09-26: every
 decision below is Claude's, is cheap to reverse, and can be reversed with
@@ -37,7 +38,7 @@ each ruling a switch): the Logistics Game is what the printed game calls its
 heart, and it is the part no group plays by hand to the end, because the
 bookkeeping is the burden. An engine that keeps the books is the reason to
 play CNA on a computer at all. Every rule lands in `cna-game`'s state
-machine, so the Mission 4 server serves it unchanged; and the eleven
+machine, so the Mission 4 server serves it unchanged; and the six
 logistics rulings with real alternatives get probes, so the water and fuel
 rulings cna decided without evidence (R-020–R-022, R-040–R-043) can be
 looked at again with numbers next to them.
@@ -166,7 +167,7 @@ How the switch is built:
 | Commonwealth base | Cairo holds unlimited supply of every kind (57.0, R-026); Alexandria too in the Italian Campaign; Graziani's 60.44 names both | R-026 |
 | Railway | Each rail run carries units or supplies, never both (R-071), by `equivalent-weights.json`'s stacking points (R-070); Axis rolling stock (54.4x, R-072) in the scenarios that give it | 54.3x–54.4x; `rail.rs` keeps its §32 branch |
 | Trucks under §58 | 58.41's smaller starting fleets (R-091), monthly truck losses (58.42, R-092, `motorisation-losses.json`), trucks withheld on arrival (58.43) | §58 stands in for the Air Game |
-| Rulings | Each logistics ruling whose options a probe can tell apart gets a `Ruleset` switch with the ruling's option numbers and its accepted Decision as default: R-020, R-021, R-022, R-040, R-041, R-042, R-043. The rest are rewritten in `NOT_SIMULATED.md` as "as decided" with their module, in the slice that builds them | AGENTS.md: every ruling a switch or a row; R-001's precedent for switches a probe needs |
+| Rulings | Each logistics ruling whose options a probe can tell apart gets a `Ruleset` switch with the ruling's option numbers and its accepted Decision as default: R-020, R-022, R-040, R-041, R-042, R-043. The rest are rewritten in `NOT_SIMULATED.md` as "as decided" with their module, in the slice that builds them | AGENTS.md: every ruling a switch or a row; R-001's precedent for switches a probe needs |
 | Probes | Water: R-020 (water drawn per well per stage by stack size, options 1–2), R-022 (a stack's assault strength dry, by option). Fuel: R-040 and R-042 (fuel left in a Graziani dump and a tank after six turns, by option), R-041 and R-043 (fuel burned per stage by segment pattern and CPA). `probes/R-020.json` and so on, in the shape of `probes/R-018.json` | AUTOPILOT's "the water and fuel probes"; probes are why rulings are switches |
 | UI | Each slice adds its orders to the existing panels: fuel source and declared CP in `MovePanel`; points fired in the combat panels; the phase C segments as tabs of the organisation panel; a truck convoy panel beside `MarchPanel`; dumps and stocks in the stack panel, the owner's only; stage IV and the convoy plan as a panel like `FleetPanel` | "Shows up in the UI's panels", as in Mission 5 |
 
@@ -179,7 +180,7 @@ How the switch is built:
   `axis-convoy-capacity`, `axis-coastal-ships`, `equivalent-weights`,
   `logistics-sequence`; dump rows' `stores` and `water` (already parsed).
 - `cna-rules`: pure helpers (fuel owed per segment, capacity, ammunition
-  owed, water owed, stores owed, evaporation) and the seven ruling switches.
+  owed, water owed, stores owed, evaporation) and the six ruling switches.
 - `cna-game`: a `logistics` module tree (`stock`, `fuel`, `ammo`, `water`,
   `stores`, `trucks`, `dumps`, `ports`, `tonnage`), `Modules::logistics_game`
   and `supply_mode()`, the clock's stage IV and segments; `Order` and `Event`
@@ -232,7 +233,7 @@ task list for the rest. Each leaves a playable game.
    breaking down. Needs nothing new.
 3. **Water.** Wells, draws, depletion, poisoning and sweetening, oases,
    usage per stage, lack of water, phase C's water-distribution segment;
-   the water probes (R-020, R-022) and switches R-020–R-022. Needs nothing
+   the water probes and switches (R-020, R-022); R-021 as decided. Needs nothing
    new for Graziani.
 4. **Stores, evaporation and attrition.** Stage IV, stores and prisoners,
    disorganisation and attrition, half rations, pasta, evaporation;
