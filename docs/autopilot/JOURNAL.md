@@ -791,3 +791,9 @@ Done: #154 (this branch): vendor/cna → 9336fcc (cna #294–#297), R-161 (`up_t
 In flight: CI on #154/#155; local full Playwright run.
 Next: merge #154, #155 when green; delete the four answered bullets from PROGRESS Requests for cna (keep 0-TOE). Mission 6 still waits on Brian (#148).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 14:35 MST — main (hand-off)
+Done: #154 (vendor/cna 9336fcc; R-161, R-162 with review fix; R-163/R-166 NOT_SIMULATED rows) and #155 (NOT_SIMULATED lag, AGENTS.md) merged; PROGRESS updated, the four answered cna requests removed (0-TOE still open).
+In flight: none.
+Next: if Feedback approves #148, Mission 6 slice 1. Otherwise bump vendor/cna when cna answers the 0-TOE request, or 19.2x reassignment (scoped this run and set aside: elimination happens at many sites and "assigned" is read at ~49; plan an `is_assigned` helper that treats a unit whose parent is eliminated as independent, behind a module).
+Blocked: Mission 6 on Brian's review of #148.
