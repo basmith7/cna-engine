@@ -510,7 +510,11 @@ mod tests {
         assert!(repaired <= 4, "{repaired}");
         assert_eq!(toe_of(&state, &second), second_toe + repaired);
         assert_eq!(held_for(&state, &hex, &second), 4 - repaired);
-        assert_eq!(toe_of(&state, &first), first_toe, "the first unit untouched");
+        assert_eq!(
+            toe_of(&state, &first),
+            first_toe,
+            "the first unit untouched"
+        );
         assert_eq!(held_for(&state, &hex, &first), 4);
     }
 
@@ -523,7 +527,11 @@ mod tests {
             .values()
             .filter(|p| p.side == Side::Axis)
             .filter_map(|p| p.id.unit())
-            .find(|u| state.broken_down[&hex].iter().all(|w| w.unit.as_ref() != Some(u)))
+            .find(|u| {
+                state.broken_down[&hex]
+                    .iter()
+                    .all(|w| w.unit.as_ref() != Some(u))
+            })
             .unwrap();
         let before = serde_json::to_value(&state).unwrap();
         let order = Order::Repair {
