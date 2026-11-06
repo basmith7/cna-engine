@@ -262,6 +262,26 @@ impl GameState {
         }])
     }
 
+    /// Whether the phasing player has broken-down points that might be
+    /// towed: not yet towed, away from a repair facility and in no
+    /// enemy ZOC a friendly combat unit fails to cancel (21.6x). Whether
+    /// a path exists is left to `Order::Tow`.
+    pub(crate) fn tows_to_try(&self, data: &Data) -> bool {
+        let Some(player) = self.phasing() else {
+            return false;
+        };
+        let facilities = self.repair_facilities(data, player);
+        !facilities.is_empty()
+            && self.broken_down.iter().any(|(hex, wrecks)| {
+                !facilities.contains_key(hex)
+                    && wrecks
+                        .iter()
+                        .any(|w| w.side == player && w.points > w.towed)
+                    && (self.zoc_at(data, hex, player) == Zoc::Clear
+                        || self.friendly_combat_in(hex, player, &[]))
+            })
+    }
+
     /// `Order::Tow`: the phasing player's broken-down `weapon` points at
     /// `hex` move along `path` as a medium truck on 10 CP, ending nearer
     /// the repair facility nearest `hex`; not out of an enemy ZOC no
@@ -723,6 +743,30 @@ mod tests {
             points,
             path: path.iter().map(|h| (*h).clone()).collect(),
         }
+    }
+
+    #[test]
+    fn phase_k_opens_for_a_tow_only_with_towing_on_21_6x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, facility, far, _) = two_out(&data);
+        state.broken_down.retain(|h, _| *h == far);
+        assert!(state.field_repairs(&data).is_empty());
+        assert!(state.facility_repairs(&data).is_empty());
+        // Old games: no roll to make, so phase K stays skipped.
+        assert!(!state.repairs_to_try(&data));
+        state.modules.towing = true;
+        assert!(state.repairs_to_try(&data));
+        // At the facility already, there is nothing to tow.
+        let wrecks = state.broken_down.remove(&far).unwrap();
+        state.broken_down.insert(facility, wrecks.clone());
+        assert!(!state.tows_to_try(&data));
+        // Nor out of an enemy ZOC no friendly unit cancels.
+        state.broken_down.clear();
+        state.broken_down.insert(far.clone(), wrecks);
+        assert!(state.tows_to_try(&data));
+        enemy_beside(&data, &mut state, &far);
+        assert!(!state.friendly_combat_in(&far, Side::Cw, &[]));
+        assert!(!state.tows_to_try(&data));
     }
 
     #[test]

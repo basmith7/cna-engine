@@ -338,6 +338,27 @@ test("phase K: Alexandria's major facility repairs broken-down tanks on its own 
   await expect(facility).toHaveCount(0);
 });
 
+test("phase K: broken-down tanks a hex out are towed into Alexandria by clicks, part of them (21.6x)", async ({ page }) => {
+  await openFixture(page, "tow");
+  await expect(page.getByTestId("clock")).toContainText("repair");
+  const panel = page.getByTestId("tow-panel");
+  await panel.getByLabel("Points of Mark VI Light to tow from E3513").fill("3");
+  await panel.locator('[data-testid="tow-arm"][data-hex="E3513"]').click();
+  await expect(panel.getByTestId("tow-send")).toBeDisabled();
+  await clickHex(page, "E3613");
+  await expect(panel).toContainText("Towing 3 Mark VI Light from E3513: E3613");
+  await panel.getByTestId("tow-send").click();
+  await expect(log(page).filter({ hasText: "3 broken-down Mark VI Light towed E3513 → E3613." })).toHaveCount(1);
+  const after = await page.evaluate(() => {
+    const v = window.__cna.view();
+    const at = (h: string) => (v.broken_down?.[h] ?? []).map((w: { points: number; towed?: number }) => [w.points, w.towed ?? 0]);
+    return { out: at("E3513"), in: at("E3613"), offers: v.facility_repairs ?? [] };
+  });
+  // One point stays behind; the towed three wait out the phase (22.13).
+  expect(after).toEqual({ out: [[1, 0]], in: [[3, 3]], offers: [] });
+  await expect(panel.locator('[data-testid="tow-arm"]')).toHaveCount(1);
+});
+
 test("phase C: the Axis names its convoy lanes in order; Greece's are shut in 1940 (32.63, 56.14)", async ({ page }) => {
   await openFixture(page, "set-up-done");
   const controls = page.getByTestId("phase-controls");

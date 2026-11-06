@@ -15,7 +15,8 @@
     "construction": true,
     "fleet": true,
     "patrols": true,
-    "captured_equipment": true
+    "captured_equipment": true,
+    "towing": true
   },
   "clock": {
     "game_turn": 57,

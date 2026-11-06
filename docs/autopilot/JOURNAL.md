@@ -719,3 +719,9 @@ Done: #126 (facility repair, 22.3x) merged on green CI; #127 retargeted to main 
 In flight: #127 draft; no browser control for towing yet; svelte-check there was not run with the wasm built.
 Next: merge main into #127, build the wasm, run `npm run -s check` and a Playwright spec; add a phase K tow control (or note it in NOT_SIMULATED); ready and merge. Then Task 3: destroyed-tank markers, capture (14.5, R-014), the Destroyed Tank Repair Table (22.4x).
 Blocked: none.
+
+## 2026-11-05 23:55 MST — autopilot/m5-towing
+Done: main merged into #127; c191d7a: TowPanel (arm points, click path, send), `towing` module (in ALL, `--no-towing`) so phase K opens for towable points alone (it opened only for rolls, so wrecks away from supply/facility could never be towed); pins regenerated (graziani-m5 505 orders, all web fixtures, new `tow` fixture); supply.spec tow case + 16 others pass; vitest 242, svelte-check 0.
+In flight: cargo gates and Playwright golden.spec on #127; subagent building destroyed tanks (22.4x, 14.5) on autopilot/m5-destroyed-tanks in /tmp/cna-dtanks (stacked on #127).
+Next: ready + merge #127 on green CI (retarget the destroyed-tanks PR to main FIRST), then review/finish the destroyed-tanks PR.
+Blocked: none.

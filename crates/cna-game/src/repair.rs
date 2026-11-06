@@ -87,6 +87,7 @@ impl GameState {
         !self.field_repairs(data).is_empty()
             || !self.facility_repairs(data).is_empty()
             || !self.destroyed_tank_repairs(data).is_empty()
+            || (self.modules.towing && self.tows_to_try(data))
     }
 
     /// The real supply units with fuel that may pay for repairs in

@@ -13,7 +13,7 @@ const shoot = (page: Page, name: string) => shootInto(page, shots, name);
 
 type GoldenLog = { seed: number; orders: Logged[] };
 
-/** M5's golden game (abstract supply on): 502 orders, seed 7, ending at the start of GT7 with neither side at a level. */
+/** M5's golden game (abstract supply on): 505 orders, seed 7, ending at the start of GT7 with neither side at a level. */
 const golden: GoldenLog = JSON.parse(readFileSync(here("../../tests/games/graziani-m5.json"), "utf8")) as GoldenLog;
 /** `cna-play replay` of the whole log, as the SHA-256 of the state JSON (pinned by `cna-web`'s `the_e2e_fixtures_are_current` and `cna-game::golden`). */
 const goldenDone = readFileSync(here("fixtures/golden-done.sha256"), "utf8").trim();
@@ -34,12 +34,12 @@ async function hexOf(page: Page, id: PieceId): Promise<HexId> {
   return h!;
 }
 
-test("the golden game, all 502 orders by clicks, with a save, reload and load in the middle, ends with replay's state and the report open", async ({ page }) => {
+test("the golden game, all 505 orders by clicks, with a save, reload and load in the middle, ends with replay's state and the report open", async ({ page }) => {
   test.setTimeout(900_000);
   // A stuck click (a counter over the hex, a curtain over a button) fails
   // in seconds with the order named, not at the test's timeout.
   page.setDefaultTimeout(15_000);
-  expect(golden.orders).toHaveLength(502);
+  expect(golden.orders).toHaveLength(505);
   await openStart(page);
   await page.getByTestId("seed").fill(String(golden.seed));
   await page.getByTestId("new-game").click();
