@@ -172,7 +172,7 @@ export interface Assignment {
 export type Order =
   | { place: { piece: PieceId; hex: HexId } }
   | { unplace: { piece: PieceId } }
-  | { "place-work": { item: BuildItem; hex: HexId } }
+  | { "place-work": { item: WorkItem; hex: HexId } }
   | { "declare-initiative": { player_a: Side } }
   | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
@@ -217,6 +217,8 @@ export type Order =
 
 /** What a construction project builds (24.1x). */
 export type BuildItem = "fortification" | "real-minefield" | "dummy-minefield" | "clear-minefield";
+/** A set-up work a side places (59.12): any build item but clearing a field. */
+export type WorkItem = Exclude<BuildItem, "clear-minefield">;
 
 /** A project under way in a hex (24.1x): its builders and the stages counted so far. */
 export interface Project {
@@ -613,10 +615,7 @@ export type PatrolReport = {
 };
 
 /** Where the side setting up may place its set-up works (`cna_game::placed_works`). */
-export interface WorkOptions {
-  fortification?: HexId[];
-  "real-minefield"?: HexId[];
-  "dummy-minefield"?: HexId[];
+export type WorkOptions = { [K in WorkItem]?: HexId[] } & {
   required_left: number;
   may_pass: boolean;
-}
+};

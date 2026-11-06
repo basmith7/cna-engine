@@ -38,7 +38,7 @@
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
   import { SIZE, centre } from "./geom";
-  import type { BuildItem, PreviewResult, HexId, Illegal, OffMapPlace, Order, Piece, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
+  import type { WorkItem, PreviewResult, HexId, Illegal, OffMapPlace, Order, Piece, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -148,7 +148,7 @@
   });
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
   /** The set-up work armed in the set-up panel (59.12): a click places one. */
-  let workItem: BuildItem | null = $state(null);
+  let workItem: WorkItem | null = $state(null);
   const workHexes: HexId[] = $derived(!picked && workItem ? (view?.work_options?.[workItem] ?? []) : []);
 
   /** Hands `q`'s answer to `take` unless the effect that asked has rerun or gone first (its cleanup, returned). */

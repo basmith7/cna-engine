@@ -5,7 +5,7 @@
   import { sideName } from "./clock";
   import { label, nameParts } from "./counters";
   import { placementWords } from "./setup";
-  import type { BuildItem, HexId, Piece, Side, View } from "./types";
+  import type { WorkItem, HexId, Piece, Side, View } from "./types";
 
   let {
     view,
@@ -18,13 +18,13 @@
     view: View;
     picked: Piece | null;
     hexes: HexId[];
-    workItem?: BuildItem | null;
-    onwork?: (item: BuildItem) => void;
+    workItem?: WorkItem | null;
+    onwork?: (item: WorkItem) => void;
     onpass?: () => void;
   } = $props();
 
   // Set-up works the side places (59.12): forts, real and dummy fields.
-  const WORKS: [BuildItem, string][] = [
+  const WORKS: [WorkItem, string][] = [
     ["fortification", "Fortification"],
     ["real-minefield", "Real minefield"],
     ["dummy-minefield", "Dummy minefield"],
