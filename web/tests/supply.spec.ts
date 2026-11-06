@@ -397,3 +397,16 @@ test("phase J: a rail run sets a supply unit down at a stop on its way (8.77, R-
   const at = await page.evaluate(() => ["supply:cw:10", "supply:cw:11"].map((id) => window.__cna.view().pieces[id].location));
   expect(at).toEqual([{ hex: "E3312" }, { hex: "E3412" }]);
 });
+
+test("phase K: destroyed tanks at a facility are tried a die a point (22.4x)", async ({ page }) => {
+  await openFixture(page, "destroyed-repair");
+  await expect(page.getByTestId("clock")).toContainText("repair");
+  await clickHex(page, "E3613");
+  const button = page.locator('[data-order="repair-destroyed-tanks"][data-weapon="Mark VI Light"]');
+  await expect(button).toContainText("Try 3 destroyed Mark VI Light at the major facility");
+  await button.click();
+  await expect(log(page).filter({ hasText: "destroyed Mark VI Light at E3613:" })).toHaveCount(1);
+  const offers = await page.evaluate(() => window.__cna.view().destroyed_tank_repairs ?? []);
+  // Once per type per hex per phase.
+  expect(offers).toEqual([]);
+});

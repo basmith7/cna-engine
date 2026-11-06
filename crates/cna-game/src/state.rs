@@ -108,6 +108,11 @@ pub struct Modules {
     /// (28.3, R-152).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub captured_equipment: bool,
+    /// Tanks destroyed in combat leave destroyed-tank markers, which a
+    /// battalion may capture and a repair facility may repair (14.5x,
+    /// 22.4x).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub destroyed_tanks: bool,
     /// Phase K opens for broken-down vehicles that may be towed toward a
     /// repair facility, not only for repair rolls (21.6x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -130,6 +135,7 @@ impl Modules {
         fleet: true,
         patrols: true,
         captured_equipment: true,
+        destroyed_tanks: true,
         towing: true,
         rail_ends: true,
         set_up_works: true,
@@ -237,6 +243,14 @@ pub struct GameState {
     /// phase K).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub field_rolled: BTreeSet<(Side, HexId, String)>,
+    /// Destroyed-tank markers by hex (14.5x): what each stands for, and
+    /// whose it is now.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub destroyed_tanks: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
+    /// Destroyed tank types tried at a facility this OpStage, by side, hex
+    /// and weapon system: one attempt each per phase K (22.4x).
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub destroyed_rolled: BTreeSet<(Side, HexId, String)>,
     /// Repaired TOE points by side, hex and weapon system: replacement
     /// points waiting where they were repaired for a unit to absorb them
     /// (22.5, 20.41). A save from before they stood in a hex loses them.
@@ -426,6 +440,8 @@ impl GameState {
             split: BTreeMap::new(),
             broken_down: BTreeMap::new(),
             field_rolled: BTreeSet::new(),
+            destroyed_tanks: BTreeMap::new(),
+            destroyed_rolled: BTreeSet::new(),
             repaired: BTreeMap::new(),
             railed: BTreeSet::new(),
             prisoners: BTreeMap::new(),
@@ -680,6 +696,15 @@ impl GameState {
                     fuel_from,
                 },
             ) => self.facility_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            (
+                None,
+                Order::RepairDestroyedTanks {
+                    hex,
+                    weapon,
+                    points,
+                    fuel_from,
+                },
+            ) => self.repair_destroyed_tanks(data, player, hex, weapon, *points, fuel_from.as_ref()),
             (
                 None,
                 Order::Tow {

@@ -14,6 +14,7 @@ pub mod construction;
 mod convoy;
 mod cycle;
 pub mod data;
+mod destroyed;
 mod determinism;
 pub mod event;
 mod facility;

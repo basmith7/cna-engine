@@ -47,7 +47,7 @@ slices below, or the Air Game.
   and arrive having not begun the OpStage there.
 
 ### Task 3: destroyed tanks (22.4x, 14.5)
-- [ ] Destroyed-tank markers where tanks die in combat; capture by a
+- [x] Destroyed-tank markers where tanks die in combat; capture by a
   battalion-size unit (R-014); repair only at a facility on the Destroyed
   Tank Repair Table (`destroyed-tank-repair.json`), pre-paying per point
   attempted, with repaired, junked and no-result outcomes.

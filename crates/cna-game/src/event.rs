@@ -330,6 +330,36 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// `points` of `piece`'s `weapon` tanks destroyed in combat stay at
+    /// `hex` as a destroyed-tank marker (14.5x).
+    TanksDestroyed {
+        piece: PieceId,
+        hex: HexId,
+        weapon: String,
+        points: u32,
+    },
+    /// A battalion entering `hex` took the enemy's destroyed tanks there
+    /// (14.52, R-014).
+    DestroyedTanksCaptured {
+        by: PieceId,
+        hex: HexId,
+        points: u32,
+    },
+    /// Destroyed-tank repair (22.4x): `attempted` points of `weapon` at
+    /// `hex` rolled one die each (`dice`, before a temporary facility's
+    /// one is added); `repaired` come back as replacement points,
+    /// `junked` are gone for good, the rest stay.
+    DestroyedTanksRepaired {
+        hex: HexId,
+        weapon: String,
+        kind: cna_data::scenario::FacilityKind,
+        attempted: u32,
+        dice: Vec<u8>,
+        repaired: u32,
+        junked: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// `side`'s broken-down `weapon` points towed from `from` to `to`
     /// (21.6x); they may not be repaired this phase (22.13).
     Towed {

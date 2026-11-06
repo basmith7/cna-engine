@@ -944,7 +944,9 @@ impl GameState {
                     let (points, taken) = Self::captured_share(pct, assault_toe, &spoils);
                     events.push(Event::Prisoners { side, points });
                     self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
+                    let tanks = taken.get(crate::captured::Spoil::Tank.key()).copied().unwrap_or(0);
                     self.capture_spoils(side.other(), &held_in, taken, &mut events);
+                    self.unmark_captured_tanks(side, tanks, &mut events);
                 } else {
                     let points = (pct * toe).div_ceil(100);
                     events.push(Event::Prisoners { side, points });

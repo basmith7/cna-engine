@@ -49,6 +49,10 @@ enum Cmd {
         /// and tanks are lost, not the captor's replacement points.
         #[arg(long)]
         no_captured_equipment: bool,
+        /// Play without destroyed tanks (14.5x, 22.4x): tanks killed in
+        /// combat leave no marker to capture or repair.
+        #[arg(long)]
+        no_destroyed_tanks: bool,
         /// Play without towing (21.6x): phase K opens only for repair rolls.
         #[arg(long)]
         no_towing: bool,
@@ -184,6 +188,7 @@ fn main() -> Result<()> {
             no_fleet,
             no_patrols,
             no_captured_equipment,
+            no_destroyed_tanks,
             no_towing,
             no_rail_ends,
             no_set_up_works,
@@ -197,6 +202,7 @@ fn main() -> Result<()> {
                 fleet: !no_fleet,
                 patrols: !no_patrols,
                 captured_equipment: !no_captured_equipment,
+                destroyed_tanks: !no_destroyed_tanks,
                 towing: !no_towing,
                 rail_ends: !no_rail_ends,
                 set_up_works: !no_set_up_works,
