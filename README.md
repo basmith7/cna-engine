@@ -133,8 +133,8 @@ cargo run -p cna-play -- replay log.json -o replayed.json
 
 The rest of the Land Game turn (Mission 5) comes as modules (`Modules` in
 `crates/cna-game/src/state.rs`), every one on in a new game and each
-switched off by a `cna-play new --no-<module>` flag (`cna-play new --help`
-lists them): §32's abstract supply (supply units with loads and
+switched off by name with `cna-play new --without <module>,…` (an
+unknown name lists them): §32's abstract supply (supply units with loads and
 motorisation points, arrivals, convoys, rail, the air lift, capture),
 §21–22's breakdown and repair, §24–26's construction, the fleet (§30),
 patrols (§16), and each scenario's own set-up and victory rules (forts,
