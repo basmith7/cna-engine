@@ -58,7 +58,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-106 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-107 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-108 | applied in cna's scenario data (`start`, `end`), which the engine's clock follows |
-| R-109 | not built: the campaign game's victory rules (64.7x); Task 7 of `docs/plans/2026-11-06-m5-scenario-set-ups.md` |
+| R-109 | in part: a points win's level in the campaign games comes from their `victory.ratios` (64.76), larger total to smaller, a positive total over zero or less reaching the top rung, equal totals a draw (`cna-game::victory::ratio_level`). Not built: the automatic wins (64.71–64.72), occupation's end-of-game supply test (64.73), unused-replacement and withdrawal points (64.74–64.75); Task 7 of `docs/plans/2026-11-06-m5-scenario-set-ups.md` |
 | R-111 | Air Game: not in the engine yet |
 | R-112 | Air Game: not in the engine yet |
 | R-113 | Air Game: not in the engine yet |

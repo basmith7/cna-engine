@@ -224,10 +224,16 @@ test now checks both sides have units. #131 and #132 (merged):
 Operation Crusader's railway starts at its railhead (C3430), and
 Crusader and The Last Chance start with their forts round Tobruk and
 Bardia, behind two new modules (`rail_ends`, `set_up_works`, on in new
-games). #133 (draft): Group One's first two Axis convoys are
-planned before play, the first unbombed (R-097, 60.37); CI fails one
-Playwright count (`map.spec.ts:157`, a box now holds 32 units, not
-30), left for the next run.
+games). #133 (merged): Group One's first two Axis convoys are
+planned before play, the first unbombed (R-097, 60.37).
+
+**2026-11-06, second run:** cna answered both requests (#290, #291).
+#134 (merged) bumps `vendor/cna` to fff7856 and gives R-154–R-159
+homes. On top of it: #135, tanks that start broken down (Crusader's
+Alexandria shops, the Last Chance's Tobruk, repair held until the
+printed OpStage); #136, Commonwealth withdrawals (R-154–R-157); #137,
+the campaign games' victory levels by ratio (64.76); #138, Rommel's
+Arrival's release limit out of Cairo and Alexandria (61.38, R-159).
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -264,15 +270,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 5's second half is under way:
-  `docs/plans/2026-11-06-m5-scenario-set-ups.md` (an audit found the
-  other eight scenarios' set-up blocks read by nothing). #132 (rail ends
-  and set-up forts) merged; #133 (R-097's pre-play convoys) is a
-  draft with one Playwright count to settle. Withdrawals, forts and
-  minefields a player places, tanks that start broken down, Rommel's
-  Arrival's release rule and the campaigns' ratio levels wait on the two
-  cna requests below. The Long Retreat started with no units until #130.
-- `vendor/cna` is at cna 4cedfb7 (#129).
+- Nothing waits on Brian. Mission 5's second half:
+  `docs/plans/2026-11-06-m5-scenario-set-ups.md`. Left after
+  #135–#138: forts and minefields a player places (cna's typed
+  `minefield_sets` and fortification sides), the 7th Armoured's tanks
+  starting broken down with their units (a TOE-0 tank battalion counts as
+  eliminated today), Rommel's Arrival's printed motorisation (61.72), and
+  the campaigns' automatic wins and replacement/withdrawal points
+  (64.71–64.75).
+- `vendor/cna` is at cna fff7856 (#134).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -335,42 +341,8 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Commonwealth withdrawals as data an engine can act on** (Mission 5:
-  scenario set-ups, Task 3 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
-  `reinforcement-schedule.json` has 33 `withdraws` rows and
-  `rules/70-organisation.md` (20.8x) says the unit must reach Cairo or
-  Alexandria by the stated turn or stage or be eliminated. Wanted, as
-  data or a ruling: (a) whether a row naming an HQ (`unit:cw:6-aus-hq`,
-  GT27/2) withdraws the HQ alone or with its assigned or attached units;
-  (b) what the rows' `Tpt: a/b` notes mean (truck points that leave with
-  it?) and what they become under the abstract block (motorisation
-  points?); (c) the instant of the check: the start or the end of the
-  stated OpStage, and in which phase; (d) 20.82's 75 % "of maximum
-  strength" for a brigade or division: its own TOE or the sum of its
-  units'; (e) GT97/2's "with any three infantry battalions" as a typed
-  pick. Until then the engine withdraws nothing.
-- **Scenario set-up rules as typed data** (Mission 5: scenario set-ups,
-  Tasks 2, 5 and 6 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
-  These are sentences in `sides.*.special` that the engine cannot act on:
-  (a) tanks that start broken down: Crusader's Alexandria shops (62.32,
-  by model, no repair before the second OpStage), The Last Chance's
-  Tobruk (63.42), Rommel's Arrival's 7th Armoured "all its tanks at
-  maximum TOE" (61.38); wanted as rows of hex or place, nation, weapon,
-  points and the first OpStage repair may start; (b) Rommel's Arrival's
-  release schedule (61.38: nothing leaves Cairo or Alexandria at first,
-  then a tank battalion at 75 % repaired and one other battalion an
-  OpStage from April 1941) as data; (c) The Last Chance's Tobruk
-  fortification row says "the four hexes next to Tobruk", but the map
-  has three land hexes beside C4807 (the rest are sea): which
-  is right? The engine places all three for now (#132); (d) on each
-  `construction.fortifications` row a player places (The Last Chance's
-  Bardia, Rommel's Arrival's Tobruk), the side that places them as a
-  field, not only in `constraint`'s prose; and likewise for the Last
-  Chance's minefields: each listed field's owner and the real and dummy
-  counts each side may set (63.77); (e) in the scenarios 64.7 judges
-  (the three campaign games, Desert Fox by R-104), 64.76's ratio levels
-  as data on `victory` (as The Long Retreat's `margins` are), so the
-  engine need not key on scenario ids.
+None open.
+
 ## Runs and quota
 
 | Started | Minutes | Weekly before→after | 5h before→after | Cost | Turns | Result |
