@@ -208,11 +208,33 @@ impl GameState {
                     })
             })
         };
-        let missing: Vec<&Unit> = data
+        let mut missing: Vec<&Unit> = data
             .oa
             .units()
             .filter(|u| u.parent.as_ref() == Some(&unit) && !in_play(&u.id))
             .collect();
+        let slots =
+            |u: &Unit| -> Vec<String> { u.fills.iter().chain(&u.fills_part).cloned().collect() };
+        // A unit reassigned to the parent (19.2x) holds a missing unit's
+        // slot: no substitute stands in it as well.
+        for q in self.pieces.values() {
+            let Some(sheet) = q.id.unit().and_then(|u| data.oa.unit(&u)) else {
+                continue;
+            };
+            if q.location == Location::Eliminated
+                || q.parent.as_ref() != Some(&unit)
+                || sheet.parent.as_ref() == Some(&unit)
+            {
+                continue;
+            }
+            let mine = slots(sheet);
+            if let Some(i) = missing
+                .iter()
+                .position(|m| slots(m).iter().any(|s| mine.contains(s)))
+            {
+                missing.remove(i);
+            }
+        }
         if missing.is_empty() {
             return Vec::new();
         }
@@ -226,8 +248,6 @@ impl GameState {
         {
             candidates.push(n);
         }
-        let slots =
-            |u: &Unit| -> Vec<String> { u.fills.iter().chain(&u.fills_part).cloned().collect() };
         let fits: Vec<Vec<usize>> = candidates
             .iter()
             .map(|q| {

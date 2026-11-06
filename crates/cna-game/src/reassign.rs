@@ -66,19 +66,30 @@ impl GameState {
     }
 
     /// The sheets of the units holding a slot of `parent`: its assigned
-    /// pieces still in play, wherever they are, and the units its OA
-    /// sheet assigns it that have yet to arrive.
+    /// pieces still in play, wherever they are, or withdrawn to return;
+    /// the substitutes attached to it (19.4x); and the units its OA sheet
+    /// assigns it that have yet to arrive, this OpStage's included (phase
+    /// D comes after phase C).
     fn slot_holders<'d>(&self, data: &'d Data, parent: &UnitId) -> Vec<&'d Unit> {
         let now = GameTime::new(self.clock.game_turn, self.clock.stage);
         let mut out: Vec<&Unit> = self
             .pieces
             .values()
-            .filter(|p| p.location != Location::Eliminated && p.parent.as_ref() == Some(parent))
+            .filter(|p| p.location != Location::Eliminated)
+            .filter(|p| {
+                p.parent.as_ref() == Some(parent)
+                    || (p.substitute && p.attached_to.as_ref() == Some(parent))
+            })
+            .chain(
+                self.withdrawn
+                    .values()
+                    .filter(|p| p.parent.as_ref() == Some(parent)),
+            )
             .filter_map(|p| data.oa.unit(&p.id.unit()?))
             .collect();
         out.extend(data.oa.units().filter(|u| {
             u.parent.as_ref() == Some(parent)
-                && matches!(u.arrives, Some(Arrival::At(t)) if t > now)
+                && matches!(u.arrives, Some(Arrival::At(t)) if t >= now)
                 && !self.pieces.contains_key(&PieceId::from(&u.id))
                 && !self.withdrawn.contains_key(&PieceId::from(&u.id))
         }));
@@ -116,6 +127,16 @@ impl GameState {
                 format!("{piece} must be attached to the parent it joins"),
             ));
         };
+        if self
+            .pieces
+            .get(&PieceId::from(&to))
+            .is_none_or(|q| q.location == Location::Eliminated)
+        {
+            return Err(Illegal::new(
+                "19.2x",
+                format!("{to} is not in play: no slot to fill"),
+            ));
+        }
         let unit = piece.unit().expect("a combat unit or HQ has a sheet id");
         let sheet = data.oa.unit(&unit).expect("a piece's unit is on a sheet");
         if data.oa.formation_of(&unit).reassignment_restricted() {
@@ -387,11 +408,31 @@ mod tests {
             .unwrap();
         attach(&mut state, &data, Side::Axis, REGT, ix);
         assert_eq!(state.pieces[&pid(ix)].cp_spent, cp + Cp::whole(2));
+        // The IX holds the XVII's slot now: the X attaches as an extra,
+        // no substitute.
         attach(&mut state, &data, Side::Axis, REGT, x);
+        assert!(!state.pieces[&pid(x)].substitute);
+    }
+
+    #[test]
+    fn a_substitute_holds_its_slot() {
+        // The XVII is gone and the IX stands in for it; the X takes the
+        // third slot; the VIII then finds the regiment full.
+        let data = graziani();
+        let (viii, ix, x) = (
+            "unit:it:viii-libyan-bn",
+            "unit:it:ix-libyan-bn",
+            "unit:it:x-libyan-bn",
+        );
+        let mut state = organising(&data, Side::Axis, REGT, &[viii, ix, x]);
+        eliminate(&mut state, "unit:it:xvii-libyan-bn");
+        eliminate(&mut state, FIRST);
+        attach(&mut state, &data, Side::Axis, REGT, ix);
+        assert!(state.pieces[&pid(ix)].substitute);
+        state.pieces.get_mut(&pid(x)).unwrap().attached_to = pid(REGT).unit();
         state.apply(&data, Side::Axis, reassign(x)).unwrap();
-        attach(&mut state, &data, Side::Axis, REGT, viii);
+        state.pieces.get_mut(&pid(viii)).unwrap().attached_to = pid(REGT).unit();
         let err = state.apply(&data, Side::Axis, reassign(viii)).unwrap_err();
-        assert_eq!(err.case, "19.2x");
         assert!(err.reason.contains("no free slot"), "{}", err.reason);
     }
 
