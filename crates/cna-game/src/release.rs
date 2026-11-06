@@ -304,8 +304,7 @@ impl GameState {
                     .any(|id| self.fuel_class(data, &self.pieces[id]) == FuelClass::Tank);
                 if tank {
                     let min = f.tank_battalions.min_repaired_pct.unwrap_or(0);
-                    if let Some(short) =
-                        g.iter().find(|id| self.tanks_repaired_pct(data, id) < min)
+                    if let Some(short) = g.iter().find(|id| self.tanks_repaired_pct(data, id) < min)
                     {
                         return Err(Illegal::new(
                             "61.38",
@@ -598,7 +597,11 @@ mod tests {
                 .map(|(h, w)| (h.clone(), w.weapon.clone()))
                 .expect("a point held for the unit");
             let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false, None);
-            assert_eq!(taken, vec![(Some(unit.clone()), 1)], "took the unit's own point");
+            assert_eq!(
+                taken,
+                vec![(Some(unit.clone()), 1)],
+                "took the unit's own point"
+            );
             s.credit_repaired(Side::Cw, &hex, &weapon, taken);
         }
     }

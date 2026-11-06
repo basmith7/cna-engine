@@ -401,8 +401,11 @@ impl GameState {
             ));
         }
         // Move the points, keeping each wreck's nation.
-        let mut moved: Vec<(Option<cna_data::oa::Nation>, Option<cna_data::oa::UnitId>, u32)> =
-            Vec::new();
+        let mut moved: Vec<(
+            Option<cna_data::oa::Nation>,
+            Option<cna_data::oa::UnitId>,
+            u32,
+        )> = Vec::new();
         let mut left = points;
         let wrecks = self.broken_down.get_mut(hex).expect("checked above");
         for w in wrecks
@@ -426,8 +429,7 @@ impl GameState {
         for (nation, unit, k) in moved {
             match dest.iter_mut().find(|w| {
                 w.side == player && w.weapon == weapon && w.nation == nation && w.unit == unit
-            })
-            {
+            }) {
                 Some(w) => {
                     w.points += k;
                     w.this_stage += k;

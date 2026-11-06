@@ -314,15 +314,19 @@ mod tests {
         let ceiling = state.toe_ceiling(&data, &state.pieces[&tanks]);
         state.pieces.get_mut(&tanks).unwrap().toe = ceiling - 3;
         // Two of its points wait broken down for it (61.38's `all_tanks`).
-        state.broken_down.entry(hex.clone()).or_default().push(crate::breakdown::Wreck {
-            side: Side::Axis,
-            nation: state.pieces[&tanks].nation,
-            weapon: weapon.clone(),
-            points: 2,
-            this_stage: 0,
-            towed: 0,
-            unit: tanks.unit(),
-        });
+        state
+            .broken_down
+            .entry(hex.clone())
+            .or_default()
+            .push(crate::breakdown::Wreck {
+                side: Side::Axis,
+                nation: state.pieces[&tanks].nation,
+                weapon: weapon.clone(),
+                points: 2,
+                this_stage: 0,
+                towed: 0,
+                unit: tanks.unit(),
+            });
         let err = state
             .apply(&data, Side::Axis, absorb(TANKS, &weapon, 2))
             .unwrap_err();

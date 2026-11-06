@@ -336,12 +336,12 @@ impl GameState {
                     let Some(stop) = p.hex().cloned() else { break };
                     let at = if i < behind { start.clone() } else { stop };
                     let wrecks = self.broken_down.entry(at).or_default();
-                    match wrecks
-                        .iter_mut()
-                        .find(|w| {
-                            w.side == side && w.nation == nation && w.weapon == weapon && w.unit.is_none()
-                        })
-                    {
+                    match wrecks.iter_mut().find(|w| {
+                        w.side == side
+                            && w.nation == nation
+                            && w.weapon == weapon
+                            && w.unit.is_none()
+                    }) {
                         Some(w) => {
                             w.points += 1;
                             w.this_stage += 1;
@@ -398,12 +398,9 @@ impl GameState {
                 };
                 let nation = Some(weapon.nation);
                 let wrecks = self.broken_down.entry(hex.clone()).or_default();
-                match wrecks
-                    .iter_mut()
-                    .find(|w| {
-                        w.side == *side && w.nation == nation && w.weapon == name && w.unit.is_none()
-                    })
-                {
+                match wrecks.iter_mut().find(|w| {
+                    w.side == *side && w.nation == nation && w.weapon == name && w.unit.is_none()
+                }) {
                     Some(w) => w.points += points,
                     None => wrecks.push(Wreck {
                         side: *side,
@@ -447,7 +444,8 @@ impl GameState {
                             && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
                             && p.hex().is_some()
                             && row.units.iter().any(|hq| {
-                                p.id.unit().as_ref() == Some(hq) || self.in_formation(data, &p.id, hq)
+                                p.id.unit().as_ref() == Some(hq)
+                                    || self.in_formation(data, &p.id, hq)
                             })
                     })
                     .map(|p| p.id.clone())
@@ -633,7 +631,11 @@ mod tests {
         let mut emptied = 0;
         for (id, tanks) in &units {
             let p = &s.pieces[id];
-            assert!(p.hex().is_some(), "{id} is not eliminated: {:?}", p.location);
+            assert!(
+                p.hex().is_some(),
+                "{id} is not eliminated: {:?}",
+                p.location
+            );
             for (weapon, max) in tanks {
                 let on: u32 = p
                     .weapons
@@ -657,7 +659,13 @@ mod tests {
         let mut off = Modules::ALL;
         off.tanks_with_units = false;
         let (_, plain) = rommel(off);
-        assert!(plain.broken_down.values().flatten().all(|w| w.unit.is_none()));
+        assert!(
+            plain
+                .broken_down
+                .values()
+                .flatten()
+                .all(|w| w.unit.is_none())
+        );
     }
 
     #[test]
@@ -701,7 +709,11 @@ mod tests {
             .sum();
         assert_eq!(on, repaired, "back in the battalion");
         assert_eq!(p.toe, toe + repaired);
-        assert!(s.repaired.is_empty(), "no replacement points: {:?}", s.repaired);
+        assert!(
+            s.repaired.is_empty(),
+            "no replacement points: {:?}",
+            s.repaired
+        );
         let left: u32 = s.broken_down[&hex]
             .iter()
             .filter(|w| w.unit == id.unit() && w.weapon == weapon)

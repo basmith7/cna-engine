@@ -4,12 +4,12 @@
 //! leaves the map.
 
 use super::strength::Part;
-use cna_data::map::HexId;
-use cna_data::scenario::Side;
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
+use cna_data::map::HexId;
+use cna_data::scenario::Side;
 
 /// A piece and how many of its TOE points may be taken.
 #[derive(Debug, Clone)]
@@ -97,12 +97,7 @@ impl GameState {
     /// CPA (3.5), so it has nothing to defend with (15.55) and no point
     /// for a loss to take; zero by combat is gone (19.62). Their tanks
     /// stay broken down where they are.
-    pub(crate) fn eliminate_bare(
-        &mut self,
-        hex: &HexId,
-        side: Side,
-        events: &mut Vec<Event>,
-    ) {
+    pub(crate) fn eliminate_bare(&mut self, hex: &HexId, side: Side, events: &mut Vec<Event>) {
         if !self.modules.tanks_with_units {
             return;
         }

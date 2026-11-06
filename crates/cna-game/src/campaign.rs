@@ -461,7 +461,10 @@ mod tests {
         let source = supply_unit(&mut state, Side::Axis, &tobruk);
         assert!(state.passes_end_supply(&data, &guns));
         state.pieces.get_mut(&source).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
-        assert!(!state.passes_end_supply(&data, &guns), "an empty supply unit feeds nothing");
+        assert!(
+            !state.passes_end_supply(&data, &guns),
+            "an empty supply unit feeds nothing"
+        );
     }
 
     #[test]

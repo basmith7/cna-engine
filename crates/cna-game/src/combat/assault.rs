@@ -945,7 +945,10 @@ impl GameState {
                     let (points, taken) = Self::captured_share(pct, assault_toe, &spoils);
                     events.push(Event::Prisoners { side, points });
                     self.capture_prisoners(data, side.other(), &held_in, points, &mut events);
-                    let tanks = taken.get(crate::captured::Spoil::Tank.key()).copied().unwrap_or(0);
+                    let tanks = taken
+                        .get(crate::captured::Spoil::Tank.key())
+                        .copied()
+                        .unwrap_or(0);
                     self.capture_spoils(side.other(), &held_in, taken, &mut events);
                     self.unmark_captured_tanks(side, tanks, &mut events);
                 } else {
@@ -3074,7 +3077,9 @@ mod tests {
     /// C4020 assaulted by 1 KRRC after every combat unit and HQ there has
     /// lost its TOE as `all_tanks` leaves a tank battalion (61.38): the
     /// points are broken down for it, not destroyed.
-    fn assault_a_hex_of_bare_units(tanks_with_units: bool) -> (GameState, Vec<PieceId>, Vec<Event>) {
+    fn assault_a_hex_of_bare_units(
+        tanks_with_units: bool,
+    ) -> (GameState, Vec<PieceId>, Vec<Event>) {
         let data = graziani();
         let mut state = assigning(&data);
         state.modules.tanks_with_units = tanks_with_units;
@@ -3131,7 +3136,10 @@ mod tests {
         assert!(!bare.is_empty());
         for id in &bare {
             assert_eq!(state.pieces[id].location, Location::Eliminated, "{id}");
-            assert!(events.contains(&Event::Eliminated { piece: id.clone() }), "{id}");
+            assert!(
+                events.contains(&Event::Eliminated { piece: id.clone() }),
+                "{id}"
+            );
         }
         // The hex is cleared: a victory for the attacker (6.24).
         assert_eq!(state.pieces[&pid("unit:cw:1-krrc")].cohesion.level, 3);
