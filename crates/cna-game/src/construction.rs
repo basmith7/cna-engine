@@ -489,33 +489,27 @@ impl GameState {
     /// `set_up_works` module on: a row placing `count` levels in the
     /// land hexes next to a place, where that is every one of them, sets
     /// each to the row's level. Rows that leave the hexes to a player
-    /// (fewer than the land neighbours, or farther out) are not placed.
+    /// (a `side`, fewer than the land neighbours, or farther out) are
+    /// `placed_works`'s.
     pub(crate) fn place_set_up_works(&mut self, data: &Data) {
         if !self.modules.set_up_works {
             return;
         }
-        let Some(rows) = data
-            .scenario
-            .construction
-            .as_ref()
-            .and_then(|c| c.get("fortifications"))
-            .and_then(serde_json::Value::as_array)
-        else {
+        // A bad block is refused by `start_placed_works`; here it places
+        // nothing, as before the rows were typed.
+        let Ok(works) = data.scenario.works() else {
             return;
         };
-        for row in rows {
-            let within = &row["placement"]["within"];
-            let (Some(of), Some(1), Some(level), Some(count)) = (
-                within["of"].as_str().and_then(|h| HexId::parse(h).ok()),
-                within["hexes"].as_u64(),
-                row["level"].as_u64().and_then(|l| u8::try_from(l).ok()),
-                row["count"].as_u64(),
-            ) else {
+        for row in works.fortifications.iter().filter(|r| r.side.is_none()) {
+            let [cna_data::scenario::Locator::Within { of, hexes: 1 }] =
+                row.placement.locators.as_slice()
+            else {
                 continue;
             };
+            let (level, count) = (row.level, u64::from(row.count));
             let land: Vec<HexId> = data
                 .map
-                .neighbours(&of)
+                .neighbours(of)
                 .into_iter()
                 .filter(|h| data.map.hex(h).is_some_and(|x| x.terrain != Terrain::Sea))
                 .collect();
