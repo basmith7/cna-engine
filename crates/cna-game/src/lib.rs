@@ -42,6 +42,7 @@ mod raiders;
 mod rail;
 pub mod reach;
 mod reaction;
+mod reassign;
 pub mod release;
 mod repair;
 mod replacements;

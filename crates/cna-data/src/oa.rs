@@ -353,9 +353,17 @@ pub struct Formation {
     #[serde(default)]
     pub attached: Vec<Attachment>,
     pub units: Vec<Unit>,
+    #[serde(default)]
+    pub notes: Vec<String>,
 }
 
 impl Formation {
+    /// Whether the sheet's notes restrict its units' reassignment: their
+    /// parent never reached Africa (SPI 19.27).
+    pub fn reassignment_restricted(&self) -> bool {
+        self.notes.iter().any(|n| n.contains("19.27"))
+    }
+
     /// The hex a garrison sheet garrisons (SPI 9.16's `G`): the sheet's
     /// title names it, as in `Bardia Garrison (Hex: C4321)`; none for
     /// any other sheet.

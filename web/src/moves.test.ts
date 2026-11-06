@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOFILIA } from "./map";
-import { allOffMapCapable, allOnMap, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, tickable, toggle, toggleOffMap } from "./moves";
+import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -143,5 +143,41 @@ describe("attachmentOrder", () => {
     }
     const enemy = at({ hq: { kind: "hq", side: "cw" }, bn: { side: "cw", parent: "hq", attached_to: "hq" } });
     expect(attachmentOrder(enemy, enemy.pieces.bn)).toBeNull();
+  });
+});
+
+describe("reassignment and attaching elsewhere in phase C", () => {
+  const at = (pieces: Record<string, Partial<Piece>>, clock: object = { phase: "organisation" }) =>
+    ({
+      clock,
+      pending: null,
+      to_act: "axis",
+      pieces: Object.fromEntries(Object.entries(pieces).map(([id, p]) => [id, { id, side: "axis", kind: "combat", location: { hex: "C3617" }, parent: null, ...p }])),
+    }) as unknown as View;
+  const pieces = {
+    own: { kind: "hq" as const },
+    other: { kind: "hq" as const },
+    far: { kind: "hq" as const, location: { hex: "C3618" } },
+    enemy: { kind: "hq" as const, side: "cw" as const },
+    bn: { parent: "own" },
+    loose: { attached_to: "other" },
+    kept: { parent: "own", attached_to: "other" },
+  };
+
+  it("offers attaching to any other HQ of the side in the hex (19.4x)", () => {
+    const v = at(pieces);
+    expect(attachElsewhereOrders(v, v.pieces.bn)).toEqual([{ attach: { piece: "bn", to: "other" } }]);
+    expect(attachElsewhereOrders(v, v.pieces.loose)).toEqual([]);
+    const moving = at(pieces, { phase: "movement-combat", segment: "movement" });
+    expect(attachElsewhereOrders(moving, moving.pieces.bn)).toEqual([]);
+  });
+
+  it("offers reassignment to an independent unit attached to a parent (19.2x)", () => {
+    const v = at(pieces);
+    expect(reassignOrder(v, v.pieces.loose)).toEqual({ reassign: { piece: "loose" } });
+    expect(reassignOrder(v, v.pieces.kept)).toBeNull();
+    expect(reassignOrder(v, v.pieces.bn)).toBeNull();
+    const moving = at(pieces, { phase: "movement-combat", segment: "movement" });
+    expect(reassignOrder(moving, moving.pieces.loose)).toBeNull();
   });
 });

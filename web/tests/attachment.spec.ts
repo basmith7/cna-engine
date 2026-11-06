@@ -104,3 +104,23 @@ test("the stack panel nests attached units under their parent and marks a shell 
   await clickHex(page, hex);
   await expect(row(page, LTC).getByTestId("shell")).toHaveAttribute("title", /9\.26/);
 });
+
+test("in phase C a unit attaches to an HQ not its parent, and asks to be reassigned there (19.2x)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  await page.getByTestId("phase-controls").locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await expect(page.getByTestId("organise-hint")).toBeVisible();
+  // At C4321 the independent 30th GaF anti-tank battalion stands with the
+  // Trivioli regiment, whose three tank battalions fill its chart row.
+  const AT = "unit:it:30-gaf-antitank-bn";
+  const TRIVIOLI = "unit:it:trivioli-2nd-regt-hq";
+  await clickHex(page, "C4321");
+  await expect(row(page, AT).locator('[data-order="reassign"]')).toHaveCount(0);
+  await row(page, AT).locator(`[data-order="attach-elsewhere"][data-to="${TRIVIOLI}"]`).click();
+  await expect(log(page).filter({ hasText: /attaches to/ })).toHaveCount(1);
+  expect(await attachedTo(page, AT)).toBe(TRIVIOLI);
+  await row(page, AT).locator('[data-order="reassign"]').click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (19.2x)");
+  await expect(page.getByTestId("toast")).toContainText("no free slot");
+  expect(await page.evaluate((id) => window.__cna.view().pieces[id].parent ?? null, AT)).toBeNull();
+  await expectDomMatchesView(page);
+});

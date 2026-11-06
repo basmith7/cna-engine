@@ -191,6 +191,8 @@ export type Order =
   | { "destroy-supply": { hex: HexId } }
   | { attach: { piece: PieceId; to: PieceId } }
   | { detach: { piece: PieceId } }
+  | { reassign: { piece: PieceId } }
+  | { "swap-battalions": { piece: PieceId; with: PieceId } }
   | { "attach-motorisation": { piece: PieceId } }
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
@@ -310,7 +312,7 @@ export interface AssaultRoll {
   captured: boolean;
 }
 
-/** The 82 event variants of `cna_game::event::Event`, externally tagged. */
+/** The 96 event variants of `cna_game::event::Event`, externally tagged. */
 export type Event =
   | { "phase-started": { clock: Clock } }
   | { "phase-skipped": { clock: Clock } }
@@ -399,6 +401,10 @@ export type Event =
   | { "supply-destroyed": { piece: PieceId } }
   | { attached: { piece: PieceId; to: PieceId } }
   | { detached: { piece: PieceId; from: PieceId } }
+  /** Its parent was eliminated: the unit is independent (19.2x). */
+  | { unassigned: { piece: PieceId; from: PieceId } }
+  /** Assigned to `to` (none: independent), leaving `from` (19.2x). */
+  | { reassigned: { piece: PieceId; to: PieceId | null; from: PieceId | null } }
   | { "motorisation-attached": { piece: PieceId; points: number } }
   | { "motorisation-detached": { piece: PieceId; points: number } }
   | { "supply-planned": { side: Side; die: number; units: number; arrives: number } }

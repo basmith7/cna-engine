@@ -809,3 +809,9 @@ Done: #156 merged (R-164, vendor/cna 111220a; 0-TOE request bullet removed from 
 In flight: CI on #157 (retargeted to main) and #158.
 Next: merge #157 when green, retarget #158 to main first (gh pr edit 158 --base main), merge it when green. Then 19.2x reassignment (plan an `is_assigned` helper; parent eliminated → independent; behind a module), or tests for capture_on_move's reaction/retreat call sites (#157 review item 1).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 16:30 MST — autopilot/reassignment
+Done: #159 (this branch): 19.2x as `reassignment` module (`cna-game::reassign`): orphans independent after each order, `Order::Reassign` (free 19.3 slot, 19.27 sheet note refused), `Order::SwapBattalions` (CW, phase C, standing alone); browser Reassign + Attach to ⟨HQ⟩ buttons, Playwright test; pins regenerated. Fresh review's four fixes in 1ac84f7. Clippy, Playwright 66/66, vitest, svelte-check green.
+In flight: final cargo test + probe check, then ready + merge #159.
+Next: if Feedback approves #148, Mission 6 slice 1. Else: a browser control for the battalion swap; historical shifts of parent / CW armour limits (19.2x, NOT_SIMULATED); capture_on_move reaction/retreat tests.
+Blocked: Mission 6 on Brian's review of #148.

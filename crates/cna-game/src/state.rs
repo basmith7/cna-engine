@@ -175,6 +175,13 @@ pub struct Modules {
     /// not only when the enemy's movement segment opens (10.29).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub capture_on_move: bool,
+    /// Assignment changes (19.2x): an eliminated parent's survivors
+    /// become independent; in phase C an independent unit attached to
+    /// a parent with a free Formation Organisation Chart slot may be
+    /// assigned to it, and the Commonwealth may swap battalions between
+    /// brigades.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub reassignment: bool,
 }
 
 impl Modules {
@@ -201,6 +208,7 @@ impl Modules {
         unattached_motorisation: true,
         zero_toe: true,
         capture_on_move: true,
+        reassignment: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -642,6 +650,7 @@ impl GameState {
         let mut events = self.apply_checked(data, player, &order)?;
         self.release_commit(released);
         self.part_from_rommel(&mut events);
+        self.unassign_orphans(&mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)
     }
@@ -775,6 +784,10 @@ impl GameState {
             (None, Order::ReleaseReserve { pieces }) => self.release_reserve(player, pieces),
             (None, Order::Attach { piece, to }) => self.attach(data, player, piece, to),
             (None, Order::Detach { piece }) => self.detach(player, piece),
+            (None, Order::Reassign { piece }) => self.reassign(data, player, piece),
+            (None, Order::SwapBattalions { piece, with }) => {
+                self.swap_battalions(data, player, piece, with)
+            }
             (None, Order::AttachMotorisation { piece }) => self.attach_motorisation(player, piece),
             (None, Order::DetachMotorisation { piece }) => self.detach_motorisation(player, piece),
             (

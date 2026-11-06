@@ -4,7 +4,7 @@
   // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, nested, shipsAtSea, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import { attachmentOrder, tickable } from "./moves";
+  import { attachElsewhereOrders, attachmentOrder, reassignOrder, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
@@ -168,6 +168,13 @@
               {@const order = attachmentOrder(view, p)}
               {#if order}
                 <button type="button" class="attach" data-order={"detach" in order ? "detach" : "attach"} title="A CP from the unit and its parent (19.4x)" onclick={() => onorder(order)}>{"detach" in order ? "Detach" : "Attach"}</button>
+              {/if}
+              {#each attachElsewhereOrders(view, p) as other (other.attach.to)}
+                <button type="button" class="attach" data-order="attach-elsewhere" data-to={other.attach.to} title="Not its own parent: 2 CP each, within the parent's limits (19.4x, 19.5)" onclick={() => onorder(other)}>Attach to {label(view.pieces[other.attach.to]).short}</button>
+              {/each}
+              {@const reassign = reassignOrder(view, p)}
+              {#if reassign}
+                <button type="button" class="attach" data-order="reassign" title="Take a free slot of the parent it is attached to (19.2x)" onclick={() => onorder(reassign)}>Reassign</button>
               {/if}
             {/if}
           </li>

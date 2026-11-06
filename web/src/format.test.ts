@@ -102,6 +102,9 @@ const cases: [Event, string][] = [
   [{ attached: { piece: "u:b", to: "u:s" } }, "B attaches to S."],
   [{ detached: { piece: "u:b", from: "u:s" } }, "B detaches from S."],
   [{ "motorisation-attached": { piece: "u:s", points: 30 } }, "S takes 30 motorisation points."],
+  [{ unassigned: { piece: "u:s", from: "u:b" } }, "S is independent: B is gone."],
+  [{ reassigned: { piece: "u:s", to: "u:b", from: null } }, "S is assigned to B."],
+  [{ reassigned: { piece: "u:s", to: null, from: "u:b" } }, "S leaves B and is independent."],
   [{ "motorisation-detached": { piece: "u:s", points: 6 } }, "S gives up its 6 motorisation points."],
   [{ "load-transferred": { from: "u:s", to: "u:a", ammo: 5, fuel: 10 } }, "5 ammunition and 10 fuel move from S to A."],
   [{ railed: { pieces: ["u:s", "u:a"], from: "E3613", to: "D3715" } }, "S, A by rail E3613 → D3715."],
@@ -135,9 +138,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 94 variants", () => {
+  it("covers all 96 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(94);
+    expect(tags.size).toBe(96);
   });
 
   it.each(cases)("%j", (event, line) => {

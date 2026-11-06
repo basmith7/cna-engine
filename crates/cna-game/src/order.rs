@@ -97,6 +97,13 @@ pub enum Order {
     /// Phase C or the player's movement segment: `piece` detaches from
     /// the unit it is attached to, a CP each (19.4x).
     Detach { piece: PieceId },
+    /// Phase C: the independent `piece`, attached to a parent with a
+    /// free slot it fills, becomes assigned to that parent (19.2x).
+    Reassign { piece: PieceId },
+    /// Phase C, Commonwealth: two battalions standing alone trade the
+    /// brigades they are assigned to, or `with` is independent and takes
+    /// `piece`'s place while `piece` leaves it (19.2x).
+    SwapBattalions { piece: PieceId, with: PieceId },
     /// Phase C, abstract supply: the supply unit takes its motorisation
     /// points (30 real, 6 dummy) from its hex's pool (32.31).
     AttachMotorisation { piece: PieceId },
