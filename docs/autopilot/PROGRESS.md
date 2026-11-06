@@ -347,6 +347,16 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **Rommel's Arrival's unattached motorisation points as hexes** (Mission 5:
+  scenario set-ups, Task 5 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  `abstractions.air_and_logistics.motorisation.unattached` (61.72) places the
+  Axis's 290 in `region: libya` and the Commonwealth's 90 on `sheets: A–D`
+  (its 150 in Alexandria/Cairo are fine). The engine keeps motorisation
+  points by hex (32.5x), so it needs each row as hexes with counts (for
+  example the hexes the scenario's second-line trucks start in, as the
+  rows' notes suggest), or a ruling that the owner places them freely at
+  set-up within an area cna lists as hexes.
+
 - **Roads and railroads built at set-up as hex data** (Mission 5:
   scenario set-ups, Task 4 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
   `construction.roads_built` in Operation Crusader, Rommel's Arrival and
