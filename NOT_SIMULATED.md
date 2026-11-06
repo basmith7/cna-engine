@@ -46,7 +46,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-094 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-095 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-096 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
-| R-097 | Group One's pre-play convoys: every scenario loads now (#61, #67), but whether the Game-Turn 1 and 2 convoys sail as planned and unbombed has not been checked against `cna-game::convoy` yet (`docs/plans/2026-11-06-m5-scenario-set-ups.md`) |
+| R-097 | as decided, with the `pre_play_convoys` module on (new games) in a scenario that starts on Game-Turn 1: as the game opens the Axis's convoys for Game-Turns 1 and 2 are planned, a die each under Game-Turn 1's tonnage letter, and Game-Turn 1's lands in phase D unbombed (`cna-game::convoy`) |
 | R-098 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-099 | as decided (#126): `cna-game::facility` reads each side's `repair` blocks, else 22.31's list, so Tobruk is temporary in Graziani's Offensive and the Italian Campaign |
 | R-100 | which arrival wins (schedule over OA sheet): no game state yet; Mission 2 slice 2 follows the schedule, which is the accepted option (spec, PR #5) |

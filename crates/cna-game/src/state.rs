@@ -124,6 +124,10 @@ pub struct Modules {
     /// The scenario's set-up fortifications are placed (59.12).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub set_up_works: bool,
+    /// Group One's Axis convoys for Game-Turns 1 and 2 are planned
+    /// before play, the first unbombed (60.37, R-097).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pre_play_convoys: bool,
 }
 
 impl Modules {
@@ -139,6 +143,7 @@ impl Modules {
         towing: true,
         rail_ends: true,
         set_up_works: true,
+        pre_play_convoys: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

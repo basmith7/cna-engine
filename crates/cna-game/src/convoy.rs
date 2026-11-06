@@ -25,9 +25,51 @@ impl GameState {
         if !self.modules.abstract_supply {
             return;
         }
+        self.plan_before_play(data, events);
         self.plan_supply(data, events);
         self.roll_for_bizerta(data, events);
         self.motorisation_losses(data, events);
+    }
+
+    /// With the `pre_play_convoys` module on, a scenario that starts on
+    /// Game-Turn 1 has the Axis's convoys for Game-Turns 1 and 2 planned
+    /// before play (60.37, R-097): one die each under Game-Turn 1's
+    /// tonnage letter, on a stream of their own. The Game-Turn 1 convoy
+    /// has run the gauntlet before play starts and is not bombed.
+    fn plan_before_play(&mut self, data: &Data, events: &mut Vec<Event>) {
+        let turn = self.clock.game_turn;
+        if !self.modules.pre_play_convoys || turn != 1 || data.scenario.start.game_turn != 1 {
+            return;
+        }
+        let Some(week) = data.calendar.week(1) else {
+            return;
+        };
+        let month = week.month_key();
+        for arrives in [1u8, 2] {
+            let salt = 0x5052_4550_0000_u64 | u64::from(arrives);
+            let die = crate::rng::GameRng::new(
+                self.rng.seed() ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15),
+            )
+            .d6();
+            let Some(units) = data
+                .simplified_supply
+                .axis_units(&month, die)
+                .filter(|u| *u > 0)
+            else {
+                continue;
+            };
+            self.planned.push(Planned {
+                side: Side::Axis,
+                arrives,
+                units,
+            });
+            events.push(Event::SupplyPlanned {
+                side: Side::Axis,
+                die,
+                units,
+                arrives,
+            });
+        }
     }
 
     /// Each turn's planning rolls (32.4x): the Axis one die under the
@@ -273,7 +315,13 @@ impl GameState {
                             held += sailing;
                             continue;
                         };
-                        let landed = sailing - self.bomb_convoy(data, lane, sailing, events);
+                        // R-097: Game-Turn 1's convoy was bombed, if at
+                        // all, before play began.
+                        let landed = if self.modules.pre_play_convoys && turn == 1 {
+                            sailing
+                        } else {
+                            sailing - self.bomb_convoy(data, lane, sailing, events)
+                        };
                         landings.push((at, landed, landed / 3));
                     }
                     due - left - held
@@ -500,6 +548,65 @@ mod tests {
         }));
         assert_eq!(state.motorisation[&Side::Cw]["E3613"], 88);
         assert_eq!(state.motorisation[&Side::Cw]["D3714"], 100);
+    }
+
+    #[test]
+    fn group_one_plans_its_first_two_axis_convoys_before_play_r097() {
+        use crate::clock::Phase;
+        use crate::piece::{Location, PieceKind};
+        use cna_data::scenario::OffMapBox;
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = at_turn(&data, 1);
+        state.planned.clear();
+        let mut events = Vec::new();
+        state.plan_before_play(&data, &mut events);
+        let month = data.calendar.week(1).unwrap().month_key();
+        for e in &events {
+            let Event::SupplyPlanned {
+                side,
+                die,
+                units,
+                arrives,
+            } = e
+            else {
+                panic!("{e:?}");
+            };
+            assert_eq!(*side, Side::Axis);
+            assert!((1..=2).contains(arrives), "{e:?}");
+            assert_eq!(data.simplified_supply.axis_units(&month, *die), Some(*units));
+        }
+        assert_eq!(state.planned.len(), events.len());
+        // Not in a later turn, nor with the module off.
+        let mut later = at_turn(&data, 2);
+        later.planned.clear();
+        later.plan_before_play(&data, &mut Vec::new());
+        assert!(later.planned.is_empty());
+        let mut off = at_turn(&data, 1);
+        off.modules.pre_play_convoys = false;
+        off.planned.clear();
+        off.plan_before_play(&data, &mut Vec::new());
+        assert!(off.planned.is_empty());
+        // Game-Turn 1's convoy lands unbombed.
+        state.clock.phase = Phase::Arrival;
+        state.planned = vec![Planned {
+            side: Side::Axis,
+            arrives: 1,
+            units: 3,
+        }];
+        let in_tripoli = |s: &GameState| {
+            s.pieces
+                .values()
+                .filter(|p| {
+                    p.kind == PieceKind::SupplyUnit
+                        && p.location == Location::Box(OffMapBox::Tripoli)
+                })
+                .count()
+        };
+        let before = in_tripoli(&state);
+        let mut events = Vec::new();
+        assert!(state.supply_arrivals(&data, &mut events));
+        assert!(!events.iter().any(|e| matches!(e, Event::ConvoyBombed { .. })));
+        assert_eq!(in_tripoli(&state), before + 3);
     }
 
     #[test]

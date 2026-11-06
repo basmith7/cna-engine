@@ -19,7 +19,8 @@
     "destroyed_tanks": true,
     "towing": true,
     "rail_ends": true,
-    "set_up_works": true
+    "set_up_works": true,
+    "pre_play_convoys": true
   },
   "clock": {
     "game_turn": 1,
@@ -813,6 +814,64 @@
       },
       "contact": false,
       "engaged": false
+    },
+    "supply:axis:23": {
+      "id": "supply:axis:23",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false,
+      "landed": true
+    },
+    "supply:axis:24": {
+      "id": "supply:axis:24",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false,
+      "landed": true
     },
     "supply:axis:3": {
       "id": "supply:axis:3",

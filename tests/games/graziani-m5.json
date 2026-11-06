@@ -19,7 +19,8 @@
     "destroyed_tanks": true,
     "towing": true,
     "rail_ends": true,
-    "set_up_works": true
+    "set_up_works": true,
+    "pre_play_convoys": true
   },
   "seed": 7,
   "orders": [
