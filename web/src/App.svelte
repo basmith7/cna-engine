@@ -364,6 +364,10 @@
     autosaveNow();
     if (curtain) {
       picked = null;
+      // An armed set-up tool is the last side's, not the next one's.
+      workItem = null;
+      motorArmed = false;
+      motorPoints = 30;
       ticked = [];
     } else {
       // The ticked pieces stay ticked where they now stand, so a stack
@@ -546,6 +550,9 @@
     view = first;
     hex = null;
     picked = null;
+    workItem = null;
+    motorArmed = false;
+    motorPoints = 30;
     ticked = [];
     flying = null;
     custom = [];
