@@ -17,10 +17,28 @@ use cna_data::scenario::Side;
 use cna_rules::movement::Weather;
 
 impl GameState {
+    /// Why no repair may touch `hex`'s vehicles yet: a set-up hold that
+    /// runs until a later OpStage (62.32).
+    pub(crate) fn repair_hold_bar(&self, hex: &HexId) -> Option<Illegal> {
+        let until = self.repair_holds.get(hex)?;
+        ((self.clock.game_turn, self.clock.stage) < (until.game_turn, until.opstage)).then(|| {
+            Illegal::new(
+                "62.32",
+                format!(
+                    "no repair at {hex} before Game-Turn {} OpStage {}",
+                    until.game_turn, until.opstage
+                ),
+            )
+        })
+    }
+
     /// Why `side` may not try field repair in `hex` this phase, if it
     /// may not (22.1x, 22.2x): no friendly unit with the vehicles, an
     /// enemy ZOC over them (an undeclared one counts), or a storm.
     fn field_repair_bar(&self, data: &Data, side: Side, hex: &HexId) -> Option<Illegal> {
+        if let Some(bar) = self.repair_hold_bar(hex) {
+            return Some(bar);
+        }
         if !self
             .pieces
             .values()

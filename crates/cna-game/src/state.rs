@@ -132,6 +132,14 @@ pub struct Modules {
     /// eliminated, at the end of their OpStage (20.8x, R-154–R-157).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub withdrawals: bool,
+    /// The scenario's tanks that start broken down are placed, held from
+    /// repair until their printed OpStage (61.38, 62.32, 63.42).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub broken_down_starts: bool,
+    /// Units in the scenario's release cities at the start leave them
+    /// only as its release schedule allows (61.38, R-159).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub release_schedule: bool,
 }
 
 impl Modules {
@@ -149,6 +157,8 @@ impl Modules {
         set_up_works: true,
         pre_play_convoys: true,
         withdrawals: true,
+        broken_down_starts: true,
+        release_schedule: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -256,6 +266,13 @@ pub struct GameState {
     /// Broken-down vehicles by hex (21.4x): what each marker stands for.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub broken_down: BTreeMap<HexId, Vec<crate::breakdown::Wreck>>,
+    /// Hexes whose broken-down vehicles no repair may touch before the
+    /// OpStage given (62.32): set at set-up, never cleared.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub repair_holds: BTreeMap<HexId, cna_data::time::GameTime>,
+    /// The release schedule's held units and this stage's count (61.38).
+    #[serde(default, skip_serializing_if = "crate::release::Release::is_empty")]
+    pub release: crate::release::Release,
     /// Broken-down vehicle types tried in the field or at a facility this
     /// OpStage, by side, hex and weapon system (22.23: one roll each per
     /// phase K).
@@ -459,6 +476,8 @@ impl GameState {
             scuttled: BTreeSet::new(),
             split: BTreeMap::new(),
             broken_down: BTreeMap::new(),
+            repair_holds: BTreeMap::new(),
+            release: crate::release::Release::default(),
             field_rolled: BTreeSet::new(),
             destroyed_tanks: BTreeMap::new(),
             destroyed_rolled: BTreeSet::new(),
@@ -501,6 +520,7 @@ impl GameState {
         state.check_weapons(data)?;
         state.place_blockship(data)?;
         state.place_set_up_works(data);
+        state.place_broken_down_starts(data);
         state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {
@@ -555,7 +575,9 @@ impl GameState {
             }
             Some(_) => {}
         }
+        let released = self.release_check(data, player, &order)?;
         let mut events = self.apply_checked(data, player, &order)?;
+        self.release_commit(released);
         self.part_from_rommel(&mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)

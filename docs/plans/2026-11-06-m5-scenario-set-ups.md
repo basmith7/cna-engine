@@ -64,12 +64,16 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
   prose is concrete enough, else a cna request.
 
 ### Task 5: Rommel's Arrival's special set-up
-- [ ] The release rule (61.38), 7th Armoured's tanks starting broken
-  down, the printed starting motorisation points (61.72).
+- [x] The release rule (61.38, R-159), behind `release_schedule`.
+- [ ] 7th Armoured's tanks starting broken down (`all_tanks`), which the
+  release rule's 75 % test waits on; the printed starting motorisation
+  points (61.72).
 
 ### Task 6: tanks under repair at the start
-- [ ] Crusader's Alexandria shops (62.32) and the Last Chance's Tobruk
-  (63.42) as broken-down points in a facility at set-up.
+- [x] Crusader's Alexandria shops (62.32) and the Last Chance's Tobruk
+  (63.42) as broken-down points in a facility at set-up, behind
+  `broken_down_starts`, from cna's typed `broken_down` rows (fff7856).
+  Rommel's Arrival's `all_tanks` row goes with Task 5.
 
 ### Task 7: the campaigns' victory
 - [ ] 64.71–64.76: automatic wins, ratio levels, unused-replacement and

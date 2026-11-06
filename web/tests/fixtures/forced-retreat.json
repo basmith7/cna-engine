@@ -21,7 +21,9 @@
     "rail_ends": true,
     "set_up_works": true,
     "pre_play_convoys": true,
-    "withdrawals": true
+    "withdrawals": true,
+    "broken_down_starts": true,
+    "release_schedule": true
   },
   "clock": {
     "game_turn": 1,
