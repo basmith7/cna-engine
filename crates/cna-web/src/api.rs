@@ -1122,6 +1122,24 @@ mod tests {
         tow.apply(graziani(), Side::Cw, Order::Pass).unwrap();
         assert_eq!(tow.clock.phase, cna_game::clock::Phase::Repair);
 
+        // The same phase K with three destroyed Commonwealth light tank
+        // points at Alexandria's major facility instead (22.4x).
+        let mut destroyed_repair = rail.clone();
+        destroyed_repair.destroyed_tanks.insert(
+            alexandria.clone(),
+            vec![cna_game::breakdown::Wreck {
+                side: Side::Cw,
+                nation: None,
+                weapon: "Mark VI Light".into(),
+                points: 3,
+                this_stage: 0,
+                towed: 0,
+            }],
+        );
+        destroyed_repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
+        assert_eq!(destroyed_repair.clock.phase, cna_game::clock::Phase::Repair);
+        assert_eq!(destroyed_repair.destroyed_tank_repairs(graziani()).len(), 1);
+
         let game_over = replay(graziani(), &golden_log()).unwrap();
         assert!(game_over.is_over());
         assert_eq!(game_over.to_act(), None);
@@ -1427,6 +1445,7 @@ mod tests {
             ("rail", rail),
             ("repair", repair),
             ("tow", tow),
+            ("destroyed-repair", destroyed_repair),
             ("game-over", game_over),
         ]
     }

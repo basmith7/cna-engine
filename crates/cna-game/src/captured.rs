@@ -48,7 +48,7 @@ impl Spoil {
     }
 
     /// The replacement key, for every spoil but a recce point's.
-    fn key(self) -> &'static str {
+    pub(crate) fn key(self) -> &'static str {
         match self {
             Spoil::Tank => "captured tank",
             Spoil::Artillery => "captured artillery",

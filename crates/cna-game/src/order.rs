@@ -143,6 +143,18 @@ pub enum Order {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         fuel_from: Option<PieceId>,
     },
+    /// Phase K: attempt `points` of the player's destroyed `weapon` tanks
+    /// in `hex`, a repair facility of its own, a die each on the
+    /// Destroyed Tank Repair Table (22.4x); with abstract supply
+    /// `fuel_from` pre-pays two fuel a point (none takes the first in
+    /// range).
+    RepairDestroyedTanks {
+        hex: HexId,
+        weapon: String,
+        points: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        fuel_from: Option<PieceId>,
+    },
     /// Phase K: tow `points` of the player's broken-down `weapon` from
     /// `hex` along `path`, as a medium truck on 10 CP, toward the nearest
     /// repair facility (21.6x).

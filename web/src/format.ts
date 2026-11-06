@@ -238,6 +238,19 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["wrecks-captured"];
     return `${name(d.by)} captures ${d.points} broken-down vehicle point${d.points === 1 ? "" : "s"} at ${d.hex}.`;
   }
+  if ("tanks-destroyed" in e) {
+    const d = e["tanks-destroyed"];
+    return `${name(d.piece)} leaves ${d.points} destroyed ${d.weapon} at ${d.hex}.`;
+  }
+  if ("destroyed-tanks-captured" in e) {
+    const d = e["destroyed-tanks-captured"];
+    return `${name(d.by)} captures ${d.points} destroyed tank point${d.points === 1 ? "" : "s"} at ${d.hex}.`;
+  }
+  if ("destroyed-tanks-repaired" in e) {
+    const d = e["destroyed-tanks-repaired"];
+    const kind = d.kind === "major" ? "Major" : "Temporary";
+    return `${kind} facility, destroyed ${d.weapon} at ${d.hex}: ${d.dice.join(", ")} → ${d.repaired} repaired, ${d.junked} junked of ${d.attempted}.`;
+  }
   if ("broke-down" in e) {
     const d = e["broke-down"];
     return `${name(d.piece)} breakdown check, ${d.weapon}: ${d.reading} → ${d.percent} %, ${d.points} broken down.`;

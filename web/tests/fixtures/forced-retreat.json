@@ -16,6 +16,7 @@
     "fleet": true,
     "patrols": true,
     "captured_equipment": true,
+    "destroyed_tanks": true,
     "towing": true
   },
   "clock": {

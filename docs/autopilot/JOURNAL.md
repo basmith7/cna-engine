@@ -725,3 +725,9 @@ Done: main merged into #127; c191d7a: TowPanel (arm points, click path, send), `
 In flight: cargo gates and Playwright golden.spec on #127; subagent building destroyed tanks (22.4x, 14.5) on autopilot/m5-destroyed-tanks in /tmp/cna-dtanks (stacked on #127).
 Next: ready + merge #127 on green CI (retarget the destroyed-tanks PR to main FIRST), then review/finish the destroyed-tanks PR.
 Blocked: none.
+
+## 2026-11-06 00:55 MST — autopilot/m5-destroyed-tanks
+Done: #127 (towing) merged. Destroyed-tanks branch (left unpushed mid-merge by the last run) pushed, main merged (0676bd2), web log lines + Try button (2b97078..), pins regenerated; draft #128.
+In flight: gates and a fresh review on #128; web checks (wasm, svelte-check, vitest, Playwright) not yet run.
+Next: fix review findings, run web checks, ready + merge #128; then the next Mission 5 item in the design Status.
+Blocked: none.

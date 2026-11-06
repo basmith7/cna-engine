@@ -198,6 +198,7 @@ export type Order =
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "facility-repair": { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { tow: { hex: HexId; weapon: string; points: number; path: HexId[] } }
+  | { "repair-destroyed-tanks": { hex: HexId; weapon: string; points: number; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
   | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
@@ -230,6 +231,14 @@ export type FacilityKind = "temporary" | "major";
 
 /** Phase K: a facility roll the viewer may make, for the points that began the OpStage in the hex (22.3x, `cna_game::facility::FacilityOffer`). */
 export interface FacilityOffer {
+  hex: HexId;
+  weapon: string;
+  points: number;
+  kind: FacilityKind;
+}
+
+/** Phase K: destroyed tanks the viewer may attempt at its facility, up to `points` (22.4x, `cna_game::destroyed::DestroyedTankOffer`). */
+export interface DestroyedTankOffer {
   hex: HexId;
   weapon: string;
   points: number;
@@ -390,6 +399,9 @@ export type Event =
   | { "facility-repaired": { hex: HexId; weapon: string; kind: FacilityKind; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { towed: { side: Side; from: HexId; to: HexId; weapon: string; points: number } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
+  | { "tanks-destroyed": { piece: PieceId; hex: HexId; weapon: string; points: number } }
+  | { "destroyed-tanks-captured": { by: PieceId; hex: HexId; points: number } }
+  | { "destroyed-tanks-repaired": { hex: HexId; weapon: string; kind: FacilityKind; attempted: number; dice: number[]; repaired: number; junked: number; fuel_from?: PieceId } }
   | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
   | { "equipment-captured": { side: Side; hex: HexId; weapon: string; points?: number } }
   | { "prisoners-marched": { side: Side; path: HexId[]; points?: number; cp?: number } }
@@ -522,6 +534,8 @@ export interface View {
   motorisation?: Partial<Record<Side, Record<string, number>>>;
   /** Breakdown: broken-down vehicles by hex (21.4x), both sides', in the open. */
   broken_down?: Record<HexId, Wreck[]>;
+  /** Destroyed-tank markers by hex (14.5x): the viewer's own only. */
+  destroyed_tanks?: Record<HexId, Wreck[]>;
   /** Prisoner points by captor and hex (28.1x): open to both sides. */
   prisoners?: Partial<Record<Side, Record<HexId, number>>>;
   /** Prisoner points each captor has sent out of play (28.15). */
@@ -561,6 +575,8 @@ export interface View {
   station_options?: { ships: PieceId[]; hexes: HexId[] };
   /** Phase K: the facility rolls the phasing viewer may make (22.3x). */
   facility_repairs?: FacilityOffer[];
+  /** Phase K: the destroyed tanks the phasing viewer may attempt (22.4x). */
+  destroyed_tank_repairs?: DestroyedTankOffer[];
   /** Each warship's port record (30.1x), with the fleet module on. */
   fleet?: Record<PieceId, { at_sea?: number; owed?: number; stationed?: true; fired?: true }>;
 }
