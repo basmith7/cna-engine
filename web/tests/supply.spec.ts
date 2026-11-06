@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { clickHex, here, openFixture, openStart, throughCurtain } from "./helpers.ts";
-import type { Firer, Piece } from "../src/types.ts";
+import type { Firer, Piece, Wreck } from "../src/types.ts";
 
 // Mission 5 slice 2: fuel in the move panel, loads in the stack panel
 // (32.1x, 32.22), on the module-on golden game's set-up.
@@ -318,6 +318,45 @@ test("phase K: field repair of broken-down tanks at Alexandria, one roll a type 
   }
   await page.getByTestId("phase-controls").locator('[data-order="pass"]').click();
   await expect(page.getByTestId("clock")).not.toContainText("repair");
+});
+
+test("phase K: wrecks show their unit, and a repair may go to the second's first (61.38)", async ({ page }) => {
+  // The repair fixture with its four light tank points held two each
+  // for two Commonwealth battalions.
+  const save = JSON.parse(readFileSync(here("fixtures/repair.json"), "utf8"));
+  const [first, second] = ["unit:cw:1-6-rajrf", "unit:cw:1-buffs"];
+  const toe = save.pieces[second].toe;
+  save.broken_down.E3613 = [first, second].map((unit) => ({ side: "cw", nation: null, weapon: "Mark VI Light", points: 2, unit }));
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  await clickHex(page, "E3613");
+  const wrecks = page.getByTestId("wreck");
+  await expect(wrecks).toHaveCount(2);
+  for (const [i, unit] of [first, second].entries()) {
+    await expect(wrecks.nth(i)).toHaveAttribute("data-unit", unit);
+    await expect(wrecks.nth(i)).toContainText(/Broken down: 2 Mark VI Light of \S/);
+  }
+  const controls = page.getByTestId("phase-controls");
+  await expect(controls.locator('[data-order="repair"][data-unit]')).toHaveCount(2);
+  await controls.locator(`[data-order="repair"][data-unit="${second}"]`).click();
+  await expect(log(page).filter({ hasText: "Field repair at E3613, Mark VI Light" })).toHaveCount(1);
+  const after = await page.evaluate(
+    ([first, second]) => {
+      const v = window.__cna.view();
+      const held = (u: string) => (v.broken_down?.["E3613"] ?? []).filter((w: Wreck) => w.unit === u).reduce((n: number, w: Wreck) => n + w.points, 0);
+      return { first: held(first), second: held(second), toe: v.pieces[second].toe, pooled: v.repaired?.cw?.["E3613"] };
+    },
+    [first, second],
+  );
+  // The first battalion's wreck is untouched; whatever the roll repaired
+  // came off the second's and back into it, not into the pool.
+  expect(after.first).toBe(2);
+  expect(after.second + (after.toe! - toe)).toBe(2);
+  expect(after.pooled).toBeUndefined();
+  // The order logged names the unit, whatever the die did.
+  const last = await page.evaluate(() => (JSON.parse(window.__cna.save()) as { log: unknown[] }).log.at(-1));
+  expect(JSON.stringify(last)).toContain(`"unit":"${second}"`);
 });
 
 test("phase K: Alexandria's major facility repairs broken-down tanks on its own column (22.3x)", async ({ page }) => {
