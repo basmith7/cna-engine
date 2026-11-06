@@ -864,6 +864,18 @@
     min-height: 0;
     overflow-y: auto;
   }
+  /* A fade where the panels run on under the log, so a counter grid cut
+     by the scroll edge reads as more below, not clipped. Sticky: past the
+     end of the content it sits on empty space. */
+  .panels::after {
+    content: "";
+    display: block;
+    position: sticky;
+    bottom: 0;
+    height: 18px;
+    background: linear-gradient(rgba(244, 240, 230, 0), #f4f0e6);
+    pointer-events: none;
+  }
   .side :global(.log) {
     flex: none;
     height: 28%;
@@ -891,6 +903,9 @@
     }
     .panels {
       overflow: visible;
+    }
+    .panels::after {
+      display: none;
     }
     .side :global(.log) {
       height: 40vh;

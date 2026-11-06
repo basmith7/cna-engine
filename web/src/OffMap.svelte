@@ -128,14 +128,17 @@
     color: #777;
     margin-left: 0.3rem;
   }
+  /* As many columns as fit the sidebar at 56px or more, each stretched to
+     fill the row: five across the 340px sidebar, so the counters read. */
   .counters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 4px;
   }
   .mini {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
     display: block;
   }
   .pick {

@@ -40,8 +40,9 @@
       <Counter piece={pieces[0]} markers={markers(pieces[0], view)} />
     </g>
     {#if pieces.length > 1}
-      <g class="badge" transform="translate({S * 1.02} {S * 1.02})">
-        <circle r={S * 0.17} />
+      <!-- Out past the top counter's corner, so it stays clear of the CPA figure. -->
+      <g class="badge" transform="translate({S * 1.1} {S * 1.1})">
+        <circle r={S * 0.16} />
         <text y={S * 0.06}>{pieces.length}</text>
       </g>
     {/if}

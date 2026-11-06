@@ -40,10 +40,10 @@
         <tbody>
           {#each report.scored ?? [] as s, i (i)}
             <tr>
-              <td>{s.objective}</td>
-              <td>{s.holder ? sideName(s.holder) : "–"}</td>
-              <td>{s.points}</td>
-              <td>{(s.unsupplied ?? []).map(name).join(", ") || "–"}</td>
+              <td data-label="Objective">{s.objective}</td>
+              <td data-label="Held by">{s.holder ? sideName(s.holder) : "–"}</td>
+              <td data-label="Points">{s.points}</td>
+              <td data-label="Out of supply">{(s.unsupplied ?? []).map(name).join(", ") || "–"}</td>
             </tr>
           {/each}
         </tbody>
@@ -57,12 +57,12 @@
         <tbody>
           {#each report.checked as c, i (i)}
             <tr data-met={c.met}>
-              <td>{sideName(c.side)}</td>
-              <td>{c.level}</td>
-              <td>{c.objective} <span class="hexes">{hexNote(c)}</span></td>
-              <td class="hexes">{c.held.join(", ") || "–"}</td>
-              <td>{c.unsupplied.map(name).join(", ") || "–"}</td>
-              <td class="met">{c.met ? "yes" : "no"}</td>
+              <td data-label="Side">{sideName(c.side)}</td>
+              <td data-label="Level">{c.level}</td>
+              <td data-label="Objective">{c.objective} <span class="hexes">{hexNote(c)}</span></td>
+              <td data-label="Held" class="hexes">{c.held.join(", ") || "–"}</td>
+              <td data-label="Unsupplied">{c.unsupplied.map(name).join(", ") || "–"}</td>
+              <td data-label="Met" class="met">{c.met ? "yes" : "no"}</td>
             </tr>
           {/each}
         </tbody>
@@ -157,6 +157,36 @@
     color: #555;
   }
   tr[data-met="true"] .met { color: #2e7d32; font-weight: 700; }
+  /* A phone's width has no room for the columns: each row becomes a
+     block of labelled lines, so nothing scrolls sideways. */
+  @media (max-width: 560px) {
+    thead {
+      display: none;
+    }
+    table, tbody, tr, td {
+      display: block;
+    }
+    tr {
+      padding: 0.35rem 0;
+      border-bottom: 1px solid #e4dfd2;
+    }
+    td {
+      position: relative;
+      padding: 0.05rem 0 0.05rem 7.5rem;
+      border: none;
+    }
+    td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 0;
+      font-weight: 400;
+      font-size: 11px;
+      line-height: 1.7;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #555;
+    }
+  }
   tr[data-met="false"] .met { color: #a4161a; }
   .automatic {
     margin: 0 0 0.8rem;

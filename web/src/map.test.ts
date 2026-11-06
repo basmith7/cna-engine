@@ -6,6 +6,7 @@ import hexesFile from "../../vendor/cna/data/map/hexes.json";
 import hexsidesFile from "../../vendor/cna/data/map/hexsides.json";
 import placesFile from "../../vendor/cna/data/map/places.json";
 import { HEX_IDS, baseSvg, hexInfo } from "./map";
+import { centre } from "./geom";
 
 const svg = baseSvg();
 
@@ -47,9 +48,20 @@ describe("the base layer", () => {
     }
   });
 
-  it("numbers every hex", () => {
-    expect((svg.match(/<text class="hexnum"/g) ?? []).length).toBe(HEX_IDS.length);
-    expect(svg).toContain(">3922</text>");
+  it("numbers every hex but those a place name would cover", () => {
+    const numbered = new Set([...svg.matchAll(/<text class="hexnum" x="([\d.-]+)" y="([\d.-]+)">/g)].map((m) => `${m[1]},${m[2]}`));
+    const at = (id: string) => {
+      const [x, y] = centre(id);
+      return `${x.toFixed(2)},${(y + 15).toFixed(2)}`;
+    };
+    // Mersa Matruh's name (D3714) runs over the numbers of D3813 and D3814, its neighbours in the next column.
+    expect(numbered.has(at("D3714"))).toBe(true);
+    expect(numbered.has(at("D3814"))).toBe(false);
+    expect(numbered.has(at("D3813"))).toBe(false);
+    expect(numbered.has(at("C3922"))).toBe(true);
+    // A name covers a few numbers; the rest are drawn.
+    expect(numbered.size).toBeLessThan(HEX_IDS.length);
+    expect(numbered.size).toBeGreaterThan(HEX_IDS.length - 4 * placesFile.places.length);
   });
 
   it("describes a hex for the panel", () => {

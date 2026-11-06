@@ -115,15 +115,34 @@ function placeAreaSvg(p: Place): string {
   return p.hexes.map((h) => `<polygon class="place-area" data-hex="${h}" points="${polygonPoints(h)}"/>`).join("");
 }
 
+// Where the labels sit, and the boxes they take (map units; map.css sets
+// the fonts: 5px numbers, 7px names). A box's width is a sans-serif
+// estimate, ~0.6 em a character, plus the name's 2px halo.
+const NUM_DY = SIZE * 0.75;
+const NAME_DY = -SIZE * 0.88;
+type Box = { x0: number; x1: number; y0: number; y1: number };
+const textBox = (x: number, baseline: number, chars: number, font: number, pad: number): Box => {
+  const half = (chars * font * 0.6) / 2 + pad;
+  return { x0: x - half, x1: x + half, y0: baseline - font * 0.75 - pad, y1: baseline + font * 0.2 + pad };
+};
+const NAME_BOXES = PLACES.map((p) => {
+  const [cx, cy] = centre(p.hex);
+  return textBox(cx, cy + NAME_DY, p.name.length, 7, 1);
+});
+const meets = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+/** A hex's number, left out where a place name would sit on it. */
 function hexnumSvg(h: Hex): string {
   const [cx, cy] = centre(h.id);
-  return `<text class="hexnum" x="${f(cx)}" y="${f(cy + SIZE * 0.75)}">${h.id.slice(1)}</text>`;
+  const num = h.id.slice(1);
+  if (NAME_BOXES.some((b) => meets(b, textBox(cx, cy + NUM_DY, num.length, 5, 0)))) return "";
+  return `<text class="hexnum" x="${f(cx)}" y="${f(cy + NUM_DY)}">${num}</text>`;
 }
 
-/** The name sits at the top of its hex, clear of a counter on it, and after every hex number so its halo wins. */
+/** The name sits at the top of its hex, clear of a counter on it; a hex number it would cover is not drawn. */
 function placeNameSvg(p: Place): string {
   const [cx, cy] = centre(p.hex);
-  return `<text class="place" x="${f(cx)}" y="${f(cy - SIZE * 0.88)}">${esc(p.name)}</text>`;
+  return `<text class="place" x="${f(cx)}" y="${f(cy + NAME_DY)}">${esc(p.name)}</text>`;
 }
 
 /** The whole base layer: hexes, place areas, hexsides, settlements, labels, in cna's order. */
