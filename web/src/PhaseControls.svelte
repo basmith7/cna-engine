@@ -38,7 +38,8 @@
         | { "air-lift": { piece: PieceId; to: Location } }
         | { "convoy-lanes": { lanes: number[] } }
         | { repair: { hex: HexId; weapon: string } }
-        | { "facility-repair": { hex: HexId; weapon: string } },
+        | { "facility-repair": { hex: HexId; weapon: string } }
+        | { "repair-destroyed-tanks": { hex: HexId; weapon: string; points: number } },
     ) => void;
   } = $props();
 
@@ -74,6 +75,8 @@
   );
   // Phase K: the facility rolls the engine offers in the selected hex (22.3x).
   const facilityRepairs = $derived(c.phase === "repair" && hex !== null ? (view.facility_repairs ?? []).filter((o) => o.hex === hex) : []);
+  // Phase K: destroyed tanks the engine offers to attempt in the selected hex, every point it can pay for (22.4x).
+  const destroyedRepairs = $derived(c.phase === "repair" && hex !== null ? (view.destroyed_tank_repairs ?? []).filter((o) => o.hex === hex) : []);
   // Phase C, the Axis: the convoy lanes its supply sails by, filled in the order named (32.63); a click names or drops one.
   const lanes = $derived(view.convoy_lanes ?? []);
   let ammo = $state(0);
@@ -143,6 +146,9 @@
     {/if}
     {#each facilityRepairs as o (o.weapon)}
       <button type="button" data-order="facility-repair" data-weapon={o.weapon} onclick={() => onorder({ "facility-repair": { hex: o.hex, weapon: o.weapon } })}>Repair {o.points} {o.weapon} at the {o.kind} facility</button>
+    {/each}
+    {#each destroyedRepairs as o (o.weapon)}
+      <button type="button" data-order="repair-destroyed-tanks" data-weapon={o.weapon} onclick={() => onorder({ "repair-destroyed-tanks": { hex: o.hex, weapon: o.weapon, points: o.points } })}>Try {o.points} destroyed {o.weapon} at the {o.kind} facility</button>
     {/each}
     {#each repairs as weapon (weapon)}
       <button type="button" data-order="repair" data-weapon={weapon} onclick={() => hex && onorder({ repair: { hex, weapon } })}>Repair {weapon} at {hex}</button>

@@ -106,6 +106,9 @@ const cases: [Event, string][] = [
   [{ railed: { pieces: ["u:s", "u:a"], from: "E3613", to: "D3715" } }, "S, A by rail E3613 → D3715."],
   [{ "wrecks-captured": { by: "u:b", hex: "C3920", points: 2 } }, "B captures 2 broken-down vehicle points at C3920."],
   [{ "facility-repaired": { hex: "E3613", weapon: "Matilda", kind: "major", attempted: 4, die: 5, repaired: 2 } }, "Major facility repair at E3613, Matilda: 5 → 2 of 4 repaired."],
+  [{ "tanks-destroyed": { piece: "u:b", hex: "C3920", weapon: "A9", points: 2 } }, "B leaves 2 destroyed A9 at C3920."],
+  [{ "destroyed-tanks-captured": { by: "u:b", hex: "C3920", points: 1 } }, "B captures 1 destroyed tank point at C3920."],
+  [{ "destroyed-tanks-repaired": { hex: "E3613", weapon: "Matilda", kind: "major", attempted: 3, dice: [1, 4, 6], repaired: 1, junked: 1 } }, "Major facility, destroyed Matilda at E3613: 1, 4, 6 → 1 repaired, 1 junked of 3."],
   [{ towed: { side: "cw", from: "D3513", to: "D3714", weapon: "Matilda", points: 3 } }, "3 broken-down Matilda towed D3513 → D3714."],
   [{ "broke-down": { piece: "u:b", weapon: "CV33", reading: 64, percent: 33, points: 3 } }, "B breakdown check, CV33: 64 → 33 %, 3 broken down."],
   [{ eliminated: { piece: "u:b" } }, "B eliminated."],
@@ -123,9 +126,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 87 variants", () => {
+  it("covers all 90 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(87);
+    expect(tags.size).toBe(90);
   });
 
   it.each(cases)("%j", (event, line) => {
