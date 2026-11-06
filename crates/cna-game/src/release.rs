@@ -14,6 +14,7 @@ use cna_data::map::HexId;
 use cna_data::oa::UnitId;
 use cna_data::scenario::{Locator, Side};
 use cna_data::time::GameTime;
+use cna_data::weapons::WeaponClass;
 use cna_rules::supply::FuelClass;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -124,7 +125,7 @@ impl GameState {
 
     /// Whether `piece` belongs to the formation headed by `hq`: its own
     /// parent or an OA ancestor of it is `hq`.
-    fn in_formation(&self, data: &Data, piece: &PieceId, hq: &UnitId) -> bool {
+    pub(crate) fn in_formation(&self, data: &Data, piece: &PieceId, hq: &UnitId) -> bool {
         let mut at = self.pieces.get(piece).and_then(|p| p.parent.clone());
         let mut steps = 0;
         while let Some(u) = at {
@@ -140,11 +141,41 @@ impl GameState {
         false
     }
 
-    /// The share, in hundredths, of a formation's tank TOE points that are
-    /// repaired. Tanks that start broken down with their unit are not
-    /// built (NOT_SIMULATED), so every tank in a unit counts as repaired.
-    fn tanks_repaired_pct(&self, _data: &Data, _hq: &UnitId) -> u32 {
-        100
+    /// Tank (or other) points broken down and held for `piece`'s unit,
+    /// to go back into it when repaired (61.38's `all_tanks`).
+    pub(crate) fn held_for(&self, piece: &PieceId) -> u32 {
+        let Some(unit) = piece.unit() else {
+            return 0;
+        };
+        self.broken_down
+            .values()
+            .flatten()
+            .filter(|w| w.unit.as_ref() == Some(&unit))
+            .map(|w| w.points)
+            .sum()
+    }
+
+    /// The share, in hundredths, of a battalion's tank TOE points that
+    /// are repaired: those it holds against those plus the ones still
+    /// broken down for it (61.38's `all_tanks`, `tanks_with_units`: "a
+    /// tank battalion is released only once at least three quarters
+    /// repaired"). A battalion with no tank points owed counts as whole.
+    fn tanks_repaired_pct(&self, data: &Data, piece: &PieceId) -> u32 {
+        let Some(p) = self.pieces.get(piece) else {
+            return 100;
+        };
+        let have: u32 = p
+            .weapons
+            .iter()
+            .filter(|w| {
+                p.nation
+                    .and_then(|n| data.weapons.resolve(n, &w.weapon))
+                    .is_some_and(|r| r.class == WeaponClass::Tank)
+            })
+            .map(|w| w.points)
+            .sum();
+        let held = self.held_for(piece);
+        (have * 100).checked_div(have + held).unwrap_or(100)
     }
 
     /// The pieces an order names as moving along a path (a rail run's
@@ -273,12 +304,13 @@ impl GameState {
                     .any(|id| self.fuel_class(data, &self.pieces[id]) == FuelClass::Tank);
                 if tank {
                     let min = f.tank_battalions.min_repaired_pct.unwrap_or(0);
-                    if self.tanks_repaired_pct(data, &f.unit) < min {
+                    if let Some(short) =
+                        g.iter().find(|id| self.tanks_repaired_pct(data, id) < min)
+                    {
                         return Err(Illegal::new(
                             "61.38",
                             format!(
-                                "{} may not leave: under {min} % of the formation's tanks are repaired",
-                                g[0]
+                                "{short} may not leave: under {min} % of its tanks are repaired"
                             ),
                         ));
                     }
@@ -525,6 +557,7 @@ mod tests {
         allowed(&data, &mut s, &["unit:cw:11-czech"]);
         refused(&data, &mut s, &["unit:cw:2-kor"]);
         // The 7th Armoured's tank battalion and other battalion.
+        while repair_one(&mut s) {}
         allowed(&data, &mut s, &["unit:cw:7-hus"]);
         allowed(&data, &mut s, &["unit:cw:2-rflbde"]);
         refused(&data, &mut s, &["unit:cw:3-rha"]);
@@ -534,6 +567,86 @@ mod tests {
         cw_moving(&data, &mut s);
         allowed(&data, &mut s, &["unit:cw:2-kor"]);
         refused(&data, &mut s, &["unit:cw:1-ches"]);
+    }
+
+    /// Repairs one of the 7th Armoured's broken-down tank points, back
+    /// into its unit; false once none is left.
+    fn repair_one(s: &mut GameState) -> bool {
+        let Some((hex, weapon)) = s
+            .broken_down
+            .iter()
+            .flat_map(|(h, ws)| ws.iter().map(move |w| (h, w)))
+            .find(|(_, w)| w.unit.is_some())
+            .map(|(h, w)| (h.clone(), w.weapon.clone()))
+        else {
+            return false;
+        };
+        let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false);
+        s.credit_repaired(Side::Cw, &hex, &weapon, taken);
+        true
+    }
+
+    /// Repairs `n` of the points held for `unit`, back into it.
+    fn repair_for(s: &mut GameState, unit: &str, n: u32) {
+        let unit = UnitId::parse(unit).unwrap();
+        for _ in 0..n {
+            let (hex, weapon) = s
+                .broken_down
+                .iter()
+                .flat_map(|(h, ws)| ws.iter().map(move |w| (h, w)))
+                .find(|(_, w)| w.unit.as_ref() == Some(&unit))
+                .map(|(h, w)| (h.clone(), w.weapon.clone()))
+                .expect("a point held for the unit");
+            let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false);
+            assert_eq!(taken, vec![(Some(unit.clone()), 1)], "took the unit's own point");
+            s.credit_repaired(Side::Cw, &hex, &weapon, taken);
+        }
+    }
+
+    #[test]
+    fn a_tank_battalion_leaves_once_75_percent_repaired_61_38() {
+        let data = data();
+        let mut s = at(&data, Modules::ALL, 27, 1);
+        let hus7 = pid("unit:cw:7-hus");
+        assert_eq!(s.tanks_repaired_pct(&data, &hus7), 0);
+        refused(&data, &mut s, &["unit:cw:7-hus"]);
+        // The 7th Hussars' 10 Mark VI: 7 is 70 %, 8 is 80 %.
+        repair_for(&mut s, "unit:cw:7-hus", 7);
+        assert_eq!(s.tanks_repaired_pct(&data, &hus7), 70);
+        refused(&data, &mut s, &["unit:cw:7-hus"]);
+        repair_for(&mut s, "unit:cw:7-hus", 1);
+        assert_eq!(s.tanks_repaired_pct(&data, &hus7), 80);
+        allowed(&data, &mut s, &["unit:cw:7-hus"]);
+        // Without the module the tanks start whole and the test passes.
+        let mut off = Modules::ALL;
+        off.tanks_with_units = false;
+        let mut plain = at(&data, off, 27, 1);
+        assert_eq!(plain.tanks_repaired_pct(&data, &hus7), 100);
+        allowed(&data, &mut plain, &["unit:cw:7-hus"]);
+    }
+
+    #[test]
+    fn the_rest_of_the_division_repaired_does_not_release_a_battalion_61_38() {
+        use std::collections::BTreeMap;
+        let data = data();
+        let mut s = at(&data, Modules::ALL, 27, 1);
+        // Everything repaired but the 8th Hussars' 7 A10, then one of
+        // those: the division is at 77 %, the battalion at 14 %.
+        let mut owed: BTreeMap<String, u32> = BTreeMap::new();
+        for w in s.broken_down.values().flatten() {
+            if let Some(u) = &w.unit {
+                *owed.entry(u.to_string()).or_default() += w.points;
+            }
+        }
+        assert_eq!(owed.remove("unit:cw:8-hus"), Some(7));
+        for (unit, n) in owed {
+            repair_for(&mut s, &unit, n);
+        }
+        repair_for(&mut s, "unit:cw:8-hus", 1);
+        assert_eq!(s.tanks_repaired_pct(&data, &pid("unit:cw:8-hus")), 14);
+        // A whole battalion is not held back by the 8th's.
+        assert_eq!(s.tanks_repaired_pct(&data, &pid("unit:cw:7-hus")), 100);
+        allowed(&data, &mut s, &["unit:cw:7-hus"]);
     }
 
     #[test]

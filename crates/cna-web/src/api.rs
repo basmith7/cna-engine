@@ -1086,6 +1086,7 @@ mod tests {
                 points: 4,
                 this_stage: 0,
                 towed: 0,
+                unit: None,
             }],
         );
         repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
@@ -1134,6 +1135,7 @@ mod tests {
                 points: 3,
                 this_stage: 0,
                 towed: 0,
+                unit: None,
             }],
         );
         destroyed_repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
