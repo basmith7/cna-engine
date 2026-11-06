@@ -316,7 +316,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   `view_for` at The Last Chance's set-up 212 ms → 13 ms, views unchanged.
   #151 (Mission 3's polish residue: hex labels, tray counters, badge,
   "More below" cue, end dialog at 390 px) is ready, CI running; a fresh
-  critique's fixes are in. Still open: Bardia's set-up forts and set-up
+  critique's fixes are in. #153 (merged): `cargo fmt` over the
+  workspace and `cargo fmt --all --check` in CI. Still open: Bardia's set-up forts and set-up
   works vs enemy ZOC, both asked of cna below.
 - `vendor/cna` is at cna e9a90b3 (#145).
 
