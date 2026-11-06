@@ -183,30 +183,55 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
     } else {
         (Side::Cw, totals.cw - totals.axis)
     };
-    let level = victory
-        .margins
-        .iter()
-        .filter(|m| margin >= m.min)
-        .max_by_key(|m| m.min)
-        .and_then(|m| match m.level.as_str() {
-            "tactical" => Some(VictoryLevel::Tactical),
-            "decisive" => Some(VictoryLevel::Decisive),
-            "strategic" => Some(VictoryLevel::Strategic),
-            _ => None,
-        });
+    let level = if victory.ratios.is_empty() {
+        victory
+            .margins
+            .iter()
+            .filter(|m| margin >= m.min)
+            .max_by_key(|m| m.min)
+            .and_then(|m| named(&m.level))
+    } else {
+        ratio_level(&victory.ratios, &totals)
+    };
     if margin > 0 {
         match winner {
             Side::Axis => report.axis = level,
             Side::Cw => report.cw = level,
         }
     }
-    if victory.margins.is_empty() {
+    if victory.margins.is_empty() && victory.ratios.is_empty() {
         report
             .unchecked
             .push("the scenario gives no margins: no level".into());
     }
     report.unchecked.extend(victory.notes.iter().cloned());
     report.points = Some(totals);
+}
+
+/// A level cna names, or none (a draw).
+fn named(level: &str) -> Option<VictoryLevel> {
+    match level {
+        "tactical" => Some(VictoryLevel::Tactical),
+        "decisive" => Some(VictoryLevel::Decisive),
+        "strategic" => Some(VictoryLevel::Strategic),
+        _ => None,
+    }
+}
+
+/// The level a ratio ladder gives the larger total (64.76 by R-109):
+/// the highest rung whose `over` the ratio, larger to smaller, strictly
+/// passes; a positive larger total over a smaller one of zero or less
+/// reaches the top rung; equal totals or nothing positive, none.
+fn ratio_level(ratios: &[cna_data::scenario::Ratio], totals: &Points) -> Option<VictoryLevel> {
+    let (larger, smaller) = (
+        i64::from(totals.axis.max(totals.cw)),
+        i64::from(totals.axis.min(totals.cw)),
+    );
+    ratios
+        .iter()
+        .filter(|r| larger > 0 && (smaller <= 0 || larger * 100 > i64::from(r.over) * smaller))
+        .max_by_key(|r| r.over)
+        .and_then(|r| named(&r.level))
 }
 
 /// The route trace of R-110 for one side: as a medium truck in normal
@@ -406,6 +431,25 @@ mod tests {
         let mut state = GameState::with_modules(data, 5, crate::state::Modules::ALL).unwrap();
         crate::state::test_support::auto_place(data, &mut state);
         state
+    }
+
+    #[test]
+    fn the_campaign_games_rank_a_points_win_by_ratio_64_76_r_109() {
+        for slug in ["campaign-game", "desert-fox-campaign", "short-campaign-game"] {
+            let data = Data::load(slug).unwrap();
+            let ratios = &data.scenario.victory.as_ref().unwrap().ratios;
+            assert_eq!(ratios.len(), 4, "{slug}");
+            let at = |axis, cw| ratio_level(ratios, &Points { axis, cw });
+            assert_eq!(at(100, 100), None, "equal is a draw");
+            assert_eq!(at(101, 100), Some(VictoryLevel::Tactical));
+            assert_eq!(at(150, 100), Some(VictoryLevel::Tactical), "up to 1½ is marginal");
+            assert_eq!(at(100, 151), Some(VictoryLevel::Decisive));
+            assert_eq!(at(250, 100), Some(VictoryLevel::Decisive), "up to 2½ is decisive");
+            assert_eq!(at(251, 100), Some(VictoryLevel::Strategic));
+            assert_eq!(at(5, 0), Some(VictoryLevel::Strategic), "over nothing: smashing");
+            assert_eq!(at(0, 0), None);
+            assert_eq!(at(3, -2), Some(VictoryLevel::Strategic));
+        }
     }
 
     #[test]

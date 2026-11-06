@@ -71,8 +71,9 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
   (63.42) as broken-down points in a facility at set-up.
 
 ### Task 7: the campaigns' victory
-- [ ] 64.71–64.76: automatic wins, ratio levels, unused-replacement and
-  withdrawal points.
+- [x] 64.76's ratio levels from cna's `victory.ratios`.
+- [ ] 64.71–64.75: automatic wins, the end-of-game supply test,
+  unused-replacement and withdrawal points.
 
 ### Task 8: NOT_SIMULATED
 - [x] R-097 and R-099–R-109 rewritten (#132); R-097 built behind
