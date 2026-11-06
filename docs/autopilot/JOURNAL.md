@@ -785,3 +785,9 @@ Done: #150 (0-TOE battalion eliminated by assault), #149 (repair names the wreck
 In flight: #151 (this branch, Mission 3 polish; fresh critique's fixes in 136515f; origin/main merged b8a2892) ready, CI running.
 Next: merge #151 if CI green (else fix the failing Playwright spec). Then: if Feedback approves #148, Mission 6 slice 1; otherwise bump vendor/cna when cna answers the requests, or the next follow-up (repo-wide `cargo fmt` + `--check` in CI: main is unformatted in ~10 files).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 14:05 MST — autopilot/m5-setup-rulings
+Done: #154 (this branch): vendor/cna → 9336fcc (cna #294–#297), R-161 (`up_to` fort rows optional, panel shows optional_left), R-162 (chosen set-up works refused in enemy ZOC/held hex; void at set-up end reopens that side for works only, `works_reopened`), R-163/R-166 NOT_SIMULATED rows. Fresh review's finding (redeploy loop) fixed in d9ece86. #155 docs: NOT_SIMULATED lagging rows, AGENTS.md list dropped.
+In flight: CI on #154/#155; local full Playwright run.
+Next: merge #154, #155 when green; delete the four answered bullets from PROGRESS Requests for cna (keep 0-TOE). Mission 6 still waits on Brian (#148).
+Blocked: Mission 6 on Brian's review of #148.
