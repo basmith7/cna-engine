@@ -808,6 +808,7 @@
             }
           }} />
           <OffMap {view} {picked} {onpick} {ticked} {ontick} />
+          <div class="more" aria-hidden="true"><span>More below ▾</span></div>
         </div>
         <LogPanel entries={log} />
       </aside>
@@ -863,6 +864,39 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+  }
+  /* While the panels run on under the log, a shadowed strip at their foot
+     says "More below": a grid cut by the scroll edge is not clipped. The
+     strip shows only while there is more to scroll to (a scroll-state
+     query; without one, the browser's own scrollbar is the cue). */
+  .panels {
+    container-type: scroll-state;
+    scrollbar-gutter: stable;
+  }
+  .more {
+    display: none;
+    position: sticky;
+    bottom: 0;
+    pointer-events: none;
+  }
+  @container scroll-state(scrollable: bottom) {
+    .more {
+      display: block;
+      height: 26px;
+      margin-top: -26px;
+      background: linear-gradient(rgba(244, 240, 230, 0), #f4f0e6 70%);
+      box-shadow: 0 -1px 0 rgba(31, 42, 51, 0.25) inset;
+      text-align: center;
+    }
+    .more span {
+      position: relative;
+      top: 6px;
+      padding: 1px 8px;
+      border-radius: 9px;
+      background: #1f2a33;
+      color: #f2efe6;
+      font: 600 11px system-ui, sans-serif;
+    }
   }
   .side :global(.log) {
     flex: none;
