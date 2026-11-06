@@ -289,7 +289,8 @@ impl GameState {
         let pieces_left = self
             .pieces
             .values()
-            .any(|p| p.side == side && p.is_pending());
+            .any(|p| p.side == side && p.is_pending())
+            || self.motorisation_to_place.contains_key(&side);
         o.insert("required_left".into(), serde_json::json!(left));
         o.insert(
             "may_pass".into(),
@@ -403,10 +404,15 @@ impl GameState {
             .works_to_place
             .iter()
             .any(|q| q.side == player && q.required_open(&works));
-        if self.pending != Some(Pending::SetUp { side: player }) || pieces_left || required {
+        let motorisation_left = self.motorisation_to_place.contains_key(&player);
+        if self.pending != Some(Pending::SetUp { side: player })
+            || pieces_left
+            || required
+            || motorisation_left
+        {
             return Err(Illegal::new(
                 "59.2",
-                "a side passes at set-up only with every piece and required work placed",
+                "a side passes at set-up only with every piece, motorisation point and required work placed",
             ));
         }
         for q in self.works_to_place.iter_mut().filter(|q| q.side == player) {

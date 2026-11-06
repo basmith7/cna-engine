@@ -70,6 +70,14 @@ pub fn leaks(state: &GameState, json: &Value, about: Side) -> Vec<String> {
             }
         }
     }
+    // 61.72: the owner's unattached motorisation points still to place.
+    if json
+        .get("motorisation_to_place")
+        .and_then(|m| m.get(side.as_str()))
+        .is_some()
+    {
+        found.push("motorisation_to_place".into());
+    }
     if let Some(w) = json.get("works_to_place").and_then(Value::as_array) {
         for (i, q) in w.iter().enumerate() {
             if q.get("side").and_then(Value::as_str) == Some(side.as_str()) {

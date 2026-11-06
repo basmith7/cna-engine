@@ -33,7 +33,7 @@
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
-//! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
+//! | `motorisation`, `repaired`, `pending_motorisation`, `motorisation_to_place` | own only (layer 1) |
 //! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
 //! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
@@ -168,6 +168,7 @@ const STATE_FILTERS: &[&str] = &[
     "motorisation",
     "repaired",
     "pending_motorisation",
+    "motorisation_to_place",
     "works_to_place",
     "withdrawn",
     "withdrawal_picks",
@@ -322,7 +323,7 @@ pub fn view_for(
     {
         o.remove("axis_held_since");
     }
-    for key in ["motorisation", "repaired"] {
+    for key in ["motorisation", "repaired", "motorisation_to_place"] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {
                 m.remove(s);

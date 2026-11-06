@@ -150,6 +150,11 @@
   /** The set-up work armed in the set-up panel (59.12): a click places one. */
   let workItem: WorkItem | null = $state(null);
   const workHexes: HexId[] = $derived(!picked && workItem ? (view?.work_options?.[workItem] ?? []) : []);
+  /** Unattached motorisation armed in the set-up panel (61.72): a click places `motorPoints` of them, or as many as the hex may take. */
+  let motorArmed = $state(false);
+  let motorPoints = $state(30);
+  const motorQuotas = $derived(view?.pending && "set-up" in view.pending ? (view.motorisation_to_place?.[view.pending["set-up"].side] ?? []) : []);
+  const motorHexes: HexId[] = $derived(!picked && motorArmed ? [...new Set(motorQuotas.flatMap((q) => q.hexes))] : []);
 
   /** Hands `q`'s answer to `take` unless the effect that asked has rerun or gone first (its cleanup, returned). */
   function answer<T>(q: Promise<T>, take: (r: T) => void): () => void {
@@ -359,6 +364,10 @@
     autosaveNow();
     if (curtain) {
       picked = null;
+      // An armed set-up tool is the last side's, not the next one's.
+      workItem = null;
+      motorArmed = false;
+      motorPoints = 30;
       ticked = [];
     } else {
       // The ticked pieces stay ticked where they now stand, so a stack
@@ -404,6 +413,13 @@
     if (!picked && workItem && view.work_options && workHexes.includes(h)) {
       hex = h;
       if (await send({ "place-work": { item: workItem, hex: h } }) && !(view?.work_options?.[workItem] ?? []).length) workItem = null;
+      return;
+    }
+    if (!picked && motorArmed && motorHexes.includes(h)) {
+      hex = h;
+      const most = Math.max(...motorQuotas.filter((q) => q.hexes.includes(h)).map((q) => q.points));
+      const points = Math.max(1, Math.min(Math.floor(motorPoints) || 1, most));
+      if (await send({ "place-motorisation": { hex: h, points } }) && !motorQuotas.length) motorArmed = false;
       return;
     }
     if (picked && view.pending && "set-up" in view.pending) {
@@ -534,6 +550,9 @@
     view = first;
     hex = null;
     picked = null;
+    workItem = null;
+    motorArmed = false;
+    motorPoints = 30;
     ticked = [];
     flying = null;
     custom = [];
@@ -682,7 +701,7 @@
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
-            <Placements hexes={picked ? placements : workHexes} />
+            <Placements hexes={picked ? placements : workItem ? workHexes : motorHexes} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
             <Marks hexes={patrolTargets} kind="patrol" />
@@ -757,7 +776,16 @@
             {workItem}
             onwork={(item) => {
               picked = null;
+              motorArmed = false;
               workItem = item;
+            }}
+            {motorQuotas}
+            {motorArmed}
+            bind:motorPoints
+            onmotor={() => {
+              picked = null;
+              workItem = null;
+              motorArmed = true;
             }}
             onpass={() => {
               workItem = null;

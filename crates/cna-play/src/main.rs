@@ -92,6 +92,10 @@ enum Cmd {
         /// set-up: its unfinished roads stay tracks.
         #[arg(long)]
         no_roads_built: bool,
+        /// Play without placing the scenario's unattached motorisation
+        /// points at set-up (61.72, R-160).
+        #[arg(long)]
+        no_unattached_motorisation: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -229,6 +233,7 @@ fn main() -> Result<()> {
             no_tanks_with_units,
             no_campaign_victory,
             no_roads_built,
+            no_unattached_motorisation,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -251,6 +256,7 @@ fn main() -> Result<()> {
                 tanks_with_units: !no_tanks_with_units,
                 campaign_victory: !no_campaign_victory,
                 roads_built: !no_roads_built,
+                unattached_motorisation: !no_unattached_motorisation,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

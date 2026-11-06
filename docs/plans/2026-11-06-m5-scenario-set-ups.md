@@ -68,9 +68,11 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
 
 ### Task 5: Rommel's Arrival's special set-up
 - [x] The release rule (61.38, R-159), behind `release_schedule`.
-- [ ] 7th Armoured's tanks starting broken down (`all_tanks`), which the
-  release rule's 75 % test waits on; the printed starting motorisation
-  points (61.72).
+- [x] 7th Armoured's tanks starting broken down (`all_tanks`), which the
+  release rule's 75 % test waits on (#139).
+- [x] The printed unattached motorisation points (61.72), placed by their
+  owner at set-up among cna's hexes (R-160), behind
+  `unattached_motorisation`.
 
 ### Task 6: tanks under repair at the start
 - [x] Crusader's Alexandria shops (62.32) and the Last Chance's Tobruk

@@ -584,10 +584,22 @@ pub enum TruckClass {
 #[serde(deny_unknown_fields)]
 pub struct Motorisation {
     pub from: Vec<TruckClass>,
-    /// Printed unattached starting points; they replace the second-line
-    /// truck blocks. Kept as JSON: no scenario the engine plays has them.
+    /// Printed unattached starting points (61.72), placed by their owner
+    /// at set-up within `placement` (R-160).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub unattached: Vec<serde_json::Value>,
+    pub unattached: Vec<Unattached>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
+}
+
+/// A side's unattached motorisation points at the start (61.72): `count`
+/// points its owner divides among the hexes of `placement` (R-160).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Unattached {
+    pub side: Side,
+    pub count: u32,
+    pub placement: Placement,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notes: Vec<String>,
 }

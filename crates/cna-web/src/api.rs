@@ -1138,7 +1138,9 @@ mod tests {
                 unit: None,
             }],
         );
-        destroyed_repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
+        destroyed_repair
+            .apply(graziani(), Side::Cw, Order::Pass)
+            .unwrap();
         assert_eq!(destroyed_repair.clock.phase, cna_game::clock::Phase::Repair);
         assert_eq!(destroyed_repair.destroyed_tank_repairs(graziani()).len(), 1);
 
@@ -1170,28 +1172,53 @@ mod tests {
         }
         assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
 
-        // Rommel's Arrival with every piece placed: only the
-        // Commonwealth's four Tobruk forts (61.6, `placed_works`) hold
-        // its set-up.
+        // Rommel's Arrival with every piece placed: the Axis's 290
+        // unattached motorisation points (61.72, R-160) hold its set-up
+        // (`rommel-motorisation`); with those and the Commonwealth's in
+        // each row's first hex, only its four Tobruk forts (61.6,
+        // `placed_works`) do.
         let rommel = data("rommels-arrival").unwrap();
         let mut rommel_works = GameState::with_modules(rommel, 7, Modules::ALL).unwrap();
+        let mut rommel_motorisation = None;
         while let Some(Pending::SetUp { side }) = rommel_works.pending.clone() {
-            let Some((piece, hex)) = rommel_works
+            let piece = rommel_works
                 .pieces
                 .values()
                 .filter(|p| p.side == side && p.is_pending())
                 .find_map(|p| {
                     let hex = rommel_works.placements(rommel, &p.id).into_iter().next()?;
                     Some((p.id.clone(), hex))
-                })
-            else {
-                break;
+                });
+            let order = match piece {
+                Some((piece, hex)) => Order::Place { piece, hex },
+                None => {
+                    let Some(q) = rommel_works
+                        .motorisation_to_place
+                        .get(&side)
+                        .and_then(|qs| qs.first())
+                    else {
+                        break;
+                    };
+                    if side == Side::Axis && rommel_motorisation.is_none() {
+                        rommel_motorisation = Some(rommel_works.clone());
+                    }
+                    Order::PlaceMotorisation {
+                        hex: q.hexes[0].clone(),
+                        points: q.points,
+                    }
+                }
             };
-            rommel_works
-                .apply(rommel, side, Order::Place { piece, hex })
-                .unwrap();
+            rommel_works.apply(rommel, side, order).unwrap();
         }
-        assert_eq!(rommel_works.pending, Some(Pending::SetUp { side: Side::Cw }));
+        let rommel_motorisation = rommel_motorisation.expect("the Axis places motorisation");
+        assert_eq!(
+            rommel_motorisation.pending,
+            Some(Pending::SetUp { side: Side::Axis })
+        );
+        assert_eq!(
+            rommel_works.pending,
+            Some(Pending::SetUp { side: Side::Cw })
+        );
         assert!(!rommel_works.works_to_place.is_empty());
 
         // Operation Crusader played on to the Commonwealth's first
@@ -1460,6 +1487,7 @@ mod tests {
             ("patrol", patrol),
             ("crusader-set-up", crusader_set_up),
             ("rommel-works", rommel_works),
+            ("rommel-motorisation", rommel_motorisation),
             ("raid-rommel", raid),
             ("spot-raider", spot),
             ("reserve", reserve),

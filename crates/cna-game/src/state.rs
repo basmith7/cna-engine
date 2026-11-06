@@ -159,6 +159,10 @@ pub struct Modules {
     /// (`railroad_destroyed`; 61.6, 62.5, 63.72).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub roads_built: bool,
+    /// The scenario's unattached motorisation points (61.72) are placed
+    /// by their owner at set-up among the hexes R-160 lists, under §32.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub unattached_motorisation: bool,
 }
 
 impl Modules {
@@ -182,6 +186,7 @@ impl Modules {
         placed_works: true,
         campaign_victory: true,
         roads_built: true,
+        unattached_motorisation: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -357,6 +362,10 @@ pub struct GameState {
     /// Set-up works each side still places (`placed_works` module).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub works_to_place: Vec<crate::placed_works::WorkQuota>,
+    /// Unattached motorisation points each side still places
+    /// (`unattached_motorisation` module, 61.72). Secret to their owner.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub motorisation_to_place: BTreeMap<Side, Vec<crate::unattached::MotorisationQuota>>,
     /// Projects under way by hex (24.1x): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub projects: BTreeMap<HexId, crate::construction::Project>,
@@ -521,6 +530,7 @@ impl GameState {
             projects: BTreeMap::new(),
             minefields: BTreeMap::new(),
             works_to_place: Vec::new(),
+            motorisation_to_place: BTreeMap::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
@@ -553,6 +563,7 @@ impl GameState {
         state.place_blockship(data)?;
         state.place_set_up_works(data);
         state.start_placed_works(data)?;
+        state.start_unattached_motorisation(data)?;
         state.place_broken_down_starts(data);
         state.attach_where_stacked(None);
         state.pending = state.next_set_up_with(data);
@@ -661,6 +672,9 @@ impl GameState {
             (Some(Pending::SetUp { .. }), Order::PlaceWork { item, hex }) => {
                 self.place_work(data, player, *item, hex)
             }
+            (Some(Pending::SetUp { .. }), Order::PlaceMotorisation { hex, points }) => {
+                self.place_motorisation(data, player, hex, *points)
+            }
             (Some(Pending::SetUp { .. }), Order::Pass) => self.decline_works(data, player),
             (Some(Pending::SetUp { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
@@ -676,9 +690,13 @@ impl GameState {
             (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction(data)),
             (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
-            (None, Order::Place { .. } | Order::Unplace { .. } | Order::PlaceWork { .. }) => {
-                Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
-            }
+            (
+                None,
+                Order::Place { .. }
+                | Order::Unplace { .. }
+                | Order::PlaceWork { .. }
+                | Order::PlaceMotorisation { .. },
+            ) => Err(Illegal::new("59.2", "set-up is over; nothing is pending")),
             (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {
                 self.sealed(data, player, order)
             }
@@ -988,8 +1006,36 @@ pub(crate) mod test_support {
     }
 
     /// Places `side`'s pending pieces on the first hexes the engine
-    /// accepts, while that side is setting up.
+    /// accepts, then its unattached motorisation points, each quota's
+    /// all in its first hex (61.72), while that side is setting up.
     pub fn place_pieces(data: &Data, state: &mut GameState, side: Side) -> Vec<LoggedOrder> {
+        let mut orders = place_only_pieces(data, state, side);
+        while state.pending == Some(Pending::SetUp { side }) {
+            let Some(q) = state
+                .motorisation_to_place
+                .get(&side)
+                .and_then(|qs| qs.first())
+            else {
+                break;
+            };
+            let order = Order::PlaceMotorisation {
+                hex: q.hexes[0].clone(),
+                points: q.points,
+            };
+            state
+                .apply(data, side, order.clone())
+                .unwrap_or_else(|e| panic!("{order:?}: {e:?}"));
+            orders.push(LoggedOrder {
+                player: side,
+                order,
+            });
+        }
+        orders
+    }
+
+    /// Places `side`'s pending pieces on the first hexes the engine
+    /// accepts, while that side is setting up.
+    pub fn place_only_pieces(data: &Data, state: &mut GameState, side: Side) -> Vec<LoggedOrder> {
         let mut orders = Vec::new();
         while state.pending == Some(Pending::SetUp { side }) {
             let Some(piece) = state

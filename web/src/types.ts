@@ -173,6 +173,7 @@ export type Order =
   | { place: { piece: PieceId; hex: HexId } }
   | { unplace: { piece: PieceId } }
   | { "place-work": { item: WorkItem; hex: HexId } }
+  | { "place-motorisation": { hex: HexId; points: number } }
   | { "declare-initiative": { player_a: Side } }
   | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
@@ -543,6 +544,8 @@ export interface View {
   over: VictoryReport | null;
   /** Abstract supply: motorisation points by hex id (or box), the side to act's own only. */
   motorisation?: Partial<Record<Side, Record<string, number>>>;
+  /** Set-up: unattached motorisation points the viewer still places, each quota with the hexes it may go to (61.72, R-160). */
+  motorisation_to_place?: Partial<Record<Side, { hexes: HexId[]; points: number }[]>>;
   /** Breakdown: broken-down vehicles by hex (21.4x), both sides', in the open. */
   broken_down?: Record<HexId, Wreck[]>;
   /** Destroyed-tank markers by hex (14.5x): the viewer's own only. */
