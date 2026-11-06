@@ -815,3 +815,9 @@ Done: #159 (this branch): 19.2x as `reassignment` module (`cna-game::reassign`):
 In flight: final cargo test + probe check, then ready + merge #159.
 Next: if Feedback approves #148, Mission 6 slice 1. Else: a browser control for the battalion swap; historical shifts of parent / CW armour limits (19.2x, NOT_SIMULATED); capture_on_move reaction/retreat tests.
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 16:55 MST — main (hand-off)
+Done: #159 (19.2x `reassignment` module, a023243) and #160 (capture_on_move reaction/retreat tests) merged; main's cna-game lib tests 635 pass; PROGRESS updated.
+In flight: none.
+Next: if Feedback approves #148, Mission 6 slice 1. Else: a browser control for SwapBattalions; 19.2x historical shifts / CW armour limit changes (NOT_SIMULATED Organisation row).
+Blocked: Mission 6 on Brian's review of #148.
