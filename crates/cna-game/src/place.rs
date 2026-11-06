@@ -9,6 +9,7 @@ use crate::state::{GameState, Pending};
 use cna_data::map::HexId;
 use cna_data::oa::Nation;
 use cna_data::scenario::{Locator, Placement, Side, StackedWith};
+use std::collections::{BTreeMap, BTreeSet};
 
 impl GameState {
     /// The hexes `place` would accept for `piece` now, in id order: its
@@ -284,13 +285,33 @@ impl GameState {
 /// Whether `hex` is in the placement's area (59.2): inside every one of
 /// its locators.
 pub(crate) fn allowed(data: &Data, placement: &Placement, hex: &HexId) -> bool {
-    placement.locators.iter().all(|l| in_locator(data, l, hex))
+    allowed_near(data, placement, hex, &mut Near::new())
 }
 
-fn in_locator(data: &Data, locator: &Locator, hex: &HexId) -> bool {
+/// `Map::within` results by centre and radius, kept across one query so
+/// a placement judged hex by hex walks each circle once.
+pub(crate) type Near = BTreeMap<(HexId, u32), BTreeSet<HexId>>;
+
+/// `allowed`, reusing the circles in `near`.
+pub(crate) fn allowed_near(
+    data: &Data,
+    placement: &Placement,
+    hex: &HexId,
+    near: &mut Near,
+) -> bool {
+    placement
+        .locators
+        .iter()
+        .all(|l| in_locator(data, l, hex, near))
+}
+
+fn in_locator(data: &Data, locator: &Locator, hex: &HexId, near: &mut Near) -> bool {
     match locator {
         Locator::Hexes(list) => list.contains(hex),
-        Locator::Within { of, hexes } => data.map.within(of, *hexes).contains(hex),
+        Locator::Within { of, hexes } => near
+            .entry((of.clone(), *hexes))
+            .or_insert_with(|| data.map.within(of, *hexes))
+            .contains(hex),
         Locator::Region(c) => data.map.country(hex) == Some(*c),
         Locator::Sheets(s) => s.contains(&hex.sheet()),
         Locator::Place(ids) => ids
@@ -331,14 +352,15 @@ pub(crate) fn area(data: &Data, placement: &Placement) -> Vec<HexId> {
     {
         return Vec::new();
     }
+    let mut near = Near::new();
     match seed {
         Some(hexes) => hexes
             .into_iter()
-            .filter(|h| allowed(data, placement, h))
+            .filter(|h| allowed_near(data, placement, h, &mut near))
             .collect(),
         None => map
             .hexes()
-            .filter(|h| allowed(data, placement, &h.id))
+            .filter(|h| allowed_near(data, placement, &h.id, &mut near))
             .map(|h| h.id.clone())
             .collect(),
     }
@@ -363,7 +385,7 @@ mod tests {
     fn west_of_is_by_column_cc() {
         let data = data();
         let bound = Locator::WestOf(HexId::parse("D3714").unwrap());
-        let west = |h: &str| in_locator(&data, &bound, &HexId::parse(h).unwrap());
+        let west = |h: &str| in_locator(&data, &bound, &HexId::parse(h).unwrap(), &mut Near::new());
         assert!(west("C4131"));
         assert!(west("D0113"));
         assert!(west("D3713"));

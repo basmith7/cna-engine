@@ -10,7 +10,7 @@
 use crate::construction::{Item, Minefield};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::place::{allowed, area};
+use crate::place::{Near, allowed_near, area};
 use crate::state::{GameState, Pending};
 use cna_data::map::{HexId, Terrain};
 use cna_data::scenario::{MinefieldSet, Side, Works};
@@ -35,9 +35,6 @@ pub struct WorkQuota {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub closed: bool,
 }
-
-/// `Map::within` results by centre and radius, kept across one query.
-type Near = std::collections::BTreeMap<(HexId, u32), std::collections::BTreeSet<HexId>>;
 
 /// Whether a minefield could be laid in this terrain (24.35, R-134).
 fn mine_terrain(t: Option<Terrain>) -> bool {
@@ -115,7 +112,7 @@ impl WorkQuota {
             if item != Item::Fortification {
                 return Some("this row places fortifications".into());
             }
-            if !allowed(data, &row.placement, hex) {
+            if !allowed_near(data, &row.placement, hex, near) {
                 return Some(format!("{hex} is outside the row's placement"));
             }
             if !fort_terrain(terrain) {
@@ -150,11 +147,11 @@ impl WorkQuota {
                     more.count
                 ));
             }
-            if !allowed(data, &more.placement, hex) {
+            if !allowed_near(data, &more.placement, hex, near) {
                 return Some(format!("{hex} is outside the set's placement"));
             }
         } else if let Some(p) = &set.placement {
-            if !allowed(data, p, hex) {
+            if !allowed_near(data, p, hex, near) {
                 return Some(format!("{hex} is outside the set's placement"));
             }
             if let Some(b) = &set.beyond
@@ -227,34 +224,52 @@ impl GameState {
         let Ok(works) = data.scenario.works() else {
             return Vec::new();
         };
-        let mut v: Vec<HexId> = Vec::new();
-        let mut near = Near::new();
+        let candidates = self.work_candidates(data, &works, side);
+        self.accepting(data, &works, side, item, &candidates, &mut Near::new())
+    }
+
+    /// Every hex one of `side`'s quotas lists or whose placement takes
+    /// in, in id order and once each.
+    fn work_candidates(&self, data: &Data, works: &Works, side: Side) -> Vec<HexId> {
+        let mut c: Vec<HexId> = Vec::new();
         for q in self.works_to_place.iter().filter(|q| q.side == side) {
-            let candidates: Vec<HexId> = match q.set(&works) {
-                None => works
-                    .fortifications
-                    .get(q.index)
-                    .map(|r| area(data, &r.placement))
-                    .unwrap_or_default(),
+            match q.set(works) {
+                None => {
+                    if let Some(r) = works.fortifications.get(q.index) {
+                        c.extend(area(data, &r.placement));
+                    }
+                }
                 Some(s) => {
-                    let mut c = s.hexes.clone();
+                    c.extend(s.hexes.iter().cloned());
                     if let Some(m) = &s.more {
                         c.extend(area(data, &m.placement));
                     }
                     if let Some(p) = &s.placement {
                         c.extend(area(data, p));
                     }
-                    c
                 }
-            };
-            v.extend(candidates.into_iter().filter(|h| {
-                self.check_work(data, &works, side, item, h, &mut near)
-                    .is_ok()
-            }));
+            }
         }
-        v.sort();
-        v.dedup();
-        v
+        c.sort();
+        c.dedup();
+        c
+    }
+
+    /// Of `candidates`, those `place_work` would accept `item` in.
+    fn accepting(
+        &self,
+        data: &Data,
+        works: &Works,
+        side: Side,
+        item: Item,
+        candidates: &[HexId],
+        near: &mut Near,
+    ) -> Vec<HexId> {
+        candidates
+            .iter()
+            .filter(|h| self.check_work(data, works, side, item, h, near).is_ok())
+            .cloned()
+            .collect()
     }
 
     /// At `side`'s set-up with works to place: the hexes open to each
@@ -266,13 +281,15 @@ impl GameState {
             return None;
         }
         let works = data.scenario.works().ok()?;
+        let candidates = self.work_candidates(data, &works, side);
+        let mut near = Near::new();
         let mut o = serde_json::Map::new();
         for item in [
             Item::Fortification,
             Item::RealMinefield,
             Item::DummyMinefield,
         ] {
-            let hexes = self.work_placements(data, side, item);
+            let hexes = self.accepting(data, &works, side, item, &candidates, &mut near);
             if !hexes.is_empty() {
                 o.insert(
                     serde_json::to_value(item).ok()?.as_str()?.to_owned(),
@@ -318,14 +335,17 @@ impl GameState {
         }
         let mut why = None;
         for (i, q) in self.works_to_place.iter().enumerate() {
-            if q.side != side || (q.closed && q.optional(works)) {
+            // A quota of the other kind always refuses, and the reason
+            // worth giving is one of the item's kind.
+            if q.side != side
+                || (q.closed && q.optional(works))
+                || q.minefields != item.is_minefield()
+            {
                 continue;
             }
             match q.refusal(data, works, item, hex, near) {
                 None => return Ok(i),
-                // The reason worth giving is a quota of the item's kind.
-                Some(r) if q.minefields == item.is_minefield() => why = why.or(Some(r)),
-                Some(_) => {}
+                Some(r) => why = why.or(Some(r)),
             }
         }
         Err(Illegal::new(
@@ -542,7 +562,10 @@ mod tests {
         place_pieces(&data, &mut s, Side::Axis);
         place_pieces(&data, &mut s, Side::Cw);
         let tobruk = hex("C4807");
-        assert!(!s.work_placements(&data, Side::Cw, Item::Fortification).contains(&tobruk));
+        assert!(
+            !s.work_placements(&data, Side::Cw, Item::Fortification)
+                .contains(&tobruk)
+        );
         assert!(
             s.apply(&data, Side::Cw, work(Item::Fortification, "C4807"))
                 .is_err()
@@ -692,6 +715,47 @@ mod tests {
         let v = view_for(&s, &data, &aliases, Some(Side::Axis), false).unwrap();
         assert!(v["minefields"][more[0].as_str()].get("real").is_none());
         assert!(leaks(&s, &v, Side::Cw).is_empty());
+    }
+
+    /// The placements offered are every hex on the map `place_work`'s
+    /// check accepts, judged one hex at a time with nothing kept between
+    /// them: the candidate areas miss none, and the circles kept across
+    /// one query change no answer.
+    #[test]
+    fn work_placements_are_the_whole_map_judged_hex_by_hex() {
+        let data = Data::load("the-last-chance").unwrap();
+        let works = data.scenario.works().unwrap();
+        for side in [Side::Axis, Side::Cw] {
+            let s = ready(&data, side);
+            let options = s.work_options(&data, side).unwrap();
+            for item in [
+                Item::Fortification,
+                Item::RealMinefield,
+                Item::DummyMinefield,
+            ] {
+                let each: Vec<HexId> = data
+                    .map
+                    .hexes()
+                    .map(|h| h.id.clone())
+                    .filter(|h| {
+                        s.check_work(&data, &works, side, item, h, &mut Near::new())
+                            .is_ok()
+                    })
+                    .collect();
+                let mut sorted = each.clone();
+                sorted.sort();
+                let offered = s.work_placements(&data, side, item);
+                assert_eq!(offered, sorted, "{side} {item:?}");
+                let key = serde_json::to_value(item).unwrap();
+                assert_eq!(
+                    options.get(key.as_str().unwrap()),
+                    (!offered.is_empty())
+                        .then(|| serde_json::json!(offered))
+                        .as_ref(),
+                    "{side} {item:?}"
+                );
+            }
+        }
     }
 
     #[test]
