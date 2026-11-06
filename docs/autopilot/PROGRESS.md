@@ -220,10 +220,12 @@ captor's share), fixed there. #129 bumps `vendor/cna` to 4cedfb7 for
 R-153 (the *San Giorgio* needs no ammunition, as the engine already
 played it). #130: The Long Retreat now sets up (a child scenario's
 `sides` replaced its parent's, so it had no units); the scenario smoke
-test now checks both sides have units. #132 (draft → ready, CI):
-Operation Crusader's railway starts at its railhead (C3430) and
+test now checks both sides have units. #131 and #132 (merged):
+Operation Crusader's railway starts at its railhead (C3430), and
 Crusader and The Last Chance start with their forts round Tobruk and
-Bardia, behind two new modules.
+Bardia, behind two new modules (`rail_ends`, `set_up_works`, on in new
+games). #133 (ready, CI): Group One's first two Axis convoys are
+planned before play, the first unbombed (R-097, 60.37).
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
@@ -263,7 +265,8 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 - Nothing waits on Brian. Mission 5's second half is under way:
   `docs/plans/2026-11-06-m5-scenario-set-ups.md` (an audit found the
   other eight scenarios' set-up blocks read by nothing). #132 (rail ends
-  and set-up forts, carrying #131) is in CI. Withdrawals, forts and
+  and set-up forts) merged; #133 (R-097's pre-play convoys) is ready
+  and waits on CI. Withdrawals, forts and
   minefields a player places, tanks that start broken down, Rommel's
   Arrival's release rule and the campaigns' ratio levels wait on the two
   cna requests below. The Long Retreat started with no units until #130.
