@@ -20,7 +20,8 @@
     "towing": true,
     "rail_ends": true,
     "set_up_works": true,
-    "pre_play_convoys": true
+    "pre_play_convoys": true,
+    "broken_down_starts": true
   },
   "clock": {
     "game_turn": 57,
@@ -79,6 +80,46 @@
   },
   "initiative": "cw",
   "player_a": null,
+  "broken_down": {
+    "E3613": [
+      {
+        "side": "cw",
+        "nation": "cw",
+        "weapon": "Crusader I",
+        "points": 3
+      },
+      {
+        "side": "cw",
+        "nation": "cw",
+        "weapon": "Crusader Mk II",
+        "points": 15
+      },
+      {
+        "side": "cw",
+        "nation": "cw",
+        "weapon": "Stuart",
+        "points": 18
+      },
+      {
+        "side": "cw",
+        "nation": "cw",
+        "weapon": "Matilda",
+        "points": 7
+      },
+      {
+        "side": "cw",
+        "nation": "cw",
+        "weapon": "Valentine",
+        "points": 8
+      }
+    ]
+  },
+  "repair_holds": {
+    "E3613": {
+      "game_turn": 58,
+      "opstage": 1
+    }
+  },
   "fortifications": {
     "C4220": 1,
     "C4221": 1,

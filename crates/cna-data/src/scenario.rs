@@ -440,6 +440,32 @@ pub struct SideSetup {
     /// The Commonwealth fleet's block; only `first_sail` is read.
     #[serde(default)]
     pub fleet: Option<FleetSetup>,
+    /// Tanks that start the scenario broken down (61.38, 62.32, 63.42).
+    #[serde(default)]
+    pub broken_down: Vec<BrokenDown>,
+}
+
+/// One `broken_down` row: either `weapon` × `points` loose at
+/// `placement`, assigned to no unit, or (`all_tanks`) every tank TOE
+/// point `units` and what is assigned to them start with. No repair of
+/// them may begin before `repair_from`; `None`: at once.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrokenDown {
+    #[serde(default)]
+    pub placement: Option<Placement>,
+    /// A `weapon-systems.json` row id.
+    #[serde(default)]
+    pub weapon: Option<String>,
+    #[serde(default)]
+    pub points: Option<u32>,
+    #[serde(default)]
+    pub units: Vec<UnitId>,
+    #[serde(default)]
+    pub all_tanks: bool,
+    pub repair_from: Option<GameTime>,
+    #[serde(default)]
+    pub notes: Vec<String>,
 }
 
 /// A scenario's fleet block (`sides.cw.fleet`).
@@ -682,6 +708,7 @@ impl Scenario {
             reinforcements: Vec::new(),
             special: Vec::new(),
             fleet: None,
+            broken_down: Vec::new(),
         };
         self.sides.get(&side).unwrap_or(&EMPTY)
     }
