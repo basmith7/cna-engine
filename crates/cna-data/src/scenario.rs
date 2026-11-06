@@ -613,7 +613,7 @@ pub struct Ratio {
 
 fn de_hundredths<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
     let x = f64::deserialize(d)?;
-    if !(x >= 0.0) {
+    if x.is_nan() || x < 0.0 {
         return Err(serde::de::Error::custom("a ratio below zero"));
     }
     Ok((x * 100.0).round() as u32)
