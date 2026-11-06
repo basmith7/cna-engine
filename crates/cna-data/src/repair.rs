@@ -46,6 +46,50 @@ impl VehicleRepair {
     }
 }
 
+/// A destroyed-tank repair attempt's result (22.44).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TankOutcome {
+    Repaired,
+    Junked,
+}
+
+/// One die result of the Destroyed Tank Repair Table; none is no result.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DestroyedTankRow {
+    pub die: Range,
+    pub field: Option<TankOutcome>,
+    pub axis_facility_german: Option<TankOutcome>,
+    pub axis_facility_italian: Option<TankOutcome>,
+    pub axis_facility_commonwealth: Option<TankOutcome>,
+    pub cw_facility: Option<TankOutcome>,
+}
+
+/// The Destroyed Tank Repair Table (`destroyed-tank-repair.json`, SPI
+/// 22.44).
+#[derive(Debug, Clone, Deserialize)]
+pub struct DestroyedTankRepair {
+    pub rows: Vec<DestroyedTankRow>,
+}
+
+impl DestroyedTankRepair {
+    pub fn load() -> Result<Self> {
+        Self::load_from(&crate::source::Fs)
+    }
+
+    pub fn load_from(src: &dyn crate::source::Source) -> Result<Self> {
+        Ok(serde_json::from_value(crate::errata::load_table(
+            src,
+            "destroyed-tank-repair",
+        )?)?)
+    }
+
+    /// The row for a modified die roll, if the chart has one.
+    pub fn row(&self, die: u8) -> Option<&DestroyedTankRow> {
+        self.rows.iter().find(|r| r.die.contains(die))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,5 +103,17 @@ mod tests {
         assert_eq!(pct(4), Some(10));
         assert_eq!(pct(5), Some(0));
         assert_eq!(pct(7), None);
+    }
+
+    #[test]
+    fn destroyed_tanks_repair_on_a_one_or_two_and_junk_from_six_22_44() {
+        let t = DestroyedTankRepair::load().unwrap();
+        let cw = |d| t.row(d).and_then(|r| r.cw_facility);
+        assert_eq!(cw(1), Some(TankOutcome::Repaired));
+        assert_eq!(cw(2), Some(TankOutcome::Repaired));
+        assert_eq!(cw(3), None);
+        assert_eq!(cw(7), Some(TankOutcome::Junked));
+        let it = t.row(5).and_then(|r| r.axis_facility_italian);
+        assert_eq!(it, Some(TankOutcome::Junked));
     }
 }

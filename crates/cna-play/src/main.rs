@@ -49,6 +49,10 @@ enum Cmd {
         /// and tanks are lost, not the captor's replacement points.
         #[arg(long)]
         no_captured_equipment: bool,
+        /// Play without destroyed tanks (14.5x, 22.4x): tanks killed in
+        /// combat leave no marker to capture or repair.
+        #[arg(long)]
+        no_destroyed_tanks: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -174,6 +178,7 @@ fn main() -> Result<()> {
             no_fleet,
             no_patrols,
             no_captured_equipment,
+            no_destroyed_tanks,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -184,6 +189,7 @@ fn main() -> Result<()> {
                 fleet: !no_fleet,
                 patrols: !no_patrols,
                 captured_equipment: !no_captured_equipment,
+                destroyed_tanks: !no_destroyed_tanks,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

@@ -135,6 +135,24 @@ impl GameState {
                 .any(|h| data.map.neighbours(h).iter().any(big))
     }
 
+    /// The first combat unit of battalion size or larger among `pieces`,
+    /// with its side: what may capture broken-down vehicles (21.52) and
+    /// destroyed tanks (14.52, R-014).
+    pub(crate) fn captor(&self, pieces: &[PieceId]) -> Option<(Side, PieceId)> {
+        use cna_data::characteristics::Equivalent;
+        pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .find(|p| {
+                p.kind == PieceKind::Combat
+                    && matches!(
+                        p.equivalent,
+                        Some(Equivalent::Battalion | Equivalent::Brigade)
+                    )
+            })
+            .map(|p| (p.side, p.id.clone()))
+    }
+
     /// A battalion or bigger of `pieces` now at `at` captures the enemy's
     /// broken-down vehicles in `at` and the hexes next to it (21.5x),
     /// unless enemy combat units or HQs stand with them or an enemy ZOC
@@ -148,19 +166,8 @@ impl GameState {
         at: &HexId,
         events: &mut Vec<Event>,
     ) {
-        use cna_data::characteristics::Equivalent;
-        let Some(captor) = pieces
-            .iter()
-            .map(|id| &self.pieces[id])
-            .find(|p| {
-                p.kind == PieceKind::Combat
-                    && matches!(
-                        p.equivalent,
-                        Some(Equivalent::Battalion | Equivalent::Brigade)
-                    )
-            })
-            .map(|p| (p.side, p.id.clone()))
-        else {
+        self.capture_destroyed_tanks(pieces, at, events);
+        let Some(captor) = self.captor(pieces) else {
             return;
         };
         let (side, by) = captor;

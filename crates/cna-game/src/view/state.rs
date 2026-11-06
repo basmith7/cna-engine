@@ -34,7 +34,7 @@
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
-//! | `planned`, `broken_down`, `field_rolled` | own entries only: the enemy's plans, wrecks' contents and repair rolls are its own |
+//! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
 //! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
 //! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
@@ -163,6 +163,8 @@ const STATE_FILTERS: &[&str] = &[
     "planned",
     "broken_down",
     "field_rolled",
+    "destroyed_tanks",
+    "destroyed_rolled",
     "split",
     "pieces",
     "pending",
@@ -194,7 +196,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
 /// place at sea and the hexes open to them (30.1x); and in phase K
-/// `facility_repairs`, the phasing viewer's facility rolls (22.3x).
+/// `facility_repairs`, the phasing viewer's facility rolls (22.3x), and
+/// `destroyed_tank_repairs`, its destroyed tanks it may try (22.4x).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -241,6 +244,10 @@ pub fn view_for(
         let offers = state.facility_repairs(data);
         if !offers.is_empty() {
             obj.insert("facility_repairs".into(), json!(offers));
+        }
+        let offers = state.destroyed_tank_repairs(data);
+        if !offers.is_empty() {
+            obj.insert("destroyed_tank_repairs".into(), json!(offers));
         }
     }
     label(state, data, &mut v)?;
@@ -352,7 +359,7 @@ pub fn view_for(
             o.insert("location".into(), json!("pending"));
         }
     }
-    for key in ["planned", "field_rolled"] {
+    for key in ["planned", "field_rolled", "destroyed_rolled"] {
         if let Some(items) = v.get_mut(key).and_then(Value::as_array_mut) {
             items.retain(|item| {
                 let side = item.get("side").or_else(|| item.get(0));
@@ -362,11 +369,13 @@ pub fn view_for(
             });
         }
     }
-    if let Some(m) = v.get_mut("broken_down").and_then(Value::as_object_mut) {
-        for wrecks in m.values_mut().filter_map(Value::as_array_mut) {
-            wrecks.retain(|w| !w.as_object().is_some_and(side_is_enemy));
+    for key in ["broken_down", "destroyed_tanks"] {
+        if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
+            for wrecks in m.values_mut().filter_map(Value::as_array_mut) {
+                wrecks.retain(|w| !w.as_object().is_some_and(side_is_enemy));
+            }
+            m.retain(|_, w| w.as_array().is_none_or(|a| !a.is_empty()));
         }
-        m.retain(|_, w| w.as_array().is_none_or(|a| !a.is_empty()));
     }
     for key in [
         "prisoners",

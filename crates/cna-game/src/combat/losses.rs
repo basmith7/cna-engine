@@ -114,8 +114,9 @@ impl GameState {
         let mut absorbed = 0;
         let mut removed = 0;
         let mut per_piece: Vec<(PieceId, u32)> = Vec::new();
+        let mut destroyed = Vec::new();
         while absorbed < needed {
-            let mut best: Option<(usize, Option<String>, u32)> = None;
+            let mut best: Option<(usize, Option<String>, u32, bool)> = None;
             for (i, share) in shares.iter().enumerate() {
                 if share.points == 0 {
                     continue;
@@ -127,16 +128,19 @@ impl GameState {
                         continue;
                     }
                     if best.as_ref().is_none_or(|b| r > b.2) {
-                        best = Some((i, part.weapon.clone(), r));
+                        best = Some((i, part.weapon.clone(), r, part.tank));
                     }
                 }
             }
-            let Some((i, weapon, r)) = best else {
+            let Some((i, weapon, r, tank)) = best else {
                 break;
             };
             let id = shares[i].piece.clone();
             if !self.take_loss_entry(&id, weapon.as_deref()) {
                 break;
+            }
+            if tank {
+                self.mark_destroyed_tank(&id, weapon.as_deref(), &mut destroyed);
             }
             shares[i].points -= 1;
             absorbed += r;
@@ -146,9 +150,65 @@ impl GameState {
                 None => per_piece.push((id, 1)),
             }
         }
+        events.extend(destroyed);
         for (id, n) in per_piece {
             self.note_losses(&id, n, events);
         }
         (absorbed, removed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::movement::test_support::{hex, pid};
+    use crate::piece::Location;
+    use crate::state::Modules;
+    use cna_data::scenario::Side;
+
+    /// 1 RTR's A9 cruisers at C4021 absorbing 9 damage by protection.
+    fn shoot_1_rtr(modules: Modules) -> (GameState, Vec<Event>, u32) {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = GameState::with_modules(&data, 5, modules).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let rtr = pid("unit:cw:1-rtr");
+        state.put(&rtr, Location::Hex(hex("C4021")));
+        let toe = state.pieces[&rtr].toe;
+        let mut shares = vec![Share {
+            piece: rtr,
+            points: toe,
+        }];
+        let mut events = Vec::new();
+        let (_, removed) = state.absorb(&data, &mut shares, |p| p.protection, 9, &mut events);
+        (state, events, removed)
+    }
+
+    #[test]
+    fn tanks_destroyed_in_combat_stay_as_a_destroyed_tank_marker_14_5() {
+        let (state, events, removed) = shoot_1_rtr(Modules::ALL);
+        assert!(removed > 0);
+        let markers = &state.destroyed_tanks[&hex("C4021")];
+        assert_eq!(markers.len(), 1, "{markers:?}");
+        assert_eq!(markers[0].side, Side::Cw);
+        assert_eq!(markers[0].points, removed);
+        let weapon = markers[0].weapon.clone();
+        assert!(events.contains(&Event::TanksDestroyed {
+            piece: pid("unit:cw:1-rtr"),
+            hex: hex("C4021"),
+            weapon,
+            points: removed,
+        }));
+    }
+
+    #[test]
+    fn without_the_module_destroyed_tanks_leave_nothing() {
+        let (state, events, removed) = shoot_1_rtr(Modules::default());
+        assert!(removed > 0);
+        assert!(state.destroyed_tanks.is_empty());
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::TanksDestroyed { .. }))
+        );
     }
 }

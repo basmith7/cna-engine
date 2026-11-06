@@ -102,7 +102,7 @@ impl GameState {
     /// Why `side` may not repair at a facility in `hex`, if it may not:
     /// no facility of its own there (22.31), or a temporary one under an
     /// enemy ZOC (outside a major city) or a storm (22.13).
-    fn facility_bar(&self, data: &Data, side: Side, hex: &HexId) -> Result<FacilityKind, Illegal> {
+    pub(crate) fn facility_bar(&self, data: &Data, side: Side, hex: &HexId) -> Result<FacilityKind, Illegal> {
         let Some(kind) = self.repair_facilities(data, side).get(hex).copied() else {
             return Err(Illegal::new(
                 "22.31",

@@ -204,6 +204,7 @@ impl GameState {
     pub(crate) fn start_stage(&mut self) {
         self.railed.clear();
         self.field_rolled.clear();
+        self.destroyed_rolled.clear();
         for w in self.broken_down.values_mut().flatten() {
             w.this_stage = 0;
             w.towed = 0;
