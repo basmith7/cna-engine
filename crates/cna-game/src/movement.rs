@@ -135,7 +135,7 @@ impl GameState {
         let Some(side) = pieces
             .iter()
             .map(|id| &self.pieces[id])
-            .find(|p| p.kind == PieceKind::Combat)
+            .find(|p| self.is_combatant(p))
             .map(|p| p.side)
         else {
             return;
@@ -257,7 +257,7 @@ impl GameState {
         let kind = |id: &PieceId| self.pieces[id].kind;
         let escorted = |s: &PieceId| {
             pieces.iter().any(|c| {
-                kind(c) == PieceKind::Combat
+                self.is_combatant(&self.pieces[c])
                     && if self.moved.contains(s) {
                         self.escorts.get(s).is_some_and(|e| e.contains(c))
                     } else {
@@ -457,9 +457,7 @@ impl GameState {
                 .all(|id| self.pieces[id].kind == PieceKind::Raider);
         Mover {
             side: self.pieces[&pieces[0]].side,
-            combat: pieces
-                .iter()
-                .any(|id| self.pieces[id].kind == PieceKind::Combat),
+            combat: pieces.iter().any(|id| self.is_combatant(&self.pieces[id])),
             // A stack in contact or engaged breaks off before it moves
             // (8.6x). Contact only exists in an enemy ZOC; an engaged
             // unit need not be in one, so this is the pieces' state, not
@@ -825,9 +823,7 @@ impl GameState {
         if plan.break_off && !plan.steps.is_empty() {
             self.pay_break_off(pieces, false, &mut events);
         }
-        let combat = pieces
-            .iter()
-            .any(|id| self.pieces[id].kind == PieceKind::Combat);
+        let combat = pieces.iter().any(|id| self.is_combatant(&self.pieces[id]));
         let mut at = from.clone();
         let mut reaction = None;
         let storm =
@@ -909,7 +905,7 @@ impl GameState {
             let in_g = self.clock.phase == Phase::MovementCombat;
             let combat: Vec<PieceId> = pieces
                 .iter()
-                .filter(|id| self.pieces[*id].kind == PieceKind::Combat)
+                .filter(|id| self.is_combatant(&self.pieces[*id]))
                 .cloned()
                 .collect();
             for id in pieces {

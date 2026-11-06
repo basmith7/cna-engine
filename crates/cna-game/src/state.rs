@@ -163,6 +163,12 @@ pub struct Modules {
     /// by their owner at set-up among the hexes R-160 lists, under §32.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub unattached_motorisation: bool,
+    /// A combat unit with no TOE points left (its tanks broken down
+    /// with it, 61.38) is a non-combat unit until it absorbs one: no
+    /// ZOC, no holding off, no entering an unoccupied enemy ZOC, and
+    /// captured alone in one (R-164).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub zero_toe: bool,
 }
 
 impl Modules {
@@ -187,6 +193,7 @@ impl Modules {
         campaign_victory: true,
         roads_built: true,
         unattached_motorisation: true,
+        zero_toe: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

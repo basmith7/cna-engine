@@ -185,9 +185,7 @@ impl GameState {
     fn enemy_combat_within_two(&self, data: &Data, hex: &HexId, side: Side) -> bool {
         let near = data.map.within(hex, 2);
         self.pieces.values().any(|p| {
-            p.side != side
-                && p.kind == PieceKind::Combat
-                && p.hex().is_some_and(|h| near.contains(h))
+            p.side != side && self.is_combatant(p) && p.hex().is_some_and(|h| near.contains(h))
         })
     }
 

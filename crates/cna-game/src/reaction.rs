@@ -65,7 +65,7 @@ impl GameState {
             for p in self.pieces_at(&n).into_iter().filter(|p| p.side != phasing) {
                 // Rommel reacts like a motorised combat unit (31.0).
                 let commanding = p.kind == PieceKind::Commander && !self.rommel_recalled;
-                if (p.kind != PieceKind::Combat && !commanding)
+                if (!self.is_combatant(p) && !commanding)
                     || !self.mobility(data, p).motorised()
                     || p.cohesion.collapsed(&self.ruleset)
                     || p.contact

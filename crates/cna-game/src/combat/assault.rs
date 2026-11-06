@@ -1022,7 +1022,7 @@ impl GameState {
             .collect();
         let cleared = !survivors
             .iter()
-            .any(|id| self.pieces[id].kind == PieceKind::Combat);
+            .any(|id| self.is_combatant(&self.pieces[id]));
         if cleared {
             // A hex cleared is a victory for every attacker (6.24).
             for id in &attacker_ids {
@@ -1283,7 +1283,7 @@ impl GameState {
         let equivalents: u32 = self
             .pieces
             .values()
-            .filter(|p| p.hex() == Some(e) && p.kind == PieceKind::Combat)
+            .filter(|p| p.hex() == Some(e) && self.is_combatant(p))
             .filter(|p| !self.is_gun_unit(data, p))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();

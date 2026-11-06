@@ -96,6 +96,10 @@ enum Cmd {
         /// points at set-up (61.72, R-160).
         #[arg(long)]
         no_unattached_motorisation: bool,
+        /// Play with a combat unit at 0 TOE still counted a combat unit
+        /// for ZOC, movement, reactions and capture (as before R-164).
+        #[arg(long)]
+        no_zero_toe: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -234,6 +238,7 @@ fn main() -> Result<()> {
             no_campaign_victory,
             no_roads_built,
             no_unattached_motorisation,
+            no_zero_toe,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -257,6 +262,7 @@ fn main() -> Result<()> {
                 campaign_victory: !no_campaign_victory,
                 roads_built: !no_roads_built,
                 unattached_motorisation: !no_unattached_motorisation,
+                zero_toe: !no_zero_toe,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
