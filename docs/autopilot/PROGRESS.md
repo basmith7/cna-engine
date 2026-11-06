@@ -553,3 +553,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-06 05:44 | 79 | 6→7 | none→none | $15.32 | 4 | I recovered everything the killed third run left behind and merged six PRs. No autopilot PRs are open. **Merged this run (Mission 5, scenario set-ups):** - **#1 |
 | 2026-11-06 07:03 | 64 | 7→8 | none→none | $10.85 | 7 | Mission 5 is complete, and the Mission 6 spec (the Logistics Game) is waiting on your review as PR #148. **Merged this run** (each green on CI before merging):  |
 | 2026-11-06 08:44 | 71 | 8→10 | none→none | $11.48 | 4 | Four follow-up PRs and the formatting cleanup are merged. Mission 6 (the Logistics Game) is still waiting on your review of its spec, PR #148, so I built nothin |
+| 2026-11-06 13:44 | 47 | 10→10 | none→none | $6.53 | 10 | I merged two PRs this run. Mission 6 (the Logistics Game) is still waiting for your review of #148. **#154** moves `vendor/cna` to 9336fcc, which brings in cna' |
