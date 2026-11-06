@@ -331,6 +331,20 @@ the bullet once it lands and `vendor/cna` is bumped.
   strength" for a brigade or division: its own TOE or the sum of its
   units'; (e) GT97/2's "with any three infantry battalions" as a typed
   pick. Until then the engine withdraws nothing.
+- **Scenario set-up rules as typed data** (Mission 5: scenario set-ups,
+  Tasks 2, 5 and 6 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  These are sentences in `sides.*.special` that the engine cannot act on:
+  (a) tanks that start broken down: Crusader's Alexandria shops (62.32,
+  by model, no repair before the second OpStage), The Last Chance's
+  Tobruk (63.42), Rommel's Arrival's 7th Armoured "all its tanks at
+  maximum TOE" (61.38); wanted as rows of hex or place, nation, weapon,
+  points and the first OpStage repair may start; (b) Rommel's Arrival's
+  release schedule (61.38: nothing leaves Cairo or Alexandria at first,
+  then a tank battalion at 75 % repaired and one other battalion an
+  OpStage from April 1941) as data; (c) The Last Chance's Tobruk
+  fortification row says "the four hexes next to Tobruk", but the map
+  has three land hexes beside C4807 (C4706, C4707, C4806 or so): which
+  is right? The engine places all three for now (#132).
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
   apply to the wreck unchanged, but 32.21 charges a barrage by battalion
