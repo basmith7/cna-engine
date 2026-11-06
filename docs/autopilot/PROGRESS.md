@@ -387,6 +387,18 @@ the bullet once it lands and `vendor/cna` is bumped.
   name pipelines only in notes (Crusader's "from the railhead to Bir
   Khamsa", "along railroad hexes"); neither `data/map/` nor a scenario's
   `construction` block lists pipeline hexes, which 52.2x needs.
+- **Whether The Last Chance's Bardia forts are optional** (Mission 5
+  follow-up, #141's review). The prose (63.76) says the Axis *may* add
+  three level-1 forts among the four hexes next to Bardia; the typed
+  `fortifications` row says it picks three, so the engine requires all
+  three before set-up ends. A ruling: exactly three, up to three, or none
+  at all, so the row's count matches.
+- **Whether works placed at set-up obey enemy ZOC** (Mission 5 follow-up,
+  #141's review). 24.4x bars starting a fort in an enemy ZOC, and the
+  engine's set-up placement (`placed_works`: Rommel's Arrival's Tobruk
+  forts, The Last Chance's forts and minefields) ignores ZOC because
+  set-up is not construction. A ruling on whether set-up placement is
+  construction for 24.35/24.44, or a note in the scenarios that it is not.
 
 ## Runs and quota
 
