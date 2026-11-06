@@ -228,12 +228,17 @@ games). #133 (merged): Group One's first two Axis convoys are
 planned before play, the first unbombed (R-097, 60.37).
 
 **2026-11-06, second run:** cna answered both requests (#290, #291).
-#134 (merged) bumps `vendor/cna` to fff7856 and gives R-154–R-159
-homes. On top of it: #135, tanks that start broken down (Crusader's
-Alexandria shops, the Last Chance's Tobruk, repair held until the
-printed OpStage); #136, Commonwealth withdrawals (R-154–R-157); #137,
-the campaign games' victory levels by ratio (64.76); #138, Rommel's
-Arrival's release limit out of Cairo and Alexandria (61.38, R-159).
+All merged: #134 bumps `vendor/cna` to fff7856 and gives R-154–R-159
+homes; #135, tanks that start broken down (Crusader's Alexandria
+shops, the Last Chance's Tobruk, repair held until the printed
+OpStage); #136, Commonwealth withdrawals (R-154–R-157: who goes, the
+75 % test, motorisation under §32, returns; the browser has no pick
+control yet, so the engine picks); #137, the campaign games' victory
+levels by ratio (64.76); #138, Rommel's Arrival's release limit out of
+Cairo and Alexandria (61.38, R-159). A fresh review of #138 found
+three faults (a free HQ carried its held units out, rail boarders went
+unchecked, moves inside the cities were refused), all fixed there.
+Each lands behind its own module, on in new games.
 
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
