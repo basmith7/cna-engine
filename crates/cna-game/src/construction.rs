@@ -33,6 +33,10 @@ pub enum Item {
 }
 
 impl Item {
+    pub fn is_minefield(self) -> bool {
+        matches!(self, Item::RealMinefield | Item::DummyMinefield)
+    }
+
     /// Stages of work the Construction Chart asks (24.17).
     pub fn stages(self) -> u8 {
         match self {

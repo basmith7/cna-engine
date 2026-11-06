@@ -34,6 +34,7 @@
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
+//! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
 //! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
 //! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
@@ -165,6 +166,7 @@ const STATE_FILTERS: &[&str] = &[
     "motorisation",
     "repaired",
     "pending_motorisation",
+    "works_to_place",
     "withdrawn",
     "withdrawal_picks",
     "planned",
@@ -204,7 +206,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// and in phase E `station_options`, the ships the Commonwealth may
 /// place at sea and the hexes open to them (30.1x); and in phase K
 /// `facility_repairs`, the phasing viewer's facility rolls (22.3x), and
-/// `destroyed_tank_repairs`, its destroyed tanks it may try (22.4x).
+/// `destroyed_tank_repairs`, its destroyed tanks it may try (22.4x); and
+/// at set-up `work_options`, where the viewer may place its set-up works
+/// and whether it may pass on the rest (59.12).
 pub fn view_for(
     state: &GameState,
     data: &Data,
@@ -242,6 +246,9 @@ pub fn view_for(
         .unwrap_or_default();
     if !patrols.is_empty() {
         obj.insert("patrol_options".into(), json!(patrols));
+    }
+    if let Some(o) = viewer.and_then(|side| state.work_options(data, side)) {
+        obj.insert("work_options".into(), o);
     }
     if let Some(o) = viewer.and_then(|side| state.station_options(data, side)) {
         obj.insert("station_options".into(), json!(o));
@@ -324,6 +331,9 @@ pub fn view_for(
                 field.remove("real");
             }
         }
+    }
+    if let Some(w) = v.get_mut("works_to_place").and_then(Value::as_array_mut) {
+        w.retain(|q| !q.as_object().is_some_and(side_is_enemy));
     }
     if let Some(m) = v.get_mut("projects").and_then(Value::as_object_mut) {
         for project in m.values_mut().filter_map(Value::as_object_mut) {

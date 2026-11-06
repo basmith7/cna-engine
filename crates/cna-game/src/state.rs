@@ -140,6 +140,11 @@ pub struct Modules {
     /// only as its release schedule allows (61.38, R-159).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub release_schedule: bool,
+    /// The set-up works a player places (a fortification row with a
+    /// `side`, the minefield sets): its set-up waits for them (59.12,
+    /// 61.6, 63.76–63.77).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub placed_works: bool,
 }
 
 impl Modules {
@@ -159,6 +164,7 @@ impl Modules {
         withdrawals: true,
         broken_down_starts: true,
         release_schedule: true,
+        placed_works: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -327,6 +333,9 @@ pub struct GameState {
     /// secret until revealed.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub minefields: BTreeMap<HexId, crate::construction::Minefield>,
+    /// Set-up works each side still places (`placed_works` module).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub works_to_place: Vec<crate::placed_works::WorkQuota>,
     /// Projects under way by hex (24.1x): open information.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub projects: BTreeMap<HexId, crate::construction::Project>,
@@ -489,6 +498,7 @@ impl GameState {
             fortifications: BTreeMap::new(),
             projects: BTreeMap::new(),
             minefields: BTreeMap::new(),
+            works_to_place: Vec::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
             escaped: BTreeMap::new(),
@@ -520,9 +530,10 @@ impl GameState {
         state.check_weapons(data)?;
         state.place_blockship(data)?;
         state.place_set_up_works(data);
+        state.start_placed_works(data)?;
         state.place_broken_down_starts(data);
         state.attach_where_stacked(None);
-        state.pending = state.next_set_up();
+        state.pending = state.next_set_up_with(data);
         if state.pending.is_none() {
             state.start_play(data);
         }
@@ -625,6 +636,10 @@ impl GameState {
             (Some(Pending::SetUp { .. }), Order::Unplace { piece }) => {
                 self.unplace(data, player, piece)
             }
+            (Some(Pending::SetUp { .. }), Order::PlaceWork { item, hex }) => {
+                self.place_work(data, player, *item, hex)
+            }
+            (Some(Pending::SetUp { .. }), Order::Pass) => self.decline_works(data, player),
             (Some(Pending::SetUp { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (Some(Pending::DeclareZoc { .. }), Order::DeclareZoc { exerting }) => {
                 self.declare_zoc(data, player, exerting)
@@ -639,7 +654,7 @@ impl GameState {
             (Some(Pending::Reaction { .. }), Order::Pass) => Ok(self.decline_reaction(data)),
             (Some(Pending::Reaction { .. }), _) => Err(self.pending_refusal().expect("pending")),
             (None, Order::React { .. }) => Err(Illegal::new("8.5x", "no reaction is pending")),
-            (None, Order::Place { .. } | Order::Unplace { .. }) => {
+            (None, Order::Place { .. } | Order::Unplace { .. } | Order::PlaceWork { .. }) => {
                 Err(Illegal::new("59.2", "set-up is over; nothing is pending"))
             }
             (Some(Pending::Sealed { step, .. }), order) if step.matches(order) => {
@@ -915,16 +930,54 @@ pub(crate) mod test_support {
     }
 
     /// Places every pending piece on the first hex the engine accepts,
-    /// returning the orders it took.
+    /// then each side's set-up works on the first hexes it accepts
+    /// (fortifications, real fields, dummies), passing on the optional
+    /// rest; returns the orders it took.
     pub fn auto_place(data: &Data, state: &mut GameState) -> Vec<LoggedOrder> {
         let mut orders = Vec::new();
         while let Some(Pending::SetUp { side }) = state.pending.clone() {
-            let piece = state
+            orders.extend(place_pieces(data, state, side));
+            if state.pending != Some(Pending::SetUp { side }) {
+                continue;
+            }
+            let item = [
+                crate::construction::Item::Fortification,
+                crate::construction::Item::RealMinefield,
+                crate::construction::Item::DummyMinefield,
+            ]
+            .into_iter()
+            .find_map(|item| {
+                state
+                    .work_placements(data, side, item)
+                    .into_iter()
+                    .next()
+                    .map(|hex| Order::PlaceWork { item, hex })
+            });
+            let order = item.unwrap_or(Order::Pass);
+            state
+                .apply(data, side, order.clone())
+                .unwrap_or_else(|e| panic!("{order:?}: {e:?}"));
+            orders.push(LoggedOrder {
+                player: side,
+                order,
+            });
+        }
+        orders
+    }
+
+    /// Places `side`'s pending pieces on the first hexes the engine
+    /// accepts, while that side is setting up.
+    pub fn place_pieces(data: &Data, state: &mut GameState, side: Side) -> Vec<LoggedOrder> {
+        let mut orders = Vec::new();
+        while state.pending == Some(Pending::SetUp { side }) {
+            let Some(piece) = state
                 .pieces
                 .values()
                 .find(|p| p.side == side && p.is_pending())
-                .expect("pending piece")
-                .clone();
+                .cloned()
+            else {
+                break;
+            };
             let mut placed = false;
             for hex in candidates(data, &piece) {
                 let order = Order::Place {

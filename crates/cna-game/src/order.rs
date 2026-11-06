@@ -15,6 +15,13 @@ pub enum Order {
     Place { piece: PieceId, hex: HexId },
     /// Set-up: take back a piece this side placed, to wait again (59.2).
     Unplace { piece: PieceId },
+    /// Set-up: place a fortification level or a real or dummy minefield
+    /// the scenario gives this side to place (59.12); `Pass` declines
+    /// the optional rest.
+    PlaceWork {
+        item: crate::construction::Item,
+        hex: HexId,
+    },
     /// Phase A: the initiative holder names who acts first this OpStage
     /// (7.1x).
     DeclareInitiative { player_a: Side },

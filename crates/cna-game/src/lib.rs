@@ -33,6 +33,7 @@ pub mod patrol;
 mod phases;
 pub mod piece;
 mod place;
+pub mod placed_works;
 mod prisoners;
 mod raider_forming;
 mod raiders;

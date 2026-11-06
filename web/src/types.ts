@@ -172,6 +172,7 @@ export interface Assignment {
 export type Order =
   | { place: { piece: PieceId; hex: HexId } }
   | { unplace: { piece: PieceId } }
+  | { "place-work": { item: BuildItem; hex: HexId } }
   | { "declare-initiative": { player_a: Side } }
   | { move: { pieces: PieceId[]; path: HexId[]; assault?: boolean; fuel_from?: PieceId } }
   | { react: { pieces: PieceId[]; path: HexId[] } }
@@ -577,6 +578,8 @@ export interface View {
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
   station_options?: { ships: PieceId[]; hexes: HexId[] };
+  /** Set-up: the hexes open to each of the viewer's set-up works, how many required ones are left, and whether a pass ends its set-up (59.12). */
+  work_options?: WorkOptions;
   /** Phase K: the facility rolls the phasing viewer may make (22.3x). */
   facility_repairs?: FacilityOffer[];
   /** Phase K: the destroyed tanks the phasing viewer may attempt (22.4x). */
@@ -604,3 +607,12 @@ export type PatrolReport = {
   objective_killed: number;
   objective_captured: number;
 };
+
+/** Where the side setting up may place its set-up works (`cna_game::placed_works`). */
+export interface WorkOptions {
+  fortification?: HexId[];
+  "real-minefield"?: HexId[];
+  "dummy-minefield"?: HexId[];
+  required_left: number;
+  may_pass: boolean;
+}

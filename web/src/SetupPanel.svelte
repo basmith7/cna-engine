@@ -5,13 +5,30 @@
   import { sideName } from "./clock";
   import { label, nameParts } from "./counters";
   import { placementWords } from "./setup";
-  import type { HexId, Piece, Side, View } from "./types";
+  import type { BuildItem, HexId, Piece, Side, View } from "./types";
 
   let {
     view,
     picked,
     hexes,
-  }: { view: View; picked: Piece | null; hexes: HexId[] } = $props();
+    workItem = null,
+    onwork = () => {},
+    onpass = () => {},
+  }: {
+    view: View;
+    picked: Piece | null;
+    hexes: HexId[];
+    workItem?: BuildItem | null;
+    onwork?: (item: BuildItem) => void;
+    onpass?: () => void;
+  } = $props();
+
+  // Set-up works the side places (59.12): forts, real and dummy fields.
+  const WORKS: [BuildItem, string][] = [
+    ["fortification", "Fortification"],
+    ["real-minefield", "Real minefield"],
+    ["dummy-minefield", "Dummy minefield"],
+  ];
 
   const side: Side | null = $derived(view.pending && "set-up" in view.pending ? view.pending["set-up"].side : null);
   const left = $derived(Object.values(view.pieces).filter((p) => p.side === side && typeof p.location === "object" && "pending" in p.location).length);
@@ -32,8 +49,25 @@
           {/if}
           <span class="count" data-testid="placement-count">{hexes.length} hexes allowed. Click one to place it.</span>
         </p>
-      {:else}
+      {:else if !view.work_options}
         <p class="hint">Click a piece in the tray, then a highlighted hex.</p>
+      {/if}
+      {#if view.work_options}
+        {@const w = view.work_options}
+        <div class="works" data-testid="set-up-works">
+          <span class="where">Set-up works: {w.required_left} required left</span>
+          {#each WORKS as [item, name] (item)}
+            {#if (w[item] ?? []).length > 0}
+              <button type="button" data-work={item} class:on={workItem === item} onclick={() => onwork(item)}>{name}</button>
+            {/if}
+          {/each}
+          {#if w.may_pass}
+            <button type="button" data-testid="works-done" onclick={onpass}>Done</button>
+          {/if}
+          {#if workItem}
+            <span class="count">{(w[workItem] ?? []).length} hexes allowed. Click one to place it.</span>
+          {/if}
+        </div>
       {/if}
     </section>
   </div>
@@ -83,6 +117,13 @@
     color: #666;
     font-size: 12px;
     margin-top: 0.2rem;
+  }
+  .works button {
+    margin: 0.2rem 0.3rem 0 0;
+  }
+  .works button.on {
+    font-weight: 700;
+    outline: 2px solid #7b4fd1;
   }
   .hint {
     color: #555;

@@ -737,6 +737,65 @@ pub struct Scenario {
     pub abstractions: Option<Abstractions>,
 }
 
+/// The scenario's set-up works (`construction`, 59.12): its fortification
+/// rows and its minefield sets, typed. Other keys of the block are read
+/// where they are used.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+pub struct Works {
+    #[serde(default)]
+    pub fortifications: Vec<FortRow>,
+    #[serde(default)]
+    pub minefield_sets: Vec<MinefieldSet>,
+}
+
+/// A fortification row: `count` levels at `level`. With a `side`, that
+/// player places them in the placement's area during its set-up; without,
+/// the row fills the land hexes next to a place.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct FortRow {
+    pub placement: Placement,
+    pub level: u8,
+    pub count: u32,
+    #[serde(default)]
+    pub side: Option<Side>,
+}
+
+/// A side's set-up minefields (63.76–63.77): every `hexes` entry, `more`
+/// of its choice, or (with no list) any in `placement` and `beyond`; of
+/// them `real` real and `dummy` dummy, the owner choosing which. An
+/// `up_to` set is optional: at most so many of each.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MinefieldSet {
+    pub side: Side,
+    #[serde(default)]
+    pub hexes: Vec<HexId>,
+    #[serde(default)]
+    pub more: Option<MoreMinefields>,
+    #[serde(default)]
+    pub placement: Option<Placement>,
+    /// Farther than `hexes` from `of`.
+    #[serde(default)]
+    pub beyond: Option<Beyond>,
+    pub real: u32,
+    pub dummy: u32,
+    #[serde(default)]
+    pub up_to: bool,
+}
+
+/// Fields beyond a set's list, of the owner's choice.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MoreMinefields {
+    pub count: u32,
+    pub placement: Placement,
+}
+
+/// More than `hexes` hexes from `of`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Beyond {
+    pub of: HexId,
+    pub hexes: u32,
+}
+
 fn read_value(src: &dyn Source, slug: &str) -> Result<Value> {
     crate::source::read_json(src, &format!("scenarios/{slug}.json"))
 }
@@ -787,6 +846,15 @@ fn read_merged(src: &dyn Source, slug: &str, depth: u8) -> Result<Value> {
 }
 
 impl Scenario {
+    /// The `construction` block's fortification rows and minefield sets;
+    /// none where the scenario has no block.
+    pub fn works(&self) -> Result<Works> {
+        match &self.construction {
+            Some(c) => Works::deserialize(c).context("construction"),
+            None => Ok(Works::default()),
+        }
+    }
+
     /// Loads `data/scenarios/<slug>.json`, following `extends`.
     pub fn load(slug: &str) -> Result<Scenario> {
         Scenario::load_from(&Fs, slug)
@@ -1156,5 +1224,30 @@ mod tests {
         );
         assert!(serde_json::from_str::<Placement>(r#"{"place":["a"]}"#).is_err());
         assert!(serde_json::from_str::<Placement>(r#"{"constraint":"x"}"#).is_err());
+    }
+
+    #[test]
+    fn set_up_works_are_typed_63_76_63_77() {
+        let lc = Scenario::load("the-last-chance").unwrap().works().unwrap();
+        let axis_forts: Vec<&FortRow> = lc
+            .fortifications
+            .iter()
+            .filter(|r| r.side == Some(Side::Axis))
+            .collect();
+        assert_eq!(axis_forts.len(), 1);
+        assert_eq!((axis_forts[0].level, axis_forts[0].count), (1, 3));
+        let sets = &lc.minefield_sets;
+        assert_eq!(sets.len(), 4);
+        assert_eq!((sets[0].side, sets[0].hexes.len()), (Side::Cw, 10));
+        assert_eq!(sets[0].more.as_ref().unwrap().count, 5);
+        assert_eq!((sets[1].real, sets[1].dummy, sets[1].up_to), (11, 3, false));
+        assert!(sets[2].up_to && sets[2].placement.is_some());
+        assert_eq!(sets[3].beyond.as_ref().unwrap().hexes, 5);
+        let ra = Scenario::load("rommels-arrival").unwrap().works().unwrap();
+        assert_eq!(ra.fortifications[0].side, Some(Side::Cw));
+        assert!(ra.minefield_sets.is_empty());
+        for slug in ["grazianis-offensive", "operation-crusader", "campaign-game"] {
+            Scenario::load(slug).unwrap().works().unwrap();
+        }
     }
 }
