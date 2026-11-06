@@ -692,7 +692,11 @@ mod tests {
         assert_eq!((state.clock.game_turn, state.clock.stage), (2, 1));
         let ship = ship_id("valiant");
         state
-            .apply(&data, Side::Cw, station(&ship, &off_alexandria(&data).to_string()))
+            .apply(
+                &data,
+                Side::Cw,
+                station(&ship, &off_alexandria(&data).to_string()),
+            )
             .unwrap();
     }
 

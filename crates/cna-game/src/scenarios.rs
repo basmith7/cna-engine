@@ -5,9 +5,9 @@
 mod tests {
     use crate::data::Data;
     use crate::piece::PieceKind;
-    use cna_data::scenario::Side;
     use crate::state::test_support::{auto_place, pass_stage};
     use crate::state::{GameState, Modules};
+    use cna_data::scenario::Side;
 
     fn slugs() -> Vec<String> {
         let dir = cna_data::repo_root().join("vendor/cna/data/scenarios");

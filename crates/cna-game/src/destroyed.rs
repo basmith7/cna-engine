@@ -279,7 +279,10 @@ impl GameState {
         if !self.modules.destroyed_tanks || self.clock.phase != Phase::Repair {
             return Err(Illegal::new(
                 "22.4",
-                format!("destroyed tanks are repaired in phase K, not at {}", self.clock),
+                format!(
+                    "destroyed tanks are repaired in phase K, not at {}",
+                    self.clock
+                ),
             ));
         }
         if self.phasing() != Some(player) {
@@ -469,7 +472,10 @@ mod tests {
             }]
         );
         let m = &state.destroyed_tanks[&at][0];
-        assert_eq!((m.side, m.nation, m.points), (Side::Axis, Some(Nation::Cw), 3));
+        assert_eq!(
+            (m.side, m.nation, m.points),
+            (Side::Axis, Some(Nation::Cw), 3)
+        );
     }
 
     #[test]
@@ -524,7 +530,10 @@ mod tests {
         assert_eq!(left(&state), Some(3));
         state.unmark_captured_tanks(Side::Cw, 2, &mut events);
         assert_eq!(left(&state), Some(1));
-        assert!(matches!(events[..], [Event::TanksDestroyed { points: 1, .. }]));
+        assert!(matches!(
+            events[..],
+            [Event::TanksDestroyed { points: 1, .. }]
+        ));
         // More taken than marked: the marker and its event are gone.
         state.unmark_captured_tanks(Side::Cw, 4, &mut events);
         assert_eq!(left(&state), None);
@@ -573,7 +582,12 @@ mod tests {
     fn read(data: &Data, dice: &[u8], plus: u8) -> (u32, u32) {
         let mut out = (0, 0);
         for d in dice {
-            match data.destroyed_tank_repair.row(d + plus).unwrap().cw_facility {
+            match data
+                .destroyed_tank_repair
+                .row(d + plus)
+                .unwrap()
+                .cw_facility
+            {
                 Some(TankOutcome::Repaired) => out.0 += 1,
                 Some(TankOutcome::Junked) => out.1 += 1,
                 None => {}
@@ -654,7 +668,9 @@ mod tests {
         let data = graziani();
         let (mut state, _) = at_facility(&data, "E3613", 2);
         let at = empty_hex(&data, &state);
-        let m = state.destroyed_tanks.remove(&HexId::parse("E3613").unwrap());
+        let m = state
+            .destroyed_tanks
+            .remove(&HexId::parse("E3613").unwrap());
         state.destroyed_tanks.insert(at.clone(), m.unwrap());
         assert!(state.destroyed_tank_repairs(&data).is_empty());
         let e = state.apply(&data, Side::Cw, order(&at, 1)).unwrap_err();
@@ -673,9 +689,10 @@ mod tests {
         state.destroyed_tanks.clear();
         state.player_a = Some(Side::Axis);
         let hex = HexId::parse("C4807").unwrap();
-        state
-            .destroyed_tanks
-            .insert(hex.clone(), vec![marker(Side::Axis, Nation::Cw, "Matilda", 6)]);
+        state.destroyed_tanks.insert(
+            hex.clone(),
+            vec![marker(Side::Axis, Nation::Cw, "Matilda", 6)],
+        );
         let events = state
             .apply(
                 &data,
@@ -711,9 +728,10 @@ mod tests {
         state.destroyed_tanks.clear();
         state.player_a = Some(Side::Axis);
         let hex = HexId::parse("C4807").unwrap();
-        state
-            .destroyed_tanks
-            .insert(hex.clone(), vec![marker(Side::Axis, Nation::It, "M11/39", 6)]);
+        state.destroyed_tanks.insert(
+            hex.clone(),
+            vec![marker(Side::Axis, Nation::It, "M11/39", 6)],
+        );
         let events = state
             .apply(
                 &data,
@@ -737,7 +755,12 @@ mod tests {
         };
         let mut want = (0, 0);
         for d in dice {
-            match data.destroyed_tank_repair.row(d + 1).unwrap().axis_facility_italian {
+            match data
+                .destroyed_tank_repair
+                .row(d + 1)
+                .unwrap()
+                .axis_facility_italian
+            {
                 Some(TankOutcome::Repaired) => want.0 += 1,
                 Some(TankOutcome::Junked) => want.1 += 1,
                 None => {}
@@ -758,9 +781,23 @@ mod tests {
             .expect("a Commonwealth supply unit");
         state.put(&source, Location::Hex(hex.clone()));
         for q in state.repair_fuel(&data, Side::Cw, &hex) {
-            state.pieces.get_mut(&q).unwrap().load.as_mut().unwrap().fuel = 0;
+            state
+                .pieces
+                .get_mut(&q)
+                .unwrap()
+                .load
+                .as_mut()
+                .unwrap()
+                .fuel = 0;
         }
-        state.pieces.get_mut(&source).unwrap().load.as_mut().unwrap().fuel = 5;
+        state
+            .pieces
+            .get_mut(&source)
+            .unwrap()
+            .load
+            .as_mut()
+            .unwrap()
+            .fuel = 5;
         // Five fuel pre-pays two points, not three.
         assert_eq!(state.destroyed_tank_repairs(&data)[0].points, 2);
         let e = state.apply(&data, Side::Cw, order(&hex, 3)).unwrap_err();

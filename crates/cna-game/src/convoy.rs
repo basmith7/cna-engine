@@ -573,7 +573,10 @@ mod tests {
             };
             assert_eq!(*side, Side::Axis);
             assert!((1..=2).contains(arrives), "{e:?}");
-            assert_eq!(data.simplified_supply.axis_units(&month, *die), Some(*units));
+            assert_eq!(
+                data.simplified_supply.axis_units(&month, *die),
+                Some(*units)
+            );
         }
         assert_eq!(state.planned.len(), events.len());
         // Not in a later turn, nor with the module off.
@@ -605,7 +608,11 @@ mod tests {
         let before = in_tripoli(&state);
         let mut events = Vec::new();
         assert!(state.supply_arrivals(&data, &mut events));
-        assert!(!events.iter().any(|e| matches!(e, Event::ConvoyBombed { .. })));
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::ConvoyBombed { .. }))
+        );
         assert_eq!(in_tripoli(&state), before + 3);
     }
 
