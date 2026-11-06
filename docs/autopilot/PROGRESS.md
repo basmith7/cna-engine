@@ -240,6 +240,22 @@ three faults (a free HQ carried its held units out, rail boarders went
 unchecked, moves inside the cities were refused), all fixed there.
 Each lands behind its own module, on in new games.
 
+**2026-11-06, third and fourth runs:** the third run built three
+drafts and was killed; the fourth recovered them. Merged: #140, the
+campaigns' automatic wins (64.71, 64.72) and the end-of-game supply test
+(64.73), behind `campaign_victory`; #143, its fresh review's two fixes
+(the Commonwealth could read Axis supply loads from the hold count; a
+unit with no CPA, Tobruk's coastal guns, failed 64.73 on a loaded supply
+unit in its own hex); #141, forts and minefields a player places at
+set-up (Rommel's Arrival 61.6, The Last Chance 63.76–63.77) with a
+set-up panel control, dummy fields secret, behind `placed_works`. In CI:
+#139, the 7th Armoured's tanks starting broken down with their units
+(61.38), its review's fixes in (the 75 % release test is per battalion;
+points held for repair keep their room under the TOE ceiling); #144, no
+set-up fort in a major city (#141's review: Tobruk and Bardia lost a
+level); #142, `vendor/cna` to e5479f0 and roads and railroads built at
+set-up (cna #292), behind `roads_built`.
+
 Mission 5 is the current mission again. **#80 merged (2026-11-03):** rail runs one stack each way a stage, attached units ride with their parent, and phase J opens for a Commonwealth unit alone; a Playwright test rails a battalion by clicks; no golden re-pin was needed (supply already opened phase J wherever units could ride).
 
 **MISSION 4, Part 0** (2026-10-13, merged 2026-11-02): the spec
@@ -275,16 +291,16 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 5's second half:
-  `docs/plans/2026-11-06-m5-scenario-set-ups.md`. Left after
-  #135–#138: forts and minefields a player places (cna's typed
-  `minefield_sets` and fortification sides), the 7th Armoured's tanks
-  starting broken down with their units (a TOE-0 tank battalion counts as
-  eliminated today), Rommel's Arrival's printed motorisation (61.72), and
-  the campaigns' automatic wins and replacement/withdrawal points
-  (64.71–64.75).
-- `vendor/cna` is at cna fff7856 (#134).
-- **2026-11-06, fourth run (in flight):** the third run was killed; #140 (campaign victory, 64.71–64.73) merged; #139 (7th Armoured's tanks with their units) re-pinned after main, CI and a fresh review running; set-up works a player places (`autopilot/m5-placed-works`, WIP pushed) and roads built (`autopilot/m5-roads-built`) being finished.
+- Nothing waits on Brian. Mission 5's second half,
+  `docs/plans/2026-11-06-m5-scenario-set-ups.md`: merge #139, #144 and
+  #142 (whichever lands second re-pins). Then left: Rommel's Arrival's
+  printed motorisation (61.72, waits on the cna request below); review
+  follow-ups (Bardia's forts may be optional by the prose, a cna question;
+  set-up works ignore enemy ZOC; views at The Last Chance's set-up take
+  about 210 ms natively; a 0-TOE battalion can't be eliminated; the
+  player can't pick which unit a repair credits); the browser draws a
+  road built at set-up as unfinished.
+- `vendor/cna` is at cna fff7856 on main; #142 moves it to e5479f0.
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
