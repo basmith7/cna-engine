@@ -144,6 +144,10 @@ pub struct Modules {
     /// with their units, which repair returns them to (61.38).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub tanks_with_units: bool,
+    /// The campaign games' victory (64.71–64.73): the automatic wins and
+    /// occupation's end-of-game supply test, under §32's supply units.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub campaign_victory: bool,
 }
 
 impl Modules {
@@ -164,6 +168,7 @@ impl Modules {
         broken_down_starts: true,
         release_schedule: true,
         tanks_with_units: true,
+        campaign_victory: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -278,6 +283,10 @@ pub struct GameState {
     /// The release schedule's held units and this stage's count (61.38).
     #[serde(default, skip_serializing_if = "crate::release::Release::is_empty")]
     pub release: crate::release::Release,
+    /// The first OpStage from whose start the Axis has held every hex of
+    /// Alexandria and Cairo in supply, unbroken (64.71, R-109).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis_held_since: Option<cna_data::time::GameTime>,
     /// Broken-down vehicle types tried in the field or at a facility this
     /// OpStage, by side, hex and weapon system (22.23: one roll each per
     /// phase K).
@@ -483,6 +492,7 @@ impl GameState {
             broken_down: BTreeMap::new(),
             repair_holds: BTreeMap::new(),
             release: crate::release::Release::default(),
+            axis_held_since: None,
             field_rolled: BTreeSet::new(),
             destroyed_tanks: BTreeMap::new(),
             destroyed_rolled: BTreeSet::new(),

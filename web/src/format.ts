@@ -324,7 +324,8 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("captured" in e) return `${name(e.captured.piece)} captured at ${e.captured.hex}.`;
   if ("game-over" in e) {
     const r = e["game-over"].report;
-    return `Game over. Axis: ${r.axis ?? "no level"}; Commonwealth: ${r.cw ?? "no level"}.`;
+    const atOnce = r.automatic ? ` Won at once: ${r.automatic}.` : "";
+    return `Game over. Axis: ${r.axis ?? "no level"}; Commonwealth: ${r.cw ?? "no level"}.${atOnce}`;
   }
   return unreachable(e);
 }

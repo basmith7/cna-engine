@@ -284,6 +284,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   the campaigns' automatic wins and replacement/withdrawal points
   (64.71–64.75).
 - `vendor/cna` is at cna fff7856 (#134).
+- **2026-11-06, third run (in flight):** three drafts being built in parallel: set-up works a player places (`autopilot/m5-placed-works`), the 7th Armoured's tanks starting broken down and 61.72 (`autopilot/m5-all-tanks`), the campaigns' automatic wins 64.71–64.75 (`autopilot/m5-campaign-victory`).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -502,3 +503,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 15:44 | 73 | 71→0 | none→none | $9.79 | 125 | Three PRs merged this run (#124, #125, #126). The towing slice is open as draft #127 for the next run. - **#124, the *San Giorgio*:** merged on green CI. Its ba |
 | 2026-11-06 00:44 | 84 | 4→5 | none→none | $13.61 | 211 | Six PRs merged this run. One more (#133) is a draft because one browser test fails in CI. **Merged** - **#127, towing (21.6x):** picked up from the last run wit |
 | 2026-11-06 03:44 | 71 | 5→6 | none→none | $13.64 | 9 | Brian, I merged six PRs this run (#133–#138), and Mission 5's scenario set-ups moved forward on cna's new data. Each new rule sits behind its own module, which  |
+| 2026-11-06 04:55 | 11 | 6→6 | none→none | $7.80 | 18 | The three agents are working; the run waits on them before review and merge. |

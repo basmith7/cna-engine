@@ -24,7 +24,8 @@
     "withdrawals": true,
     "broken_down_starts": true,
     "release_schedule": true,
-    "tanks_with_units": true
+    "tanks_with_units": true,
+    "campaign_victory": true
   },
   "clock": {
     "game_turn": 7,

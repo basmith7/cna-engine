@@ -7,6 +7,7 @@ mod arrival;
 mod attachment;
 mod blockship;
 pub mod breakdown;
+mod campaign;
 mod captured;
 pub mod clock;
 pub mod combat;

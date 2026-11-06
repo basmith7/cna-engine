@@ -113,6 +113,9 @@ impl GameState {
             let clock = self.clock;
             if clock.phase == Phase::InitiativeDeclaration {
                 self.withdraw_after_stage(data, events);
+                if self.end_by_automatic_win(data, events) {
+                    return;
+                }
             }
             if GameTime::new(clock.game_turn, clock.stage) > data.scenario.end {
                 let report = crate::victory::evaluate(data, self);

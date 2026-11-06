@@ -28,11 +28,14 @@
       <div class="level side-axis" data-level="axis"><span class="who">Axis</span><span class="what">{level(report.axis)}</span></div>
       <div class="level side-cw" data-level="cw"><span class="who">Commonwealth</span><span class="what">{level(report.cw)}</span></div>
     </div>
+    {#if report.automatic}
+      <p class="automatic" data-testid="automatic">Won at once: {report.automatic}.</p>
+    {/if}
     {#if report.points}
       <p class="clock" data-testid="points">Points: Axis {report.points.axis}, Commonwealth {report.points.cw}.</p>
       <table data-testid="scored">
         <thead>
-          <tr><th>Objective</th><th>Held by</th><th>Points</th></tr>
+          <tr><th>Objective</th><th>Held by</th><th>Points</th><th>Out of supply</th></tr>
         </thead>
         <tbody>
           {#each report.scored ?? [] as s, i (i)}
@@ -40,6 +43,7 @@
               <td>{s.objective}</td>
               <td>{s.holder ? sideName(s.holder) : "–"}</td>
               <td>{s.points}</td>
+              <td>{(s.unsupplied ?? []).map(name).join(", ") || "–"}</td>
             </tr>
           {/each}
         </tbody>
@@ -154,6 +158,10 @@
   }
   tr[data-met="true"] .met { color: #2e7d32; font-weight: 700; }
   tr[data-met="false"] .met { color: #a4161a; }
+  .automatic {
+    margin: 0 0 0.8rem;
+    font-weight: 700;
+  }
   .unchecked-title {
     margin: 0.8rem 0 0.2rem;
     color: #555;
