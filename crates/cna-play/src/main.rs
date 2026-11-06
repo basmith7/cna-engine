@@ -63,6 +63,9 @@ enum Cmd {
         /// Play without the scenario's set-up fortifications (59.12).
         #[arg(long)]
         no_set_up_works: bool,
+        /// Play without Group One's pre-play Axis convoys (R-097).
+        #[arg(long)]
+        no_pre_play_convoys: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -192,6 +195,7 @@ fn main() -> Result<()> {
             no_towing,
             no_rail_ends,
             no_set_up_works,
+            no_pre_play_convoys,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -206,6 +210,7 @@ fn main() -> Result<()> {
                 towing: !no_towing,
                 rail_ends: !no_rail_ends,
                 set_up_works: !no_set_up_works,
+                pre_play_convoys: !no_pre_play_convoys,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
