@@ -779,3 +779,9 @@ Done: #145 (R-160, vendor/cna e9a90b3), #146 (MISSION 5 COMPLETE: docs, queue ro
 In flight: none.
 Next: if Feedback approves #148, merge it and start slice 1; until then build nothing for Mission 6. Meanwhile the Mission 5 follow-ups in PROGRESS Next steps (set-up works vs enemy ZOC; 0-TOE battalion elimination; repair credit pick; Last Chance set-up view speed).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 09:35 MST — autopilot/m3-polish
+Done: #150 (0-TOE battalion eliminated by assault), #149 (repair names the wreck's unit; owners shown), #152 (view_for at Last Chance set-up 212 → 13 ms) merged. Three cna requests posted on main (Bardia forts optional, set-up works vs ZOC, 0-TOE units).
+In flight: #151 (this branch, Mission 3 polish; fresh critique's fixes in 136515f; origin/main merged b8a2892) ready, CI running.
+Next: merge #151 if CI green (else fix the failing Playwright spec). Then: if Feedback approves #148, Mission 6 slice 1; otherwise bump vendor/cna when cna answers the requests, or the next follow-up (repo-wide `cargo fmt` + `--check` in CI: main is unformatted in ~10 files).
+Blocked: Mission 6 on Brian's review of #148.
