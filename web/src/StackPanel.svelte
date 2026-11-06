@@ -56,7 +56,7 @@
       <p class="motorisation" data-testid="motorisation">{points} motorisation point{points === 1 ? "" : "s"} here</p>
     {/if}
     {#each wrecks as w, i (i)}
-      <p class="wreck side-{w.side}" data-testid="wreck">Broken down: {w.points} {w.weapon} ({sideName(w.side)})</p>
+      <p class="wreck side-{w.side}" data-testid="wreck" data-unit={w.unit ?? undefined}>Broken down: {w.points} {w.weapon}{w.unit ? ` of ${view.pieces[w.unit] ? label(view.pieces[w.unit]).short : w.unit}` : ""} ({sideName(w.side)})</p>
     {/each}
     {#each prisoners as g (g.side)}
       <p class="prisoners side-{g.side}" data-testid="prisoners">{g.points} prisoner point{g.points === 1 ? "" : "s"} held by the {sideName(g.side)}</p>

@@ -197,8 +197,8 @@ export type Order =
   | { rail: { pieces: PieceId[]; path: HexId[]; stops?: { at: HexId; off?: PieceId[]; on?: PieceId[] }[] } }
   | { "air-lift": { piece: PieceId; to: Location; fuel_from?: PieceId } }
   | { "convoy-lanes": { lanes: number[] } }
-  | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
-  | { "facility-repair": { hex: HexId; weapon: string; fuel_from?: PieceId } }
+  | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId; unit?: PieceId } }
+  | { "facility-repair": { hex: HexId; weapon: string; fuel_from?: PieceId; unit?: PieceId } }
   | { tow: { hex: HexId; weapon: string; points: number; path: HexId[] } }
   | { "repair-destroyed-tanks": { hex: HexId; weapon: string; points: number; fuel_from?: PieceId } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
@@ -259,6 +259,8 @@ export interface Wreck {
   this_stage?: number;
   /** How many of `points` were towed in this phase K: no roll and no second tow until the next OpStage (21.6x, 22.13). */
   towed?: number;
+  /** The unit these points broke down with, which repair returns them to (61.38); none for loose points. */
+  unit?: PieceId | null;
 }
 
 export type VictoryLevel = string;
