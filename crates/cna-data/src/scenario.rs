@@ -617,8 +617,36 @@ pub struct Victory {
     pub points: Vec<PointsObjective>,
     #[serde(default)]
     pub margins: Vec<Margin>,
+    /// Levels by the ratio of the larger total to the smaller (64.76),
+    /// highest `over` first in the file.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ratios: Vec<Ratio>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// One rung of a ratio ladder: a ratio strictly above `over` reaches
+/// `level` (`draw` names no victory).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Ratio {
+    /// The threshold in hundredths (2.5 → 250), so the type stays `Eq`.
+    #[serde(serialize_with = "ser_hundredths", deserialize_with = "de_hundredths")]
+    pub over: u32,
+    pub level: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub printed: Option<String>,
+}
+
+fn de_hundredths<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
+    let x = f64::deserialize(d)?;
+    if x.is_nan() || x < 0.0 {
+        return Err(serde::de::Error::custom("a ratio below zero"));
+    }
+    Ok((x * 100.0).round() as u32)
+}
+
+fn ser_hundredths<S: serde::Serializer>(over: &u32, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_f64(f64::from(*over) / 100.0)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
