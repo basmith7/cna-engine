@@ -32,11 +32,11 @@ module: a combat unit with no TOE left (61.38's battalions whose tanks
 start broken down) is a non-combat unit until rebuilt: no ZOC, no
 holding off, no entering an unoccupied enemy ZOC, no reacting or
 escorting, holds no victory hex, and is captured alone in an enemy ZOC.
-#157 (ready, CI running; `capture_on_move` module) captures any lone
+#157 (merged; `capture_on_move` module) captures any lone
 non-combat unit when the enemy moves next to it, not only when the
 enemy's next movement segment opens, as Rommel already was (R-138).
 Fresh reviews ran on both; no scripted game plays differently. #158
-(stacked on #157) folds `cna-play new`'s 21 `--no-<module>` flags into
+(merged) folds `cna-play new`'s 21 `--no-<module>` flags into
 one `--without <module>,…`.
 
 **2026-11-06 evening:** #154 (merged) bumps `vendor/cna` to 9336fcc (cna's
@@ -344,6 +344,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
 - `vendor/cna` is at cna 111220a (#156).
+- R-164 and 10.29 follow-ups (#156, #157 bodies): `capture_on_move`'s
+  reaction and retreat-before-assault call sites have no test yet; under
+  10.29 "alone" means with no friendly combat unit, so Rommel or an HQ
+  with TOE does not shield a supply unit (as at a segment's start before).
+- New games: `cna-play new --without <module>,…` replaces the old
+  `--no-<module>` flags (#158).
 - Next Land Game gap for a run with nothing else: reassignment (19.2x:
   an independent unit taking a free slot, the Commonwealth battalion
   shuffle), listed under *Not yet* in `NOT_SIMULATED.md`'s Organisation row.
