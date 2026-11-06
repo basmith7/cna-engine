@@ -130,9 +130,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 90 variants", () => {
+  it("covers all 93 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(90);
+    expect(tags.size).toBe(93);
   });
 
   it.each(cases)("%j", (event, line) => {
