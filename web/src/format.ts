@@ -228,6 +228,11 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("supply-destroyed" in e) return `${name(e["supply-destroyed"].piece)} destroyed by its own side.`;
   if ("attached" in e) return `${name(e.attached.piece)} attaches to ${name(e.attached.to)}.`;
   if ("detached" in e) return `${name(e.detached.piece)} detaches from ${name(e.detached.from)}.`;
+  if ("unassigned" in e) return `${name(e.unassigned.piece)} is independent: ${name(e.unassigned.from)} is gone.`;
+  if ("reassigned" in e) {
+    const r = e.reassigned;
+    return r.to ? `${name(r.piece)} is assigned to ${name(r.to)}.` : `${name(r.piece)} leaves ${name(r.from ?? "")} and is independent.`;
+  }
   if ("motorisation-attached" in e) return `${name(e["motorisation-attached"].piece)} takes ${e["motorisation-attached"].points} motorisation points.`;
   if ("supply-planned" in e) {
     const d = e["supply-planned"];

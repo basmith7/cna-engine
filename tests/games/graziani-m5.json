@@ -30,7 +30,8 @@
     "roads_built": true,
     "unattached_motorisation": true,
     "zero_toe": true,
-    "capture_on_move": true
+    "capture_on_move": true,
+    "reassignment": true
   },
   "seed": 7,
   "orders": [

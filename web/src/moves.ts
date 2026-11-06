@@ -97,6 +97,27 @@ export function extendPath(path: HexId[], hex: HexId): HexId[] {
  * phase C or a movement segment with nothing pending; the engine checks
  * the rest (costs, the stop after a detachment).
  */
+/** Phase C: an independent unit attached to a parent may ask to take one
+ * of its free slots (19.2x); the engine judges whether there is one. */
+export function reassignOrder(view: View, p: Piece): Extract<Order, { reassign: unknown }> | null {
+  if (view.clock.phase !== "organisation" || view.pending || p.side !== view.to_act) return null;
+  if (p.parent || !p.attached_to || !view.pieces[p.attached_to]) return null;
+  if (p.kind !== "combat" && p.kind !== "hq") return null;
+  return { reassign: { piece: p.id } };
+}
+
+/** Phase C: a unit standing alone may attach to another HQ of its side in
+ * its place than its own parent, for 2 CP each within the chart's limits,
+ * which the engine judges (19.4x, 19.5). */
+export function attachElsewhereOrders(view: View, p: Piece): Extract<Order, { attach: unknown }>[] {
+  if (view.clock.phase !== "organisation" || view.pending || p.side !== view.to_act) return [];
+  if (p.attached_to || (p.kind !== "combat" && p.kind !== "hq")) return [];
+  const here = JSON.stringify(p.location);
+  return Object.values(view.pieces)
+    .filter((q) => q.kind === "hq" && q.side === p.side && q.id !== p.id && q.id !== p.parent && JSON.stringify(q.location) === here)
+    .map((q) => ({ attach: { piece: p.id, to: q.id } }));
+}
+
 export function attachmentOrder(view: View, p: Piece): Extract<Order, { attach: unknown } | { detach: unknown }> | null {
   const c = view.clock;
   const when = c.phase === "organisation" || (c.phase === "movement-combat" && c.segment === "movement");
