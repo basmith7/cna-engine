@@ -95,6 +95,56 @@ impl GameState {
         });
     }
 
+    /// `side`'s tank points the captor took in 15.89's captured share
+    /// (R-152) are not also left as markers: `points` come off the
+    /// markers this assault's `TanksDestroyed` events in `events` made
+    /// for `side`, in event order, and off those events.
+    pub(crate) fn unmark_captured_tanks(
+        &mut self,
+        side: Side,
+        mut points: u32,
+        events: &mut Vec<Event>,
+    ) {
+        if !self.modules.destroyed_tanks {
+            return;
+        }
+        for e in events.iter_mut() {
+            if points == 0 {
+                break;
+            }
+            let Event::TanksDestroyed {
+                piece,
+                hex,
+                weapon,
+                points: n,
+            } = e
+            else {
+                continue;
+            };
+            let p = &self.pieces[piece];
+            if p.side != side {
+                continue;
+            }
+            let nation = p.nation;
+            let take = points.min(*n);
+            if let Some(wrecks) = self.destroyed_tanks.get_mut(hex) {
+                if let Some(w) = wrecks
+                    .iter_mut()
+                    .find(|w| w.side == side && w.nation == nation && w.weapon == *weapon)
+                {
+                    w.points = w.points.saturating_sub(take);
+                }
+                wrecks.retain(|w| w.points > 0);
+                if wrecks.is_empty() {
+                    self.destroyed_tanks.remove(hex);
+                }
+            }
+            *n -= take;
+            points -= take;
+        }
+        events.retain(|e| !matches!(e, Event::TanksDestroyed { points: 0, .. }));
+    }
+
     /// A battalion or bigger of `pieces` entering `at` takes the enemy's
     /// destroyed tanks there when no enemy combat unit stands with them
     /// (14.52, R-014); they are the captor's from now on.
@@ -294,6 +344,18 @@ impl GameState {
             }
         }
         self.take_destroyed(hex, player, weapon, repaired + junked);
+        // A captured enemy tank repaired is a captured tank point (R-152),
+        // which the side's own tank units absorb; under its own model's
+        // name no unit of the side could.
+        let captured = match player {
+            Side::Cw => matches!(nation, Some(Nation::De | Nation::It)),
+            Side::Axis => nation == Some(Nation::Cw),
+        };
+        let key = if captured && self.modules.captured_equipment {
+            crate::captured::Spoil::Tank.key()
+        } else {
+            weapon
+        };
         if repaired > 0 {
             *self
                 .repaired
@@ -301,7 +363,7 @@ impl GameState {
                 .or_default()
                 .entry(hex.clone())
                 .or_default()
-                .entry(weapon.to_string())
+                .entry(key.to_string())
                 .or_default() += repaired;
         }
         Ok(vec![Event::DestroyedTanksRepaired {
@@ -442,6 +504,31 @@ mod tests {
         assert_eq!(state.destroyed_tanks[&at][0].side, Side::Cw);
     }
 
+    #[test]
+    fn tanks_taken_in_the_captured_share_leave_no_marker_15_89_r152() {
+        let data = graziani();
+        let mut state = placed(&data, Modules::ALL);
+        let id = first(&state, Side::Cw, Some(Equivalent::Battalion));
+        let at = state.pieces[&id].hex().cloned().unwrap();
+        state.destroyed_tanks.remove(&at);
+        let mut events = Vec::new();
+        for _ in 0..3 {
+            state.mark_destroyed_tank(&id, Some("Matilda"), &mut events);
+        }
+        let left = |s: &GameState| s.destroyed_tanks.get(&at).map(|w| w[0].points);
+        assert_eq!(left(&state), Some(3));
+        // The other side's share touches none of them.
+        state.unmark_captured_tanks(Side::Axis, 5, &mut events);
+        assert_eq!(left(&state), Some(3));
+        state.unmark_captured_tanks(Side::Cw, 2, &mut events);
+        assert_eq!(left(&state), Some(1));
+        assert!(matches!(events[..], [Event::TanksDestroyed { points: 1, .. }]));
+        // More taken than marked: the marker and its event are gone.
+        state.unmark_captured_tanks(Side::Cw, 4, &mut events);
+        assert_eq!(left(&state), None);
+        assert!(events.is_empty());
+    }
+
     /// Graziani in the Commonwealth's phase K with `points` destroyed
     /// Matildas of its own in `hex`; no abstract supply.
     fn at_facility(data: &Data, hex: &str, points: u32) -> (GameState, HexId) {
@@ -570,6 +657,49 @@ mod tests {
         assert!(state.destroyed_tank_repairs(&data).is_empty());
         let e = state.apply(&data, Side::Cw, order(&at, 1)).unwrap_err();
         assert_eq!(e.case, "22.31");
+    }
+
+    #[test]
+    fn a_captured_matilda_repaired_by_the_axis_is_a_captured_tank_point_r152() {
+        let data = graziani();
+        let modules = Modules {
+            destroyed_tanks: true,
+            captured_equipment: true,
+            ..Modules::default()
+        };
+        let (mut state, _) = at_facility_with(&data, modules, "E3613", 1);
+        state.destroyed_tanks.clear();
+        state.player_a = Some(Side::Axis);
+        let hex = HexId::parse("C4807").unwrap();
+        state
+            .destroyed_tanks
+            .insert(hex.clone(), vec![marker(Side::Axis, Nation::Cw, "Matilda", 6)]);
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::RepairDestroyedTanks {
+                    hex: hex.clone(),
+                    weapon: "Matilda".into(),
+                    points: 6,
+                    fuel_from: None,
+                },
+            )
+            .unwrap();
+        let Event::DestroyedTanksRepaired { repaired, .. } = events[0] else {
+            panic!("{events:?}");
+        };
+        let waiting = state
+            .repaired
+            .get(&Side::Axis)
+            .and_then(|h| h.get(&hex))
+            .cloned()
+            .unwrap_or_default();
+        assert!(repaired > 0, "seed 5 repairs some of six");
+        assert_eq!(
+            waiting,
+            std::collections::BTreeMap::from([("captured tank".to_string(), repaired)])
+        );
     }
 
     #[test]
