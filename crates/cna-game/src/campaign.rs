@@ -237,10 +237,21 @@ impl GameState {
     }
 
     /// Whether `piece` passes 64.73's end-of-game supply test: at least
-    /// one TOE point and a supply unit to draw on (32.17).
+    /// one TOE point and a supply unit to draw on (32.17), in range or,
+    /// for a unit with no CPA to trace with, in its own hex.
     pub(crate) fn passes_end_supply(&self, data: &Data, piece: &PieceId) -> bool {
-        self.pieces.get(piece).is_some_and(|p| p.toe >= 1)
-            && !self.supply_in_range(data, piece).is_empty()
+        let Some(p) = self.pieces.get(piece).filter(|p| p.toe >= 1) else {
+            return false;
+        };
+        let fed_here = p.hex().is_some_and(|hex| {
+            self.pieces.values().any(|q| {
+                q.side == p.side
+                    && q.kind == PieceKind::SupplyUnit
+                    && q.hex() == Some(hex)
+                    && q.load.is_some_and(|l| l.ammo + l.fuel > 0)
+            })
+        });
+        fed_here || !self.supply_in_range(data, piece).is_empty()
     }
 }
 
@@ -424,6 +435,33 @@ mod tests {
             }
         }
         assert!(at(&mut state, &data, 50, 2).is_some());
+    }
+
+    #[test]
+    fn a_unit_with_no_cpa_draws_on_supply_in_its_own_hex_64_73() {
+        let data = Data::load("campaign-game").unwrap();
+        let mut state = GameState::with_modules(&data, 5, Modules::ALL).unwrap();
+        auto_place(&data, &mut state);
+        // Tobruk's coastal artillery prints no CPA (32.17's half of it is
+        // nothing), but a loaded supply unit in its hex still feeds it.
+        let tobruk = HexId::parse("C4807").unwrap();
+        let guns = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == PieceKind::Combat
+                    && p.toe >= 1
+                    && state.cpa(p).is_none()
+            })
+            .expect("an Axis combat unit with no CPA")
+            .id
+            .clone();
+        state.put(&guns, Location::Hex(tobruk.clone()));
+        let source = supply_unit(&mut state, Side::Axis, &tobruk);
+        assert!(state.passes_end_supply(&data, &guns));
+        state.pieces.get_mut(&source).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+        assert!(!state.passes_end_supply(&data, &guns), "an empty supply unit feeds nothing");
     }
 
     #[test]
