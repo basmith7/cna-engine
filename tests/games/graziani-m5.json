@@ -17,7 +17,9 @@
     "patrols": true,
     "captured_equipment": true,
     "destroyed_tanks": true,
-    "towing": true
+    "towing": true,
+    "rail_ends": true,
+    "set_up_works": true
   },
   "seed": 7,
   "orders": [

@@ -479,6 +479,53 @@ impl GameState {
     }
 }
 
+impl GameState {
+    /// The scenario's set-up fortifications (its `construction` block,
+    /// 59.12; Crusader 62.5, The Last Chance 63.76), with the
+    /// `set_up_works` module on: a row placing `count` levels in the
+    /// land hexes next to a place, where that is every one of them, sets
+    /// each to the row's level. Rows that leave the hexes to a player
+    /// (fewer than the land neighbours, or farther out) are not placed.
+    pub(crate) fn place_set_up_works(&mut self, data: &Data) {
+        if !self.modules.set_up_works {
+            return;
+        }
+        let Some(rows) = data
+            .scenario
+            .construction
+            .as_ref()
+            .and_then(|c| c.get("fortifications"))
+            .and_then(serde_json::Value::as_array)
+        else {
+            return;
+        };
+        for row in rows {
+            let within = &row["placement"]["within"];
+            let (Some(of), Some(1), Some(level), Some(count)) = (
+                within["of"].as_str().and_then(|h| HexId::parse(h).ok()),
+                within["hexes"].as_u64(),
+                row["level"].as_u64().and_then(|l| u8::try_from(l).ok()),
+                row["count"].as_u64(),
+            ) else {
+                continue;
+            };
+            let land: Vec<HexId> = data
+                .map
+                .neighbours(&of)
+                .into_iter()
+                .filter(|h| data.map.hex(h).is_some_and(|x| x.terrain != Terrain::Sea))
+                .collect();
+            if land.len() as u64 > count {
+                continue;
+            }
+            for h in land {
+                let at = self.fortifications.entry(h).or_insert(0);
+                *at = (*at).max(level);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -489,6 +536,59 @@ mod tests {
 
     fn graziani() -> Data {
         Data::load("grazianis-offensive").unwrap()
+    }
+
+    #[test]
+    fn crusader_starts_with_forts_round_bardia_and_tobruk_62_5() {
+        let data = Data::load("operation-crusader").unwrap();
+        let land = |of: &str| -> Vec<HexId> {
+            data.map
+                .neighbours(&HexId::parse(of).unwrap())
+                .into_iter()
+                .filter(|h| data.map.hex(h).is_some_and(|x| x.terrain != Terrain::Sea))
+                .collect()
+        };
+        let on = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let (bardia, tobruk) = (land("C4321"), land("C4807"));
+        assert!(!bardia.is_empty() && !tobruk.is_empty());
+        for h in &bardia {
+            assert_eq!(on.fortifications.get(h), Some(&1), "{h}");
+        }
+        for h in &tobruk {
+            assert_eq!(on.fortifications.get(h), Some(&2), "{h}");
+        }
+        assert_eq!(on.fortifications.len(), bardia.len() + tobruk.len());
+        // Off, as games before the module: none.
+        let off = Modules {
+            set_up_works: false,
+            ..Modules::ALL
+        };
+        let off = GameState::with_modules(&data, 1, off).unwrap();
+        assert!(off.fortifications.is_empty());
+    }
+
+    #[test]
+    fn a_fort_row_left_to_the_player_is_not_placed_63_76() {
+        // The Last Chance: Bardia's three of four are the Axis player's
+        // pick; Rommel's Arrival's four within two hexes of Tobruk the
+        // Commonwealth's.
+        let lc = Data::load("the-last-chance").unwrap();
+        let s = GameState::with_modules(&lc, 1, Modules::ALL).unwrap();
+        let bardia = lc.map.neighbours(&HexId::parse("C4321").unwrap());
+        assert!(bardia.iter().all(|h| !s.fortifications.contains_key(h)));
+        // Its Tobruk row names four, one in each hex next to it; the map
+        // has three land hexes there, and each is placed.
+        let tobruk: Vec<HexId> = lc
+            .map
+            .neighbours(&HexId::parse("C4807").unwrap())
+            .into_iter()
+            .filter(|h| lc.map.hex(h).is_some_and(|x| x.terrain != Terrain::Sea))
+            .collect();
+        assert_eq!(tobruk.len(), 3);
+        assert!(tobruk.iter().all(|h| s.fortifications.get(h) == Some(&1)));
+        let ra = Data::load("rommels-arrival").unwrap();
+        let s = GameState::with_modules(&ra, 1, Modules::ALL).unwrap();
+        assert!(s.fortifications.is_empty());
     }
 
     /// Phase C of GT1 OpStage 1 with every module on, and an Axis

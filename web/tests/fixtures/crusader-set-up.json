@@ -17,7 +17,9 @@
     "patrols": true,
     "captured_equipment": true,
     "destroyed_tanks": true,
-    "towing": true
+    "towing": true,
+    "rail_ends": true,
+    "set_up_works": true
   },
   "clock": {
     "game_turn": 57,
@@ -76,6 +78,15 @@
   },
   "initiative": "cw",
   "player_a": null,
+  "fortifications": {
+    "C4220": 1,
+    "C4221": 1,
+    "C4320": 1,
+    "C4420": 1,
+    "C4707": 2,
+    "C4708": 2,
+    "C4806": 2
+  },
   "attachment_tracked": true,
   "weather": "normal",
   "pieces": {

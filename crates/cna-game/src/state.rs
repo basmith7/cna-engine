@@ -117,6 +117,13 @@ pub struct Modules {
     /// repair facility, not only for repair rolls (21.6x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub towing: bool,
+    /// The Commonwealth railway runs from the scenario's railhead
+    /// (`construction.railroad_ends`, 59.12), not always Mersa Matruh.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rail_ends: bool,
+    /// The scenario's set-up fortifications are placed (59.12).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub set_up_works: bool,
 }
 
 impl Modules {
@@ -130,6 +137,8 @@ impl Modules {
         captured_equipment: true,
         destroyed_tanks: true,
         towing: true,
+        rail_ends: true,
+        set_up_works: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -471,6 +480,7 @@ impl GameState {
         };
         state.check_weapons(data)?;
         state.place_blockship(data)?;
+        state.place_set_up_works(data);
         state.attach_where_stacked(None);
         state.pending = state.next_set_up();
         if state.pending.is_none() {

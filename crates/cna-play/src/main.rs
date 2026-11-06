@@ -56,6 +56,13 @@ enum Cmd {
         /// Play without towing (21.6x): phase K opens only for repair rolls.
         #[arg(long)]
         no_towing: bool,
+        /// Play without the scenario's railhead (59.12): the railway
+        /// always starts at Mersa Matruh.
+        #[arg(long)]
+        no_rail_ends: bool,
+        /// Play without the scenario's set-up fortifications (59.12).
+        #[arg(long)]
+        no_set_up_works: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -183,6 +190,8 @@ fn main() -> Result<()> {
             no_captured_equipment,
             no_destroyed_tanks,
             no_towing,
+            no_rail_ends,
+            no_set_up_works,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -195,6 +204,8 @@ fn main() -> Result<()> {
                 captured_equipment: !no_captured_equipment,
                 destroyed_tanks: !no_destroyed_tanks,
                 towing: !no_towing,
+                rail_ends: !no_rail_ends,
+                set_up_works: !no_set_up_works,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
