@@ -133,6 +133,8 @@ const STATE_KEEPS: &[&str] = &[
     // began in the release cities, the stage's count, held repair hexes.
     "release",
     "repair_holds",
+    // Who holds Alexandria and Cairo is on the open map (64.71).
+    "axis_held_since",
     "projects",
     "minefields",
     "escapees",

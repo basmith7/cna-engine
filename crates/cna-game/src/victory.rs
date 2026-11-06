@@ -29,6 +29,10 @@ pub struct VictoryReport {
     /// A points victory's totals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub points: Option<Points>,
+    /// An automatic win that ended the game early (64.71, 64.72): the
+    /// rule and what was found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub automatic: Option<String>,
 }
 
 /// One place of a points victory at the end.
@@ -40,6 +44,10 @@ pub struct Scored {
     /// The side whose combat units alone occupy any of its hexes.
     pub holder: Option<Side>,
     pub points: i32,
+    /// The holder's units there, none of which passed the end-of-game
+    /// supply test (64.73), so the place scored nothing.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unsupplied: Vec<PieceId>,
 }
 
 /// Each side's points total.
@@ -50,6 +58,23 @@ pub struct Points {
 }
 
 impl VictoryReport {
+    /// A win at once for `side` at `level`, for the reason given.
+    pub(crate) fn automatic(side: Side, level: VictoryLevel, reason: String) -> VictoryReport {
+        let (axis, cw) = match side {
+            Side::Axis => (Some(level), None),
+            Side::Cw => (None, Some(level)),
+        };
+        VictoryReport {
+            axis,
+            cw,
+            checked: Vec::new(),
+            unchecked: Vec::new(),
+            scored: Vec::new(),
+            points: None,
+            automatic: Some(reason),
+        }
+    }
+
     pub fn level(&self, side: Side) -> Option<VictoryLevel> {
         match side {
             Side::Axis => self.axis,
@@ -84,6 +109,7 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
         unchecked: Vec::new(),
         scored: Vec::new(),
         points: None,
+        automatic: None,
     };
     let Some(victory) = &data.scenario.victory else {
         report
@@ -137,7 +163,12 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
 /// (a level cna names that is not a victory level, as Crusader's draw,
 /// gives none). The data's notes, which hold the occupation's supply
 /// conditions in prose, are reported unchecked.
+///
+/// Under the `campaign_victory` module a campaign game's place scores only
+/// if one of its holder's units there passes the end-of-game supply test
+/// (64.73, `GameState::passes_end_supply`).
 fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut VictoryReport) {
+    let campaign = state.campaign_rules(data);
     let mut totals = Points { axis: 0, cw: 0 };
     for o in &victory.points {
         let hexes: Vec<HexId> = o
@@ -154,7 +185,22 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             .map(|p| p.side)
             .collect();
         let holder = (sides.len() == 1).then(|| *sides.first().unwrap());
+        let mut unsupplied = Vec::new();
+        if campaign && holder.is_some() {
+            let ids: Vec<&PieceId> = state
+                .pieces
+                .values()
+                .filter(|p| {
+                    p.kind == PieceKind::Combat && p.hex().is_some_and(|h| hexes.contains(h))
+                })
+                .map(|p| &p.id)
+                .collect();
+            if !ids.iter().any(|id| state.passes_end_supply(data, id)) {
+                unsupplied = ids.into_iter().cloned().collect();
+            }
+        }
         let points = match holder {
+            _ if !unsupplied.is_empty() => 0,
             Some(Side::Axis) => o.axis,
             Some(Side::Cw) => o.cw,
             None => 0,
@@ -176,6 +222,7 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             hexes,
             holder,
             points,
+            unsupplied,
         });
     }
     let (winner, margin) = if totals.axis >= totals.cw {
@@ -204,7 +251,15 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             .unchecked
             .push("the scenario gives no margins: no level".into());
     }
-    report.unchecked.extend(victory.notes.iter().cloned());
+    // The module checks 64.71–64.73; the notes stating them are not
+    // left unchecked.
+    report.unchecked.extend(
+        victory
+            .notes
+            .iter()
+            .filter(|n| !(campaign && ["64.71", "64.72", "64.73"].iter().any(|c| n.contains(c))))
+            .cloned(),
+    );
     report.points = Some(totals);
 }
 
@@ -234,6 +289,27 @@ fn ratio_level(ratios: &[cna_data::scenario::Ratio], totals: &Points) -> Option<
         .and_then(|r| named(&r.level))
 }
 
+/// An objective's name and hexes, as the scenario names them.
+pub(crate) fn objective_hexes(data: &Data, objective: &Objective) -> (String, Vec<HexId>) {
+    match objective.hold.sole() {
+        Some(Locator::Place(ids)) => (
+            ids.join(" or "),
+            ids.iter()
+                .filter_map(|id| data.map.place(id))
+                .flat_map(|p| p.hexes.iter().cloned())
+                .collect(),
+        ),
+        Some(Locator::Hexes(h)) => (
+            h.iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(" "),
+            h.clone(),
+        ),
+        _ => (format!("{:?}", objective.hold.locators), Vec::new()),
+    }
+}
+
 /// The route trace of R-110 for one side: as a medium truck in normal
 /// weather, through no hex holding an enemy combat unit and no enemy-ZOC
 /// hex without a friendly combat unit in it. Every enemy hex that could
@@ -259,23 +335,7 @@ impl<'a> Tracer<'a> {
     }
 
     fn hexes_of(&self, objective: &Objective) -> (String, Vec<HexId>) {
-        match objective.hold.sole() {
-            Some(Locator::Place(ids)) => (
-                ids.join(" or "),
-                ids.iter()
-                    .filter_map(|id| self.data.map.place(id))
-                    .flat_map(|p| p.hexes.iter().cloned())
-                    .collect(),
-            ),
-            Some(Locator::Hexes(h)) => (
-                h.iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join(" "),
-                h.clone(),
-            ),
-            _ => (format!("{:?}", objective.hold.locators), Vec::new()),
-        }
+        objective_hexes(self.data, objective)
     }
 
     /// Combat units of this side in a hex, with no enemy combat unit
@@ -433,20 +493,111 @@ mod tests {
         state
     }
 
+    /// A campaign game with nothing on the map but one Axis combat unit
+    /// in Mersa Matruh, and a supply unit holding `load` there.
+    fn matruh_alone(load: Option<crate::piece::Load>) -> (Data, GameState, PieceId) {
+        let data = Data::load("campaign-game").unwrap();
+        let mut state = crusader_set_up(&data);
+        for p in state.pieces.values_mut() {
+            if p.hex().is_some() {
+                p.location = Location::Eliminated;
+            }
+        }
+        let matruh = data.map.place("mersa-matruh").unwrap().hex.clone();
+        let unit = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.toe >= 1)
+            .unwrap()
+            .id
+            .clone();
+        state.put(&unit, Location::Hex(matruh.clone()));
+        if let Some(load) = load {
+            let su = state
+                .pieces
+                .values()
+                .find(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit)
+                .unwrap()
+                .id
+                .clone();
+            state.put(&su, Location::Hex(matruh));
+            state.pieces.get_mut(&su).unwrap().load = Some(load);
+        }
+        (data, state, unit)
+    }
+
+    fn matruh(r: &VictoryReport) -> &Scored {
+        r.scored
+            .iter()
+            .find(|s| s.objective == "mersa-matruh")
+            .unwrap()
+    }
+
+    #[test]
+    fn a_place_scores_only_for_a_unit_passing_the_end_of_game_supply_test_64_73() {
+        let fed = crate::piece::Load { ammo: 5, fuel: 5 };
+        let (data, state, _) = matruh_alone(Some(fed));
+        let r = evaluate(&data, &state);
+        assert_eq!(
+            (matruh(&r).holder, matruh(&r).points),
+            (Some(Side::Axis), 100)
+        );
+        assert_eq!(r.points.unwrap().axis, 100);
+        assert!(
+            !r.unchecked.iter().any(|n| n.contains("64.73")),
+            "{:?}",
+            r.unchecked
+        );
+
+        // No supply unit, or an empty one: the place scores nothing.
+        let empty = crate::piece::Load { ammo: 0, fuel: 0 };
+        for load in [None, Some(empty)] {
+            let (data, state, unit) = matruh_alone(load);
+            let r = evaluate(&data, &state);
+            let m = matruh(&r);
+            assert_eq!((m.holder, m.points), (Some(Side::Axis), 0), "{load:?}");
+            assert_eq!(m.unsupplied, vec![unit]);
+            assert_eq!(r.points.unwrap().axis, 0);
+        }
+
+        // Off the module the old reading stands: occupation alone scores.
+        let (data, mut state, _) = matruh_alone(None);
+        state.modules.campaign_victory = false;
+        let r = evaluate(&data, &state);
+        assert_eq!(matruh(&r).points, 100);
+        assert!(r.unchecked.iter().any(|n| n.contains("64.73")));
+    }
+
     #[test]
     fn the_campaign_games_rank_a_points_win_by_ratio_64_76_r_109() {
-        for slug in ["campaign-game", "desert-fox-campaign", "short-campaign-game"] {
+        for slug in [
+            "campaign-game",
+            "desert-fox-campaign",
+            "short-campaign-game",
+        ] {
             let data = Data::load(slug).unwrap();
             let ratios = &data.scenario.victory.as_ref().unwrap().ratios;
             assert_eq!(ratios.len(), 4, "{slug}");
             let at = |axis, cw| ratio_level(ratios, &Points { axis, cw });
             assert_eq!(at(100, 100), None, "equal is a draw");
             assert_eq!(at(101, 100), Some(VictoryLevel::Tactical));
-            assert_eq!(at(150, 100), Some(VictoryLevel::Tactical), "up to 1½ is marginal");
+            assert_eq!(
+                at(150, 100),
+                Some(VictoryLevel::Tactical),
+                "up to 1½ is marginal"
+            );
             assert_eq!(at(100, 151), Some(VictoryLevel::Decisive));
-            assert_eq!(at(250, 100), Some(VictoryLevel::Decisive), "up to 2½ is decisive");
+            assert_eq!(
+                at(250, 100),
+                Some(VictoryLevel::Decisive),
+                "up to 2½ is decisive"
+            );
             assert_eq!(at(251, 100), Some(VictoryLevel::Strategic));
-            assert_eq!(at(5, 0), Some(VictoryLevel::Strategic), "over nothing: smashing");
+            assert_eq!(
+                at(5, 0),
+                Some(VictoryLevel::Strategic),
+                "over nothing: smashing"
+            );
             assert_eq!(at(0, 0), None);
             assert_eq!(at(3, -2), Some(VictoryLevel::Strategic));
         }

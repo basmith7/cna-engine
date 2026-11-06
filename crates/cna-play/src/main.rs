@@ -76,6 +76,10 @@ enum Cmd {
         /// Play without the scenario's release schedule (61.38, R-159).
         #[arg(long)]
         no_release_schedule: bool,
+        /// Play without the campaign games' automatic wins and
+        /// end-of-game supply test (64.71–64.73).
+        #[arg(long)]
+        no_campaign_victory: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -209,6 +213,7 @@ fn main() -> Result<()> {
             no_withdrawals,
             no_broken_down_starts,
             no_release_schedule,
+            no_campaign_victory,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -227,6 +232,7 @@ fn main() -> Result<()> {
                 withdrawals: !no_withdrawals,
                 broken_down_starts: !no_broken_down_starts,
                 release_schedule: !no_release_schedule,
+                campaign_victory: !no_campaign_victory,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
