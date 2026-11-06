@@ -731,3 +731,9 @@ Done: #127 (towing) merged. Destroyed-tanks branch (left unpushed mid-merge by t
 In flight: gates and a fresh review on #128; web checks (wasm, svelte-check, vitest, Playwright) not yet run.
 Next: fix review findings, run web checks, ready + merge #128; then the next Mission 5 item in the design Status.
 Blocked: none.
+
+## 2026-11-06 01:30 MST — autopilot/m5-set-up-forts
+Done: #127 towing, #128 destroyed tanks (review's double count with captured_equipment fixed), #129 cna 4cedfb7 / R-153, #130 The Long Retreat's empty set-up (extends merges sides) all merged. Plan `docs/plans/2026-11-06-m5-scenario-set-ups.md` (an audit found the other scenarios' set-up blocks unread). #132 (carries #131): rail_ends module (Crusader railhead C3430), set_up_works module (forts that fill every hex next to a place), NOT_SIMULATED's scenario-ruling rows.
+In flight: CI on #132; merge on green (#131 closes with it).
+Next: cna's answers to the two new requests (withdrawals; set-up rules as typed data incl. who places forts/minefields, broken-down starts, 61.38 release, 64.76 ratio). Without them: Task 4's roads built, Task 8's R-097 check, or Task 7's automatic wins (64.71–64.72).
+Blocked: none.

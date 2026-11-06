@@ -41,17 +41,22 @@ per-unit tank strength and model upgrades that cna holds only as prose
   sides' combat units on the map.
 
 ### Task 2: forts and minefields at set-up
+- [x] Rows that fill every land hex next to a place, behind `set_up_works`
+  (#132). Rows a player picks and the minefields wait on cna (PROGRESS,
+  *Requests for cna*: who places them).
 - [ ] Read `construction.fortifications` and `construction.minefields`
   (Crusader 62.5, Rommel's Arrival 61.6, The Last Chance 63.76–63.77)
   into typed rows in `cna-data`; place them in `GameState::with_modules`.
   A test per scenario that a listed hex starts at its level.
 
 ### Task 3: withdrawals (4.43)
+Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
 - [ ] Remove `withdraws` rows' units in phase D of their Game-Turn
   (Crusader GT63, Rommel's Arrival GT26–38, The Long Retreat GT108 and
   GT110, the Italian Campaign GT13–15); the browser logs it.
 
 ### Task 4: rail ends and roads built
+- [x] `railroad_ends` behind the `rail_ends` module (#131).
 - [ ] `railroad_ends` sets the Commonwealth line's end (Crusader C3430,
   The Last Chance cut west of El Alamein); `roads_built` upgrades those
   hexes' unfinished roads. Both sides on the railway (63.72) if the rules
@@ -70,5 +75,7 @@ per-unit tank strength and model upgrades that cna holds only as prose
   withdrawal points.
 
 ### Task 8: NOT_SIMULATED
+- [x] R-097 and R-099–R-109 rewritten (#132); R-097 still to check
+  against `cna-game::convoy`.
 - [ ] Rows R-097 and R-099–R-109 still say only Graziani's loads; rewrite
   them, and add rows for what Tasks 2–7 leave out.
