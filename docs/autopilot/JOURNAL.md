@@ -773,3 +773,9 @@ Done: cna answered the motorisation request (R-160, cna #293). b230864 on #145 (
 In flight: fresh review of #145; full Playwright run; CI.
 Next: fix review findings, ready + merge #145, delete the Requests-for-cna bullet. Then close the set-ups plan (Task 8's rows were already rewritten: tick it) and Mission 5's docs PR (design Status, README, queue row 5 done) → MISSION 5 COMPLETE → next mission's Part 0 spec (Logistics Game, §48–58; large, so `needs-brian`).
 Blocked: none.
+
+## 2026-11-06 07:50 MST — main (hand-off)
+Done: #145 (R-160, vendor/cna e9a90b3), #146 (MISSION 5 COMPLETE: docs, queue row 5 done), #147 (built roads drawn finished) merged. #148 Mission 6 spec (Logistics Game) ready, `needs-brian`, not merged; its two cna requests posted in PROGRESS.
+In flight: none.
+Next: if Feedback approves #148, merge it and start slice 1; until then build nothing for Mission 6. Meanwhile the Mission 5 follow-ups in PROGRESS Next steps (set-up works vs enemy ZOC; 0-TOE battalion elimination; repair credit pick; Last Chance set-up view speed).
+Blocked: Mission 6 on Brian's review of #148.

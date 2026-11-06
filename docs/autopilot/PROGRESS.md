@@ -16,6 +16,16 @@ writes is **Feedback**.
 
 ## Status
 
+**MISSION 5 COMPLETE** (2026-11-06): the rest of the Land Game turn, for
+every scenario. Last pieces this run: #145 bumps `vendor/cna` to e9a90b3
+and builds R-160 (Rommel's Arrival's unattached motorisation points, which
+each side divides among cna's hexes at set-up from the set-up panel;
+`unattached_motorisation` module); #147 draws roads and railroads a
+scenario builds at set-up as finished; #146 closes the mission's docs
+(design Status, README, queue). **Mission 6, the Logistics Game, Part 0:**
+spec and plan in PR #148, labelled `needs-brian`, waiting on your review;
+it posts two requests to cna (below).
+
 **MISSION 4 COMPLETE** (2026-11-03): online play, built and tested
 locally, not hosted. **Slice 6, ship, merged as #97:** one image
 (`Dockerfile`: the server plus the browser client, 180 MB, non-root,
@@ -293,16 +303,17 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- Nothing waits on Brian. Mission 5's second half,
-  `docs/plans/2026-11-06-m5-scenario-set-ups.md`, after #139–#144 (all
-  merged). Left: Rommel's Arrival's
-  printed motorisation (61.72, waits on the cna request below); review
-  follow-ups (Bardia's forts may be optional by the prose, a cna question;
-  set-up works ignore enemy ZOC; views at The Last Chance's set-up take
-  about 210 ms natively; a 0-TOE battalion can't be eliminated; the
-  player can't pick which unit a repair credits); the browser draws a
-  road built at set-up as unfinished.
-- `vendor/cna` is at cna e5479f0 (#142).
+- **Review the Mission 6 spec: PR #148** (the Logistics Game, §48–58, as
+  one module). It asks you three questions, each with a default: whether
+  the Logistics Game becomes the default for new games (no: a tick-box);
+  whether the browser picks fuel and ammunition sources (yes, shown and
+  changeable); whether to build variants V-002 and V-004 (no). Nothing is
+  built for it until your **Feedback** approves it.
+- Mission 5 follow-ups, small: Bardia's set-up forts may be optional by
+  the prose (a cna question); set-up works ignore enemy ZOC; views at The
+  Last Chance's set-up take about 210 ms natively; a 0-TOE battalion
+  can't be eliminated; the player can't pick which unit a repair credits.
+- `vendor/cna` is at cna e9a90b3 (#145).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -365,15 +376,17 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Rommel's Arrival's unattached motorisation points as hexes** (Mission 5:
-  scenario set-ups, Task 5 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
-  `abstractions.air_and_logistics.motorisation.unattached` (61.72) places the
-  Axis's 290 in `region: libya` and the Commonwealth's 90 on `sheets: A–D`
-  (its 150 in Alexandria/Cairo are fine). The engine keeps motorisation
-  points by hex (32.5x), so it needs each row as hexes with counts (for
-  example the hexes the scenario's second-line trucks start in, as the
-  rows' notes suggest), or a ruling that the owner places them freely at
-  set-up within an area cna lists as hexes.
+- **What units hold at the start of a Logistics Game** (Mission 6, slice 1
+  of `docs/plans/2026-11-06-logistics-game.md`, spec PR #148). 59.4–59.6
+  list dumps and trucks, but no case says what a combat unit itself holds
+  when play begins: fuel in its tanks (49.14), the one fire of ammunition a
+  TOE point carries without trucks (50.15.2), water and stores. A ruling
+  (the spec's working default: tanks full, one fire a TOE point, one
+  stage's water, nothing else) or data per scenario.
+- **Pipelines as typed data** (Mission 6, slice 7, spec PR #148). Scenarios
+  name pipelines only in notes (Crusader's "from the railhead to Bir
+  Khamsa", "along railroad hexes"); neither `data/map/` nor a scenario's
+  `construction` block lists pipeline hexes, which 52.2x needs.
 
 ## Runs and quota
 
