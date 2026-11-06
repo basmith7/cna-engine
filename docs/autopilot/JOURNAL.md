@@ -803,3 +803,9 @@ Done: #156 (ready): vendor/cna → 111220a (cna #298), R-164 as `zero_toe` modul
 In flight: CI on #156.
 Next: merge #156 when green; delete the 0-TOE bullet from PROGRESS Requests for cna. Then 10.29 capture during the enemy's movement (non-combat units are taken only when a segment opens; Rommel already has the move-time path, `capture_lone_rommel`), behind a module; or 19.2x reassignment.
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 15:35 MST — autopilot/cna-play-without
+Done: #156 merged (R-164, vendor/cna 111220a; 0-TOE request bullet removed from PROGRESS). #157 ready (`capture_on_move`: 10.29 capture at R-138's moments for every non-combat unit; review's raider-spot fix f0a-ish on branch); #158 ready, stacked on #157 (`cna-play new --without <module>` replaces 21 `--no-*` flags).
+In flight: CI on #157 (retargeted to main) and #158.
+Next: merge #157 when green, retarget #158 to main first (gh pr edit 158 --base main), merge it when green. Then 19.2x reassignment (plan an `is_assigned` helper; parent eliminated → independent; behind a module), or tests for capture_on_move's reaction/retreat call sites (#157 review item 1).
+Blocked: Mission 6 on Brian's review of #148.
