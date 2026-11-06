@@ -338,6 +338,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::TanksDestroyed { piece, .. }
         | E::Attached { piece, .. }
         | E::Detached { piece, .. }
+        | E::Unassigned { piece, .. }
+        | E::Reassigned { piece, .. }
         | E::MotorisationAttached { piece, .. }
         | E::MotorisationDetached { piece, .. }
         | E::CombatCp { piece, .. }
@@ -599,6 +601,15 @@ mod tests {
             Event::Detached {
                 piece: unit.clone(),
                 from: unit.clone(),
+            },
+            Event::Unassigned {
+                piece: unit.clone(),
+                from: unit.clone(),
+            },
+            Event::Reassigned {
+                piece: unit.clone(),
+                to: Some(unit.clone()),
+                from: None,
             },
             Event::MotorisationAttached {
                 piece: supply.clone(),

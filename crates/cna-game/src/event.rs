@@ -437,6 +437,18 @@ pub enum Event {
         piece: PieceId,
         from: PieceId,
     },
+    /// A unit's parent was eliminated: it is independent now (19.2x).
+    Unassigned {
+        piece: PieceId,
+        from: PieceId,
+    },
+    /// A unit is assigned to a new parent (19.2x); `from` is the
+    /// one it left, none for an independent unit.
+    Reassigned {
+        piece: PieceId,
+        to: Option<PieceId>,
+        from: Option<PieceId>,
+    },
     /// Motorisation points attached to a supply unit (32.31).
     MotorisationAttached {
         piece: PieceId,

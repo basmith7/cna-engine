@@ -429,10 +429,21 @@ impl GameState {
 /// `fills`, or with others of its kind one it names in `fills_part`,
 /// filled once the chart's `part_slots` minimum of them are in it.
 fn slots_filled(org: &Organisation, row: &ChartRow, counters: &[&Unit]) -> u32 {
+    slots_filled_of(org, row, counters, true)
+}
+
+/// The slots of `row` that `counters` fill at best: those R-141 counts
+/// toward a shell, or with `shell_only` false every slot (19.2x).
+pub(crate) fn slots_filled_of(
+    org: &Organisation,
+    row: &ChartRow,
+    counters: &[&Unit],
+    shell_only: bool,
+) -> u32 {
     let slots: Vec<Vec<&str>> = row
         .components
         .iter()
-        .filter(|c| c.counts_for_shell)
+        .filter(|c| c.counts_for_shell || !shell_only)
         .flat_map(|c| {
             let accepts: Vec<&str> = c.unit.iter().chain(&c.any_of).map(String::as_str).collect();
             std::iter::repeat_n(accepts, c.count as usize)
