@@ -343,7 +343,7 @@ the bullet once it lands and `vendor/cna` is bumped.
   then a tank battalion at 75 % repaired and one other battalion an
   OpStage from April 1941) as data; (c) The Last Chance's Tobruk
   fortification row says "the four hexes next to Tobruk", but the map
-  has three land hexes beside C4807 (C4706, C4707, C4806 or so): which
+  has three land hexes beside C4807 (the rest are sea): which
   is right? The engine places all three for now (#132).
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
