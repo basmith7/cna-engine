@@ -2,7 +2,13 @@
 
 **Date:** 2026-10-13
 **Mission:** 5 of `cna-engine` (`AUTOPILOT.md` queue), Part 0.
-**Status:** built for Graziani's Offensive, bar the items below (2026-11-03).
+**Status:** done (2026-11-06). Built for every scenario's Land Game;
+the follow-ups left are in `docs/autopilot/PROGRESS.md` (*Next steps*) and
+`NOT_SIMULATED.md`. The second half's scenario set-ups and victory rules
+followed `docs/plans/2026-11-06-m5-scenario-set-ups.md` (#129–#145: rail
+ends, set-up and placed works, pre-play convoys, broken-down starts,
+withdrawals, the release schedule, ratio levels and campaign wins, roads
+built, unattached motorisation). The history, as built:
 Slices 1–9 merged as PRs #31–#60 (organisation, shells and the stack
 panel, prisoners off map by R-132, guards, replacements, construction);
 #59 adds formations to close assault's size table (15.55). Their plans
