@@ -54,6 +54,7 @@ pub mod setup;
 mod spot_try;
 pub mod state;
 mod supply;
+pub mod unattached;
 pub mod victory;
 pub mod view;
 mod withdraw;

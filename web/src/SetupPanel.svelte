@@ -14,6 +14,10 @@
     workItem = null,
     onwork = () => {},
     onpass = () => {},
+    motorQuotas = [],
+    motorArmed = false,
+    motorPoints = $bindable(30),
+    onmotor = () => {},
   }: {
     view: View;
     picked: Piece | null;
@@ -21,7 +25,12 @@
     workItem?: WorkItem | null;
     onwork?: (item: WorkItem) => void;
     onpass?: () => void;
+    motorQuotas?: { hexes: HexId[]; points: number }[];
+    motorArmed?: boolean;
+    motorPoints?: number;
+    onmotor?: () => void;
   } = $props();
+  const motorLeft = $derived(motorQuotas.reduce((n, q) => n + q.points, 0));
 
   // Set-up works the side places (59.12): forts, real and dummy fields.
   const WORKS: [WorkItem, string][] = [
@@ -49,8 +58,18 @@
           {/if}
           <span class="count" data-testid="placement-count">{hexes.length} hexes allowed. Click one to place it.</span>
         </p>
-      {:else if !view.work_options}
+      {:else if !view.work_options && left > 0}
         <p class="hint">Click a piece in the tray, then a highlighted hex.</p>
+      {/if}
+      {#if motorLeft > 0}
+        <div class="works" data-testid="set-up-motorisation">
+          <span class="where">Unattached motorisation: {motorLeft} points to place (61.72)</span><br />
+          <label>Points per click <input type="number" min="1" max={motorLeft} bind:value={motorPoints} data-testid="motorisation-points" /></label>
+          <button type="button" data-testid="place-motorisation" class:on={motorArmed} onclick={onmotor}>Place motorisation</button>
+          {#if motorArmed}
+            <span class="count">{new Set(motorQuotas.flatMap((q) => q.hexes)).size} hexes allowed. Click one to place them.</span>
+          {/if}
+        </div>
       {/if}
       {#if view.work_options}
         {@const w = view.work_options}
@@ -120,6 +139,10 @@
   }
   .works button {
     margin: 0.2rem 0.3rem 0 0;
+  }
+  .works input {
+    width: 4.5em;
+    margin-left: 0.3rem;
   }
   .works button.on {
     font-weight: 700;

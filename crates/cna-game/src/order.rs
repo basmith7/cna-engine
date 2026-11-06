@@ -22,6 +22,9 @@ pub enum Order {
         item: crate::construction::Item,
         hex: HexId,
     },
+    /// Set-up: `points` of the side's unattached motorisation points go
+    /// to `hex`, one the scenario lists for them (61.72, R-160).
+    PlaceMotorisation { hex: HexId, points: u32 },
     /// Phase A: the initiative holder names who acts first this OpStage
     /// (7.1x).
     DeclareInitiative { player_a: Side },

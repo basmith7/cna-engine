@@ -275,6 +275,7 @@ impl GameState {
                     .values()
                     .any(|p| p.side == side && p.is_pending())
                     || self.works_open(data, side)
+                    || self.motorisation_to_place.contains_key(&side)
             })
             .map(|side| Pending::SetUp { side })
     }

@@ -35,6 +35,35 @@ test("Operation Crusader set up: Rommel stands with the Savona Division, whose u
   await page.screenshot({ path: test.info().outputPath("crusader-rommel.png") });
 });
 
+test("Rommel's Arrival: the Axis divides its 290 unattached motorisation points along the coast road (61.72, R-160)", async ({ page }) => {
+  await openFixture(page, "rommel-motorisation");
+  const panel = page.getByTestId("set-up-motorisation");
+  await expect(panel).toContainText("290 points to place");
+  const before = (await page.evaluate(() => window.__cna.view())).motorisation?.axis ?? {};
+  await panel.getByTestId("motorisation-points").fill("200");
+  await panel.getByTestId("place-motorisation").click();
+  const shaded = await page.locator("polygon.placement").evaluateAll((ps) => ps.map((p) => p.getAttribute("data-hex")!));
+  expect(shaded.length).toBe(20);
+  expect(shaded).toContain("A1816");
+  expect(shaded).not.toContain("A1807");
+  await clickHex(page, "A1816");
+  await expect(panel).toContainText("90 points to place");
+  const placed = (await page.evaluate(() => window.__cna.view())).motorisation?.axis ?? {};
+  expect(placed.A1816).toBe((before.A1816 ?? 0) + 200);
+  await page.screenshot({ path: test.info().outputPath("rommel-motorisation.png") });
+  // More than is left places what is left.
+  await panel.getByTestId("motorisation-points").fill("500");
+  await clickHex(page, "A2703");
+  // The Axis is done; the Commonwealth's 150 and 90 are next.
+  await expect(page.getByTestId("setup")).toContainText("Set-up · Commonwealth");
+  await expect(panel).toContainText("240 points to place");
+  const view = await page.evaluate(() => window.__cna.view());
+  expect(view.pending).toEqual({ "set-up": { side: "cw" } });
+  // The Commonwealth's view keeps the Axis's points secret (3.61).
+  expect(view.motorisation?.axis).toBeUndefined();
+  expect(view.motorisation_to_place?.axis).toBeUndefined();
+});
+
 test("Rommel's Arrival: the Commonwealth places its four Tobruk forts from the set-up panel, then play begins (61.6)", async ({ page }) => {
   await openFixture(page, "rommel-works");
   const works = page.getByTestId("set-up-works");
