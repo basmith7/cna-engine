@@ -253,7 +253,7 @@ set-up panel control, dummy fields secret, behind `placed_works`;
 lost a level); #139, the 7th Armoured's tanks starting broken down with
 their units (61.38), behind `tanks_with_units`, its review's fixes in
 (the 75 % release test is per battalion; points held for repair keep
-their room under the TOE ceiling). In CI: #142, `vendor/cna` to
+their room under the TOE ceiling); #142, `vendor/cna` to
 e5479f0 and roads and railroads built at set-up (cna #292), behind
 `roads_built`; The Last Chance's railway now runs from its cut west of
 El Alamein.
@@ -294,15 +294,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 ## Next steps
 
 - Nothing waits on Brian. Mission 5's second half,
-  `docs/plans/2026-11-06-m5-scenario-set-ups.md`: merge #142 once CI
-  is green (re-pinned on main at d99e93c). Then left: Rommel's Arrival's
+  `docs/plans/2026-11-06-m5-scenario-set-ups.md`, after #139–#144 (all
+  merged). Left: Rommel's Arrival's
   printed motorisation (61.72, waits on the cna request below); review
   follow-ups (Bardia's forts may be optional by the prose, a cna question;
   set-up works ignore enemy ZOC; views at The Last Chance's set-up take
   about 210 ms natively; a 0-TOE battalion can't be eliminated; the
   player can't pick which unit a repair credits); the browser draws a
   road built at set-up as unfinished.
-- `vendor/cna` is at cna fff7856 on main; #142 moves it to e5479f0.
+- `vendor/cna` is at cna e5479f0 (#142).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
