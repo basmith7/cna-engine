@@ -501,3 +501,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-03 13:45 | 53 | 70→71 | none→none | $11.48 | 173 | R-152 (captured equipment) is built and merged in #121–#123. The *San Giorgio* (R-151) is open as draft PR #124. A previous run had built it and was killed befo |
 | 2026-11-03 15:44 | 73 | 71→0 | none→none | $9.79 | 125 | Three PRs merged this run (#124, #125, #126). The towing slice is open as draft #127 for the next run. - **#124, the *San Giorgio*:** merged on green CI. Its ba |
 | 2026-11-06 00:44 | 84 | 4→5 | none→none | $13.61 | 211 | Six PRs merged this run. One more (#133) is a draft because one browser test fails in CI. **Merged** - **#127, towing (21.6x):** picked up from the last run wit |
+| 2026-11-06 03:44 | 71 | 5→6 | none→none | $13.64 | 9 | Brian, I merged six PRs this run (#133–#138), and Mission 5's scenario set-ups moved forward on cna's new data. Each new rule sits behind its own module, which  |
