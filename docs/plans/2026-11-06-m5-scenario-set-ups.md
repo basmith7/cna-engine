@@ -89,5 +89,6 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
 ### Task 8: NOT_SIMULATED
 - [x] R-097 and R-099–R-109 rewritten (#132); R-097 built behind
   `pre_play_convoys` (#133).
-- [ ] Rows R-097 and R-099–R-109 still say only Graziani's loads; rewrite
-  them, and add rows for what Tasks 2–7 leave out.
+- [x] Rows R-097 and R-099–R-109 say what each scenario does, and rows
+  cover what Tasks 2–7 leave out (64.74–64.75, both sides on the railway,
+  R-160 #145).

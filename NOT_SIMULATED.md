@@ -49,7 +49,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-097 | as decided, with the `pre_play_convoys` module on (new games) in a scenario that starts on Game-Turn 1: as the game opens the Axis's convoys for Game-Turns 1 and 2 are planned, a die each under Game-Turn 1's tonnage letter, and Game-Turn 1's lands in phase D unbombed (`cna-game::convoy`) |
 | R-098 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
 | R-099 | as decided (#126): `cna-game::facility` reads each side's `repair` blocks, else 22.31's list, so Tobruk is temporary in Graziani's Offensive and the Italian Campaign |
-| R-100 | which arrival wins (schedule over OA sheet): no game state yet; Mission 2 slice 2 follows the schedule, which is the accepted option (spec, PR #5) |
+| R-100 | as decided: arrivals follow the scenario's reinforcement schedule over the OA sheet (`cna-game::arrival`) |
 | R-101 | applied through the scenario's victory data (`cna-game::victory`, #63): Rommel's Arrival is judged by the places each side's combat units hold, with no supply condition |
 | R-102 | not reached: it is for games with the Air Game played and the Logistics Game left out (61.73), and the engine plays neither; its starting motorisation points come from the listed trucks by 59.63, as 61.72's Land Game alone does too, plus R-160's unattached points |
 | R-103 | scenario set-up: applied in cna's scenario data, so the engine follows it by loading the data |
