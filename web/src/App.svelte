@@ -29,6 +29,7 @@
   import { NetworkEngine } from "./network";
   import { RETURN_KEY, parseRoute } from "./route";
   import MarchPanel, { type March } from "./MarchPanel.svelte";
+  import TowPanel, { type Tow, towable } from "./TowPanel.svelte";
   import PatrolPanel from "./PatrolPanel.svelte";
   import FleetPanel from "./FleetPanel.svelte";
   import Ships from "./Ships.svelte";
@@ -114,6 +115,12 @@
   // ended, the other side is to act, or its points have gone.
   $effect(() => {
     if (march && (!view || !marchable(view).some((g) => g.hex === march!.from))) march = null;
+  });
+  /** Broken-down vehicles armed to tow (21.6x): map clicks extend the path until it is sent. */
+  let tow: Tow | null = $state(null);
+  // An armed tow lapses once its points can no longer be towed.
+  $effect(() => {
+    if (tow && (!view || !towable(view).some((g) => g.hex === tow!.hex && g.weapon === tow!.weapon))) tow = null;
   });
   /** The assault toggle for the next move. */
   let assault = $state(false);
@@ -415,6 +422,11 @@
       march = { ...march, path: [...march.path, h] };
       return;
     }
+    // An armed tow: each click is the path's next hex.
+    if (tow) {
+      tow = { ...tow, path: [...tow.path, h] };
+      return;
+    }
     // Phase E: with a ship picked, the click is its station; the engine judges it.
     if (!view.pending && shipPick !== null && view.station_options) {
       const ship = shipPick;
@@ -708,6 +720,15 @@
               if (march && (await send({ "march-prisoners": { from: march.from, path: march.path, points: march.points } }))) march = null;
             }}
             oncancel={() => (march = null)}
+          />
+          <TowPanel
+            {view}
+            {tow}
+            onarm={(t) => (tow = t)}
+            onsend={async () => {
+              if (tow && (await send({ tow: { hex: tow.hex, weapon: tow.weapon, points: tow.points, path: tow.path } }))) tow = null;
+            }}
+            oncancel={() => (tow = null)}
           />
           <PatrolPanel
             {view}

@@ -108,6 +108,10 @@ pub struct Modules {
     /// (28.3, R-152).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub captured_equipment: bool,
+    /// Phase K opens for broken-down vehicles that may be towed toward a
+    /// repair facility, not only for repair rolls (21.6x).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub towing: bool,
 }
 
 impl Modules {
@@ -119,6 +123,7 @@ impl Modules {
         fleet: true,
         patrols: true,
         captured_equipment: true,
+        towing: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

@@ -84,7 +84,9 @@ impl GameState {
     /// Phase K waits on the phasing player only when it has something to
     /// try; otherwise it is skipped.
     pub(crate) fn repairs_to_try(&self, data: &Data) -> bool {
-        !self.field_repairs(data).is_empty() || !self.facility_repairs(data).is_empty()
+        !self.field_repairs(data).is_empty()
+            || !self.facility_repairs(data).is_empty()
+            || (self.modules.towing && self.tows_to_try(data))
     }
 
     /// The real supply units with fuel that may pay for repairs in
