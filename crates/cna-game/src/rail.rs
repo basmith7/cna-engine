@@ -92,13 +92,10 @@ pub(crate) fn railway_from(data: &Data, west: &HexId, built: bool) -> Vec<HexId>
             return line;
         }
         for n in data.map.neighbours(&h) {
-            let rail = data
-                .map
-                .hexside(&h, &n)
-                .is_some_and(|hs| {
-                    hs.has(HexsideFeature::Railroad)
-                        || (built && hs.has(HexsideFeature::UnfinishedRailroad))
-                });
+            let rail = data.map.hexside(&h, &n).is_some_and(|hs| {
+                hs.has(HexsideFeature::Railroad)
+                    || (built && hs.has(HexsideFeature::UnfinishedRailroad))
+            });
             if rail && n != west && !came.contains_key(&n) {
                 came.insert(n.clone(), h.clone());
                 queue.push_back(n);
@@ -114,6 +111,11 @@ impl GameState {
     /// map's unfinished railroad, built by then), else from Mersa Matruh
     /// (60.7), as games before the module play.
     pub(crate) fn railway(&self, data: &Data) -> Vec<HexId> {
+        if self.modules.roads_built
+            && let Some(line) = self.built_railway(data)
+        {
+            return line;
+        }
         match scenario_railhead(data).filter(|_| self.modules.rail_ends) {
             Some(west) => railway_from(data, &west, true),
             None => railway(data),
@@ -122,6 +124,60 @@ impl GameState {
 }
 
 impl GameState {
+    /// With the `roads_built` module, a scenario that builds railroad or
+    /// starts it destroyed runs its railway over the built line from
+    /// Alexandria's west hex to its railhead: `railroad_ends` (with
+    /// `rail_ends` on), else the hex next to the cut (The Last Chance's
+    /// three hexes west of El Alamein, 63.72). `None` leaves the line to
+    /// `railway`'s other cases.
+    fn built_railway(&self, data: &Data) -> Option<Vec<HexId>> {
+        let built = &data.built;
+        if built.railroads.is_empty() && built.railroad_destroyed.is_empty() {
+            return None;
+        }
+        let east = data.map.place("alexandria-west")?.hex.clone();
+        let mut came: BTreeMap<HexId, HexId> = BTreeMap::new();
+        let mut queue = VecDeque::from([east.clone()]);
+        let mut seen = BTreeSet::from([east.clone()]);
+        let mut order = Vec::new();
+        while let Some(h) = queue.pop_front() {
+            order.push(h.clone());
+            for n in data.map.neighbours(&h) {
+                if seen.contains(&n) || built.railroad_destroyed.contains(&n) {
+                    continue;
+                }
+                let rail = self
+                    .hexside(data, &h, &n)
+                    .is_some_and(|hs| hs.has(HexsideFeature::Railroad));
+                if rail {
+                    seen.insert(n.clone());
+                    came.insert(n.clone(), h.clone());
+                    queue.push_back(n);
+                }
+            }
+        }
+        let next_to_cut = |h: &HexId| {
+            data.map.neighbours(h).iter().any(|n| {
+                built.railroad_destroyed.contains(n)
+                    && data.map.hexside(h, n).is_some_and(|hs| {
+                        hs.has(HexsideFeature::Railroad)
+                            || hs.has(HexsideFeature::UnfinishedRailroad)
+                    })
+            })
+        };
+        let head = match scenario_railhead(data).filter(|_| self.modules.rail_ends) {
+            Some(h) => seen.contains(&h).then_some(h)?,
+            None => order.into_iter().find(|h| next_to_cut(h))?,
+        };
+        let mut line = vec![head.clone()];
+        let mut at = head;
+        while let Some(prev) = came.get(&at) {
+            line.push(prev.clone());
+            at = prev.clone();
+        }
+        Some(line)
+    }
+
     /// Where on the railway the Commonwealth may still run: the hexes
     /// east of the easternmost Axis combat unit on the line (8.7x).
     fn open_line(&self, line: &[HexId]) -> usize {
@@ -609,11 +665,17 @@ mod tests {
         let data = Data::load("operation-crusader").unwrap();
         let on = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
         let line = on.railway(&data);
-        assert_eq!(line.first().map(ToString::to_string).as_deref(), Some("C3430"));
+        assert_eq!(
+            line.first().map(ToString::to_string).as_deref(),
+            Some("C3430")
+        );
         // It joins the old line (the map draws the extension meeting it
         // east of Mersa Matruh) and runs on to Alexandria with it.
         let old = railway(&data);
-        let join = line.iter().position(|h| old.contains(h)).expect("joins the old line");
+        let join = line
+            .iter()
+            .position(|h| old.contains(h))
+            .expect("joins the old line");
         let at = old.iter().position(|h| *h == line[join]).unwrap();
         assert_eq!(line[join..], old[at..]);
         assert!(join > 10, "{line:?}");
@@ -632,6 +694,63 @@ mod tests {
         let g = graziani();
         let s = GameState::with_modules(&g, 1, Modules::ALL).unwrap();
         assert_eq!(s.railway(&g), railway(&g));
+    }
+
+    #[test]
+    fn the_last_chance_s_railway_ends_at_the_cut_west_of_el_alamein_63_72() {
+        let data = Data::load("the-last-chance").unwrap();
+        let on = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let line = on.railway(&data);
+        let cut = &data.built.railroad_destroyed;
+        assert_eq!(cut.len(), 3);
+        // From the hex next to the cut to Alexandria's west hex, never
+        // through a destroyed hex.
+        let head = line.first().expect("a line");
+        assert!(
+            data.map.neighbours(head).iter().any(|n| cut.contains(n)),
+            "{line:?}"
+        );
+        assert!(line.iter().all(|h| !cut.contains(h)));
+        assert_eq!(
+            line.last(),
+            Some(&data.map.place("alexandria-west").unwrap().hex)
+        );
+        // It is the old line's eastern end: El Alamein to Alexandria.
+        let old = railway(&data);
+        let at = old.iter().position(|h| h == head).expect("on the old line");
+        assert_eq!(line[..], old[at..]);
+        // Without the module the line still starts at Mersa Matruh.
+        let off = GameState::with_modules(
+            &data,
+            1,
+            Modules {
+                roads_built: false,
+                ..Modules::ALL
+            },
+        )
+        .unwrap();
+        assert_eq!(off.railway(&data), old);
+    }
+
+    #[test]
+    fn crusader_s_built_railway_runs_from_its_railhead() {
+        let data = Data::load("operation-crusader").unwrap();
+        let on = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let line = on.railway(&data);
+        assert_eq!(
+            line.first().map(ToString::to_string).as_deref(),
+            Some("C3430")
+        );
+        let off = GameState::with_modules(
+            &data,
+            1,
+            Modules {
+                roads_built: false,
+                ..Modules::ALL
+            },
+        )
+        .unwrap();
+        assert_eq!(line, off.railway(&data));
     }
 
     #[test]

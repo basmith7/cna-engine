@@ -63,7 +63,8 @@ impl GameState {
             return None;
         }
         let (from_hex, to_hex) = (data.map.hex(at)?, data.map.hex(to)?);
-        let hexside = data.map.hexside(at, to);
+        let built = self.hexside(data, at, to);
+        let hexside = built.as_deref();
         let step = Step {
             from: from_hex,
             to: to_hex,

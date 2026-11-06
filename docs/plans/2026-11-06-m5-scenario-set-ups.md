@@ -58,10 +58,11 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
 
 ### Task 4: rail ends and roads built
 - [x] `railroad_ends` behind the `rail_ends` module (#131).
-- [ ] `railroad_ends` sets the Commonwealth line's end (Crusader C3430,
+- [x] `railroad_ends` sets the Commonwealth line's end (Crusader C3430,
   The Last Chance cut west of El Alamein); `roads_built` upgrades those
-  hexes' unfinished roads. Both sides on the railway (63.72) if the rules
-  prose is concrete enough, else a cna request.
+  hexes' unfinished roads, behind the `roads_built` module, from cna's
+  typed hexside lists (cna #292). Both sides on the railway (63.72) is a
+  NOT_SIMULATED line: cna's prose names no Axis rail rule.
 
 ### Task 5: Rommel's Arrival's special set-up
 - [x] The release rule (61.38, R-159), behind `release_schedule`.

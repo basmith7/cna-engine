@@ -102,7 +102,12 @@ impl GameState {
     /// Why `side` may not repair at a facility in `hex`, if it may not:
     /// no facility of its own there (22.31), or a temporary one under an
     /// enemy ZOC (outside a major city) or a storm (22.13).
-    pub(crate) fn facility_bar(&self, data: &Data, side: Side, hex: &HexId) -> Result<FacilityKind, Illegal> {
+    pub(crate) fn facility_bar(
+        &self,
+        data: &Data,
+        side: Side,
+        hex: &HexId,
+    ) -> Result<FacilityKind, Illegal> {
         if let Some(bar) = self.repair_hold_bar(hex) {
             return Err(bar);
         }
@@ -350,7 +355,8 @@ impl GameState {
             if !data.map.adjacent(at, next) {
                 return Err(Illegal::new("21.6x", format!("{next} is not next to {at}")));
             }
-            let hexside = data.map.hexside(at, next);
+            let built = self.hexside(data, at, next);
+            let hexside = built.as_deref();
             let step = Step {
                 from: data.map.hex(at).expect("on the map"),
                 to: data.map.hex(next).expect("on the map"),

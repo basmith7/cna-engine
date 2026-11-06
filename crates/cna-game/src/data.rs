@@ -66,6 +66,8 @@ pub struct Data {
     pub fleet_bombardment: cna_data::convoy::BombardmentGroup,
     pub raid_on_rommel: cna_data::raid::RaidOnRommel,
     pub fleet: cna_data::fleet::FleetSchedule,
+    /// The scenario's roads and railroads built at set-up.
+    pub built: crate::built::Built,
 }
 
 impl Data {
@@ -78,8 +80,9 @@ impl Data {
     /// The same from any `Source`, with the `vendor/cna` commit the
     /// source's files came from.
     pub fn load_from(slug: &str, src: &dyn Source, rules_commit: String) -> Result<Data> {
-        Ok(Data {
+        let mut data = Data {
             rules_commit,
+            built: crate::built::Built::default(),
             scenario: Scenario::load_from(src, slug)?,
             oa: Oa::load_from(src)?,
             chars: Characteristics::load_from(src)?,
@@ -112,7 +115,9 @@ impl Data {
             fleet_bombardment: cna_data::convoy::BombardmentGroup::load_fleet(src)?,
             raid_on_rommel: cna_data::raid::RaidOnRommel::load_from(src)?,
             fleet: cna_data::fleet::FleetSchedule::load_from(src)?,
-        })
+        };
+        data.built = crate::built::Built::load(&data.scenario, &data.map)?;
+        Ok(data)
     }
 
     /// The scenario's slug: its id without the `scenario:` prefix.
