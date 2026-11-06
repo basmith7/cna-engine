@@ -34,6 +34,7 @@
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
+//! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
 //! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
@@ -133,8 +134,6 @@ const STATE_KEEPS: &[&str] = &[
     // began in the release cities, the stage's count, held repair hexes.
     "release",
     "repair_holds",
-    // Who holds Alexandria and Cairo is on the open map (64.71).
-    "axis_held_since",
     "projects",
     "minefields",
     "escapees",
@@ -157,6 +156,7 @@ const STATE_KEEPS: &[&str] = &[
 /// Top-level fields with an enemy's part removed (by this module's code).
 #[cfg(test)]
 const STATE_FILTERS: &[&str] = &[
+    "axis_held_since",
     "convoy_lanes",
     "escaped",
     "fleet_strikes",
@@ -306,6 +306,14 @@ pub fn view_for(
     {
         o.remove("withdrawn");
         o.remove("withdrawal_picks");
+    }
+    // 64.71's count starts only while the Axis holder traces supply to a
+    // loaded supply unit: shown to the Commonwealth, it would tell real
+    // and loaded Axis supply units from empty ones and dummies (3.61).
+    if enemies.contains(&Side::Axis)
+        && let Some(o) = v.as_object_mut()
+    {
+        o.remove("axis_held_since");
     }
     for key in ["motorisation", "repaired"] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
@@ -568,6 +576,17 @@ mod tests {
 
     fn a() -> Aliases {
         Aliases::new([9; 32])
+    }
+
+    #[test]
+    fn only_the_axis_sees_its_hold_on_the_cities_64_71() {
+        let data = data();
+        let mut s = golden(&data, 70);
+        s.axis_held_since = Some(cna_data::time::GameTime::new(20, 2));
+        let cw = view_for(&s, &data, &a(), Some(Side::Cw), false).unwrap();
+        assert!(cw.get("axis_held_since").is_none());
+        let axis = view_for(&s, &data, &a(), Some(Side::Axis), false).unwrap();
+        assert!(axis.get("axis_held_since").is_some());
     }
 
     #[test]
