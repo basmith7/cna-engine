@@ -133,6 +133,17 @@ impl WeaponSystems {
         self.rows.get(id)
     }
 
+    /// The first OA sheet name (in name order) that stands for row `id`,
+    /// for the row's own nation.
+    pub fn oa_name(&self, id: &str) -> Option<&str> {
+        let nation = self.rows.get(id)?.nation;
+        self.oa_names
+            .get(&nation)?
+            .iter()
+            .find(|(_, row)| row.as_str() == id)
+            .map(|(name, _)| name.as_str())
+    }
+
     pub fn rows(&self) -> impl Iterator<Item = &WeaponRow> {
         self.rows.values()
     }

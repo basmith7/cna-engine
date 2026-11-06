@@ -352,9 +352,126 @@ impl GameState {
     }
 }
 
+impl GameState {
+    /// The scenario's tanks that start broken down (its sides'
+    /// `broken_down` rows), with the `broken_down_starts` and `breakdown`
+    /// modules on: each row's points sit loose in its hex, assigned to no
+    /// unit, and no repair touches that hex before the row's
+    /// `repair_from` (61.38, 62.32, 63.42). A row offering a choice of
+    /// hexes takes the first; a place, its hex. Rows naming units
+    /// (`all_tanks`) are not placed yet.
+    pub(crate) fn place_broken_down_starts(&mut self, data: &Data) {
+        use cna_data::scenario::Locator;
+        if !(self.modules.broken_down_starts && self.modules.breakdown) {
+            return;
+        }
+        for (side, setup) in &data.scenario.sides {
+            for row in &setup.broken_down {
+                let (Some(placement), Some(id), Some(points)) =
+                    (&row.placement, &row.weapon, row.points)
+                else {
+                    continue;
+                };
+                let hex = match placement.locators.first() {
+                    Some(Locator::Hexes(h)) => h.first().cloned(),
+                    Some(Locator::Place(ids)) => ids
+                        .first()
+                        .and_then(|p| data.map.place(p))
+                        .map(|p| p.hex.clone()),
+                    _ => None,
+                };
+                let (Some(hex), Some(name), Some(weapon)) =
+                    (hex, data.weapons.oa_name(id), data.weapons.row(id))
+                else {
+                    continue;
+                };
+                let nation = Some(weapon.nation);
+                let wrecks = self.broken_down.entry(hex.clone()).or_default();
+                match wrecks
+                    .iter_mut()
+                    .find(|w| w.side == *side && w.nation == nation && w.weapon == name)
+                {
+                    Some(w) => w.points += points,
+                    None => wrecks.push(Wreck {
+                        side: *side,
+                        nation,
+                        weapon: name.to_string(),
+                        points,
+                        this_stage: 0,
+                        towed: 0,
+                    }),
+                }
+                if let Some(from) = row.repair_from {
+                    let held = self.repair_holds.entry(hex).or_insert(from);
+                    *held = (*held).max(from);
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::data::Data;
+
+    #[test]
+    fn crusader_starts_with_its_tanks_broken_down_in_alexandria_62_32() {
+        use cna_data::map::HexId;
+        use cna_data::oa::Nation;
+        let data = Data::load("operation-crusader").unwrap();
+        let s = GameState::with_modules(&data, 1, crate::state::Modules::ALL).unwrap();
+        let alex = HexId::parse("E3613").unwrap();
+        let wrecks = &s.broken_down[&alex];
+        assert!(wrecks.iter().all(|w| w.side == Side::Cw && w.this_stage == 0));
+        assert_eq!(wrecks.iter().map(|w| w.points).sum::<u32>(), 3 + 15 + 18 + 7 + 8);
+        for w in wrecks {
+            assert!(
+                data.weapons.resolve(Nation::Cw, &w.weapon).is_some(),
+                "{} is an OA name",
+                w.weapon
+            );
+        }
+        let until = s.repair_holds[&alex];
+        assert_eq!((until.game_turn, until.opstage), (58, 1));
+        let bar = s.repair_hold_bar(&alex).expect("held in the first OpStage");
+        assert_eq!(bar.case, "62.32");
+        let mut later = s.clone();
+        later.clock.game_turn = 58;
+        later.clock.stage = 1;
+        assert!(later.repair_hold_bar(&alex).is_none());
+    }
+
+    #[test]
+    fn the_last_chance_starts_with_axis_tanks_broken_down_in_tobruk_63_42() {
+        let data = Data::load("the-last-chance").unwrap();
+        let s = GameState::with_modules(&data, 1, crate::state::Modules::ALL).unwrap();
+        let tobruk = data.map.place("tobruk").unwrap().hex.clone();
+        let mut got: Vec<(String, u32)> = s.broken_down[&tobruk]
+            .iter()
+            .map(|w| {
+                assert_eq!(w.side, Side::Axis);
+                (data.weapons.resolve(w.nation.unwrap(), &w.weapon).unwrap().id.clone(), w.points)
+            })
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            [("weapon:de:pz-iii-h".to_string(), 3), ("weapon:de:pz-iv-d".to_string(), 1)]
+        );
+        assert!(s.repair_hold_bar(&tobruk).is_none(), "no date printed: repair at once");
+    }
+
+    #[test]
+    fn without_the_module_nothing_starts_broken_down() {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut modules = crate::state::Modules::ALL;
+        modules.broken_down_starts = false;
+        let s = GameState::with_modules(&data, 1, modules).unwrap();
+        assert!(s.broken_down.is_empty() && s.repair_holds.is_empty());
+        let graziani = Data::load("grazianis-offensive").unwrap();
+        let g = GameState::with_modules(&graziani, 1, crate::state::Modules::ALL).unwrap();
+        assert!(g.broken_down.is_empty(), "Graziani's prints none");
+    }
     use crate::order::Order;
     use crate::piece::PieceKind;
     use crate::state::{GameState, Modules};

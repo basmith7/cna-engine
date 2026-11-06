@@ -20,7 +20,8 @@
     "towing": true,
     "rail_ends": true,
     "set_up_works": true,
-    "pre_play_convoys": true
+    "pre_play_convoys": true,
+    "broken_down_starts": true
   },
   "seed": 7,
   "orders": [
