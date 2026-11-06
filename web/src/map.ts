@@ -64,6 +64,12 @@ function edge(a: HexId, b: HexId) {
   return { ends: edgeEnds(mx, my, nx, ny), mid: [mx, my] as const, normal: [nx, ny] as const };
 }
 
+/** The SVG path of the edge between two adjacent hexes. */
+export function edgePath(a: HexId, b: HexId): string {
+  const [[x0, y0], [x1, y1]] = edge(a, b).ends;
+  return `M ${f(x0)} ${f(y0)} L ${f(x1)} ${f(y1)}`;
+}
+
 const SIDE_DEG: Record<string, number> = { E: 0, SE: 60, SW: 120, W: 180, NW: 240, NE: 300 };
 
 /** A hex's edge on the map's rim, where there is no hex across it. */

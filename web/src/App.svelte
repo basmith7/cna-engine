@@ -19,6 +19,7 @@
   import Pending from "./Pending.svelte";
   import PhaseControls from "./PhaseControls.svelte";
   import Placements from "./Placements.svelte";
+  import BuiltHexsides from "./BuiltHexsides.svelte";
   import Reachable from "./Reachable.svelte";
   import { AUTOSAVE_KEY, describeSave, saveName } from "./saves";
   import SetupPanel from "./SetupPanel.svelte";
@@ -701,6 +702,7 @@
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
+            <BuiltHexsides built={view?.built_hexsides} />
             <Placements hexes={picked ? placements : workItem ? workHexes : motorHexes} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />

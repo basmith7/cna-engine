@@ -123,6 +123,19 @@ mod tests {
     use cna_data::scenario::Side;
     use cna_rules::movement::Mobility;
 
+    #[test]
+    fn the_view_names_the_built_hexsides_for_the_browser_to_draw() {
+        use crate::view::{Aliases, view_for};
+        let (data, on) = crusader(true);
+        let v = view_for(&on, &data, &Aliases::new([1; 32]), None, false).unwrap();
+        let roads = v["built_hexsides"]["roads"].as_array().unwrap();
+        assert_eq!(roads.len(), data.built.roads.len());
+        assert!(!roads.is_empty());
+        let (data, off) = crusader(false);
+        let v = view_for(&off, &data, &Aliases::new([1; 32]), None, false).unwrap();
+        assert!(v.get("built_hexsides").is_none());
+    }
+
     fn crusader(roads_built: bool) -> (Data, GameState) {
         let data = Data::load("operation-crusader").unwrap();
         let state = GameState::with_modules(

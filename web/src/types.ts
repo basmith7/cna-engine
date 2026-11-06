@@ -589,6 +589,8 @@ export interface View {
   station_options?: { ships: PieceId[]; hexes: HexId[] };
   /** Set-up: the hexes open to each of the viewer's set-up works, how many required ones are left, and whether a pass ends its set-up (59.12). */
   work_options?: WorkOptions;
+  /** The scenario's roads and railroads finished at set-up, which the base map draws unfinished (`roads_built`). */
+  built_hexsides?: { roads: [HexId, HexId][]; railroads: [HexId, HexId][] };
   /** Phase K: the facility rolls the phasing viewer may make (22.3x). */
   facility_repairs?: FacilityOffer[];
   /** Phase K: the destroyed tanks the phasing viewer may attempt (22.4x). */
