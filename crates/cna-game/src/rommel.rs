@@ -756,4 +756,101 @@ mod tests {
         assert!(captured(&events), "{events:?}");
         assert_eq!(scene.state.pieces[&rommel()].location, Location::Eliminated);
     }
+
+    /// The scene with an Axis HQ, its TOE gone, alone at R instead of
+    /// Rommel, and `capture_on_move` on (10.29).
+    fn lone_hq_scene() -> (Scene, PieceId) {
+        let mut scene = lone_rommel_scene();
+        scene.state.modules.capture_on_move = true;
+        let r = scene.state.pieces[&rommel()].location.clone();
+        let hq = scene
+            .state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind == PieceKind::Hq && p.hex().is_some())
+            .map(|p| p.id.clone())
+            .expect("an Axis HQ on the map");
+        let away = scene.state.pieces[&hq].location.clone();
+        scene.state.put(&hq, r);
+        scene.state.put(&rommel(), away);
+        scene.state.pieces.get_mut(&hq).unwrap().toe = 0;
+        (scene, hq)
+    }
+
+    fn took(events: &[Event], id: &PieceId) -> bool {
+        events
+            .iter()
+            .any(|e| matches!(e, Event::Captured { piece, .. } if piece == id))
+    }
+
+    // 10.29 at R-138's moments: a non-combat unit is never offered a
+    // reaction, so a lone one is taken on contact; one stacked with a
+    // combat unit is taken when that unit reacts away and leaves it alone.
+    #[test]
+    fn a_lone_hq_with_no_toe_is_captured_on_contact() {
+        let (mut scene, hq) = lone_hq_scene();
+        let events = approach(&mut scene);
+        assert!(took(&events, &hq), "{events:?}");
+    }
+
+    #[test]
+    fn an_hq_left_alone_by_a_reaction_is_captured() {
+        let (mut scene, hq) = lone_hq_scene();
+        let r = scene.state.pieces[&hq].location.clone();
+        let friend = scene
+            .state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .filter(|p| p.toe > 0 && p.attached_to.is_none())
+            .find(|p| scene.state.mobility(&scene.data, p).motorised())
+            .map(|p| p.id.clone())
+            .expect("a motorised Axis combat unit");
+        scene.state.put(&friend, r);
+        let events = approach(&mut scene);
+        assert!(!took(&events, &hq), "{events:?}");
+        assert!(
+            matches!(&scene.state.pending, Some(Pending::Reaction { eligible, .. }) if eligible.contains(&friend)),
+            "{:?}",
+            scene.state.pending
+        );
+        let order = Order::React {
+            pieces: vec![friend.clone()],
+            path: vec![scene.q.clone()],
+        };
+        let events = scene.state.apply(&scene.data, Side::Axis, order).unwrap();
+        assert!(took(&events, &hq), "{events:?}");
+        assert_eq!(
+            scene.state.pieces[&friend].location,
+            Location::Hex(scene.q.clone())
+        );
+    }
+
+    #[test]
+    fn a_lone_hq_with_no_toe_that_does_not_retreat_before_assault_is_captured() {
+        let (mut scene, hq) = lone_hq_scene();
+        for id in &scene.stack {
+            scene.state.pieces.get_mut(id).unwrap().location = Location::Hex(scene.n.clone());
+        }
+        scene.state.clock.segment = Some(crate::clock::Segment::RetreatBeforeAssault);
+        scene.state.pending = Some(Pending::RetreatBeforeAssault { side: Side::Axis });
+        let events = scene
+            .state
+            .apply(&scene.data, Side::Axis, Order::Pass)
+            .unwrap();
+        assert!(took(&events, &hq), "{events:?}");
+        // Without the module it waits for the next movement segment.
+        let (mut scene, hq) = lone_hq_scene();
+        scene.state.modules.capture_on_move = false;
+        for id in &scene.stack {
+            scene.state.pieces.get_mut(id).unwrap().location = Location::Hex(scene.n.clone());
+        }
+        scene.state.clock.segment = Some(crate::clock::Segment::RetreatBeforeAssault);
+        scene.state.pending = Some(Pending::RetreatBeforeAssault { side: Side::Axis });
+        let events = scene
+            .state
+            .apply(&scene.data, Side::Axis, Order::Pass)
+            .unwrap();
+        assert!(!took(&events, &hq), "{events:?}");
+    }
 }
