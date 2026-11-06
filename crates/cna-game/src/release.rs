@@ -175,11 +175,7 @@ impl GameState {
             .filter(|w| w.unit.as_ref().is_some_and(|u| units.contains(u)))
             .map(|w| w.points)
             .sum();
-        if have + held == 0 {
-            100
-        } else {
-            have * 100 / (have + held)
-        }
+        (have * 100).checked_div(have + held).unwrap_or(100)
     }
 
     /// The pieces an order names as moving along a path (a rail run's
