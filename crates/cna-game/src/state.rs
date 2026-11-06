@@ -112,6 +112,10 @@ pub struct Modules {
     /// repair facility, not only for repair rolls (21.6x).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub towing: bool,
+    /// The Commonwealth railway runs from the scenario's railhead
+    /// (`construction.railroad_ends`, 59.12), not always Mersa Matruh.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rail_ends: bool,
 }
 
 impl Modules {
@@ -124,6 +128,7 @@ impl Modules {
         patrols: true,
         captured_equipment: true,
         towing: true,
+        rail_ends: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

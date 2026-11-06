@@ -54,14 +54,34 @@ struct RailStack {
 /// (8.7x: only this railway matters); extension by construction comes
 /// with engineering.
 pub(crate) fn railway(data: &Data) -> Vec<HexId> {
-    let (Some(west), Some(east)) = (
-        data.map.place("mersa-matruh"),
-        data.map.place("alexandria-west"),
-    ) else {
+    match data.map.place("mersa-matruh") {
+        Some(west) => railway_from(data, &west.hex, false),
+        None => Vec::new(),
+    }
+}
+
+/// The scenario's railhead (its `construction.railroad_ends`, 59.12),
+/// if it names one.
+pub(crate) fn scenario_railhead(data: &Data) -> Option<HexId> {
+    let end = data
+        .scenario
+        .construction
+        .as_ref()?
+        .get("railroad_ends")?
+        .as_str()?;
+    HexId::parse(end).ok()
+}
+
+/// The railway from `west` to Alexandria's west hex, as `railway`;
+/// with `built`, the map's unfinished railroad counts as finished (a
+/// scenario railhead west of Mersa Matruh stands on it).
+pub(crate) fn railway_from(data: &Data, west: &HexId, built: bool) -> Vec<HexId> {
+    let Some(east) = data.map.place("alexandria-west") else {
         return Vec::new();
     };
+    let west = west.clone();
     let mut came: BTreeMap<HexId, HexId> = BTreeMap::new();
-    let mut queue = VecDeque::from([west.hex.clone()]);
+    let mut queue = VecDeque::from([west.clone()]);
     while let Some(h) = queue.pop_front() {
         if h == east.hex {
             let mut line = vec![h];
@@ -75,14 +95,30 @@ pub(crate) fn railway(data: &Data) -> Vec<HexId> {
             let rail = data
                 .map
                 .hexside(&h, &n)
-                .is_some_and(|hs| hs.has(HexsideFeature::Railroad));
-            if rail && n != west.hex && !came.contains_key(&n) {
+                .is_some_and(|hs| {
+                    hs.has(HexsideFeature::Railroad)
+                        || (built && hs.has(HexsideFeature::UnfinishedRailroad))
+                });
+            if rail && n != west && !came.contains_key(&n) {
                 came.insert(n.clone(), h.clone());
                 queue.push_back(n);
             }
         }
     }
     Vec::new()
+}
+
+impl GameState {
+    /// The railway this game runs on: from the scenario's railhead with
+    /// the `rail_ends` module on (Crusader's C3430, 62.5, along the
+    /// map's unfinished railroad, built by then), else from Mersa Matruh
+    /// (60.7), as games before the module play.
+    pub(crate) fn railway(&self, data: &Data) -> Vec<HexId> {
+        match scenario_railhead(data).filter(|_| self.modules.rail_ends) {
+            Some(west) => railway_from(data, &west, true),
+            None => railway(data),
+        }
+    }
 }
 
 impl GameState {
@@ -164,7 +200,7 @@ impl GameState {
         if !self.modules.abstract_supply || self.phasing() != Some(Side::Cw) {
             return false;
         }
-        let line = railway(data);
+        let line = self.railway(data);
         self.pieces
             .values()
             .filter(|p| p.side == Side::Cw && p.hex().is_some_and(|h| line.contains(h)))
@@ -198,7 +234,7 @@ impl GameState {
     /// of the first enemy hex, enemy ZOC or the line's closed part. Empty
     /// when they may not ride at all.
     pub fn rail_destinations(&self, data: &Data, pieces: &[PieceId]) -> Vec<HexId> {
-        let line = railway(data);
+        let line = self.railway(data);
         let Ok(RailStack { at, supply, .. }) = self.rail_start(data, &line, pieces) else {
             return Vec::new();
         };
@@ -227,7 +263,7 @@ impl GameState {
         data: &Data,
         pieces: &[PieceId],
     ) -> Result<Vec<crate::reach::Reach>, Illegal> {
-        let line = railway(data);
+        let line = self.railway(data);
         let at = self.rail_start(data, &line, pieces)?.at;
         Ok(self
             .rail_destinations(data, pieces)
@@ -339,7 +375,7 @@ impl GameState {
         let Some(end) = path.last() else {
             return Err(Illegal::new("8.7x", "a rail run goes somewhere"));
         };
-        let line = railway(data);
+        let line = self.railway(data);
         let stack = self.rail_start(data, &line, pieces)?;
         let way = match line.iter().position(|h| h == end) {
             Some(to) if to > stack.at => RailWay::East,
@@ -566,6 +602,36 @@ mod tests {
             path: path.to_vec(),
             stops: Vec::new(),
         }
+    }
+
+    #[test]
+    fn crusader_s_railway_starts_at_its_railhead_62_5() {
+        let data = Data::load("operation-crusader").unwrap();
+        let on = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let line = on.railway(&data);
+        assert_eq!(line.first().map(ToString::to_string).as_deref(), Some("C3430"));
+        // It joins the old line (the map draws the extension meeting it
+        // east of Mersa Matruh) and runs on to Alexandria with it.
+        let old = railway(&data);
+        let join = line.iter().position(|h| old.contains(h)).expect("joins the old line");
+        let at = old.iter().position(|h| *h == line[join]).unwrap();
+        assert_eq!(line[join..], old[at..]);
+        assert!(join > 10, "{line:?}");
+        // Without the module the line starts at Mersa Matruh, as before.
+        let off = GameState::with_modules(
+            &data,
+            1,
+            Modules {
+                rail_ends: false,
+                ..Modules::ALL
+            },
+        )
+        .unwrap();
+        assert_eq!(off.railway(&data), railway(&data));
+        // Graziani's railhead is Mersa Matruh itself.
+        let g = graziani();
+        let s = GameState::with_modules(&g, 1, Modules::ALL).unwrap();
+        assert_eq!(s.railway(&g), railway(&g));
     }
 
     #[test]
