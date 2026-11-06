@@ -124,6 +124,10 @@ const cases: [Event, string][] = [
   [{ "combat-cp-refunded": { piece: "u:a", cp: 2, dp: 1 } }, "A refunded 2 CP and 1 DP."],
   [{ captured: { piece: "u:b", hex: "C4130" } }, "B captured at C4130."],
   [{ "game-over": { report } }, "Game over. Axis: no level; Commonwealth: marginal."],
+  [
+    { "game-over": { report: { ...report, axis: "strategic", cw: null, automatic: "64.71: the Axis held Cairo" } } },
+    "Game over. Axis: strategic; Commonwealth: no level. Won at once: 64.71: the Axis held Cairo.",
+  ],
 ];
 
 const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
