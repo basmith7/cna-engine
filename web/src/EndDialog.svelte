@@ -5,6 +5,7 @@
   // viewable; the app offers it again from a button.
   import { clockLine, sideName } from "./clock";
   import { label } from "./counters";
+  import { placeName } from "./map";
   import type { PieceId, View } from "./types";
 
   let { view, onclose }: { view: View; onclose: () => void } = $props();
@@ -40,10 +41,10 @@
         <tbody>
           {#each report.scored ?? [] as s, i (i)}
             <tr>
-              <td data-label="Objective">{s.objective}</td>
-              <td data-label="Held by">{s.holder ? sideName(s.holder) : "–"}</td>
-              <td data-label="Points">{s.points}</td>
-              <td data-label="Out of supply">{(s.unsupplied ?? []).map(name).join(", ") || "–"}</td>
+              <td class="obj">{placeName(s.objective)}</td>
+              <td class="held" data-label="Held by">{s.holder ? sideName(s.holder) : "–"}</td>
+              <td class="met" data-label="Points">{s.points}</td>
+              <td class="unsup" class:none={!s.unsupplied?.length} data-label="Out of supply">{(s.unsupplied ?? []).map(name).join(", ") || "–"}</td>
             </tr>
           {/each}
         </tbody>
@@ -57,12 +58,12 @@
         <tbody>
           {#each report.checked as c, i (i)}
             <tr data-met={c.met}>
-              <td data-label="Side">{sideName(c.side)}</td>
-              <td data-label="Level">{c.level}</td>
-              <td data-label="Objective">{c.objective} <span class="hexes">{hexNote(c)}</span></td>
-              <td data-label="Held" class="hexes">{c.held.join(", ") || "–"}</td>
-              <td data-label="Unsupplied">{c.unsupplied.map(name).join(", ") || "–"}</td>
-              <td data-label="Met" class="met">{c.met ? "yes" : "no"}</td>
+              <td class="side">{sideName(c.side)}</td>
+              <td class="lvl">{c.level}</td>
+              <td class="obj">{placeName(c.objective)} <span class="hexes">{hexNote(c)}</span></td>
+              <td class="held hexes" class:none={c.held.length === 0} data-label="Held">{c.held.join(", ") || "–"}</td>
+              <td class="unsup" class:none={c.unsupplied.length === 0} data-label="Unsupplied">{c.unsupplied.map(name).join(", ") || "–"}</td>
+              <td class="met">{c.met ? "yes" : "no"}</td>
             </tr>
           {/each}
         </tbody>
@@ -157,37 +158,51 @@
     color: #555;
   }
   tr[data-met="true"] .met { color: #2e7d32; font-weight: 700; }
-  /* A phone's width has no room for the columns: each row becomes a
-     block of labelled lines, so nothing scrolls sideways. */
+  /* A phone's width has no room for the columns: each row folds into a
+     few short lines (side · level, met at the right; the objective; held
+     and unsupplied only when there are any), so nothing scrolls sideways. */
   @media (max-width: 560px) {
     thead {
       display: none;
     }
-    table, tbody, tr, td {
+    table, tbody {
       display: block;
     }
     tr {
-      padding: 0.35rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 0.35rem;
+      padding: 0.3rem 0;
       border-bottom: 1px solid #e4dfd2;
     }
     td {
-      position: relative;
-      padding: 0.05rem 0 0.05rem 7.5rem;
+      padding: 0;
       border: none;
     }
-    td::before {
-      content: attr(data-label);
-      position: absolute;
-      left: 0;
-      font-weight: 400;
-      font-size: 11px;
-      line-height: 1.7;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #555;
+    /* Line one: side · level and met, or the objective and its points. */
+    .side { order: 1; font-weight: 600; }
+    .lvl { order: 2; }
+    .lvl::before {
+      content: "· ";
+    }
+    .met { order: 3; margin-left: auto; }
+    .obj { order: 4; flex-basis: 100%; }
+    [data-testid="scored"] .obj { order: 0; flex: 1 1 0; }
+    .held { order: 5; }
+    .unsup { order: 6; }
+    .held, .unsup {
+      flex-basis: 100%;
+      font-size: 12px;
+    }
+    .held::before, .unsup::before {
+      content: attr(data-label) " ";
+      color: #777;
+    }
+    .none {
+      display: none;
     }
   }
-  tr[data-met="false"] .met { color: #a4161a; }
   .automatic {
     margin: 0 0 0.8rem;
     font-weight: 700;

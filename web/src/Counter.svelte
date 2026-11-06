@@ -26,12 +26,17 @@
   const cy = fy + fh / 2;
   const toe = $derived(isSupply ? "" : shown(piece.toe));
   const cpa = $derived(piece.cpa ?? "");
+  // A long abbreviation is squeezed to the room left of the ID code, so it
+  // never runs into it; widths are a system-ui estimate (~0.62 em a
+  // character for the name at 4.2 map units, a generous ~0.8 em for the code at 3.6).
+  const room = $derived(S * 0.86 - (piece.id_code ? piece.id_code.length * 3.6 * 0.8 + S * 0.08 : 0));
+  const squeeze = $derived(text.short.length * 4.2 * 0.62 > room ? room : undefined);
 </script>
 
 <g class="counter side-{piece.side} nation-{nation}" class:muted>
   <rect class="body" width={S} height={S} rx={S * 0.06} />
   <rect class="band" width={S} height={S * 0.24} rx={S * 0.06} />
-  <text class="abbr" x={S * 0.07} y={S * 0.17}>{text.short}</text>
+  <text class="abbr" x={S * 0.07} y={S * 0.17} textLength={squeeze} lengthAdjust={squeeze ? "spacingAndGlyphs" : undefined}>{text.short}</text>
   {#if piece.id_code}<text class="code" x={S * 0.93} y={S * 0.17}>{piece.id_code}</text>{/if}
   {#if size}<text class="size" x={cx} y={fy - S * 0.06}>{size}</text>{/if}
   <rect class="frame" x={fx} y={fy} width={fw} height={fh} />

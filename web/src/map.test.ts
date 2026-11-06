@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import hexesFile from "../../vendor/cna/data/map/hexes.json";
 import hexsidesFile from "../../vendor/cna/data/map/hexsides.json";
 import placesFile from "../../vendor/cna/data/map/places.json";
-import { HEX_IDS, baseSvg, hexInfo } from "./map";
+import { HEX_IDS, baseSvg, hexInfo, placeName } from "./map";
 import { centre } from "./geom";
 
 const svg = baseSvg();
@@ -62,6 +62,11 @@ describe("the base layer", () => {
     // A name covers a few numbers; the rest are drawn.
     expect(numbered.size).toBeLessThan(HEX_IDS.length);
     expect(numbered.size).toBeGreaterThan(HEX_IDS.length - 4 * placesFile.places.length);
+  });
+
+  it("names a place from its id, and leaves anything else as it is", () => {
+    expect(placeName("mersa-matruh")).toBe("Mersa Matruh");
+    expect(placeName("C3922")).toBe("C3922");
   });
 
   it("describes a hex for the panel", () => {

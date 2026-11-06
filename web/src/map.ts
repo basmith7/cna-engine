@@ -17,6 +17,7 @@ const HEXSIDES = hexsidesFile.hexsides as Hexside[];
 const PLACES = placesFile.places as Place[];
 const BY_ID = new Map(HEXES.map((h) => [h.id, h]));
 const PLACE_AT = new Map(PLACES.map((p) => [p.hex, p]));
+const PLACE_BY_ID = new Map(PLACES.map((p) => [p.id, p]));
 
 export const HEX_IDS: HexId[] = HEXES.map((h) => h.id);
 /** The map end of the off-map road (8.8x): where `move-off-map` lands and leaves. */
@@ -33,6 +34,11 @@ const f = (v: number) => v.toFixed(2);
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** What the stack panel says about a hex. */
+/** A place's name from its id (`mersa-matruh` → "Mersa Matruh"); anything else as it is. */
+export function placeName(id: string): string {
+  return PLACE_BY_ID.get(id)?.name ?? id;
+}
+
 export function hexInfo(id: HexId): { terrain: string; coastal: boolean; settlement: string | null; place: string | null } {
   const h = BY_ID.get(id);
   if (!h) throw new Error(`unknown hex ${id}`);
