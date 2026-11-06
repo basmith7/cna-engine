@@ -612,6 +612,35 @@ mod tests {
     }
 
     #[test]
+    fn a_wreck_s_owner_shows_to_its_side_and_the_enemy_sees_neither_61_38() {
+        let data = data();
+        let mut s = golden(&data, 70);
+        let unit = cna_data::oa::UnitId::parse("unit:cw:7-hus").unwrap();
+        let hex = cna_data::map::HexId::parse("C4021").unwrap();
+        s.broken_down.insert(
+            hex.clone(),
+            vec![crate::breakdown::Wreck {
+                side: Side::Cw,
+                nation: None,
+                weapon: "Matilda".into(),
+                points: 3,
+                this_stage: 0,
+                towed: 0,
+                unit: Some(unit),
+            }],
+        );
+        for open in [false, true] {
+            let cw = view_for(&s, &data, &a(), Some(Side::Cw), open).unwrap();
+            assert_eq!(cw["broken_down"]["C4021"][0]["unit"], "unit:cw:7-hus");
+        }
+        let axis = view_for(&s, &data, &a(), Some(Side::Axis), false).unwrap();
+        assert!(axis["broken_down"].get("C4021").is_none());
+        // Open information shows the enemy's wrecks whole, owner and all.
+        let axis = view_for(&s, &data, &a(), Some(Side::Axis), true).unwrap();
+        assert_eq!(axis["broken_down"]["C4021"][0]["unit"], "unit:cw:7-hus");
+    }
+
+    #[test]
     fn every_field_has_a_row() {
         let data = data();
         let mut s = golden(&data, 70);

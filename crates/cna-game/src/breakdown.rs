@@ -679,6 +679,7 @@ mod tests {
                 hex: hex.clone(),
                 weapon: weapon.clone(),
                 fuel_from: None,
+                unit: None,
             };
             let events = s.apply(&data, Side::Cw, order).unwrap();
             let crate::event::Event::FieldRepaired { repaired: n, .. } = events[0] else {

@@ -783,16 +783,18 @@ impl GameState {
                     hex,
                     weapon,
                     fuel_from,
+                    unit,
                 },
-            ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            ) => self.field_repair(data, player, hex, weapon, fuel_from.as_ref(), unit.as_ref()),
             (
                 None,
                 Order::FacilityRepair {
                     hex,
                     weapon,
                     fuel_from,
+                    unit,
                 },
-            ) => self.facility_repair(data, player, hex, weapon, fuel_from.as_ref()),
+            ) => self.facility_repair(data, player, hex, weapon, fuel_from.as_ref(), unit.as_ref()),
             (
                 None,
                 Order::RepairDestroyedTanks {

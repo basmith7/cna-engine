@@ -144,6 +144,7 @@ impl GameState {
         hex: &HexId,
         weapon: &str,
         fuel_from: Option<&PieceId>,
+        unit: Option<&UnitId>,
     ) -> Result<Vec<Event>, Illegal> {
         if !self.modules.breakdown || self.clock.phase != Phase::Repair {
             return Err(Illegal::new(
@@ -178,6 +179,9 @@ impl GameState {
                 format!("no broken-down {weapon} of yours at {hex}"),
             ));
         }
+        if let Some(u) = unit {
+            self.wreck_owner_bar(hex, player, weapon, u, false)?;
+        }
         let (attempted, paid_by) = self.pay_repair_fuel(data, player, hex, points, fuel_from)?;
         self.field_rolled.insert(key);
         let die = self.rng.d6();
@@ -195,7 +199,7 @@ impl GameState {
             "truck" => field(row.field_truck).min(attempted),
             _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
         };
-        let taken = self.take_wrecks(hex, player, weapon, repaired, false);
+        let taken = self.take_wrecks(hex, player, weapon, repaired, false, unit);
         self.credit_repaired(player, hex, weapon, taken);
         Ok(vec![Event::FieldRepaired {
             hex: hex.clone(),
@@ -302,9 +306,44 @@ impl GameState {
         }
     }
 
+    /// Why a repair may not name `unit` as the owner to repair first:
+    /// `side` holds no broken-down `weapon` of that unit's in `hex` (that
+    /// began the OpStage there, if `settled_only`) for a roll to reach.
+    pub(crate) fn wreck_owner_bar(
+        &self,
+        hex: &HexId,
+        side: Side,
+        weapon: &str,
+        unit: &UnitId,
+        settled_only: bool,
+    ) -> Result<(), Illegal> {
+        let held: u32 = self
+            .broken_down
+            .get(hex)
+            .into_iter()
+            .flatten()
+            .filter(|w| w.side == side && w.weapon == weapon && w.unit.as_ref() == Some(unit))
+            .map(|w| {
+                if settled_only {
+                    w.points - w.this_stage
+                } else {
+                    w.points - w.towed
+                }
+            })
+            .sum();
+        if held == 0 {
+            return Err(Illegal::new(
+                "61.38",
+                format!("no broken-down {weapon} of {unit}'s to repair at {hex}"),
+            ));
+        }
+        Ok(())
+    }
+
     /// Removes `n` of `side`'s broken-down `weapon` points from `hex`
     /// (only those that began the OpStage there if `settled_only`),
-    /// dropping emptied entries and an emptied hex. Returns how many it
+    /// `first`'s wrecks before the rest, which go in the order held;
+    /// drops emptied entries and an emptied hex. Returns how many it
     /// took from each wreck, by the unit the wreck belongs to.
     pub(crate) fn take_wrecks(
         &mut self,
@@ -313,15 +352,18 @@ impl GameState {
         weapon: &str,
         mut n: u32,
         settled_only: bool,
+        first: Option<&UnitId>,
     ) -> Vec<(Option<UnitId>, u32)> {
         let mut taken = Vec::new();
         let Some(wrecks) = self.broken_down.get_mut(hex) else {
             return taken;
         };
-        for w in wrecks
+        let (mut ahead, behind): (Vec<_>, Vec<_>) = wrecks
             .iter_mut()
             .filter(|w| w.side == side && w.weapon == weapon)
-        {
+            .partition(|w| first.is_some() && w.unit.as_ref() == first);
+        ahead.extend(behind);
+        for w in ahead {
             let k = n.min(if settled_only {
                 w.points - w.this_stage
             } else {
@@ -389,7 +431,111 @@ mod tests {
             hex: hex.clone(),
             weapon: "M13/40".into(),
             fuel_from: None,
+            unit: None,
         }
+    }
+
+    /// `at_repair` with its four loose points swapped for four held for
+    /// each of two Axis units (61.38), and no fuel to pay. Returns the
+    /// hex and the two units.
+    fn two_owned_wrecks(data: &Data) -> (GameState, HexId, UnitId, UnitId) {
+        let mut modules = Modules::ALL;
+        modules.abstract_supply = false;
+        let (mut state, hex) = at_repair(data, modules);
+        let units: Vec<UnitId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat)
+            .filter_map(|p| p.id.unit())
+            .take(2)
+            .collect();
+        let wreck = |u: &UnitId| Wreck {
+            side: Side::Axis,
+            nation: None,
+            weapon: "M13/40".into(),
+            points: 4,
+            this_stage: 0,
+            towed: 0,
+            unit: Some(u.clone()),
+        };
+        state
+            .broken_down
+            .insert(hex.clone(), vec![wreck(&units[0]), wreck(&units[1])]);
+        (state, hex, units[0].clone(), units[1].clone())
+    }
+
+    fn toe_of(state: &GameState, unit: &UnitId) -> u32 {
+        state
+            .pieces
+            .values()
+            .find(|p| p.id.unit().as_ref() == Some(unit))
+            .unwrap()
+            .toe
+    }
+
+    fn held_for(state: &GameState, hex: &HexId, unit: &UnitId) -> u32 {
+        state.broken_down[hex]
+            .iter()
+            .filter(|w| w.unit.as_ref() == Some(unit))
+            .map(|w| w.points)
+            .sum()
+    }
+
+    #[test]
+    fn a_repair_naming_the_second_wreck_s_unit_returns_the_points_to_it_61_38() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex, first, second) = two_owned_wrecks(&data);
+        let (first_toe, second_toe) = (toe_of(&state, &first), toe_of(&state, &second));
+        let mut repaired = 0;
+        for _ in 0..50 {
+            state.field_rolled.clear();
+            let order = Order::Repair {
+                hex: hex.clone(),
+                weapon: "M13/40".into(),
+                fuel_from: None,
+                unit: Some(second.clone()),
+            };
+            let events = state.apply(&data, Side::Axis, order).unwrap();
+            let Event::FieldRepaired { repaired: n, .. } = events[0] else {
+                panic!("{events:?}");
+            };
+            repaired += n;
+            if repaired > 0 {
+                break;
+            }
+        }
+        assert!(repaired > 0, "fifty rolls repaired nothing");
+        // A roll repairs at most the four points held for the second unit
+        // here (its share of eight), so all of it is the second's.
+        assert!(repaired <= 4, "{repaired}");
+        assert_eq!(toe_of(&state, &second), second_toe + repaired);
+        assert_eq!(held_for(&state, &hex, &second), 4 - repaired);
+        assert_eq!(toe_of(&state, &first), first_toe, "the first unit untouched");
+        assert_eq!(held_for(&state, &hex, &first), 4);
+    }
+
+    #[test]
+    fn a_repair_naming_a_unit_with_no_wreck_there_is_refused_61_38() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, hex, _, _) = two_owned_wrecks(&data);
+        let stranger = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis)
+            .filter_map(|p| p.id.unit())
+            .find(|u| state.broken_down[&hex].iter().all(|w| w.unit.as_ref() != Some(u)))
+            .unwrap();
+        let before = serde_json::to_value(&state).unwrap();
+        let order = Order::Repair {
+            hex: hex.clone(),
+            weapon: "M13/40".into(),
+            fuel_from: None,
+            unit: Some(stranger),
+        };
+        let err = state.apply(&data, Side::Axis, order).unwrap_err();
+        assert_eq!(err.case, "61.38", "{err:?}");
+        // Naming a stranger costs no roll and no fuel.
+        assert_eq!(serde_json::to_value(&state).unwrap(), before);
     }
 
     #[test]
@@ -470,6 +616,7 @@ mod tests {
                 hex: hex.clone(),
                 weapon: class.into(),
                 fuel_from: None,
+                unit: None,
             };
             let events = state.apply(&data, Side::Axis, order).unwrap();
             let Event::FieldRepaired {
