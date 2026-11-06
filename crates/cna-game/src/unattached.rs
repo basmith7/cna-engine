@@ -55,23 +55,6 @@ impl GameState {
         Ok(())
     }
 
-    /// The hexes `side` may place motorisation points in now, in id
-    /// order, with the most it may place in each: empty when that side is
-    /// not setting up.
-    pub fn motorisation_placements(&self, side: Side) -> Vec<(HexId, u32)> {
-        if self.pending != Some(Pending::SetUp { side }) {
-            return Vec::new();
-        }
-        let mut v: std::collections::BTreeMap<HexId, u32> = Default::default();
-        for q in self.motorisation_to_place.get(&side).into_iter().flatten() {
-            for h in &q.hexes {
-                let most = v.entry(h.clone()).or_default();
-                *most = (*most).max(q.points);
-            }
-        }
-        v.into_iter().collect()
-    }
-
     /// `Order::PlaceMotorisation`: the side setting up puts `points` of
     /// its unattached motorisation points in `hex` (61.72, R-160).
     pub(crate) fn place_motorisation(
@@ -87,8 +70,15 @@ impl GameState {
         if points == 0 {
             return Err(Illegal::new("61.72", "place at least one point"));
         }
+        // Of the side's quotas open to `hex`, the one with the most left
+        // (the first of equals), so the most that may go there is it.
         let quotas = self.motorisation_to_place.get_mut(&player);
-        let Some(q) = quotas.and_then(|qs| qs.iter_mut().find(|q| q.hexes.contains(hex))) else {
+        let Some(q) = quotas.and_then(|qs| {
+            qs.iter_mut()
+                .filter(|q| q.hexes.contains(hex))
+                .rev()
+                .max_by_key(|q| q.points)
+        }) else {
             return Err(Illegal::new(
                 "61.72",
                 format!("{player} has no unattached motorisation points to place in {hex} (R-160)"),
@@ -202,7 +192,6 @@ mod tests {
             )
             .unwrap();
         assert_eq!(state.pending, Some(Pending::SetUp { side: Side::Axis }));
-        assert_eq!(state.motorisation_placements(Side::Axis).len(), 20);
         // Set-up waits on the 30 left.
         assert!(state.apply(&data, Side::Axis, Order::Pass).is_err());
         state
@@ -220,7 +209,6 @@ mod tests {
         assert!(!state.motorisation_to_place.contains_key(&Side::Axis));
         // The Axis is done: the Commonwealth sets up.
         assert_eq!(state.pending, Some(Pending::SetUp { side: Side::Cw }));
-        assert!(state.motorisation_placements(Side::Axis).is_empty());
 
         // Cairo takes only the 150 row's points; Tobruk only the 90's.
         let cairo = state.apply(
@@ -257,6 +245,27 @@ mod tests {
         assert_eq!(points(&state, Side::Cw, "C4807"), tobruk + 90);
         assert!(state.motorisation_to_place.is_empty());
         place_pieces(&data, &mut state, Side::Cw);
+    }
+
+    #[test]
+    fn a_hex_in_two_quotas_draws_on_the_larger() {
+        let data = rommel();
+        let mut state = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        let tobruk = hex("C4807");
+        // Make Tobruk open to the 150 as well as the 90.
+        let qs = state.motorisation_to_place.get_mut(&Side::Cw).unwrap();
+        qs[0].hexes.push(tobruk.clone());
+        place_pieces(&data, &mut state, Side::Axis);
+        let order = Order::PlaceMotorisation {
+            hex: tobruk,
+            points: 120,
+        };
+        state.apply(&data, Side::Cw, order).unwrap();
+        let left: Vec<u32> = state.motorisation_to_place[&Side::Cw]
+            .iter()
+            .map(|q| q.points)
+            .collect();
+        assert_eq!(left, vec![30, 90]);
     }
 
     #[test]
