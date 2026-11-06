@@ -279,6 +279,8 @@ export interface VictoryReport {
   /** A points victory's places (absent for a levels victory). */
   scored?: Scored[];
   points?: { axis: number; cw: number };
+  /** An automatic win that ended the game early (64.71, 64.72). */
+  automatic?: string;
 }
 
 export interface Scored {
@@ -286,6 +288,8 @@ export interface Scored {
   hexes: HexId[];
   holder: Side | null;
   points: number;
+  /** The holder's units there that failed the end-of-game supply test (64.73). */
+  unsupplied?: PieceId[];
 }
 
 export type BarrageResult = "no-effect" | "pinned" | { lose: number } | "unresolved";

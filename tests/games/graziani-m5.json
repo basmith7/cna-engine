@@ -23,7 +23,8 @@
     "pre_play_convoys": true,
     "withdrawals": true,
     "broken_down_starts": true,
-    "release_schedule": true
+    "release_schedule": true,
+    "campaign_victory": true
   },
   "seed": 7,
   "orders": [

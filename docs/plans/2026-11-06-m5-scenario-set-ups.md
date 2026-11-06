@@ -77,8 +77,9 @@ Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
 
 ### Task 7: the campaigns' victory
 - [x] 64.76's ratio levels from cna's `victory.ratios`.
-- [ ] 64.71–64.75: automatic wins, the end-of-game supply test,
-  unused-replacement and withdrawal points.
+- [x] 64.71–64.73: automatic wins and the end-of-game supply test,
+  behind `campaign_victory`; 64.74–64.75 are NOT_SIMULATED rows (no
+  Production Charts, no voluntary withdrawal).
 
 ### Task 8: NOT_SIMULATED
 - [x] R-097 and R-099–R-109 rewritten (#132); R-097 built behind
