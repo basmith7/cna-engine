@@ -17,7 +17,8 @@
     "patrols": true,
     "captured_equipment": true,
     "towing": true,
-    "rail_ends": true
+    "rail_ends": true,
+    "set_up_works": true
   },
   "clock": {
     "game_turn": 1,
