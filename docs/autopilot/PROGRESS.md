@@ -536,3 +536,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-06 03:44 | 71 | 5→6 | none→none | $13.64 | 9 | Brian, I merged six PRs this run (#133–#138), and Mission 5's scenario set-ups moved forward on cna's new data. Each new rule sits behind its own module, which  |
 | 2026-11-06 04:55 | 11 | 6→6 | none→none | $7.80 | 18 | The three agents are working; the run waits on them before review and merge. |
 | 2026-11-06 05:44 | 79 | 6→7 | none→none | $15.32 | 4 | I recovered everything the killed third run left behind and merged six PRs. No autopilot PRs are open. **Merged this run (Mission 5, scenario set-ups):** - **#1 |
+| 2026-11-06 07:03 | 64 | 7→8 | none→none | $10.85 | 7 | Mission 5 is complete, and the Mission 6 spec (the Logistics Game) is waiting on your review as PR #148. **Merged this run** (each green on CI before merging):  |
