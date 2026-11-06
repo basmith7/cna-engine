@@ -128,6 +128,10 @@ const STATE_KEEPS: &[&str] = &[
     "bizerta_open",
     "blockship_fired",
     "fortifications",
+    // Set from the scenario's printed set-up and schedule: which units
+    // began in the release cities, the stage's count, held repair hexes.
+    "release",
+    "repair_holds",
     "projects",
     "minefields",
     "escapees",

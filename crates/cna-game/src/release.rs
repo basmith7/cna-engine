@@ -58,6 +58,10 @@ pub(crate) struct Released {
     other: u32,
 }
 
+/// What `moved_by` reads off an order: the moving pieces, the path,
+/// and each rail stop's hex with the pieces set down there.
+type Moved<'a> = (Vec<PieceId>, &'a [HexId], Vec<(&'a HexId, &'a [PieceId])>);
+
 impl GameState {
     /// The release zone: the `from` hexes, and around them the hexes of
     /// any set-up block the scenario places "within" so many hexes of one
@@ -143,13 +147,28 @@ impl GameState {
         100
     }
 
-    /// The pieces an order moves along a path, and that path.
-    fn moved_by(order: &Order) -> Option<(&[PieceId], &[HexId])> {
+    /// The pieces an order names as moving along a path (a rail run's
+    /// boarders included), that path, and the pieces a rail run sets
+    /// down at each stop.
+    fn moved_by(order: &Order) -> Option<Moved<'_>> {
         match order {
             Order::Move { pieces, path, .. }
             | Order::React { pieces, path }
-            | Order::RetreatBeforeAssault { pieces, path }
-            | Order::Rail { pieces, path, .. } => Some((pieces, path)),
+            | Order::RetreatBeforeAssault { pieces, path } => {
+                Some((pieces.clone(), path, Vec::new()))
+            }
+            Order::Rail {
+                pieces,
+                path,
+                stops,
+            } => {
+                let mut all = pieces.clone();
+                for st in stops {
+                    all.extend(st.on.iter().cloned());
+                }
+                let off = stops.iter().map(|st| (&st.at, st.off.as_slice())).collect();
+                Some((all, path, off))
+            }
             _ => None,
         }
     }
@@ -167,15 +186,27 @@ impl GameState {
         if !self.modules.release_schedule || self.release.held.is_empty() {
             return Ok(none);
         }
-        let (Some((listed, path)), Some(r)) = (
+        let (Some((listed, path, set_down)), Some(r)) = (
             Self::moved_by(order),
             data.scenario.side(player).release.as_ref(),
         ) else {
             return Ok(none);
         };
         let hexes = Self::release_hexes(data, player).unwrap_or_default();
-        // Only the listed pieces move (an HQ leaves its attached units).
-        let moving: BTreeSet<PieceId> = listed.iter().cloned().collect();
+        // Everything attached to a moving piece goes with it, a free HQ's
+        // held units included; a rail passenger set down inside the
+        // cities does not leave.
+        let mut moving: BTreeSet<PieceId> = match self.carried(&listed) {
+            Ok(c) => c.into_iter().collect(),
+            Err(_) => listed.iter().cloned().collect(),
+        };
+        for (at, off) in set_down {
+            if hexes.contains(at) {
+                for id in off {
+                    moving.remove(id);
+                }
+            }
+        }
         let held: Vec<PieceId> = moving
             .into_iter()
             .filter(|id| {
@@ -184,6 +215,10 @@ impl GameState {
             })
             .collect();
         if held.is_empty() {
+            return Ok(none);
+        }
+        if path.iter().all(|h| hexes.contains(h)) {
+            // Staying within the cities releases nothing.
             return Ok(none);
         }
         let now = GameTime::new(self.clock.game_turn, self.clock.stage);
@@ -196,10 +231,6 @@ impl GameState {
                     stage_name(r.first)
                 ),
             ));
-        }
-        if path.iter().all(|h| hexes.contains(h)) {
-            // Staying within the cities releases nothing.
-            return Ok(none);
         }
         // Group the leavers: a counts_as_one unit and everything attached
         // to it (or under it) are one.
@@ -437,6 +468,54 @@ mod tests {
             3,
         );
         allowed(&data, &mut off, &["unit:cw:11-czech"]);
+    }
+
+    #[test]
+    fn a_free_hq_does_not_carry_its_held_units_out_61_38() {
+        let data = data();
+        let mut s = at(&data, Modules::ALL, 26, 3);
+        let attached = s
+            .pieces
+            .values()
+            .filter(|p| {
+                p.attached_to.as_ref().map(|u| u.to_string()).as_deref()
+                    == Some("unit:cw:polish-hq")
+            })
+            .count();
+        assert!(attached > 0, "the Polish brigade starts attached to its HQ");
+        refused(&data, &mut s, &["unit:cw:polish-hq"]);
+    }
+
+    #[test]
+    fn a_held_unit_may_shift_within_the_cities_in_the_opening_stage_61_38() {
+        let data = data();
+        let mut s = at(&data, Modules::ALL, 26, 3);
+        let zone = GameState::release_hexes(&data, Side::Cw).unwrap();
+        let id = s
+            .release
+            .held
+            .iter()
+            .find(|id| s.pieces[*id].attached_to.is_none())
+            .cloned()
+            .unwrap();
+        let from = s.pieces[&id].hex().unwrap().clone();
+        let inside = data
+            .map
+            .neighbours(&from)
+            .into_iter()
+            .find(|n| zone.contains(n))
+            .expect("a city hex next door");
+        s.apply(
+            &data,
+            Side::Cw,
+            Order::Move {
+                pieces: vec![id.clone()],
+                path: vec![inside],
+                assault: false,
+                fuel_from: None,
+            },
+        )
+        .unwrap_or_else(|e| panic!("{id}: {}", e.reason));
     }
 
     #[test]
