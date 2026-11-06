@@ -317,6 +317,42 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **Commonwealth withdrawals as data an engine can act on** (Mission 5:
+  scenario set-ups, Task 3 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  `reinforcement-schedule.json` has 33 `withdraws` rows and
+  `rules/70-organisation.md` (20.8x) says the unit must reach Cairo or
+  Alexandria by the stated turn or stage or be eliminated. Wanted, as
+  data or a ruling: (a) whether a row naming an HQ (`unit:cw:6-aus-hq`,
+  GT27/2) withdraws the HQ alone or with its assigned or attached units;
+  (b) what the rows' `Tpt: a/b` notes mean (truck points that leave with
+  it?) and what they become under the abstract block (motorisation
+  points?); (c) the instant of the check: the start or the end of the
+  stated OpStage, and in which phase; (d) 20.82's 75 % "of maximum
+  strength" for a brigade or division: its own TOE or the sum of its
+  units'; (e) GT97/2's "with any three infantry battalions" as a typed
+  pick. Until then the engine withdraws nothing.
+- **Scenario set-up rules as typed data** (Mission 5: scenario set-ups,
+  Tasks 2, 5 and 6 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  These are sentences in `sides.*.special` that the engine cannot act on:
+  (a) tanks that start broken down: Crusader's Alexandria shops (62.32,
+  by model, no repair before the second OpStage), The Last Chance's
+  Tobruk (63.42), Rommel's Arrival's 7th Armoured "all its tanks at
+  maximum TOE" (61.38); wanted as rows of hex or place, nation, weapon,
+  points and the first OpStage repair may start; (b) Rommel's Arrival's
+  release schedule (61.38: nothing leaves Cairo or Alexandria at first,
+  then a tank battalion at 75 % repaired and one other battalion an
+  OpStage from April 1941) as data; (c) The Last Chance's Tobruk
+  fortification row says "the four hexes next to Tobruk", but the map
+  has three land hexes beside C4807 (the rest are sea): which
+  is right? The engine places all three for now (#132); (d) on each
+  `construction.fortifications` row a player places (The Last Chance's
+  Bardia, Rommel's Arrival's Tobruk), the side that places them as a
+  field, not only in `constraint`'s prose; and likewise for the Last
+  Chance's minefields: each listed field's owner and the real and dummy
+  counts each side may set (63.77); (e) in the scenarios 64.7 judges
+  (the three campaign games, Desert Fox by R-104), 64.76's ratio levels
+  as data on `victory` (as The Long Retreat's `margins` are), so the
+  engine need not key on scenario ids.
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
   apply to the wreck unchanged, but 32.21 charges a barrage by battalion
