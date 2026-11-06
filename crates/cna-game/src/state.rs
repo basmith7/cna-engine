@@ -128,6 +128,10 @@ pub struct Modules {
     /// before play, the first unbombed (60.37, R-097).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub pre_play_convoys: bool,
+    /// Commonwealth withdrawals leave from Cairo or Alexandria, or are
+    /// eliminated, at the end of their OpStage (20.8x, R-154–R-157).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub withdrawals: bool,
     /// The scenario's tanks that start broken down are placed, held from
     /// repair until their printed OpStage (61.38, 62.32, 63.42).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -152,6 +156,7 @@ impl Modules {
         rail_ends: true,
         set_up_works: true,
         pre_play_convoys: true,
+        withdrawals: true,
         broken_down_starts: true,
         release_schedule: true,
     };
@@ -207,6 +212,14 @@ pub struct GameState {
     /// join `motorisation` in the hex that piece is placed in.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub pending_motorisation: BTreeMap<PieceId, u32>,
+    /// Pieces withdrawn from the game (20.8x), kept as they left for a
+    /// schedule row that brings them back.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub withdrawn: BTreeMap<PieceId, Piece>,
+    /// The Commonwealth's choice for this OpStage's `pick` withdrawal
+    /// (20.82, R-154), by the row's slot kind.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub withdrawal_picks: BTreeMap<String, Vec<PieceId>>,
     /// Who holds initiative this Game-Turn (7.1x).
     pub initiative: Option<Side>,
     /// Rommel recalled to Germany for this Game-Turn (31.0).
@@ -446,6 +459,8 @@ impl GameState {
             clock: Clock::opening(data.scenario.start),
             motorisation,
             pending_motorisation,
+            withdrawn: BTreeMap::new(),
+            withdrawal_picks: BTreeMap::new(),
             initiative: None,
             rommel_recalled: false,
             rommel_raids: 0,
@@ -731,7 +746,9 @@ impl GameState {
                     points,
                     fuel_from,
                 },
-            ) => self.repair_destroyed_tanks(data, player, hex, weapon, *points, fuel_from.as_ref()),
+            ) => {
+                self.repair_destroyed_tanks(data, player, hex, weapon, *points, fuel_from.as_ref())
+            }
             (
                 None,
                 Order::Tow {
@@ -776,6 +793,9 @@ impl GameState {
                 },
             ) => self.absorb_replacements(data, player, piece, weapon, *points),
             (None, Order::RaidRommel { piece }) => self.raid_rommel(data, player, piece),
+            (None, Order::PickWithdrawal { fills, pieces }) => {
+                self.pick_withdrawal(data, player, fills, pieces)
+            }
             (None, Order::FormRaider { raider, from }) => {
                 self.form_raider(data, player, raider, from)
             }

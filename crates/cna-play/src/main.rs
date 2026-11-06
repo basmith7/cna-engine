@@ -66,6 +66,9 @@ enum Cmd {
         /// Play without Group One's pre-play Axis convoys (R-097).
         #[arg(long)]
         no_pre_play_convoys: bool,
+        /// Play without Commonwealth withdrawals (20.8x, R-154).
+        #[arg(long)]
+        no_withdrawals: bool,
         /// Play without the scenario's tanks that start broken down
         /// (61.38, 62.32, 63.42).
         #[arg(long)]
@@ -203,6 +206,7 @@ fn main() -> Result<()> {
             no_rail_ends,
             no_set_up_works,
             no_pre_play_convoys,
+            no_withdrawals,
             no_broken_down_starts,
             no_release_schedule,
             output,
@@ -220,6 +224,7 @@ fn main() -> Result<()> {
                 rail_ends: !no_rail_ends,
                 set_up_works: !no_set_up_works,
                 pre_play_convoys: !no_pre_play_convoys,
+                withdrawals: !no_withdrawals,
                 broken_down_starts: !no_broken_down_starts,
                 release_schedule: !no_release_schedule,
             };

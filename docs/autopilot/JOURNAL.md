@@ -755,3 +755,9 @@ Done: #133 merged. #134 (cna fff7856 bump, left unpushed by the killed run; adc4
 In flight: subagents on autopilot/m5-withdrawals (/tmp/cna-withdraw, R-154–157) and autopilot/m5-release-schedule (/tmp/cna-release, R-159 + all_tanks, stacked on #135). /tmp is tmpfs: target dirs under work/targets/.
 Next: merge #134 → retarget #135 and withdrawals to main → merge; review the two subagent PRs.
 Blocked: none.
+
+## 2026-11-06 04:25 MST — autopilot/m5-withdrawals
+Done: #133, #134 (cna fff7856), #135 (broken_down_starts) merged. #137 (ratio levels, 64.76) ready. #138 (release_schedule, R-159; review's 3 bugs fixed in 9eec046) ready. #136 (withdrawals, R-154–157) ready; carries #135/#138 merged in with pins regenerated, so merge it last.
+In flight: CI on #136/#137/#138; merge order #137, #138, #136.
+Next: plan Task 2 rest (cna's typed `minefield_sets` and fortification `side`: player-placed works at set-up), Task 5 rest (7th Armoured `all_tanks`: a TOE-0 tank battalion is eliminated by note_losses; repair returns points as replacements, not to the unit), R-102 motorisation (61.72), Task 7 rest (64.71–64.75).
+Blocked: none. /tmp is tmpfs: CARGO_TARGET_DIR under work/targets/.
