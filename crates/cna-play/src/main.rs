@@ -66,6 +66,9 @@ enum Cmd {
         /// Play without Group One's pre-play Axis convoys (R-097).
         #[arg(long)]
         no_pre_play_convoys: bool,
+        /// Play without Commonwealth withdrawals (20.8x, R-154).
+        #[arg(long)]
+        no_withdrawals: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -196,6 +199,7 @@ fn main() -> Result<()> {
             no_rail_ends,
             no_set_up_works,
             no_pre_play_convoys,
+            no_withdrawals,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -211,6 +215,7 @@ fn main() -> Result<()> {
                 rail_ends: !no_rail_ends,
                 set_up_works: !no_set_up_works,
                 pre_play_convoys: !no_pre_play_convoys,
+                withdrawals: !no_withdrawals,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

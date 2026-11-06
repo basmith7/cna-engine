@@ -52,4 +52,5 @@ pub mod state;
 mod supply;
 pub mod victory;
 pub mod view;
+mod withdraw;
 pub mod zoc;

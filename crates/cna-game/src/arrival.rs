@@ -2,7 +2,8 @@
 //! schedule names, a listed unit lands with its sheet subtree, the
 //! Commonwealth at Cairo and the Axis in the Tripoli box, paying nothing
 //! to land or for its first hex. Stacking does not bind an arrival
-//! (only returning withdrawn units, out of scope). The Benghazi
+//! (only returning withdrawn units, out of scope). A unit withdrawn
+//! under the `withdrawals` module returns as it left. The Benghazi
 //! diversion (55.1) waits for the Logistics Game.
 
 use crate::data::Data;
@@ -39,6 +40,11 @@ impl GameState {
                     for mut p in pieces {
                         if self.pieces.contains_key(&p.id) {
                             continue;
+                        }
+                        // A withdrawn unit comes back as it left (R-157).
+                        if let Some(back) = self.withdrawn.remove(&p.id) {
+                            p = back;
+                            p.location = at.clone();
                         }
                         p.landed = true;
                         ids.push(p.id.clone());

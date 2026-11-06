@@ -483,6 +483,23 @@ pub enum Event {
         ammo: u32,
         fuel: u32,
     },
+    /// A withdrawal due this OpStage left the game from Cairo or
+    /// Alexandria, taking `motorisation` points with it (20.8x, R-155).
+    Withdrawn {
+        pieces: Vec<PieceId>,
+        motorisation: u32,
+    },
+    /// A withdrawal not ready at its check: every unit in it is
+    /// eliminated, and none returns (20.83, R-156).
+    WithdrawalFailed {
+        pieces: Vec<PieceId>,
+        reason: String,
+    },
+    /// The Commonwealth chose the units of a `pick` withdrawal (20.82).
+    WithdrawalPicked {
+        fills: String,
+        pieces: Vec<PieceId>,
+    },
     /// A piece whose last TOE point went.
     Eliminated {
         piece: PieceId,

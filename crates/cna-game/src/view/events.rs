@@ -104,6 +104,9 @@
 //! | `motorisation-detached` | own | `piece` | motorisation is the owner's |
 //! | `load-transferred` | own | `from` | loads |
 //! | `eliminated` | public | | a board fact |
+//! | `withdrawn` | public | | counters leave the board on the printed schedule, with its printed motorisation (20.8x) |
+//! | `withdrawal-failed` | public | | counters are eliminated on the board (20.83) |
+//! | `withdrawal-picked` | own | Commonwealth | which units go is the player's until the check (20.82) |
 //! | `forces-assigned` | reduced | `side` | `assignments`: per-piece role allocations, written down secretly; the types that took part show in `assault` |
 //! | `combat-cp` | own | `piece` | CP, status |
 //! | `combat-cp-refunded` | own | `piece` | CP and DP, status |
@@ -305,6 +308,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::DestroyedTanksCaptured { .. }
         | E::Railed { .. }
         | E::Eliminated { .. }
+        | E::Withdrawn { .. }
+        | E::WithdrawalFailed { .. }
         | E::Captured { .. }
         | E::FortificationBuilt { .. }
         | E::MinefieldLaid { .. }
@@ -343,6 +348,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::SupplyPlanned { side, .. } | E::MotorisationLost { side, .. } => Own(Some(*side)),
         // R-144: the Commonwealth learns only the lanes it bombs.
         E::ConvoyLanesSet { .. } | E::ConvoyCancelled { .. } => Own(Some(Side::Axis)),
+        E::WithdrawalPicked { .. } => Own(Some(Side::Cw)),
         // 32.72: the number of strikes is rolled secretly.
         E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
         E::Towed { side, .. } => Own(Some(*side)),

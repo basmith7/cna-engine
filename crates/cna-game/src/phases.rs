@@ -109,6 +109,9 @@ impl GameState {
     fn advance(&mut self, data: &Data, events: &mut Vec<Event>) {
         loop {
             let clock = self.clock;
+            if clock.phase == Phase::InitiativeDeclaration {
+                self.withdraw_after_stage(data, events);
+            }
             if GameTime::new(clock.game_turn, clock.stage) > data.scenario.end {
                 let report = crate::victory::evaluate(data, self);
                 self.over = Some(report.clone());

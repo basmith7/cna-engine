@@ -34,6 +34,7 @@
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
 //! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
 //! | `motorisation`, `repaired`, `pending_motorisation` | own only (layer 1) |
+//! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
 //! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
 //! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
@@ -160,6 +161,8 @@ const STATE_FILTERS: &[&str] = &[
     "motorisation",
     "repaired",
     "pending_motorisation",
+    "withdrawn",
+    "withdrawal_picks",
     "planned",
     "broken_down",
     "field_rolled",
@@ -290,7 +293,14 @@ pub fn view_for(
             }
         }
     }
-    // Layer 1: the owner's secrets.
+    // Layer 1: the owner's secrets. Withdrawn units keep their TOE for
+    // their return, and the pick waits for the check (20.8x).
+    if enemies.contains(&Side::Cw)
+        && let Some(o) = v.as_object_mut()
+    {
+        o.remove("withdrawn");
+        o.remove("withdrawal_picks");
+    }
     for key in ["motorisation", "repaired"] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {

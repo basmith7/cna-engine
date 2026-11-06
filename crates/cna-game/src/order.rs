@@ -204,6 +204,10 @@ pub enum Order {
     /// The phasing Commonwealth player's movement segment: LRDG `piece`,
     /// next to Rommel's hex, spends 10 CP to raid him (27.6x).
     RaidRommel { piece: PieceId },
+    /// The Commonwealth, while an OpStage's withdrawal row names a
+    /// `pick` of `fills` units: `pieces` are the ones that go with it
+    /// (20.82, R-154). A later pick replaces an earlier one.
+    PickWithdrawal { fills: String, pieces: Vec<PieceId> },
     /// Phase C: raider counter `raider`, not in play, is formed in
     /// `from`'s hex from one of its recce or armoured-car TOE points
     /// (27.13, 27.16).

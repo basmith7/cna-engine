@@ -24,8 +24,33 @@ pub struct Row {
     pub kind: Kind,
     pub units: Vec<UnitId>,
     pub trucks: Option<Trucks>,
+    /// Units printed "HQ": the counter alone, without its sheet (R-154).
+    #[serde(default)]
+    pub hq_only: Vec<UnitId>,
+    /// Printed "Less": units under one named that stay (R-154).
+    #[serde(default)]
+    pub less: Vec<UnitId>,
+    /// Units of a slot kind the Commonwealth player chooses (20.82, R-154).
+    pub pick: Option<Pick>,
+    /// A withdrawal's printed "Tpt" (R-157).
+    pub transport: Option<Transport>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Pick {
+    pub count: u32,
+    /// A Formation Organisation slot kind (an OA counter's `fills`).
+    pub fills: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct Transport {
+    /// Truck value points (Logistics Game).
+    pub truck_value: u32,
+    /// Motorisation points under abstract logistics (§32).
+    pub motorisation: u32,
 }
 
 #[derive(Deserialize)]
@@ -125,5 +150,23 @@ mod tests {
             .unwrap();
         assert_eq!((trucks.light, trucks.medium, trucks.heavy), (5, 20, 0));
         assert!(s.rows().any(|r| r.kind == Kind::Withdraws));
+    }
+
+    #[test]
+    fn withdrawals_carry_their_marks() {
+        let s = Schedule::load().unwrap();
+        let row = s
+            .withdrawals(Side::Cw, GameTime::new(97, 2))
+            .next()
+            .unwrap();
+        assert_eq!(row.hq_only, row.units);
+        let pick = row.pick.as_ref().unwrap();
+        assert_eq!((pick.count, pick.fills.as_str()), (3, "infantry-battalion"));
+        assert_eq!(row.transport.unwrap().motorisation, 21);
+        let row = s
+            .withdrawals(Side::Cw, GameTime::new(15, 2))
+            .next()
+            .unwrap();
+        assert_eq!(row.less.len(), 2);
     }
 }
