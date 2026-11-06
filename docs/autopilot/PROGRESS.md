@@ -315,7 +315,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   unit's wreck it credits, and the wreck list shows owners; #152 (merged)
   `view_for` at The Last Chance's set-up 212 ms → 13 ms, views unchanged.
   #151 (Mission 3's polish residue: hex labels, tray counters, badge,
-  "More below" cue, end dialog at 390 px) is ready, CI running; a fresh
+  "More below" cue, end dialog at 390 px) merged; a fresh
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Still open: Bardia's set-up forts and set-up
   works vs enemy ZOC, both asked of cna below.
