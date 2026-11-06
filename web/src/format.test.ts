@@ -81,6 +81,7 @@ const cases: [Event, string][] = [
   [{ "minefield-laid": { side: "cw", hex: "C3923" } }, "Commonwealth lays a minefield in C3923."],
   [{ "minefield-revealed": { hex: "C3923", real: false } }, "The minefield in C3923 is a dummy."],
   [{ "minefield-removed": { hex: "C3923" } }, "The minefield in C3923 is taken off."],
+  [{ "set-up-work-voided": { side: "axis", hex: "C4220", minefield: false } }, "Axis's fortification in C4220 is in an enemy ZOC and comes off: place it again."],
   [{ "guards-detailed": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 3 } }, "unit:it:iim-tank-bn details 3 guard points in C4021."],
   [{ "guards-released": { piece: "unit:it:iim-tank-bn", hex: "C4021", points: 1 } }, "1 guard points rejoin unit:it:iim-tank-bn in C4021."],
   [{ "prisoners-escaped": { side: "axis", hex: "E2020", rejoined: 0, escapees: 6 } }, "Axis prisoners escape in E2020: 6 wait there as escapees."],
@@ -134,9 +135,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 93 variants", () => {
+  it("covers all 94 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(93);
+    expect(tags.size).toBe(94);
   });
 
   it.each(cases)("%j", (event, line) => {

@@ -2,7 +2,7 @@
   "id": "R-015",
   "kind": "line",
   "question": "Defensive anti-armour fire at armour assaulting out of rough ground, up a slope",
-  "rules_commit": "e9a90b3aa84c25af3568988b9961444c2910c12a",
+  "rules_commit": "9336fccdc1a344087313112a5fb1f79086501993",
   "engine_commit": "see git log",
   "x": {
     "label": "Actual anti-armour points (non-phasing)",

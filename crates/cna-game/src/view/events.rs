@@ -315,6 +315,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::MinefieldLaid { .. }
         | E::MinefieldRevealed { .. }
         | E::MinefieldRemoved { .. }
+        | E::SetUpWorkVoided { .. }
         | E::PrisonersEscaped { .. }
         | E::PrisonersFreed { .. }
         | E::BizertaOpened

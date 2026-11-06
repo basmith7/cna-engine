@@ -4,14 +4,23 @@
 //! `placed_works` module on. Each becomes a `WorkQuota` its side fills
 //! with `Order::PlaceWork` during its set-up; the set-up does not pass on
 //! until every required quota is full, and a side with only optional
-//! (`up_to`) room left ends it with `Pass`. Whether a field is real is
+//! (`up_to`) room left ends it with `Pass`: Rommel's Arrival's and
+//! Bardia's forts are a maximum (R-161). Whether a field is real is
 //! the owner's secret, as for one laid in play (`construction::Minefield`).
+//!
+//! A work in a hex the scenario prints stands as printed; one whose hex
+//! the owner chooses goes only where §24 would let it be started, enemy
+//! ZOC included, judged against the finished set-up (R-162). A side
+//! places against the enemy units already set up; once both sides are
+//! done, a chosen work in an enemy ZOC is taken off and its side's set-up
+//! reopens to place it again (`void_works_in_enemy_zoc`).
 
 use crate::construction::{Item, Minefield};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::place::{Near, allowed_near, area};
 use crate::state::{GameState, Pending};
+use crate::zoc::Zoc;
 use cna_data::map::{HexId, Terrain};
 use cna_data::scenario::{MinefieldSet, Side, Works};
 use serde::{Deserialize, Serialize};
@@ -73,7 +82,20 @@ impl WorkQuota {
     }
 
     fn optional(&self, works: &Works) -> bool {
-        self.set(works).is_some_and(|s| s.up_to)
+        match self.set(works) {
+            Some(s) => s.up_to,
+            None => works
+                .fortifications
+                .get(self.index)
+                .is_some_and(|r| r.up_to),
+        }
+    }
+
+    /// Whether `hex` is one the owner chose rather than one the scenario
+    /// prints: every fortification row with a side, and a minefield set's
+    /// fields beyond its list (R-162).
+    fn chosen(&self, works: &Works, hex: &HexId) -> bool {
+        self.set(works).is_none_or(|s| !s.hexes.contains(hex))
     }
 
     fn full(&self, works: &Works) -> bool {
@@ -343,7 +365,11 @@ impl GameState {
             {
                 continue;
             }
-            match q.refusal(data, works, item, hex, near) {
+            let r = q.refusal(data, works, item, hex, near).or_else(|| {
+                (q.chosen(works, hex) && self.zoc_at(data, hex, side) != Zoc::Clear)
+                    .then(|| format!("{hex} is in an enemy ZOC (24.35, 24.44, R-162)"))
+            });
+            match r {
                 None => return Ok(i),
                 Some(r) => why = why.or(Some(r)),
             }
@@ -441,10 +467,54 @@ impl GameState {
         Ok(self.advance_set_up(data))
     }
 
+    /// Once both sides have set up: every work its owner chose a hex for
+    /// that now stands in an enemy ZOC is taken off, and its quota opens
+    /// again (R-162). A fortification level comes off only down to none:
+    /// no printed row shares a hex with a chosen one.
+    fn void_works_in_enemy_zoc(&mut self, data: &Data) -> Vec<Event> {
+        let Ok(works) = data.scenario.works() else {
+            return Vec::new();
+        };
+        let mut voided = Vec::new();
+        for (i, q) in self.works_to_place.iter().enumerate() {
+            for h in &q.placed {
+                if q.chosen(&works, h) && self.zoc_at(data, h, q.side) != Zoc::Clear {
+                    voided.push((i, h.clone()));
+                }
+            }
+        }
+        let mut events = Vec::new();
+        for (i, h) in voided {
+            let q = &mut self.works_to_place[i];
+            q.placed.retain(|x| *x != h);
+            q.closed = false;
+            if q.minefields {
+                if self.minefields.remove(&h).is_some_and(|m| m.real) {
+                    q.real -= 1;
+                }
+            } else {
+                let level = works.fortifications[q.index].level;
+                if self.fortifications.get(&h).is_some_and(|&l| l <= level) {
+                    self.fortifications.remove(&h);
+                }
+            }
+            events.push(Event::SetUpWorkVoided {
+                side: q.side,
+                hex: h,
+                minefield: q.minefields,
+            });
+        }
+        events
+    }
+
     /// After a set-up order: the next side to set up, or play begins.
     pub(crate) fn advance_set_up(&mut self, data: &Data) -> Vec<Event> {
         self.pending = self.next_set_up_with(data);
         let mut events = Vec::new();
+        if self.pending.is_none() {
+            events.extend(self.void_works_in_enemy_zoc(data));
+            self.pending = self.next_set_up_with(data);
+        }
         if self.pending.is_none() {
             events.push(Event::SetUpComplete);
             events.extend(self.start_play(data));
@@ -476,35 +546,43 @@ mod tests {
         let mut s = GameState::with_modules(data, 1, Modules::ALL).unwrap();
         if side == Side::Cw {
             place_pieces(data, &mut s, Side::Axis);
-            while s.pending == Some(Pending::SetUp { side: Side::Axis }) {
-                let order = s
-                    .work_placements(data, Side::Axis, Item::Fortification)
-                    .into_iter()
-                    .chain(s.work_placements(data, Side::Axis, Item::RealMinefield))
-                    .chain(s.work_placements(data, Side::Axis, Item::DummyMinefield))
-                    .next()
-                    .map_or(Order::Pass, |h| {
-                        let item = if s
-                            .work_placements(data, Side::Axis, Item::Fortification)
-                            .contains(&h)
-                        {
-                            Item::Fortification
-                        } else if s
-                            .work_placements(data, Side::Axis, Item::RealMinefield)
-                            .contains(&h)
-                        {
-                            Item::RealMinefield
-                        } else {
-                            Item::DummyMinefield
-                        };
-                        Order::PlaceWork { item, hex: h }
-                    });
-                s.apply(data, Side::Axis, order).unwrap();
-            }
+            fill_works(data, &mut s, Side::Axis);
         }
         place_pieces(data, &mut s, side);
         assert_eq!(s.pending, Some(Pending::SetUp { side }));
         s
+    }
+
+    /// `side` places its works at the first hexes the engine offers, then
+    /// passes, until its set-up is over.
+    fn fill_works(data: &Data, s: &mut GameState, side: Side) -> Vec<Event> {
+        let mut events = Vec::new();
+        while s.pending == Some(Pending::SetUp { side }) {
+            let order = s
+                .work_placements(data, side, Item::Fortification)
+                .into_iter()
+                .chain(s.work_placements(data, side, Item::RealMinefield))
+                .chain(s.work_placements(data, side, Item::DummyMinefield))
+                .next()
+                .map_or(Order::Pass, |h| {
+                    let item = if s
+                        .work_placements(data, side, Item::Fortification)
+                        .contains(&h)
+                    {
+                        Item::Fortification
+                    } else if s
+                        .work_placements(data, side, Item::RealMinefield)
+                        .contains(&h)
+                    {
+                        Item::RealMinefield
+                    } else {
+                        Item::DummyMinefield
+                    };
+                    Order::PlaceWork { item, hex: h }
+                });
+            events.extend(s.apply(data, side, order).unwrap());
+        }
+        events
     }
 
     #[test]
@@ -552,6 +630,116 @@ mod tests {
             s.apply(&data, Side::Cw, work(Item::Fortification, ok[4].as_str()))
                 .is_err()
         );
+    }
+
+    /// A stack of `side`'s that exerts a ZOC, moved next to `target`
+    /// where its ZOC reaches it.
+    fn exert_on(data: &Data, s: &mut GameState, side: Side, target: &HexId) {
+        let from = s
+            .pieces
+            .values()
+            .filter(|p| p.side == side)
+            .filter_map(|p| match &p.location {
+                crate::piece::Location::Hex(h) => Some(h.clone()),
+                _ => None,
+            })
+            .find(|h| s.holder(h) == Some(side) && s.could_exert(data, h))
+            .expect("an exerting stack");
+        let stack: Vec<crate::piece::PieceId> =
+            s.pieces_at(&from).iter().map(|p| p.id.clone()).collect();
+        for n in data.map.neighbours(target) {
+            for id in &stack {
+                s.put(id, crate::piece::Location::Hex(n.clone()));
+            }
+            if s.zoc_at(data, target, side.other()) != Zoc::Clear {
+                return;
+            }
+        }
+        panic!("no neighbour of {target} carries a ZOC into it");
+    }
+
+    #[test]
+    fn rommels_arrival_forts_are_up_to_four_r_161() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut s = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        place_pieces(&data, &mut s, Side::Axis);
+        place_pieces(&data, &mut s, Side::Cw);
+        assert_eq!(s.pending, Some(Pending::SetUp { side: Side::Cw }));
+        let events = s.apply(&data, Side::Cw, Order::Pass).unwrap();
+        assert!(events.contains(&Event::SetUpComplete));
+        assert!(s.fortifications.is_empty(), "{:?}", s.fortifications);
+    }
+
+    #[test]
+    fn last_chance_axis_may_stop_at_one_bardia_fort_r_161() {
+        let data = Data::load("the-last-chance").unwrap();
+        let mut s = ready(&data, Side::Axis);
+        s.apply(&data, Side::Axis, work(Item::Fortification, "C4220"))
+            .unwrap();
+        // The minefields are still required; the forts are not.
+        let o = s.work_options(&data, Side::Axis).unwrap();
+        let fields: u64 = data
+            .scenario
+            .works()
+            .unwrap()
+            .minefield_sets
+            .iter()
+            .filter(|m| m.side == Side::Axis && !m.up_to)
+            .map(|m| u64::from(m.real + m.dummy))
+            .sum();
+        assert_eq!(o["required_left"], serde_json::json!(fields));
+    }
+
+    #[test]
+    fn a_chosen_fort_hex_in_enemy_zoc_is_refused_r_162() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut s = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        place_pieces(&data, &mut s, Side::Axis);
+        place_pieces(&data, &mut s, Side::Cw);
+        let site = s.work_placements(&data, Side::Cw, Item::Fortification)[0].clone();
+        exert_on(&data, &mut s, Side::Axis, &site);
+        assert!(
+            !s.work_placements(&data, Side::Cw, Item::Fortification)
+                .contains(&site)
+        );
+        let err = s
+            .apply(&data, Side::Cw, work(Item::Fortification, site.as_str()))
+            .unwrap_err();
+        assert!(err.reason.contains("enemy ZOC"), "{err:?}");
+    }
+
+    #[test]
+    fn a_work_the_enemy_set_up_next_to_is_placed_again_r_162() {
+        let data = Data::load("the-last-chance").unwrap();
+        let mut s = ready(&data, Side::Cw);
+        let works = data.scenario.works().unwrap();
+        let fort = s
+            .works_to_place
+            .iter()
+            .find(|q| q.side == Side::Axis && !q.minefields)
+            .and_then(|q| q.placed.first().cloned())
+            .expect("an Axis fort placed at Bardia");
+        assert!(works.fortifications.iter().any(|r| r.up_to));
+        exert_on(&data, &mut s, Side::Cw, &fort);
+        let events = fill_works(&data, &mut s, Side::Cw);
+        assert!(
+            events.contains(&Event::SetUpWorkVoided {
+                side: Side::Axis,
+                hex: fort.clone(),
+                minefield: false,
+            }),
+            "{events:?}"
+        );
+        assert!(!events.contains(&Event::SetUpComplete));
+        assert_eq!(s.pending, Some(Pending::SetUp { side: Side::Axis }));
+        assert_eq!(s.fortifications.get(&fort), None);
+        assert!(
+            !s.work_placements(&data, Side::Axis, Item::Fortification)
+                .contains(&fort)
+        );
+        // The forts are a maximum: the Axis may leave it off.
+        let events = s.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert!(events.contains(&Event::SetUpComplete), "{events:?}");
     }
 
     #[test]
@@ -628,9 +816,9 @@ mod tests {
             assert_eq!(s.minefields[h].real, item == Item::RealMinefield);
             assert_eq!(s.minefields[h].side, Side::Axis);
         }
-        // The forts are still to place: set-up holds.
+        // The forts are a maximum (R-161): set-up holds only for the
+        // optional works the Axis has not declined.
         assert_eq!(s.pending, Some(Pending::SetUp { side: Side::Axis }));
-        assert!(s.apply(&data, Side::Axis, Order::Pass).is_err());
         for h in ["C4220", "C4221", "C4320"] {
             s.apply(&data, Side::Axis, work(Item::Fortification, h))
                 .unwrap();

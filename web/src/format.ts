@@ -187,6 +187,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
   if ("minefield-laid" in e) return `${sideName(e["minefield-laid"].side)} lays a minefield in ${e["minefield-laid"].hex}.`;
   if ("minefield-revealed" in e) return `The minefield in ${e["minefield-revealed"].hex} is ${e["minefield-revealed"].real ? "real" : "a dummy"}.`;
   if ("minefield-removed" in e) return `The minefield in ${e["minefield-removed"].hex} is taken off.`;
+  if ("set-up-work-voided" in e) {
+    const v = e["set-up-work-voided"];
+    return `${sideName(v.side)}'s ${v.minefield ? "minefield" : "fortification"} in ${v.hex} is in an enemy ZOC and comes off: place it again.`;
+  }
   if ("guards-detailed" in e) return `${name(e["guards-detailed"].piece)} details ${count(e["guards-detailed"].points, "guard points", "guards")} in ${e["guards-detailed"].hex}.`;
   if ("guards-released" in e) return `${count(e["guards-released"].points, "guard points", "Guards")} rejoin ${name(e["guards-released"].piece)} in ${e["guards-released"].hex}.`;
   if ("prisoners-escaped" in e) {

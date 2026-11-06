@@ -425,6 +425,7 @@ export type Event =
   | { "minefield-laid": { side: Side; hex: HexId } }
   | { "minefield-revealed": { hex: HexId; real: boolean } }
   | { "minefield-removed": { hex: HexId } }
+  | { "set-up-work-voided": { side: Side; hex: HexId; minefield: boolean } }
   | { "guards-detailed": { piece: PieceId; hex: HexId; points?: number } }
   | { "guards-released": { piece: PieceId; hex: HexId; points?: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }

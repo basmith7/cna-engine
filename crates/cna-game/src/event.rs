@@ -598,6 +598,14 @@ pub enum Event {
     MinefieldRemoved {
         hex: HexId,
     },
+    /// A set-up work `side` chose `hex` for stood in an enemy ZOC once
+    /// both sides had set up, so it is taken off and `side` places it
+    /// again (R-162): a fortification level, or a minefield.
+    SetUpWorkVoided {
+        side: Side,
+        hex: HexId,
+        minefield: bool,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {
