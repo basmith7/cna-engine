@@ -15,10 +15,8 @@ engine leaves out in `NOT_SIMULATED.md`.
   is the ruling's accepted Decision.
 - No front end picks a ruleset: `GameState::with_modules` sets `Ruleset::default()`. Other
   options are reached only by tests, probes or a hand-edited log.
-- `NOT_SIMULATED.md` lags in places: its combat row says no ammunition or fuel is deducted,
-  its Rail row says combat units don't ride, and its Organisation row predates replacements
-  and R-141's chart-based shells. Where it disagrees with the Status in
-  `docs/designs/2026-10-13-land-turn-design.md`, trust the spec.
+- Where `NOT_SIMULATED.md` and the Status in
+  `docs/designs/2026-10-13-land-turn-design.md` disagree, trust the spec.
 
 ## Determinism and saves
 
