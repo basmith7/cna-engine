@@ -373,7 +373,7 @@ impl GameState {
                 continue;
             }
             let r = q.refusal(data, works, item, hex, near).or_else(|| {
-                (q.chosen(works, hex) && self.zoc_at(data, hex, side) != Zoc::Clear)
+                (q.chosen(works, hex) && self.enemy_controlled(data, hex, side))
                     .then(|| format!("{hex} is in an enemy ZOC (24.35, 24.44, R-162)"))
             });
             match r {
@@ -474,6 +474,11 @@ impl GameState {
         Ok(self.advance_set_up(data))
     }
 
+    /// Whether the enemy holds `hex` or exerts a ZOC into it, for `side`.
+    fn enemy_controlled(&self, data: &Data, hex: &HexId, side: Side) -> bool {
+        self.holder(hex) == Some(side.other()) || self.zoc_at(data, hex, side) != Zoc::Clear
+    }
+
     /// Once both sides have set up: every work its owner chose a hex for
     /// that now stands in an enemy ZOC is taken off, and its quota opens
     /// again (R-162). A fortification level comes off only down to none:
@@ -485,7 +490,7 @@ impl GameState {
         let mut voided = Vec::new();
         for (i, q) in self.works_to_place.iter().enumerate() {
             for h in &q.placed {
-                if q.chosen(&works, h) && self.zoc_at(data, h, q.side) != Zoc::Clear {
+                if q.chosen(&works, h) && self.enemy_controlled(data, h, q.side) {
                     voided.push((i, h.clone()));
                 }
             }
@@ -521,6 +526,7 @@ impl GameState {
         if self.pending.is_none() {
             events.extend(self.void_works_in_enemy_zoc(data));
             self.pending = self.next_set_up_with(data);
+            self.works_reopened = self.pending.is_some();
         }
         if self.pending.is_none() {
             events.push(Event::SetUpComplete);
@@ -740,6 +746,19 @@ mod tests {
         assert!(!events.contains(&Event::SetUpComplete));
         assert_eq!(s.pending, Some(Pending::SetUp { side: Side::Axis }));
         assert_eq!(s.fortifications.get(&fort), None);
+        // Only works move now: the Axis knows the whole Commonwealth
+        // set-up, so its pieces stay put.
+        let axis = s
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && matches!(p.location, crate::piece::Location::Hex(_)))
+            .unwrap()
+            .id
+            .clone();
+        let err = s
+            .apply(&data, Side::Axis, Order::Unplace { piece: axis })
+            .unwrap_err();
+        assert!(err.reason.contains("pieces stay"), "{err:?}");
         assert!(
             !s.work_placements(&data, Side::Axis, Item::Fortification)
                 .contains(&fort)
