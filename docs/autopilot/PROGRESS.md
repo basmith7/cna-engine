@@ -317,6 +317,20 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
+- **Commonwealth withdrawals as data an engine can act on** (Mission 5:
+  scenario set-ups, Task 3 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  `reinforcement-schedule.json` has 33 `withdraws` rows and
+  `rules/70-organisation.md` (20.8x) says the unit must reach Cairo or
+  Alexandria by the stated turn or stage or be eliminated. Wanted, as
+  data or a ruling: (a) whether a row naming an HQ (`unit:cw:6-aus-hq`,
+  GT27/2) withdraws the HQ alone or with its assigned or attached units;
+  (b) what the rows' `Tpt: a/b` notes mean (truck points that leave with
+  it?) and what they become under the abstract block (motorisation
+  points?); (c) the instant of the check: the start or the end of the
+  stated OpStage, and in which phase; (d) 20.82's 75 % "of maximum
+  strength" for a brigade or division: its own TOE or the sum of its
+  units'; (e) GT97/2's "with any three infantry battalions" as a typed
+  pick. Until then the engine withdraws nothing.
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
   apply to the wreck unchanged, but 32.21 charges a barrage by battalion
