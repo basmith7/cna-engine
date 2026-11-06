@@ -733,7 +733,7 @@ mod tests {
                 Item::RealMinefield,
                 Item::DummyMinefield,
             ] {
-                let each: Vec<HexId> = data
+                let mut each: Vec<HexId> = data
                     .map
                     .hexes()
                     .map(|h| h.id.clone())
@@ -742,10 +742,9 @@ mod tests {
                             .is_ok()
                     })
                     .collect();
-                let mut sorted = each.clone();
-                sorted.sort();
+                each.sort();
                 let offered = s.work_placements(&data, side, item);
-                assert_eq!(offered, sorted, "{side} {item:?}");
+                assert_eq!(offered, each, "{side} {item:?}");
                 let key = serde_json::to_value(item).unwrap();
                 assert_eq!(
                     options.get(key.as_str().unwrap()),
