@@ -309,10 +309,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
-- Mission 5 follow-ups, small: Bardia's set-up forts may be optional by
-  the prose (a cna question); set-up works ignore enemy ZOC; views at The
-  Last Chance's set-up take about 210 ms natively; a 0-TOE battalion
-  can't be eliminated; the player can't pick which unit a repair credits.
+- Mission 5 follow-ups, this run (2026-11-06 afternoon): #150 (merged)
+  an assault eliminates a 0-TOE battalion left alone in its hex (19.62,
+  3.5, 15.55; asked of cna below); #149 (merged) a repair can name which
+  unit's wreck it credits, and the wreck list shows owners; #152 (merged)
+  `view_for` at The Last Chance's set-up 212 ms → 13 ms, views unchanged.
+  #151 (Mission 3's polish residue: hex labels, tray counters, badge,
+  "More below" cue, end dialog at 390 px) is ready, CI running; a fresh
+  critique's fixes are in. Still open: Bardia's set-up forts and set-up
+  works vs enemy ZOC, both asked of cna below.
 - `vendor/cna` is at cna e9a90b3 (#145).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
@@ -399,6 +404,12 @@ the bullet once it lands and `vendor/cna` is bumped.
   forts, The Last Chance's forts and minefields) ignores ZOC because
   set-up is not construction. A ruling on whether set-up placement is
   construction for 24.35/24.44, or a note in the scenarios that it is not.
+- **A combat unit at 0 TOE** (Mission 5 follow-up, #150). With
+  61.38's tanks broken down with their units, a battalion can stand at 0
+  TOE. The engine now eliminates such units when an assault leaves their
+  side nothing with TOE in the hex (19.62, 3.5, 15.55), but no ruling
+  covers it: whether they exert ZOC, can be barraged, or are captured
+  alone in enemy ZOC as 10.29 does for supply. A ruling would settle it.
 
 ## Runs and quota
 
