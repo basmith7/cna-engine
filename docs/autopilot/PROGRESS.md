@@ -580,3 +580,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-06 08:44 | 71 | 8→10 | none→none | $11.48 | 4 | Four follow-up PRs and the formatting cleanup are merged. Mission 6 (the Logistics Game) is still waiting on your review of its spec, PR #148, so I built nothin |
 | 2026-11-06 13:44 | 47 | 10→10 | none→none | $6.53 | 10 | I merged two PRs this run. Mission 6 (the Logistics Game) is still waiting for your review of #148. **#154** moves `vendor/cna` to 9336fcc, which brings in cna' |
 | 2026-11-06 14:44 | 71 | 10→10 | none→none | $7.62 | 103 | All three PRs merged to main. CI was green on each, and so were the local gates, the `web/` checks and Playwright (65/65). Feedback was empty and #148 (the Miss |
+| 2026-11-06 15:55 | 60 | 10→11 | none→none | $8.73 | 46 | Reassignment (SPI 19.2x) is built and merged as #159, and #160 adds the missing `capture_on_move` tests. Brian's review of the Mission 6 spec (#148) is still th |
