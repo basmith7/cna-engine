@@ -108,12 +108,15 @@ impl GameState {
             ));
         }
         let ceiling = self.toe_ceiling(data, p);
-        if p.toe + points > ceiling {
+        // Points broken down for the unit come back to it when repaired,
+        // so they keep their room under the ceiling (61.38's `all_tanks`).
+        let held = self.held_for(piece);
+        if p.toe + held + points > ceiling {
             return Err(Illegal::new(
                 "19.61",
                 format!(
                     "{piece} would hold {} TOE points: at most {ceiling}",
-                    p.toe + points
+                    p.toe + held + points
                 ),
             ));
         }
@@ -301,6 +304,32 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "19.61");
         assert_eq!(state.repaired[&Side::Axis][&hex][&weapon], 3);
+    }
+
+    #[test]
+    fn points_held_for_repair_keep_their_room_under_the_ceiling_19_61() {
+        let data = graziani();
+        let (mut state, hex, weapon) = organising(&data, Modules::ALL);
+        let tanks = pid(TANKS);
+        let ceiling = state.toe_ceiling(&data, &state.pieces[&tanks]);
+        state.pieces.get_mut(&tanks).unwrap().toe = ceiling - 3;
+        // Two of its points wait broken down for it (61.38's `all_tanks`).
+        state.broken_down.entry(hex.clone()).or_default().push(crate::breakdown::Wreck {
+            side: Side::Axis,
+            nation: state.pieces[&tanks].nation,
+            weapon: weapon.clone(),
+            points: 2,
+            this_stage: 0,
+            towed: 0,
+            unit: tanks.unit(),
+        });
+        let err = state
+            .apply(&data, Side::Axis, absorb(TANKS, &weapon, 2))
+            .unwrap_err();
+        assert_eq!(err.case, "19.61");
+        state
+            .apply(&data, Side::Axis, absorb(TANKS, &weapon, 1))
+            .unwrap();
     }
 
     #[test]

@@ -9,10 +9,11 @@
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{PieceId, PieceKind};
+use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use crate::zoc::Zoc;
 use cna_data::map::HexId;
+use cna_data::oa::{ToeEntry, UnitId};
 use cna_data::scenario::Side;
 use cna_rules::movement::Weather;
 
@@ -194,17 +195,8 @@ impl GameState {
             "truck" => field(row.field_truck).min(attempted),
             _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
         };
-        self.take_wrecks(hex, player, weapon, repaired, false);
-        if repaired > 0 {
-            *self
-                .repaired
-                .entry(player)
-                .or_default()
-                .entry(hex.clone())
-                .or_default()
-                .entry(weapon.to_string())
-                .or_default() += repaired;
-        }
+        let taken = self.take_wrecks(hex, player, weapon, repaired, false);
+        self.credit_repaired(player, hex, weapon, taken);
         Ok(vec![Event::FieldRepaired {
             hex: hex.clone(),
             weapon: weapon.to_string(),
@@ -267,9 +259,53 @@ impl GameState {
         })
     }
 
+    /// Puts repaired points where they go: those that broke down with a
+    /// unit back into it, if it is still in play (61.38's `all_tanks`);
+    /// the rest wait in `hex` as replacement points (22.5).
+    pub(crate) fn credit_repaired(
+        &mut self,
+        side: Side,
+        hex: &HexId,
+        weapon: &str,
+        taken: Vec<(Option<UnitId>, u32)>,
+    ) {
+        let mut loose = 0;
+        for (unit, k) in taken {
+            let piece = unit.and_then(|u| {
+                self.pieces.values_mut().find(|p| {
+                    p.id.unit().as_ref() == Some(&u) && p.location != Location::Eliminated
+                })
+            });
+            match piece {
+                Some(p) => {
+                    match p.weapons.iter_mut().find(|w| w.weapon == weapon) {
+                        Some(w) => w.points += k,
+                        None => p.weapons.push(ToeEntry {
+                            weapon: weapon.to_string(),
+                            points: k,
+                        }),
+                    }
+                    p.toe += k;
+                }
+                None => loose += k,
+            }
+        }
+        if loose > 0 {
+            *self
+                .repaired
+                .entry(side)
+                .or_default()
+                .entry(hex.clone())
+                .or_default()
+                .entry(weapon.to_string())
+                .or_default() += loose;
+        }
+    }
+
     /// Removes `n` of `side`'s broken-down `weapon` points from `hex`
     /// (only those that began the OpStage there if `settled_only`),
-    /// dropping emptied entries and an emptied hex.
+    /// dropping emptied entries and an emptied hex. Returns how many it
+    /// took from each wreck, by the unit the wreck belongs to.
     pub(crate) fn take_wrecks(
         &mut self,
         hex: &HexId,
@@ -277,9 +313,10 @@ impl GameState {
         weapon: &str,
         mut n: u32,
         settled_only: bool,
-    ) {
+    ) -> Vec<(Option<UnitId>, u32)> {
+        let mut taken = Vec::new();
         let Some(wrecks) = self.broken_down.get_mut(hex) else {
-            return;
+            return taken;
         };
         for w in wrecks
             .iter_mut()
@@ -294,11 +331,15 @@ impl GameState {
             w.this_stage = w.this_stage.min(w.points);
             w.towed = w.towed.min(w.points);
             n -= k;
+            if k > 0 {
+                taken.push((w.unit.clone(), k));
+            }
         }
         wrecks.retain(|w| w.points > 0);
         if wrecks.is_empty() {
             self.broken_down.remove(hex);
         }
+        taken
     }
 }
 
@@ -337,6 +378,7 @@ mod tests {
                 points: 4,
                 this_stage: 0,
                 towed: 0,
+                unit: None,
             }],
         );
         (state, hex)

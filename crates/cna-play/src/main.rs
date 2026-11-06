@@ -80,6 +80,10 @@ enum Cmd {
         /// Play without the scenario's release schedule (61.38, R-159).
         #[arg(long)]
         no_release_schedule: bool,
+        /// Play without the 7th Armoured's tanks starting broken down with
+        /// their units (61.38).
+        #[arg(long)]
+        no_tanks_with_units: bool,
         /// Play without the campaign games' automatic wins and
         /// end-of-game supply test (64.71–64.73).
         #[arg(long)]
@@ -222,6 +226,7 @@ fn main() -> Result<()> {
             no_withdrawals,
             no_broken_down_starts,
             no_release_schedule,
+            no_tanks_with_units,
             no_campaign_victory,
             no_roads_built,
             output,
@@ -243,6 +248,7 @@ fn main() -> Result<()> {
                 withdrawals: !no_withdrawals,
                 broken_down_starts: !no_broken_down_starts,
                 release_schedule: !no_release_schedule,
+                tanks_with_units: !no_tanks_with_units,
                 campaign_victory: !no_campaign_victory,
                 roads_built: !no_roads_built,
             };

@@ -50,6 +50,7 @@ fn fort_terrain(t: Option<Terrain>) -> bool {
         t,
         Some(
             Terrain::Sea
+                | Terrain::MajorCity
                 | Terrain::SaltMarsh
                 | Terrain::Delta
                 | Terrain::Mountain
@@ -524,6 +525,29 @@ mod tests {
         assert!(
             s.apply(&data, Side::Cw, work(Item::Fortification, ok[4].as_str()))
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn no_set_up_fort_in_a_major_city_24_44() {
+        // A city keeps its own level (2): a fort there would lower it.
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut s = GameState::with_modules(&data, 1, Modules::ALL).unwrap();
+        place_pieces(&data, &mut s, Side::Axis);
+        place_pieces(&data, &mut s, Side::Cw);
+        let tobruk = hex("C4807");
+        assert!(!s.work_placements(&data, Side::Cw, Item::Fortification).contains(&tobruk));
+        assert!(
+            s.apply(&data, Side::Cw, work(Item::Fortification, "C4807"))
+                .is_err()
+        );
+        assert_eq!(s.fortifications.get(&tobruk), None);
+        let data = Data::load("the-last-chance").unwrap();
+        let s = ready(&data, Side::Axis);
+        assert!(
+            !s.work_placements(&data, Side::Axis, Item::Fortification)
+                .contains(&hex("C4321")),
+            "Bardia itself is not one of the four next to it"
         );
     }
 
