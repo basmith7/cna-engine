@@ -344,7 +344,12 @@ the bullet once it lands and `vendor/cna` is bumped.
   OpStage from April 1941) as data; (c) The Last Chance's Tobruk
   fortification row says "the four hexes next to Tobruk", but the map
   has three land hexes beside C4807 (the rest are sea): which
-  is right? The engine places all three for now (#132).
+  is right? The engine places all three for now (#132); (d) on each
+  `construction.fortifications` row a player places (The Last Chance's
+  Bardia, Rommel's Arrival's Tobruk), the side that places them as a
+  field, not only in `constraint`'s prose; and likewise for the Last
+  Chance's minefields: each listed field's owner and the real and dummy
+  counts each side may set (63.77).
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
   apply to the wreck unchanged, but 32.21 charges a barrage by battalion
