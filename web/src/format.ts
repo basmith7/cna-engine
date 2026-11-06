@@ -281,6 +281,18 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     return `${d.ammo} ammunition and ${d.fuel} fuel move from ${name(d.from)} to ${name(d.to)}.`;
   }
   if ("eliminated" in e) return `${name(e.eliminated.piece)} eliminated.`;
+  if ("withdrawn" in e) {
+    const m = e.withdrawn.motorisation;
+    return `${list(e.withdrawn.pieces, name)} ${e.withdrawn.pieces.length === 1 ? "is" : "are"} withdrawn${m > 0 ? ` with ${m} motorisation ${m === 1 ? "point" : "points"}` : ""} (20.8x).`;
+  }
+  if ("withdrawal-failed" in e) {
+    const d = e["withdrawal-failed"];
+    return `Withdrawal of ${list(d.pieces, name)} fails, ${d.reason}: eliminated (20.83).`;
+  }
+  if ("withdrawal-picked" in e) {
+    const d = e["withdrawal-picked"];
+    return `${list(d.pieces, name)} picked to withdraw as ${d.fills} (20.82).`;
+  }
   if ("forces-assigned" in e) {
     const d = e["forces-assigned"];
     if (d.assignments === undefined) return `${sideName(d.side)} forces assigned.`;

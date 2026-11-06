@@ -51,9 +51,10 @@ per-unit tank strength and model upgrades that cna holds only as prose
 
 ### Task 3: withdrawals (4.43)
 Waits on cna (PROGRESS, *Requests for cna*: withdrawals as data).
-- [ ] Remove `withdraws` rows' units in phase D of their Game-Turn
-  (Crusader GT63, Rommel's Arrival GT26–38, The Long Retreat GT108 and
-  GT110, the Italian Campaign GT13–15); the browser logs it.
+- [x] Remove `withdraws` rows' units at the end of their OpStage (R-155;
+  Crusader GT63, Rommel's Arrival GT26–38, The Long Retreat GT108 and
+  GT110, the Italian Campaign GT13–15) behind the `withdrawals` module;
+  the browser logs it. Returns come back as they left.
 
 ### Task 4: rail ends and roads built
 - [x] `railroad_ends` behind the `rail_ends` module (#131).

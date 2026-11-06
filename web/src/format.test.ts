@@ -112,6 +112,10 @@ const cases: [Event, string][] = [
   [{ towed: { side: "cw", from: "D3513", to: "D3714", weapon: "Matilda", points: 3 } }, "3 broken-down Matilda towed D3513 → D3714."],
   [{ "broke-down": { piece: "u:b", weapon: "CV33", reading: 64, percent: 33, points: 3 } }, "B breakdown check, CV33: 64 → 33 %, 3 broken down."],
   [{ eliminated: { piece: "u:b" } }, "B eliminated."],
+  [{ withdrawn: { pieces: ["u:a", "u:b"], motorisation: 10 } }, "A, B are withdrawn with 10 motorisation points (20.8x)."],
+  [{ withdrawn: { pieces: ["u:a"], motorisation: 0 } }, "A is withdrawn (20.8x)."],
+  [{ "withdrawal-failed": { pieces: ["u:a"], reason: "not in Cairo or Alexandria" } }, "Withdrawal of A fails, not in Cairo or Alexandria: eliminated (20.83)."],
+  [{ "withdrawal-picked": { fills: "infantry-battalion", pieces: ["u:a"] } }, "A picked to withdraw as infantry-battalion (20.82)."],
   [
     { "forces-assigned": { side: "axis", assignments: [{ piece: "u:a", anti_armour: [{ target: "C4130", points: 2 }], close_assault: [{ points: 4 }] }] } },
     "Axis forces assigned: A: 2 anti-armour at C4130, 4 assault.",

@@ -108,7 +108,7 @@ impl GameState {
     /// Strength per mille, for ranking picked units.
     fn permille(&self, data: &Data, p: &Piece) -> u32 {
         let max = self.toe_ceiling(data, p);
-        if max == 0 { 1000 } else { p.toe * 1000 / max }
+        (p.toe * 1000).checked_div(max).unwrap_or(1000)
     }
 
     /// The units a `pick` sends when the player chose none: those in

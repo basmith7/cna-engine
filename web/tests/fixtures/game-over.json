@@ -20,7 +20,8 @@
     "towing": true,
     "rail_ends": true,
     "set_up_works": true,
-    "pre_play_convoys": true
+    "pre_play_convoys": true,
+    "withdrawals": true
   },
   "clock": {
     "game_turn": 7,

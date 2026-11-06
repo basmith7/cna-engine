@@ -205,6 +205,7 @@ export type Order =
   | { "detail-guards": { piece: PieceId; points: number } }
   | { "release-guards": { piece: PieceId; points: number } }
   | { "raid-rommel": { piece: PieceId } }
+  | { "pick-withdrawal": { fills: string; pieces: PieceId[] } }
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
   | { "try-spot": { piece: PieceId } }
@@ -421,6 +422,9 @@ export type Event =
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
+  | { withdrawn: { pieces: PieceId[]; motorisation: number } }
+  | { "withdrawal-failed": { pieces: PieceId[]; reason: string } }
+  | { "withdrawal-picked": { fills: string; pieces: PieceId[] } }
   | { "forces-assigned": { side: Side; assignments?: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
