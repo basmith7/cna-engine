@@ -362,6 +362,10 @@ pub struct GameState {
     /// Set-up works each side still places (`placed_works` module).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub works_to_place: Vec<crate::placed_works::WorkQuota>,
+    /// A set-up reopened only to place again works the finished set-up
+    /// put in an enemy ZOC (R-162): pieces stay where they are.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub works_reopened: bool,
     /// Unattached motorisation points each side still places
     /// (`unattached_motorisation` module, 61.72). Secret to their owner.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -530,6 +534,7 @@ impl GameState {
             projects: BTreeMap::new(),
             minefields: BTreeMap::new(),
             works_to_place: Vec::new(),
+            works_reopened: false,
             motorisation_to_place: BTreeMap::new(),
             guards: BTreeMap::new(),
             escapees: BTreeMap::new(),
@@ -663,6 +668,14 @@ impl GameState {
         order: &Order,
     ) -> Result<Vec<Event>, Illegal> {
         match (&self.pending, order) {
+            (Some(Pending::SetUp { .. }), Order::Place { .. } | Order::Unplace { .. })
+                if self.works_reopened =>
+            {
+                Err(Illegal::new(
+                    "59.2",
+                    "set-up is reopened only to place works again: pieces stay where they are (R-162)",
+                ))
+            }
             (Some(Pending::SetUp { .. }), Order::Place { piece, hex }) => {
                 self.place(data, player, piece, hex)
             }

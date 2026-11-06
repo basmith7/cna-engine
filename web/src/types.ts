@@ -425,6 +425,7 @@ export type Event =
   | { "minefield-laid": { side: Side; hex: HexId } }
   | { "minefield-revealed": { hex: HexId; real: boolean } }
   | { "minefield-removed": { hex: HexId } }
+  | { "set-up-work-voided": { side: Side; hex: HexId; minefield: boolean } }
   | { "guards-detailed": { piece: PieceId; hex: HexId; points?: number } }
   | { "guards-released": { piece: PieceId; hex: HexId; points?: number } }
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
@@ -624,5 +625,7 @@ export type PatrolReport = {
 /** Where the side setting up may place its set-up works (`cna_game::placed_works`). */
 export type WorkOptions = { [K in WorkItem]?: HexId[] } & {
   required_left: number;
+  /** Works the side may still place by choice (`up_to` rows and sets, R-161). */
+  optional_left: number;
   may_pass: boolean;
 };

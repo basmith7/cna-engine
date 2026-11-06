@@ -76,10 +76,12 @@ test("Rommel's Arrival: the Axis divides its 290 unattached motorisation points 
   expect(view.motorisation_to_place?.axis).toBeUndefined();
 });
 
-test("Rommel's Arrival: the Commonwealth places its four Tobruk forts from the set-up panel, then play begins (61.6)", async ({ page }) => {
+test("Rommel's Arrival: the Commonwealth places up to four Tobruk forts from the set-up panel, then play begins (61.6, R-161)", async ({ page }) => {
   await openFixture(page, "rommel-works");
   const works = page.getByTestId("set-up-works");
-  await expect(works).toContainText("4 required left");
+  await expect(works).toContainText("0 required left, up to 4 optional");
+  // The forts are a maximum: Done is offered before any is placed.
+  await expect(works.getByTestId("works-done")).toBeVisible();
   await expect(works.locator('button[data-work="real-minefield"]')).toHaveCount(0);
   await works.locator('button[data-work="fortification"]').click();
   // The engine's hexes shaded: Tobruk's land within two hexes.
@@ -89,7 +91,7 @@ test("Rommel's Arrival: the Commonwealth places its four Tobruk forts from the s
   expect([...shaded].sort()).toEqual([...options].sort());
   for (const [i, h] of shaded.slice(0, 3).entries()) {
     await clickHex(page, h);
-    await expect(works).toContainText(`${3 - i} required left`);
+    await expect(works).toContainText(`up to ${3 - i} optional`);
   }
   await clickHex(page, shaded[3]);
   await expect(works).toHaveCount(0);

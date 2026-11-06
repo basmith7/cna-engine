@@ -762,7 +762,8 @@ pub struct Works {
 
 /// A fortification row: `count` levels at `level`. With a `side`, that
 /// player places them in the placement's area during its set-up; without,
-/// the row fills the land hexes next to a place.
+/// the row fills the land hexes next to a place. An `up_to` row's count
+/// is a maximum: its side may place fewer, or none (R-161).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct FortRow {
     pub placement: Placement,
@@ -770,6 +771,8 @@ pub struct FortRow {
     pub count: u32,
     #[serde(default)]
     pub side: Option<Side>,
+    #[serde(default)]
+    pub up_to: bool,
 }
 
 /// A side's set-up minefields (63.76–63.77): every `hexes` entry, `more`
