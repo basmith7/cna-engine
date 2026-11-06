@@ -207,6 +207,7 @@ impl GameState {
             .filter(|id| !pieces.contains(id))
             .collect();
         self.capture_lone_rommel(data, &left, &mut events);
+        self.capture_lone_non_combat(data, &left, &mut events);
         self.pending = (!left.is_empty()).then_some(Pending::Reaction {
             side,
             eligible: left,
@@ -219,6 +220,7 @@ impl GameState {
         self.pending = None;
         let mut events = Vec::new();
         self.capture_lone_rommel(data, &[], &mut events);
+        self.capture_lone_non_combat(data, &[], &mut events);
         events
     }
 }

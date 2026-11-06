@@ -295,6 +295,48 @@ impl GameState {
         }
     }
 
+    /// With `capture_on_move` on: every non-combat piece of the
+    /// non-phasing side with no strength, alone in an enemy ZOC, other
+    /// than those in `offered` (still offered a reaction), is captured
+    /// now (10.29), at the moments R-138 gives Rommel. Rommel himself is
+    /// `capture_lone_rommel`'s.
+    pub(crate) fn capture_lone_non_combat(
+        &mut self,
+        data: &Data,
+        offered: &[PieceId],
+        events: &mut Vec<Event>,
+    ) {
+        if !self.modules.capture_on_move {
+            return;
+        }
+        let Some(phasing) = self.phasing() else {
+            return;
+        };
+        let lone: Vec<(PieceId, HexId)> = self
+            .pieces
+            .values()
+            .filter(|p| {
+                p.side != phasing
+                    && p.kind.holds_ground()
+                    && p.kind != PieceKind::Commander
+                    && !self.is_combatant(p)
+                    && p.toe == 0
+                    && !offered.contains(&p.id)
+            })
+            .filter_map(|p| Some((p.id.clone(), p.hex()?.clone())))
+            .collect();
+        for (id, hex) in lone {
+            let side = self.pieces[&id].side;
+            if side == phasing
+                || self.friendly_combat_in(&hex, side, &[])
+                || self.zoc_at(data, &hex, side) != Zoc::Exerts
+            {
+                continue;
+            }
+            self.capture(&id, phasing, &hex, events);
+        }
+    }
+
     /// A combat unit of `pieces` entering `hex` captures the enemy
     /// supply units alone there (32.1x); `entry` lets it in only then.
     pub(crate) fn capture_supply_entered(
@@ -1022,5 +1064,65 @@ mod tests {
                 "zero_toe {zero_toe}"
             );
         }
+    }
+
+    /// 1 KRRC, with 3 Coldstream Guards put beside it so the stack
+    /// exerts a ZOC (10.11), moves one hex to stand next to the Axis
+    /// supply unit alone in C3823: the events of the move.
+    fn krrc_alongside_lone_supply(capture_on_move: bool) -> (GameState, PieceId, Vec<Event>) {
+        let mut modules = crate::state::Modules::ALL;
+        modules.capture_on_move = capture_on_move;
+        let (data, mut state, supply) = supply_ahead(modules);
+        let krrc = pid("unit:cw:1-krrc");
+        let guards = pid("unit:cw:3-cldgds");
+        let at = state.pieces[&krrc].hex().unwrap().clone();
+        state.put(&guards, Location::Hex(at));
+        let target = hex("C3823");
+        let path = state
+            .reachable(
+                &data,
+                Side::Cw,
+                &[krrc.clone(), guards.clone()],
+                crate::reach::Purpose::Move,
+            )
+            .unwrap()
+            .into_iter()
+            .find(|r| data.map.adjacent(&r.hex, &target) && r.path.len() == 1)
+            .expect("a hex next to C3823 one step away")
+            .path;
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Move {
+                    pieces: vec![krrc, guards],
+                    path,
+                    assault: false,
+                    fuel_from: None,
+                },
+            )
+            .unwrap();
+        (state, supply, events)
+    }
+
+    #[test]
+    fn a_lone_non_combat_unit_is_captured_when_an_enemy_combat_unit_arrives_10_29() {
+        let (state, supply, events) = krrc_alongside_lone_supply(true);
+        assert!(
+            events.contains(&Event::Captured {
+                piece: supply.clone(),
+                hex: hex("C3823")
+            }),
+            "{events:?}"
+        );
+        // Under abstract supply it goes over whole (32.1x).
+        assert_eq!(state.pieces[&supply].side, Side::Cw);
+    }
+
+    #[test]
+    fn without_capture_on_move_it_waits_for_the_next_segment() {
+        let (state, supply, events) = krrc_alongside_lone_supply(false);
+        assert!(!events.iter().any(|e| matches!(e, Event::Captured { .. })));
+        assert_eq!(state.pieces[&supply].side, Side::Axis);
     }
 }

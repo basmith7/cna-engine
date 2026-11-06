@@ -858,6 +858,10 @@ impl GameState {
             self.surrender_collapsed(data, pieces, &to, &mut events);
             self.free_prisoners(data, pieces, &to, &mut events);
             if self.spot_raiders(data, pieces, &to, &mut events) {
+                // The stop for a spotting is a step all the same (10.29).
+                if combat {
+                    self.capture_lone_non_combat(data, &[], &mut events);
+                }
                 at = to;
                 break;
             }
@@ -870,6 +874,7 @@ impl GameState {
             if combat {
                 let eligible = self.reactors_next_to(data, &at, &left, pieces, assault);
                 self.capture_lone_rommel(data, &eligible, &mut events);
+                self.capture_lone_non_combat(data, &eligible, &mut events);
                 // R-138: Rommel offered a reaction stands in the mover's
                 // ZOC, so in contact: he pays to break off if he goes.
                 for id in &eligible {

@@ -313,6 +313,7 @@ impl GameState {
         let mut events = Vec::new();
         // R-138: a lone Rommel who did not retreat is taken now.
         self.capture_lone_rommel(data, &[], &mut events);
+        self.capture_lone_non_combat(data, &[], &mut events);
         self.open_step(data, Segment::ForceAssignment, &mut events);
         Ok(events)
     }
