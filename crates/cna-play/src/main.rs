@@ -70,6 +70,9 @@ enum Cmd {
         /// (61.38, 62.32, 63.42).
         #[arg(long)]
         no_broken_down_starts: bool,
+        /// Play without the scenario's release schedule (61.38, R-159).
+        #[arg(long)]
+        no_release_schedule: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -201,6 +204,7 @@ fn main() -> Result<()> {
             no_set_up_works,
             no_pre_play_convoys,
             no_broken_down_starts,
+            no_release_schedule,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -217,6 +221,7 @@ fn main() -> Result<()> {
                 set_up_works: !no_set_up_works,
                 pre_play_convoys: !no_pre_play_convoys,
                 broken_down_starts: !no_broken_down_starts,
+                release_schedule: !no_release_schedule,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

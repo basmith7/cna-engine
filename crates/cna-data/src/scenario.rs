@@ -443,6 +443,77 @@ pub struct SideSetup {
     /// Tanks that start the scenario broken down (61.38, 62.32, 63.42).
     #[serde(default)]
     pub broken_down: Vec<BrokenDown>,
+    /// The units held in a city at the start and let out a few a stage
+    /// (61.38, R-159).
+    #[serde(default)]
+    pub release: Option<Release>,
+}
+
+/// A release schedule (61.38, R-159): units in `from` at the start may not
+/// leave before `first`, then `per_opstage` a stage, each non-HQ counter
+/// one; a `counts_as_one` unit with everything attached to it counts once,
+/// and a `formations` row adds its own allowance on top.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Release {
+    pub from: Placement,
+    pub first: GameTime,
+    pub per_opstage: u32,
+    #[serde(default)]
+    pub counts_as_one: Vec<UnitId>,
+    #[serde(default)]
+    pub free: Vec<ReleaseFree>,
+    #[serde(default)]
+    pub formations: Vec<ReleaseFormation>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
+/// A unit outside the limit from `from` on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseFree {
+    pub unit: UnitId,
+    pub from: GameTime,
+}
+
+/// A formation's own allowance, from `from` on: `tank_battalions` and
+/// `other_battalions` a stage, over and above `per_opstage`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseFormation {
+    /// The formation's HQ.
+    pub unit: UnitId,
+    pub from: GameTime,
+    pub tank_battalions: ReleaseAllowance,
+    pub other_battalions: ReleaseAllowance,
+}
+
+/// So many a stage; tanks only once `min_repaired` (a share, kept in
+/// hundredths) of the formation's tank TOE points are repaired.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseAllowance {
+    pub per_opstage: u32,
+    #[serde(default, rename = "min_repaired", with = "hundredths")]
+    pub min_repaired_pct: Option<u32>,
+}
+
+/// A share in [0, 1] as whole hundredths, so the set-up stays `Eq`.
+mod hundredths {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &Option<u32>, s: S) -> Result<S::Ok, S::Error> {
+        match v {
+            Some(p) => s.serialize_f64(f64::from(*p) / 100.0),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u32>, D::Error> {
+        let v = Option::<f64>::deserialize(d)?;
+        Ok(v.map(|f| (f * 100.0).round() as u32))
+    }
 }
 
 /// One `broken_down` row: either `weapon` × `points` loose at
@@ -709,6 +780,7 @@ impl Scenario {
             special: Vec::new(),
             fleet: None,
             broken_down: Vec::new(),
+            release: None,
         };
         self.sides.get(&side).unwrap_or(&EMPTY)
     }

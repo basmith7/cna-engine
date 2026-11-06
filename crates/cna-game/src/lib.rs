@@ -39,6 +39,7 @@ mod raiders;
 mod rail;
 pub mod reach;
 mod reaction;
+pub mod release;
 mod repair;
 mod replacements;
 mod reserve;

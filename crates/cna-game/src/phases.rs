@@ -17,6 +17,7 @@ impl GameState {
     /// The first moment of play after set-up.
     pub(crate) fn start_play(&mut self, data: &Data) -> Vec<Event> {
         let mut events = Vec::new();
+        self.hold_for_release(data);
         self.advance(data, &mut events);
         events
     }
