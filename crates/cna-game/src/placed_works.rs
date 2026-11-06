@@ -330,7 +330,14 @@ impl GameState {
             .values()
             .any(|p| p.side == side && p.is_pending())
             || self.motorisation_to_place.contains_key(&side);
+        let optional: u32 = self
+            .works_to_place
+            .iter()
+            .filter(|q| q.side == side && q.optional(&works) && q.open(&works))
+            .map(|q| q.total(&works) - q.placed.len() as u32)
+            .sum();
         o.insert("required_left".into(), serde_json::json!(left));
+        o.insert("optional_left".into(), serde_json::json!(optional));
         o.insert(
             "may_pass".into(),
             serde_json::json!(left == 0 && !pieces_left),

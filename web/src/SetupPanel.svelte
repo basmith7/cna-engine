@@ -74,7 +74,7 @@
       {#if view.work_options}
         {@const w = view.work_options}
         <div class="works" data-testid="set-up-works">
-          <span class="where">Set-up works: {w.required_left} required left</span>
+          <span class="where">Set-up works: {w.required_left} required left{w.optional_left > 0 ? `, up to ${w.optional_left} optional` : ""}</span>
           {#each WORKS as [item, name] (item)}
             {#if (w[item] ?? []).length > 0}
               <button type="button" data-work={item} class:on={workItem === item} onclick={() => onwork(item)}>{name}</button>

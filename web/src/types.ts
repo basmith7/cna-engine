@@ -625,5 +625,7 @@ export type PatrolReport = {
 /** Where the side setting up may place its set-up works (`cna_game::placed_works`). */
 export type WorkOptions = { [K in WorkItem]?: HexId[] } & {
   required_left: number;
+  /** Works the side may still place by choice (`up_to` rows and sets, R-161). */
+  optional_left: number;
   may_pass: boolean;
 };
