@@ -349,7 +349,10 @@ the bullet once it lands and `vendor/cna` is bumped.
   Bardia, Rommel's Arrival's Tobruk), the side that places them as a
   field, not only in `constraint`'s prose; and likewise for the Last
   Chance's minefields: each listed field's owner and the real and dummy
-  counts each side may set (63.77).
+  counts each side may set (63.77); (e) in the scenarios 64.7 judges
+  (the three campaign games, Desert Fox by R-104), 64.76's ratio levels
+  as data on `victory` (as The Long Retreat's `margins` are), so the
+  engine need not key on scenario ids.
 - **The *San Giorgio*'s ammunition** (Mission 5: R-151, PR #124).
   R-151's Rationale says ammunition and the rest of the artillery rules
   apply to the wreck unchanged, but 32.21 charges a barrage by battalion
