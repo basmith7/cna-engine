@@ -63,6 +63,10 @@ enum Cmd {
         /// Play without the scenario's set-up fortifications (59.12).
         #[arg(long)]
         no_set_up_works: bool,
+        /// Play without the set-up works a player places: forts and
+        /// minefields of its choice (61.6, 63.76–63.77).
+        #[arg(long)]
+        no_placed_works: bool,
         /// Play without Group One's pre-play Axis convoys (R-097).
         #[arg(long)]
         no_pre_play_convoys: bool,
@@ -209,6 +213,7 @@ fn main() -> Result<()> {
             no_towing,
             no_rail_ends,
             no_set_up_works,
+            no_placed_works,
             no_pre_play_convoys,
             no_withdrawals,
             no_broken_down_starts,
@@ -228,6 +233,7 @@ fn main() -> Result<()> {
                 towing: !no_towing,
                 rail_ends: !no_rail_ends,
                 set_up_works: !no_set_up_works,
+                placed_works: !no_placed_works,
                 pre_play_convoys: !no_pre_play_convoys,
                 withdrawals: !no_withdrawals,
                 broken_down_starts: !no_broken_down_starts,

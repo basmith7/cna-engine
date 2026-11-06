@@ -38,7 +38,7 @@
   import Toast from "./Toast.svelte";
   import TopBar from "./TopBar.svelte";
   import { SIZE, centre } from "./geom";
-  import type { PreviewResult, HexId, Illegal, OffMapPlace, Order, Piece, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
+  import type { WorkItem, PreviewResult, HexId, Illegal, OffMapPlace, Order, Piece, PieceId, Purpose, Reach, SealedOptions, Side, View } from "./types";
 
   let engine: Engine | undefined = $state();
   let view: View | undefined = $state();
@@ -147,6 +147,9 @@
     return answer(e.placements(p), (r) => (placements = r));
   });
   const pickedPiece = $derived(view && picked ? (view.pieces[picked] ?? null) : null);
+  /** The set-up work armed in the set-up panel (59.12): a click places one. */
+  let workItem: WorkItem | null = $state(null);
+  const workHexes: HexId[] = $derived(!picked && workItem ? (view?.work_options?.[workItem] ?? []) : []);
 
   /** Hands `q`'s answer to `take` unless the effect that asked has rerun or gone first (its cleanup, returned). */
   function answer<T>(q: Promise<T>, take: (r: T) => void): () => void {
@@ -398,6 +401,11 @@
 
   async function onhex(h: HexId, shift = false) {
     if (!view) return;
+    if (!picked && workItem && view.work_options && workHexes.includes(h)) {
+      hex = h;
+      if (await send({ "place-work": { item: workItem, hex: h } }) && !(view?.work_options?.[workItem] ?? []).length) workItem = null;
+      return;
+    }
     if (picked && view.pending && "set-up" in view.pending) {
       hex = h;
       const side = view.to_act;
@@ -674,7 +682,7 @@
       <main class="board">
         <Map bind:this={map} {onhex} onhover={(h) => (hover = h)} ongoto={(h) => (hex = h)}>
           {#snippet overlays(scale)}
-            <Placements hexes={placements} />
+            <Placements hexes={picked ? placements : workHexes} />
             <Marks hexes={asked} kind="zoc" />
             <Marks hexes={toAssault} kind="assault" />
             <Marks hexes={patrolTargets} kind="patrol" />
@@ -742,7 +750,20 @@
             }}
           />
           <FleetPanel {view} bind:picked={shipPick} />
-          <SetupPanel {view} picked={pickedPiece} hexes={placements} />
+          <SetupPanel
+            {view}
+            picked={pickedPiece}
+            hexes={placements}
+            {workItem}
+            onwork={(item) => {
+              picked = null;
+              workItem = item;
+            }}
+            onpass={() => {
+              workItem = null;
+              send("pass");
+            }}
+          />
           {#if view.pending}
             <Pending {view} {ticked} {ontoggle} onorder={(o) => send(o)} {sealed} {reaches} pass={passPreview} />
           {/if}
