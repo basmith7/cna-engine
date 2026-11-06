@@ -34,3 +34,25 @@ test("Operation Crusader set up: Rommel stands with the Savona Division, whose u
   await expect(panel.locator('li[data-unit="unit:de:rommel"]').getByTestId("rommel-cpa")).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath("crusader-rommel.png") });
 });
+
+test("Rommel's Arrival: the Commonwealth places its four Tobruk forts from the set-up panel, then play begins (61.6)", async ({ page }) => {
+  await openFixture(page, "rommel-works");
+  const works = page.getByTestId("set-up-works");
+  await expect(works).toContainText("4 required left");
+  await expect(works.locator('button[data-work="real-minefield"]')).toHaveCount(0);
+  await works.locator('button[data-work="fortification"]').click();
+  // The engine's hexes shaded: Tobruk's land within two hexes.
+  const shaded = await page.locator("polygon.placement").evaluateAll((ps) => ps.map((p) => p.getAttribute("data-hex")!));
+  expect(shaded.length).toBeGreaterThanOrEqual(4);
+  const options = (await page.evaluate(() => window.__cna.view())).work_options!.fortification!;
+  expect([...shaded].sort()).toEqual([...options].sort());
+  for (const [i, h] of shaded.slice(0, 3).entries()) {
+    await clickHex(page, h);
+    await expect(works).toContainText(`${3 - i} required left`);
+  }
+  await clickHex(page, shaded[3]);
+  await expect(works).toHaveCount(0);
+  const view = await page.evaluate(() => window.__cna.view());
+  expect(view.pending === null || !("set-up" in view.pending)).toBe(true);
+  for (const h of shaded.slice(0, 4)) expect(view.fortifications?.[h]).toBe(1);
+});

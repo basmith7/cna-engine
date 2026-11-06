@@ -58,11 +58,7 @@ impl GameState {
             piece: piece.clone(),
             hex: hex.clone(),
         }];
-        self.pending = self.next_set_up();
-        if self.pending.is_none() {
-            events.push(Event::SetUpComplete);
-            events.extend(self.start_play(data));
-        }
+        events.extend(self.advance_set_up(data));
         Ok(events)
     }
 
@@ -269,13 +265,16 @@ impl GameState {
             .count()
     }
 
-    pub(crate) fn next_set_up(&self) -> Option<Pending> {
+    /// The first side, Axis then Commonwealth, with a piece still to
+    /// place or set-up works still open (`placed_works`).
+    pub(crate) fn next_set_up_with(&self, data: &Data) -> Option<Pending> {
         [Side::Axis, Side::Cw]
             .into_iter()
             .find(|&side| {
                 self.pieces
                     .values()
                     .any(|p| p.side == side && p.is_pending())
+                    || self.works_open(data, side)
             })
             .map(|side| Pending::SetUp { side })
     }
@@ -283,7 +282,7 @@ impl GameState {
 
 /// Whether `hex` is in the placement's area (59.2): inside every one of
 /// its locators.
-fn allowed(data: &Data, placement: &Placement, hex: &HexId) -> bool {
+pub(crate) fn allowed(data: &Data, placement: &Placement, hex: &HexId) -> bool {
     placement.locators.iter().all(|l| in_locator(data, l, hex))
 }
 

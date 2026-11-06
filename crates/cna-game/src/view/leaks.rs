@@ -38,8 +38,9 @@ const INTERNALS: &[&str] = &["toe", "weapons", "cohesion", "cp_spent", "morale"]
 /// What `json`, meant for `about`'s enemy under limited intelligence,
 /// holds that 3.61 hides from it about `about`'s pieces: a real supply
 /// id (a dummy's gives it away), a removed piece field, a dummy's kind,
-/// a placement still to be made, an unrevealed sealed answer, or an
-/// internal beside a unit's id. Empty when clean.
+/// a placement still to be made, an unrevealed sealed answer, an
+/// internal beside a unit's id, whether an unrevealed minefield is real,
+/// or its set-up works still to place. Empty when clean.
 pub fn leaks(state: &GameState, json: &Value, about: Side) -> Vec<String> {
     let mut found = Vec::new();
     let side = about.to_string();
@@ -57,6 +58,25 @@ pub fn leaks(state: &GameState, json: &Value, about: Side) -> Vec<String> {
         .map(|p| p.id.as_str())
         .collect();
     walk(&units, json, about, "", &mut found);
+    // 24.31: whether an unrevealed field is real, and the owner's count
+    // of real fields placed at set-up.
+    if let Some(m) = json.get("minefields").and_then(Value::as_object) {
+        for (hex, f) in m {
+            if f.get("side").and_then(Value::as_str) == Some(side.as_str())
+                && f.get("revealed").and_then(Value::as_bool) != Some(true)
+                && f.get("real").is_some()
+            {
+                found.push(format!("minefields.{hex}.real"));
+            }
+        }
+    }
+    if let Some(w) = json.get("works_to_place").and_then(Value::as_array) {
+        for (i, q) in w.iter().enumerate() {
+            if q.get("side").and_then(Value::as_str) == Some(side.as_str()) {
+                found.push(format!("works_to_place[{i}]"));
+            }
+        }
+    }
     found
 }
 

@@ -24,6 +24,7 @@
     "withdrawals": true,
     "broken_down_starts": true,
     "release_schedule": true,
+    "placed_works": true,
     "campaign_victory": true,
     "roads_built": true
   },
