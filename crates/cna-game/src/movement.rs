@@ -858,6 +858,10 @@ impl GameState {
             self.surrender_collapsed(data, pieces, &to, &mut events);
             self.free_prisoners(data, pieces, &to, &mut events);
             if self.spot_raiders(data, pieces, &to, &mut events) {
+                // The stop for a spotting is a step all the same (10.29).
+                if combat {
+                    self.capture_lone_non_combat(data, &[], &mut events);
+                }
                 at = to;
                 break;
             }
