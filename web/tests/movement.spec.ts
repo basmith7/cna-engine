@@ -154,7 +154,8 @@ test("a ZOC declaration is answered from its panel", async ({ page }) => {
 test("a stack in the Tripoli box moves off-map by its buttons; Gabes is refused", async ({ page }) => {
   await openFixture(page, "off-map");
   const box = page.locator('[data-where="box-tripoli"]');
-  await expect(box.locator("[data-unit]")).toHaveCount(30);
+  // 30 set up there, and the Game-Turn 1 convoy landed 2 supply units (60.37).
+  await expect(box.locator("[data-unit]")).toHaveCount(32);
   // Two battalions on their own: the legions' are attached to their HQs.
   await box.locator('[data-unit="unit:it:203rd-engineer-bn"]').click();
   await box.locator('[data-unit="unit:it:203rd-machinegun-bn"]').click();
@@ -166,7 +167,7 @@ test("a stack in the Tripoli box moves off-map by its buttons; Gabes is refused"
   await page.getByTestId("toast").getByLabel("Dismiss").click();
   await moves.locator('[data-to="tripolitania"]').click();
   await expect(log(page).filter({ hasText: "moves off-map" })).toHaveCount(2);
-  await expect(box.locator("[data-unit]")).toHaveCount(28);
+  await expect(box.locator("[data-unit]")).toHaveCount(30);
   await expectDomMatchesView(page);
 });
 
