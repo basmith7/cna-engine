@@ -632,7 +632,30 @@ fn read_merged(src: &dyn Source, slug: &str, depth: u8) -> Result<Value> {
             bail!("scenario {slug}: not an object");
         };
         for (k, val) in base {
-            obj.entry(k.clone()).or_insert_with(|| val.clone());
+            match (obj.get_mut(k), val) {
+                // A child's `sides` names only the side blocks it changes
+                // (The Long Retreat gives its reinforcements and keeps The
+                // Last Chance's deployments): merge them side by side.
+                (Some(Value::Object(mine)), Value::Object(theirs)) if k == "sides" => {
+                    for (side, blocks) in theirs {
+                        match (mine.get_mut(side), blocks) {
+                            (Some(Value::Object(m)), Value::Object(t)) => {
+                                for (b, bv) in t {
+                                    m.entry(b.clone()).or_insert_with(|| bv.clone());
+                                }
+                            }
+                            (None, _) => {
+                                mine.insert(side.clone(), blocks.clone());
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                (None, _) => {
+                    obj.insert(k.clone(), val.clone());
+                }
+                _ => {}
+            }
         }
     }
     Ok(v)
@@ -743,6 +766,19 @@ mod tests {
         let rommel = Scenario::load("rommels-arrival").unwrap();
         assert!(rommel.side(Side::Axis).repair.is_empty());
         assert_eq!(rommel.side(Side::Cw).repair.len(), 4);
+    }
+
+    #[test]
+    fn the_long_retreat_keeps_the_last_chance_s_set_up_and_its_own_reinforcements() {
+        let child = Scenario::load("the-long-retreat").unwrap();
+        let parent = Scenario::load("the-last-chance").unwrap();
+        for side in [Side::Cw, Side::Axis] {
+            let (c, p) = (child.side(side), parent.side(side));
+            assert!(!p.deployments.is_empty(), "{side:?}");
+            assert_eq!(c.deployments.len(), p.deployments.len(), "{side:?}");
+            assert_eq!(c.supply.len(), p.supply.len(), "{side:?}");
+            assert_ne!(c.reinforcements, p.reinforcements, "{side:?}");
+        }
     }
 
     #[test]
