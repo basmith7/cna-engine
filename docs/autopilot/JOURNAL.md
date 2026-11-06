@@ -737,3 +737,9 @@ Done: #127 towing, #128 destroyed tanks (review's double count with captured_equ
 In flight: CI on #132; merge on green (#131 closes with it).
 Next: cna's answers to the two new requests (withdrawals; set-up rules as typed data incl. who places forts/minefields, broken-down starts, 61.38 release, 64.76 ratio). Without them: Task 4's roads built, Task 8's R-097 check, or Task 7's automatic wins (64.71–64.72).
 Blocked: none.
+
+## 2026-11-06 01:45 MST — autopilot/m5-r097-pre-play-convoys
+Done: #133 (ready): R-097, Group One's GT1–2 Axis convoys planned before play, GT1's unbombed (pre_play_convoys module); local gates green, supply + golden Playwright specs 19 passed.
+In flight: #132 merging on green CI; #133 stacked on it.
+Next: once #132 is merged, retarget #133 to main (merge main in if GitHub asks), wait for CI, merge. Then the plan's open tasks (roads built; 64.71–64.72 automatic wins) or cna's answers to the two requests.
+Blocked: none.
