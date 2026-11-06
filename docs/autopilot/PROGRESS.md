@@ -26,6 +26,19 @@ scenario builds at set-up as finished; #146 closes the mission's docs
 spec and plan in PR #148, labelled `needs-brian`, waiting on your review;
 cna has since answered both of its requests (R-163, R-166).
 
+**2026-11-06 late evening:** cna answered the 0-TOE request (R-164).
+#156 (merged) bumps `vendor/cna` to 111220a and builds it as the `zero_toe`
+module: a combat unit with no TOE left (61.38's battalions whose tanks
+start broken down) is a non-combat unit until rebuilt: no ZOC, no
+holding off, no entering an unoccupied enemy ZOC, no reacting or
+escorting, holds no victory hex, and is captured alone in an enemy ZOC.
+#157 (ready, CI running; `capture_on_move` module) captures any lone
+non-combat unit when the enemy moves next to it, not only when the
+enemy's next movement segment opens, as Rommel already was (R-138).
+Fresh reviews ran on both; no scripted game plays differently. #158
+(stacked on #157) folds `cna-play new`'s 21 `--no-<module>` flags into
+one `--without <module>,…`.
+
 **2026-11-06 evening:** #154 (merged) bumps `vendor/cna` to 9336fcc (cna's
 answers to four requests) and builds two of them. R-161: the Tobruk
 forts in Rommel's Arrival and the Bardia forts in The Last Chance are a
@@ -330,7 +343,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 9336fcc (#154).
+- `vendor/cna` is at cna 111220a (#156).
 - Next Land Game gap for a run with nothing else: reassignment (19.2x:
   an independent unit taking a free slot, the Commonwealth battalion
   shuffle), listed under *Not yet* in `NOT_SIMULATED.md`'s Organisation row.
@@ -395,13 +408,6 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
-
-- **A combat unit at 0 TOE** (Mission 5 follow-up, #150). With
-  61.38's tanks broken down with their units, a battalion can stand at 0
-  TOE. The engine now eliminates such units when an assault leaves their
-  side nothing with TOE in the hex (19.62, 3.5, 15.55), but no ruling
-  covers it: whether they exert ZOC, can be barraged, or are captured
-  alone in enemy ZOC as 10.29 does for supply. A ruling would settle it.
 
 ## Runs and quota
 
