@@ -749,3 +749,9 @@ Done: #131, #132 merged (rail ends, set-up forts).
 In flight: #133 back to draft: CI's Playwright fails one test, `web/tests/map.spec.ts:157` expects 30 units in a box and sees 32 (the GT1 pre-play convoy lands Axis supply in Tripoli). Not yet checked whether 32 is right.
 Next: confirm the two extra pieces are the GT1 convoy's, update that count (or the fixture), rerun web CI, merge #133.
 Blocked: none.
+
+## 2026-11-06 04:25 MST — autopilot/m5-withdrawals
+Done: #133, #134 (cna fff7856), #135 (broken_down_starts) merged. #137 (ratio levels, 64.76) ready. #138 (release_schedule, R-159; review's 3 bugs fixed in 9eec046) ready. #136 (withdrawals, R-154–157) ready; carries #135/#138 merged in with pins regenerated, so merge it last.
+In flight: CI on #136/#137/#138; merge order #137, #138, #136.
+Next: plan Task 2 rest (cna's typed `minefield_sets` and fortification `side`: player-placed works at set-up), Task 5 rest (7th Armoured `all_tanks`: a TOE-0 tank battalion is eliminated by note_losses; repair returns points as replacements, not to the unit), R-102 motorisation (61.72), Task 7 rest (64.71–64.75).
+Blocked: none. /tmp is tmpfs: CARGO_TARGET_DIR under work/targets/.
