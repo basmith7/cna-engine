@@ -284,7 +284,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   the campaigns' automatic wins and replacement/withdrawal points
   (64.71–64.75).
 - `vendor/cna` is at cna fff7856 (#134).
-- **2026-11-06, third run (in flight):** three drafts being built in parallel: set-up works a player places (`autopilot/m5-placed-works`), the 7th Armoured's tanks starting broken down and 61.72 (`autopilot/m5-all-tanks`), the campaigns' automatic wins 64.71–64.75 (`autopilot/m5-campaign-victory`).
+- **2026-11-06, fourth run (in flight):** the third run was killed; #140 (campaign victory, 64.71–64.73) merged; #139 (7th Armoured's tanks with their units) re-pinned after main, CI and a fresh review running; set-up works a player places (`autopilot/m5-placed-works`, WIP pushed) and roads built (`autopilot/m5-roads-built`) being finished.
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
@@ -346,6 +346,16 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
+
+- **Rommel's Arrival's unattached motorisation points as hexes** (Mission 5:
+  scenario set-ups, Task 5 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
+  `abstractions.air_and_logistics.motorisation.unattached` (61.72) places the
+  Axis's 290 in `region: libya` and the Commonwealth's 90 on `sheets: A–D`
+  (its 150 in Alexandria/Cairo are fine). The engine keeps motorisation
+  points by hex (32.5x), so it needs each row as hexes with counts (for
+  example the hexes the scenario's second-line trucks start in, as the
+  rows' notes suggest), or a ruling that the owner places them freely at
+  set-up within an area cna lists as hexes.
 
 - **Roads and railroads built at set-up as hex data** (Mission 5:
   scenario set-ups, Task 4 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).

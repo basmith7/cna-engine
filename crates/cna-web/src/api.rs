@@ -1170,6 +1170,30 @@ mod tests {
         }
         assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
 
+        // Rommel's Arrival with every piece placed: only the
+        // Commonwealth's four Tobruk forts (61.6, `placed_works`) hold
+        // its set-up.
+        let rommel = data("rommels-arrival").unwrap();
+        let mut rommel_works = GameState::with_modules(rommel, 7, Modules::ALL).unwrap();
+        while let Some(Pending::SetUp { side }) = rommel_works.pending.clone() {
+            let Some((piece, hex)) = rommel_works
+                .pieces
+                .values()
+                .filter(|p| p.side == side && p.is_pending())
+                .find_map(|p| {
+                    let hex = rommel_works.placements(rommel, &p.id).into_iter().next()?;
+                    Some((p.id.clone(), hex))
+                })
+            else {
+                break;
+            };
+            rommel_works
+                .apply(rommel, side, Order::Place { piece, hex })
+                .unwrap();
+        }
+        assert_eq!(rommel_works.pending, Some(Pending::SetUp { side: Side::Cw }));
+        assert!(!rommel_works.works_to_place.is_empty());
+
         // Operation Crusader played on to the Commonwealth's first
         // movement segment (every other step passed, the Commonwealth
         // Player A), with a test-only LRDG hidden next to Rommel: cna has
@@ -1435,6 +1459,7 @@ mod tests {
             ("fleet-barrage", fleet_barrage),
             ("patrol", patrol),
             ("crusader-set-up", crusader_set_up),
+            ("rommel-works", rommel_works),
             ("raid-rommel", raid),
             ("spot-raider", spot),
             ("reserve", reserve),

@@ -25,6 +25,7 @@
     "broken_down_starts": true,
     "release_schedule": true,
     "tanks_with_units": true,
+    "placed_works": true,
     "campaign_victory": true
   },
   "seed": 7,
