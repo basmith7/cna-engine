@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn game_turns_one_to_six_are_six_commonwealth_rows() {
         let s = Schedule::load().unwrap();
-        assert_eq!(s.rows().count(), 278);
+        assert_eq!(s.rows().count(), 280);
         let early: Vec<&Row> = s.rows().filter(|r| r.at.game_turn <= 6).collect();
         assert_eq!(early.len(), 6);
         let expect = [
