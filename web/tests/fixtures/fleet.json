@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "9336fccdc1a344087313112a5fb1f79086501993",
+  "rules_commit": "111220aa75861ddcb9cbb1216e1825ad67dad954",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -28,7 +28,8 @@
     "placed_works": true,
     "campaign_victory": true,
     "roads_built": true,
-    "unattached_motorisation": true
+    "unattached_motorisation": true,
+    "zero_toe": true
   },
   "clock": {
     "game_turn": 2,

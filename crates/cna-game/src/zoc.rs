@@ -34,6 +34,12 @@ impl GameState {
         }
     }
 
+    /// Whether `p` acts as a combat unit: with `zero_toe` on, one with no
+    /// TOE points left is a non-combat unit until it absorbs one (R-164).
+    pub(crate) fn is_combatant(&self, p: &Piece) -> bool {
+        p.kind == PieceKind::Combat && (p.toe > 0 || !self.modules.zero_toe)
+    }
+
     /// Raw close-assault defence points of pieces standing together
     /// (4.4x): TOE points times each combat unit's defence rating, tanks
     /// and guns by their weapon systems (4.47–4.49); a parenthesised
@@ -58,7 +64,7 @@ impl GameState {
     pub(crate) fn could_exert_with(&self, data: &Data, pieces: &[&Piece]) -> bool {
         let sp: u32 = pieces
             .iter()
-            .filter(|p| p.kind == PieceKind::Combat)
+            .filter(|p| self.is_combatant(p))
             .filter(|p| !p.cohesion.collapsed(&self.ruleset))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
@@ -96,7 +102,7 @@ impl GameState {
         };
         pieces
             .iter()
-            .filter(|p| p.kind == PieceKind::Combat)
+            .filter(|p| self.is_combatant(p))
             .any(|p| step_cost(&data.terrain, self.mobility(data, p), &step).is_ok())
     }
 
@@ -164,7 +170,7 @@ impl GameState {
     ) -> bool {
         self.pieces_at(hex)
             .into_iter()
-            .any(|p| p.side == side && p.kind == PieceKind::Combat && !except.contains(&p.id))
+            .any(|p| p.side == side && self.is_combatant(p) && !except.contains(&p.id))
     }
 
     /// Opens a movement segment: the declarations the non-phasing player
@@ -275,11 +281,12 @@ impl GameState {
                 continue;
             }
             let contact = self.zoc_at(data, &hex, side) == Zoc::Exerts;
+            let combatant = self.is_combatant(&self.pieces[&id]);
             let p = self.pieces.get_mut(&id).expect("listed");
             p.contact = contact;
             if contact
                 && Some(side) != phasing
-                && p.kind != PieceKind::Combat
+                && !combatant
                 && p.toe == 0
                 && !self.friendly_combat_in(&hex, side, &[])
             {
@@ -299,7 +306,7 @@ impl GameState {
         let Some(captor) = pieces
             .iter()
             .map(|id| &self.pieces[id])
-            .find(|p| p.kind == PieceKind::Combat)
+            .find(|p| self.is_combatant(p))
             .map(|p| p.side)
         else {
             return;
@@ -316,9 +323,13 @@ impl GameState {
     }
 
     /// `captor` takes the non-combat piece `id` in `hex`: removed, or
-    /// under abstract supply a real supply unit goes over whole.
+    /// under abstract supply a real supply unit goes over whole. A combat
+    /// unit with no TOE (R-164) gives no prisoner points: it has none.
     fn capture(&mut self, id: &PieceId, captor: Side, hex: &HexId, events: &mut Vec<Event>) {
         let module = self.modules.abstract_supply;
+        if self.pieces[id].kind == PieceKind::Combat {
+            self.release_attached(id);
+        }
         let p = self.pieces.get_mut(id).expect("listed");
         p.contact = false;
         if module && p.kind == PieceKind::SupplyUnit {
@@ -864,5 +875,132 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.case, "8.1x", "{}", err.reason);
+    }
+
+    /// Graziani's, GT1, the Commonwealth moving, 1 KRRC stripped to 0
+    /// TOE (as 61.38's broken-down tanks leave a battalion), with or
+    /// without the `zero_toe` module (R-164).
+    fn bare_krrc(zero_toe: bool) -> (Data, GameState, PieceId) {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.zero_toe = zero_toe;
+        let krrc = pid("unit:cw:1-krrc");
+        let p = state.pieces.get_mut(&krrc).unwrap();
+        p.toe = 0;
+        p.weapons.clear();
+        (data, state, krrc)
+    }
+
+    /// Moves 1 KRRC towards C4021, next to the Axis at C4020, which
+    /// declares its ZOC, and moves it again.
+    fn krrc_into_c4020_s_zoc(data: &Data, state: &mut GameState) -> Result<Vec<Event>, Illegal> {
+        state
+            .apply(data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
+            .unwrap();
+        state
+            .apply(
+                data,
+                Side::Axis,
+                Order::DeclareZoc {
+                    exerting: vec![hex("C4020")],
+                },
+            )
+            .unwrap();
+        state.apply(data, Side::Cw, mv(&["unit:cw:1-krrc"], &["C4021"]))
+    }
+
+    #[test]
+    fn a_combat_unit_at_zero_toe_may_not_enter_an_unoccupied_enemy_zoc_r164() {
+        let (data, mut state, krrc) = bare_krrc(true);
+        let err = krrc_into_c4020_s_zoc(&data, &mut state).unwrap_err();
+        assert_eq!(err.case, "10.29");
+        assert_ne!(state.pieces[&krrc].hex(), Some(&hex("C4021")));
+    }
+
+    #[test]
+    fn without_zero_toe_a_bare_combat_unit_enters_an_enemy_zoc_as_before() {
+        let (data, mut state, krrc) = bare_krrc(false);
+        krrc_into_c4020_s_zoc(&data, &mut state).unwrap();
+        assert_eq!(state.pieces[&krrc].hex(), Some(&hex("C4021")));
+    }
+
+    /// 1 KRRC, at 0 TOE, alone in C4021 next to the Axis at C4020 when
+    /// the Axis's movement segment opens: the events of getting there.
+    fn bare_krrc_alone_in_enemy_zoc(zero_toe: bool) -> (GameState, PieceId, Vec<Event>) {
+        let data = graziani();
+        let mut state = crate::state::test_support::set_up(&data, 3);
+        state.modules.zero_toe = zero_toe;
+        let krrc = pid("unit:cw:1-krrc");
+        state.put(&krrc, Location::Hex(hex("C4021")));
+        let p = state.pieces.get_mut(&krrc).unwrap();
+        p.toe = 0;
+        p.weapons.clear();
+        assert_eq!(state.pieces_at(&hex("C4021")).len(), 1, "alone");
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                },
+            )
+            .unwrap();
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert_eq!(state.clock.segment, Some(Segment::Movement));
+        (state, krrc, events)
+    }
+
+    #[test]
+    fn a_combat_unit_at_zero_toe_alone_in_an_enemy_zoc_is_captured_10_29_r164() {
+        let (state, krrc, events) = bare_krrc_alone_in_enemy_zoc(true);
+        assert!(events.contains(&Event::Captured {
+            piece: krrc.clone(),
+            hex: hex("C4021")
+        }));
+        assert_eq!(state.pieces[&krrc].location, Location::Eliminated);
+        // No prisoner points: it had no TOE to give (R-164).
+        assert!(
+            !events.iter().any(|e| matches!(e, Event::Prisoners { .. })),
+            "{events:?}"
+        );
+    }
+
+    #[test]
+    fn without_zero_toe_a_bare_combat_unit_alone_in_an_enemy_zoc_stands() {
+        let (state, krrc, events) = bare_krrc_alone_in_enemy_zoc(false);
+        assert!(!events.iter().any(|e| matches!(e, Event::Captured { .. })));
+        assert_eq!(state.pieces[&krrc].hex(), Some(&hex("C4021")));
+    }
+
+    #[test]
+    fn a_bare_unit_s_stacking_points_do_not_count_toward_a_zoc_10_11_r164() {
+        // C4020 left with two Libyan battalions, one at 0 TOE: the other
+        // has 10 raw defence points but alone is not more than 1 SP
+        // (10.11), so the bare one's stacking points decide the ZOC.
+        let data = graziani();
+        let c4020 = hex("C4020");
+        let (whole, bare) = (pid("unit:it:ix-libyan-bn"), pid("unit:it:x-libyan-bn"));
+        let exerts = |zero_toe: bool| {
+            let mut state = moving(&data, 3, Side::Cw);
+            state.modules.zero_toe = zero_toe;
+            let others: Vec<PieceId> = state
+                .pieces_at(&c4020)
+                .into_iter()
+                .map(|p| p.id.clone())
+                .filter(|id| *id != whole && *id != bare)
+                .collect();
+            for id in others {
+                state.put(&id, Location::Eliminated);
+            }
+            let p = state.pieces.get_mut(&bare).unwrap();
+            p.toe = 0;
+            p.weapons.clear();
+            // Brought up to 10 points (it has 5): 10 raw defence.
+            state.pieces.get_mut(&whole).unwrap().toe = 10;
+            assert!(!state.could_exert_with(&data, &[&state.pieces[&whole]]));
+            state.could_exert(&data, &c4020)
+        };
+        assert!(exerts(false), "a bare battalion's SP counted");
+        assert!(!exerts(true), "R-164: not counted");
     }
 }

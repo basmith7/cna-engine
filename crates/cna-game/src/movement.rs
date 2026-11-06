@@ -135,7 +135,7 @@ impl GameState {
         let Some(side) = pieces
             .iter()
             .map(|id| &self.pieces[id])
-            .find(|p| p.kind == PieceKind::Combat)
+            .find(|p| self.is_combatant(p))
             .map(|p| p.side)
         else {
             return;
@@ -457,9 +457,7 @@ impl GameState {
                 .all(|id| self.pieces[id].kind == PieceKind::Raider);
         Mover {
             side: self.pieces[&pieces[0]].side,
-            combat: pieces
-                .iter()
-                .any(|id| self.pieces[id].kind == PieceKind::Combat),
+            combat: pieces.iter().any(|id| self.is_combatant(&self.pieces[id])),
             // A stack in contact or engaged breaks off before it moves
             // (8.6x). Contact only exists in an enemy ZOC; an engaged
             // unit need not be in one, so this is the pieces' state, not
@@ -825,9 +823,7 @@ impl GameState {
         if plan.break_off && !plan.steps.is_empty() {
             self.pay_break_off(pieces, false, &mut events);
         }
-        let combat = pieces
-            .iter()
-            .any(|id| self.pieces[id].kind == PieceKind::Combat);
+        let combat = pieces.iter().any(|id| self.is_combatant(&self.pieces[id]));
         let mut at = from.clone();
         let mut reaction = None;
         let storm =

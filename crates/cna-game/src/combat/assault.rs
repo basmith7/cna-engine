@@ -1283,7 +1283,7 @@ impl GameState {
         let equivalents: u32 = self
             .pieces
             .values()
-            .filter(|p| p.hex() == Some(e) && p.kind == PieceKind::Combat)
+            .filter(|p| p.hex() == Some(e) && self.is_combatant(p))
             .filter(|p| !self.is_gun_unit(data, p))
             .map(|p| cna_rules::stacking::points(&data.stacking, p.equivalent))
             .sum();
