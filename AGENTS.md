@@ -26,7 +26,7 @@ engine leaves out in `NOT_SIMULATED.md`.
 - New rules go behind a `Modules` flag (`#[serde(default)]`) or a `Ruleset` switch, so saves
   and logs made before them replay unchanged.
 - `GameState::new` starts with every module off, as old saves play. `cna-play new` (unless
-  given `--no-*` flags) and the browser turn them all on, so a test built on
+  given `--without`) and the browser turn them all on, so a test built on
   `GameState::new` exercises no supply, breakdown or construction.
 - `rules_commit` is `git rev-parse HEAD` in `vendor/cna`: uncommitted edits there play under
   the old commit's name.

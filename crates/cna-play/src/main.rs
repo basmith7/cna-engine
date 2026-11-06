@@ -27,83 +27,11 @@ enum Cmd {
         scenario: String,
         #[arg(long, default_value_t = 1)]
         seed: u64,
-        /// Play without the abstract supply module (§32): supply units
-        /// carry nothing and no motorisation points exist.
-        #[arg(long)]
-        no_abstract_supply: bool,
-        /// Play without the breakdown module (§21): vehicles never
-        /// break down.
-        #[arg(long)]
-        no_breakdown: bool,
-        /// Play without construction (§24): engineers build nothing.
-        #[arg(long)]
-        no_construction: bool,
-        /// Play without the Commonwealth fleet (§30): no ships arrive and
-        /// phase E stays skipped.
-        #[arg(long)]
-        no_fleet: bool,
-        /// Play without patrols (§16): phase L stays skipped.
-        #[arg(long)]
-        no_patrols: bool,
-        /// Play without captured equipment (28.3, R-152): surrendered guns
-        /// and tanks are lost, not the captor's replacement points.
-        #[arg(long)]
-        no_captured_equipment: bool,
-        /// Play without destroyed tanks (14.5x, 22.4x): tanks killed in
-        /// combat leave no marker to capture or repair.
-        #[arg(long)]
-        no_destroyed_tanks: bool,
-        /// Play without towing (21.6x): phase K opens only for repair rolls.
-        #[arg(long)]
-        no_towing: bool,
-        /// Play without the scenario's railhead (59.12): the railway
-        /// always starts at Mersa Matruh.
-        #[arg(long)]
-        no_rail_ends: bool,
-        /// Play without the scenario's set-up fortifications (59.12).
-        #[arg(long)]
-        no_set_up_works: bool,
-        /// Play without the set-up works a player places: forts and
-        /// minefields of its choice (61.6, 63.76–63.77).
-        #[arg(long)]
-        no_placed_works: bool,
-        /// Play without Group One's pre-play Axis convoys (R-097).
-        #[arg(long)]
-        no_pre_play_convoys: bool,
-        /// Play without Commonwealth withdrawals (20.8x, R-154).
-        #[arg(long)]
-        no_withdrawals: bool,
-        /// Play without the scenario's tanks that start broken down
-        /// (61.38, 62.32, 63.42).
-        #[arg(long)]
-        no_broken_down_starts: bool,
-        /// Play without the scenario's release schedule (61.38, R-159).
-        #[arg(long)]
-        no_release_schedule: bool,
-        /// Play without the 7th Armoured's tanks starting broken down with
-        /// their units (61.38).
-        #[arg(long)]
-        no_tanks_with_units: bool,
-        /// Play without the campaign games' automatic wins and
-        /// end-of-game supply test (64.71–64.73).
-        #[arg(long)]
-        no_campaign_victory: bool,
-        /// Play without the scenario's roads and railroads built at
-        /// set-up: its unfinished roads stay tracks.
-        #[arg(long)]
-        no_roads_built: bool,
-        /// Play without placing the scenario's unattached motorisation
-        /// points at set-up (61.72, R-160).
-        #[arg(long)]
-        no_unattached_motorisation: bool,
-        /// Play with a combat unit at 0 TOE still counted a combat unit
-        /// for ZOC, movement, reactions and capture (as before R-164).
-        #[arg(long)]
-        no_zero_toe: bool,
-        /// Play with non-combat units captured in an enemy ZOC only when
-        /// the enemy's movement segment opens (10.29), as before.
-        #[arg(long)]
-        no_capture_on_move: bool,
+        /// Play without these modules (`Modules` in `cna-game`; every one
+        /// is on otherwise), by name, repeated or comma-separated: e.g.
+        /// `--without breakdown,fleet`. An unknown name lists them all.
+        #[arg(long, value_delimiter = ',', value_name = "MODULE")]
+        without: Vec<String>,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -218,58 +146,36 @@ fn show(state: &GameState) -> String {
     out
 }
 
+/// Every module on but those `names` (serde's field names; `-` reads
+/// as `_`).
+fn modules_without(names: &[String]) -> Result<Modules> {
+    let mut map = match serde_json::to_value(Modules::ALL)? {
+        serde_json::Value::Object(map) => map,
+        _ => unreachable!("Modules is a struct"),
+    };
+    for name in names {
+        let key = name.replace('-', "_");
+        match map.get_mut(&key) {
+            Some(on) => *on = serde_json::Value::Bool(false),
+            None => {
+                let known: Vec<&str> = map.keys().map(String::as_str).collect();
+                bail!("no module {name:?}; modules: {}", known.join(", "));
+            }
+        }
+    }
+    Ok(serde_json::from_value(serde_json::Value::Object(map))?)
+}
+
 fn main() -> Result<()> {
     match Cli::parse().cmd {
         Cmd::New {
             scenario,
             seed,
-            no_abstract_supply,
-            no_breakdown,
-            no_construction,
-            no_fleet,
-            no_patrols,
-            no_captured_equipment,
-            no_destroyed_tanks,
-            no_towing,
-            no_rail_ends,
-            no_set_up_works,
-            no_placed_works,
-            no_pre_play_convoys,
-            no_withdrawals,
-            no_broken_down_starts,
-            no_release_schedule,
-            no_tanks_with_units,
-            no_campaign_victory,
-            no_roads_built,
-            no_unattached_motorisation,
-            no_zero_toe,
-            no_capture_on_move,
+            without,
             output,
         } => {
             let data = Data::load(&scenario)?;
-            let modules = Modules {
-                abstract_supply: !no_abstract_supply,
-                breakdown: !no_breakdown,
-                construction: !no_construction,
-                fleet: !no_fleet,
-                patrols: !no_patrols,
-                captured_equipment: !no_captured_equipment,
-                destroyed_tanks: !no_destroyed_tanks,
-                towing: !no_towing,
-                rail_ends: !no_rail_ends,
-                set_up_works: !no_set_up_works,
-                placed_works: !no_placed_works,
-                pre_play_convoys: !no_pre_play_convoys,
-                withdrawals: !no_withdrawals,
-                broken_down_starts: !no_broken_down_starts,
-                release_schedule: !no_release_schedule,
-                tanks_with_units: !no_tanks_with_units,
-                campaign_victory: !no_campaign_victory,
-                roads_built: !no_roads_built,
-                unattached_motorisation: !no_unattached_motorisation,
-                zero_toe: !no_zero_toe,
-                capture_on_move: !no_capture_on_move,
-            };
+            let modules = modules_without(&without)?;
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
             println!("{}", show(&state));
@@ -309,4 +215,32 @@ fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn without_turns_off_only_the_named_modules() {
+        let names = ["breakdown".to_string(), "tanks-with-units".to_string()];
+        let m = modules_without(&names).unwrap();
+        assert!(!m.breakdown && !m.tanks_with_units);
+        let mut back = m;
+        back.breakdown = true;
+        back.tanks_with_units = true;
+        assert_eq!(back, Modules::ALL);
+        assert_eq!(modules_without(&[]).unwrap(), Modules::ALL);
+    }
+
+    #[test]
+    fn an_unknown_module_is_refused_with_the_list() {
+        let err = modules_without(&["nope".to_string()])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("nope") && err.contains("abstract_supply"),
+            "{err}"
+        );
+    }
 }
