@@ -1085,12 +1085,42 @@ mod tests {
                 weapon: "Mark VI Light".into(),
                 points: 4,
                 this_stage: 0,
+                towed: 0,
             }],
         );
         repair.apply(graziani(), Side::Cw, Order::Pass).unwrap();
         assert_eq!(repair.clock.phase, cna_game::clock::Phase::Repair);
         assert_eq!(repair.to_act(), Some(Side::Cw));
         assert_eq!(repair.field_repairs(graziani()).len(), 1);
+
+        // The same phase K with the light tanks a hex out of Alexandria
+        // instead, where only a tow brings them to its facility (21.6x).
+        let mut tow = rail.clone();
+        let wrecks = repair.broken_down[&alexandria].clone();
+        let out = graziani()
+            .map
+            .neighbours(&alexandria)
+            .into_iter()
+            .find(|h| {
+                let mut s = tow.clone();
+                s.broken_down.insert(h.clone(), wrecks.clone());
+                s.apply(graziani(), Side::Cw, Order::Pass).unwrap();
+                s.apply(
+                    graziani(),
+                    Side::Cw,
+                    Order::Tow {
+                        hex: h.clone(),
+                        weapon: "Mark VI Light".into(),
+                        points: 1,
+                        path: vec![alexandria.clone()],
+                    },
+                )
+                .is_ok()
+            })
+            .expect("a hex beside Alexandria to tow from");
+        tow.broken_down.insert(out, wrecks);
+        tow.apply(graziani(), Side::Cw, Order::Pass).unwrap();
+        assert_eq!(tow.clock.phase, cna_game::clock::Phase::Repair);
 
         let game_over = replay(graziani(), &golden_log()).unwrap();
         assert!(game_over.is_over());
@@ -1396,6 +1426,7 @@ mod tests {
             ("forced-retreat", forced_retreat),
             ("rail", rail),
             ("repair", repair),
+            ("tow", tow),
             ("game-over", game_over),
         ]
     }
@@ -1408,7 +1439,7 @@ mod tests {
         ("set-up-done", 56),
         ("movement-done", 64),
         ("combat-done", 78),
-        ("golden-done", 502),
+        ("golden-done", 505),
     ];
 
     /// The Playwright specs start from `web/tests/fixtures/<name>.json`

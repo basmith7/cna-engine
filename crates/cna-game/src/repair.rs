@@ -67,8 +67,11 @@ impl GameState {
                 let points = wrecks
                     .iter()
                     .filter(|x| x.side == side && x.weapon == w.weapon)
-                    .map(|x| x.points)
+                    .map(|x| x.points - x.towed)
                     .sum();
+                if points == 0 {
+                    continue;
+                }
                 if self.modules.abstract_supply && self.repair_fuel(data, side, hex).is_empty() {
                     continue;
                 }
@@ -81,7 +84,9 @@ impl GameState {
     /// Phase K waits on the phasing player only when it has something to
     /// try; otherwise it is skipped.
     pub(crate) fn repairs_to_try(&self, data: &Data) -> bool {
-        !self.field_repairs(data).is_empty() || !self.facility_repairs(data).is_empty()
+        !self.field_repairs(data).is_empty()
+            || !self.facility_repairs(data).is_empty()
+            || (self.modules.towing && self.tows_to_try(data))
     }
 
     /// The real supply units with fuel that may pay for repairs in
@@ -145,7 +150,7 @@ impl GameState {
             .into_iter()
             .flatten()
             .filter(|w| w.side == player && w.weapon == weapon)
-            .map(|w| w.points)
+            .map(|w| w.points - w.towed)
             .sum();
         if points == 0 {
             return Err(Illegal::new(
@@ -268,6 +273,7 @@ impl GameState {
             });
             w.points -= k;
             w.this_stage = w.this_stage.min(w.points);
+            w.towed = w.towed.min(w.points);
             n -= k;
         }
         wrecks.retain(|w| w.points > 0);
@@ -311,6 +317,7 @@ mod tests {
                 weapon: "M13/40".into(),
                 points: 4,
                 this_stage: 0,
+                towed: 0,
             }],
         );
         (state, hex)

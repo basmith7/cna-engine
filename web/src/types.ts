@@ -197,6 +197,7 @@ export type Order =
   | { "convoy-lanes": { lanes: number[] } }
   | { repair: { hex: HexId; weapon: string; fuel_from?: PieceId } }
   | { "facility-repair": { hex: HexId; weapon: string; fuel_from?: PieceId } }
+  | { tow: { hex: HexId; weapon: string; points: number; path: HexId[] } }
   | { "march-prisoners": { from: HexId; path: HexId[]; points: number } }
   | { absorb: { piece: PieceId; weapon: string; points: number } }
   | { build: { item: BuildItem; hex: HexId; builders: PieceId[] } }
@@ -242,6 +243,8 @@ export interface Wreck {
   points: number;
   /** How many of `points` broke down this OpStage: no facility repairs them until the next (22.31). */
   this_stage?: number;
+  /** How many of `points` were towed in this phase K: no roll and no second tow until the next OpStage (21.6x, 22.13). */
+  towed?: number;
 }
 
 export type VictoryLevel = string;
@@ -385,6 +388,7 @@ export type Event =
   | { "air-lifted": { piece: PieceId; from: Location; to: Location; fuel_from?: PieceId } }
   | { "field-repaired": { hex: HexId; weapon: string; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
   | { "facility-repaired": { hex: HexId; weapon: string; kind: FacilityKind; attempted: number; die: number; repaired: number; fuel_from?: PieceId } }
+  | { towed: { side: Side; from: HexId; to: HexId; weapon: string; points: number } }
   | { "wrecks-captured": { by: PieceId; hex: HexId; points: number } }
   | { "prisoners-taken": { side: Side; hex: HexId; points?: number } }
   | { "equipment-captured": { side: Side; hex: HexId; weapon: string; points?: number } }

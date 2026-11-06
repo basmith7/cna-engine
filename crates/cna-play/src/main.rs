@@ -49,6 +49,9 @@ enum Cmd {
         /// and tanks are lost, not the captor's replacement points.
         #[arg(long)]
         no_captured_equipment: bool,
+        /// Play without towing (21.6x): phase K opens only for repair rolls.
+        #[arg(long)]
+        no_towing: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -174,6 +177,7 @@ fn main() -> Result<()> {
             no_fleet,
             no_patrols,
             no_captured_equipment,
+            no_towing,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -184,6 +188,7 @@ fn main() -> Result<()> {
                 fleet: !no_fleet,
                 patrols: !no_patrols,
                 captured_equipment: !no_captured_equipment,
+                towing: !no_towing,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

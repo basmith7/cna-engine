@@ -11,16 +11,22 @@
 //! Tripoli box for the Axis, Tobruk for whoever holds it. Wrecks stand
 //! only in map hexes, so the Tripoli box repairs nothing yet.
 
+use crate::breakdown::Wreck;
 use crate::clock::Phase;
 use crate::data::Data;
 use crate::event::{Event, Illegal};
 use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use crate::zoc::Zoc;
+use cna_data::cp::Cp;
 use cna_data::map::{HexId, PlaceKind};
 use cna_data::scenario::{FacilityKind, Locator, Side};
 use cna_rules::movement::Weather;
+use cna_rules::movement::{Mobility, Step, step_cost};
 use std::collections::BTreeMap;
+
+/// What a tow may spend in a repair phase: a medium truck's 10 CP (21.6x).
+const TOW_CP: Cp = Cp::whole(10);
 
 /// One facility-repair roll the phasing player may make now.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -255,12 +261,195 @@ impl GameState {
             fuel_from: paid_by,
         }])
     }
+
+    /// Whether the phasing player has broken-down points that might be
+    /// towed: not yet towed, away from a repair facility and in no
+    /// enemy ZOC a friendly combat unit fails to cancel (21.6x). Whether
+    /// a path exists is left to `Order::Tow`.
+    pub(crate) fn tows_to_try(&self, data: &Data) -> bool {
+        let Some(player) = self.phasing() else {
+            return false;
+        };
+        let facilities = self.repair_facilities(data, player);
+        !facilities.is_empty()
+            && self.broken_down.iter().any(|(hex, wrecks)| {
+                !facilities.contains_key(hex)
+                    && wrecks
+                        .iter()
+                        .any(|w| w.side == player && w.points > w.towed)
+                    && (self.zoc_at(data, hex, player) == Zoc::Clear
+                        || self.friendly_combat_in(hex, player, &[]))
+            })
+    }
+
+    /// `Order::Tow`: the phasing player's broken-down `weapon` points at
+    /// `hex` move along `path` as a medium truck on 10 CP, ending nearer
+    /// the repair facility nearest `hex`; not out of an enemy ZOC no
+    /// friendly unit cancels, nor through one, nor after a repair roll
+    /// on them this phase. They arrive as not having begun the OpStage
+    /// there and are not repaired this phase (21.6x, 22.13).
+    pub(crate) fn tow(
+        &mut self,
+        data: &Data,
+        player: Side,
+        hex: &HexId,
+        weapon: &str,
+        points: u32,
+        path: &[HexId],
+    ) -> Result<Vec<Event>, Illegal> {
+        if !self.modules.breakdown || self.clock.phase != Phase::Repair {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("vehicles are towed in phase K, not at {}", self.clock),
+            ));
+        }
+        if self.phasing() != Some(player) {
+            return Err(Illegal::new("21.6x", "only the phasing player tows"));
+        }
+        if self
+            .field_rolled
+            .contains(&(player, hex.clone(), weapon.to_string()))
+        {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("{weapon} at {hex} had a repair roll this phase"),
+            ));
+        }
+        let free: u32 = self
+            .broken_down
+            .get(hex)
+            .into_iter()
+            .flatten()
+            .filter(|w| w.side == player && w.weapon == weapon)
+            .map(|w| w.points - w.towed)
+            .sum();
+        if points == 0 || points > free {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("{free} broken-down {weapon} of yours at {hex} may be towed, not {points}"),
+            ));
+        }
+        let Some(to) = path.last() else {
+            return Err(Illegal::new("21.6x", "an empty path"));
+        };
+        let in_zoc = |state: &GameState, h: &HexId| {
+            state.zoc_at(data, h, player) != Zoc::Clear && !state.friendly_combat_in(h, player, &[])
+        };
+        if in_zoc(self, hex) {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("{hex} is enemy-controlled: nothing is towed out of it"),
+            ));
+        }
+        let mut cost = Cp::ZERO;
+        let mut at = hex;
+        for (i, next) in path.iter().enumerate() {
+            if !data.map.adjacent(at, next) {
+                return Err(Illegal::new("21.6x", format!("{next} is not next to {at}")));
+            }
+            let hexside = data.map.hexside(at, next);
+            let step = Step {
+                from: data.map.hex(at).expect("on the map"),
+                to: data.map.hex(next).expect("on the map"),
+                hexside,
+                climbs: hexside.is_some_and(|hs| hs.climbs(at, next)),
+                weather: self.weather_at(next),
+            };
+            cost += step_cost(&data.terrain, Mobility::Vehicle, &step).map_err(|p| {
+                Illegal::new(
+                    p.case,
+                    format!("a tow may not enter {next} from {at}: {}", p.reason),
+                )
+            })?;
+            if i + 1 < path.len() && in_zoc(self, next) {
+                return Err(Illegal::new(
+                    "21.6x",
+                    format!("{next} is in an enemy ZOC: the tow ends there"),
+                ));
+            }
+            at = next;
+        }
+        if cost > TOW_CP {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("the tow costs {cost} CP, more than {TOW_CP}"),
+            ));
+        }
+        // Toward the nearest facility: closer to one of those nearest
+        // `hex` than `hex` is.
+        let facilities: Vec<HexId> = self.repair_facilities(data, player).into_keys().collect();
+        let limit = 200;
+        let near = facilities
+            .iter()
+            .map(|f| GameState::distance(data, hex, f, limit))
+            .min();
+        let toward = near.is_some_and(|d| {
+            facilities.iter().any(|f| {
+                GameState::distance(data, hex, f, limit) == d
+                    && GameState::distance(data, to, f, limit) < d
+            })
+        });
+        if !toward {
+            return Err(Illegal::new(
+                "21.6x",
+                format!("{to} is no nearer the repair facility nearest {hex}"),
+            ));
+        }
+        // Move the points, keeping each wreck's nation.
+        let mut moved: Vec<(Option<cna_data::oa::Nation>, u32)> = Vec::new();
+        let mut left = points;
+        let wrecks = self.broken_down.get_mut(hex).expect("checked above");
+        for w in wrecks
+            .iter_mut()
+            .filter(|w| w.side == player && w.weapon == weapon)
+        {
+            let k = left.min(w.points - w.towed);
+            if k == 0 {
+                continue;
+            }
+            w.points -= k;
+            w.this_stage = w.this_stage.min(w.points);
+            left -= k;
+            moved.push((w.nation, k));
+        }
+        wrecks.retain(|w| w.points > 0);
+        if wrecks.is_empty() {
+            self.broken_down.remove(hex);
+        }
+        let dest = self.broken_down.entry(to.clone()).or_default();
+        for (nation, k) in moved {
+            match dest
+                .iter_mut()
+                .find(|w| w.side == player && w.weapon == weapon && w.nation == nation)
+            {
+                Some(w) => {
+                    w.points += k;
+                    w.this_stage += k;
+                    w.towed += k;
+                }
+                None => dest.push(Wreck {
+                    side: player,
+                    nation,
+                    weapon: weapon.to_string(),
+                    points: k,
+                    this_stage: k,
+                    towed: k,
+                }),
+            }
+        }
+        Ok(vec![Event::Towed {
+            side: player,
+            from: hex.clone(),
+            to: to.clone(),
+            weapon: weapon.to_string(),
+            points,
+        }])
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::breakdown::Wreck;
     use crate::clock::Half;
     use crate::order::Order;
     use crate::piece::Location;
@@ -284,6 +473,7 @@ mod tests {
                 weapon: "Matilda".into(),
                 points: 4,
                 this_stage: 0,
+                towed: 0,
             }],
         );
         (state, hex)
@@ -517,5 +707,172 @@ mod tests {
             .map(|q| state.pieces[q].load.unwrap().fuel)
             .sum();
         assert_eq!(fuel_before - fuel_after, attempted);
+    }
+
+    /// Four Matilda points two hexes from Mersa Matruh's temporary
+    /// facility, and a clear hex between them to tow to.
+    fn two_out(data: &Data) -> (GameState, HexId, HexId, HexId) {
+        let facility = HexId::parse("D3714").unwrap();
+        let (mut state, _) = at_facility(data, breakdown_only(), "D3714");
+        let wrecks = state.broken_down.remove(&facility).unwrap();
+        for far in data.map.within(&facility, 2) {
+            if GameState::distance(data, &far, &facility, 2) != 2 {
+                continue;
+            }
+            for near in data.map.neighbours(&far) {
+                if !data.map.adjacent(&near, &facility) {
+                    continue;
+                }
+                let mut s = state.clone();
+                s.broken_down.insert(far.clone(), wrecks.clone());
+                if s.clone()
+                    .apply(data, Side::Cw, tow(&far, 1, &[&near]))
+                    .is_ok()
+                {
+                    return (s, facility, far, near);
+                }
+            }
+        }
+        panic!("no hex two from {facility} tows one step in");
+    }
+
+    fn tow(hex: &HexId, points: u32, path: &[&HexId]) -> Order {
+        Order::Tow {
+            hex: hex.clone(),
+            weapon: "Matilda".into(),
+            points,
+            path: path.iter().map(|h| (*h).clone()).collect(),
+        }
+    }
+
+    #[test]
+    fn phase_k_opens_for_a_tow_only_with_towing_on_21_6x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, facility, far, _) = two_out(&data);
+        state.broken_down.retain(|h, _| *h == far);
+        assert!(state.field_repairs(&data).is_empty());
+        assert!(state.facility_repairs(&data).is_empty());
+        // Old games: no roll to make, so phase K stays skipped.
+        assert!(!state.repairs_to_try(&data));
+        state.modules.towing = true;
+        assert!(state.repairs_to_try(&data));
+        // At the facility already, there is nothing to tow.
+        let wrecks = state.broken_down.remove(&far).unwrap();
+        state.broken_down.insert(facility, wrecks.clone());
+        assert!(!state.tows_to_try(&data));
+        // Nor out of an enemy ZOC no friendly unit cancels.
+        state.broken_down.clear();
+        state.broken_down.insert(far.clone(), wrecks);
+        assert!(state.tows_to_try(&data));
+        enemy_beside(&data, &mut state, &far);
+        assert!(!state.friendly_combat_in(&far, Side::Cw, &[]));
+        assert!(!state.tows_to_try(&data));
+    }
+
+    #[test]
+    fn part_of_a_hex_s_wrecks_are_towed_in_and_wait_out_the_phase_21_6x_22_13() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, facility, far, near) = two_out(&data);
+        let events = state
+            .apply(&data, Side::Cw, tow(&far, 3, &[&near, &facility]))
+            .unwrap();
+        assert!(matches!(
+            &events[..],
+            [Event::Towed { from, to, points: 3, .. }] if *from == far && *to == facility
+        ));
+        // One point stays behind, a second marker (§32).
+        assert_eq!(state.broken_down[&far][0].points, 1);
+        let w = &state.broken_down[&facility][0];
+        assert_eq!((w.points, w.this_stage, w.towed), (3, 3, 3));
+        // Towed points are not repaired this phase, in the field or at
+        // the facility (22.13), and are not towed again.
+        assert!(state.facility_repairs(&data).is_empty());
+        assert!(
+            state
+                .field_repairs(&data)
+                .iter()
+                .all(|(h, _, _)| *h != facility)
+        );
+        assert_eq!(
+            state
+                .clone()
+                .apply(&data, Side::Cw, order(&facility))
+                .unwrap_err()
+                .case,
+            "22.31"
+        );
+        assert!(
+            state
+                .clone()
+                .apply(&data, Side::Cw, tow(&facility, 1, &[&near]))
+                .is_err()
+        );
+        // Next OpStage they began it there and the facility may roll.
+        state.start_stage();
+        assert_eq!(state.facility_repairs(&data)[0].points, 3);
+    }
+
+    #[test]
+    fn a_tow_goes_toward_the_nearest_facility_on_10_cp_21_6x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (state, facility, far, near) = two_out(&data);
+        let away = data
+            .map
+            .neighbours(&far)
+            .into_iter()
+            .find(|h| GameState::distance(&data, h, &facility, 3) == 3)
+            .unwrap();
+        assert_eq!(
+            state
+                .clone()
+                .apply(&data, Side::Cw, tow(&far, 1, &[&away]))
+                .unwrap_err()
+                .case,
+            "21.6x"
+        );
+        // Back and forth past 10 CP: in, out and in again three times.
+        let long: Vec<&HexId> = [&near, &far].repeat(6).into_iter().chain([&near]).collect();
+        assert_eq!(
+            state
+                .clone()
+                .apply(&data, Side::Cw, tow(&far, 1, &long))
+                .unwrap_err()
+                .case,
+            "21.6x"
+        );
+        assert_eq!(
+            state
+                .clone()
+                .apply(&data, Side::Cw, tow(&far, 5, &[&near]))
+                .unwrap_err()
+                .case,
+            "21.6x"
+        );
+    }
+
+    #[test]
+    fn no_tow_after_a_repair_roll_or_out_of_an_enemy_zoc_21_6x() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (state, _, far, near) = two_out(&data);
+        // A field roll on them this phase, whatever it fixed (21.6x).
+        let mut rolled = state.clone();
+        rolled
+            .field_rolled
+            .insert((Side::Cw, far.clone(), "Matilda".into()));
+        assert_eq!(
+            rolled
+                .apply(&data, Side::Cw, tow(&far, 1, &[&near]))
+                .unwrap_err()
+                .case,
+            "21.6x"
+        );
+        let mut zoc = state.clone();
+        enemy_beside(&data, &mut zoc, &far);
+        assert_eq!(
+            zoc.apply(&data, Side::Cw, tow(&far, 1, &[&near]))
+                .unwrap_err()
+                .case,
+            "21.6x"
+        );
     }
 }
