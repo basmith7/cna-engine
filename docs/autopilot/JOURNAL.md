@@ -797,3 +797,9 @@ Done: #154 (vendor/cna 9336fcc; R-161, R-162 with review fix; R-163/R-166 NOT_SI
 In flight: none.
 Next: if Feedback approves #148, Mission 6 slice 1. Otherwise bump vendor/cna when cna answers the 0-TOE request, or 19.2x reassignment (scoped this run and set aside: elimination happens at many sites and "assigned" is read at ~49; plan an `is_assigned` helper that treats a unit whose parent is eliminated as independent, behind a module).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 15:10 MST — autopilot/r164-zero-toe
+Done: #156 (ready): vendor/cna → 111220a (cna #298), R-164 as `zero_toe` module (`GameState::is_combatant` at ZOC, 10.29, 10.33, reactions, escort, 13.22, 8.2x, captor, victory holders, 6.24); pins regenerated; fresh review's sites in 2206f57. Gates + web checks green locally.
+In flight: CI on #156.
+Next: merge #156 when green; delete the 0-TOE bullet from PROGRESS Requests for cna. Then 10.29 capture during the enemy's movement (non-combat units are taken only when a segment opens; Rommel already has the move-time path, `capture_lone_rommel`), behind a module; or 19.2x reassignment.
+Blocked: Mission 6 on Brian's review of #148.
