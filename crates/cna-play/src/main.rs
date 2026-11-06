@@ -100,6 +100,10 @@ enum Cmd {
         /// for ZOC, movement, reactions and capture (as before R-164).
         #[arg(long)]
         no_zero_toe: bool,
+        /// Play with non-combat units captured in an enemy ZOC only when
+        /// the enemy's movement segment opens (10.29), as before.
+        #[arg(long)]
+        no_capture_on_move: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -239,6 +243,7 @@ fn main() -> Result<()> {
             no_roads_built,
             no_unattached_motorisation,
             no_zero_toe,
+            no_capture_on_move,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -263,6 +268,7 @@ fn main() -> Result<()> {
                 roads_built: !no_roads_built,
                 unattached_motorisation: !no_unattached_motorisation,
                 zero_toe: !no_zero_toe,
+                capture_on_move: !no_capture_on_move,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

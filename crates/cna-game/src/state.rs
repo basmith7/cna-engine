@@ -169,6 +169,12 @@ pub struct Modules {
     /// captured alone in one (R-164).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub zero_toe: bool,
+    /// A non-combat unit alone in an enemy ZOC is captured at the
+    /// moments R-138 gives Rommel (an enemy combat unit's arrival, a
+    /// reaction declined or made, the end of retreat before assault),
+    /// not only when the enemy's movement segment opens (10.29).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub capture_on_move: bool,
 }
 
 impl Modules {
@@ -194,6 +200,7 @@ impl Modules {
         roads_built: true,
         unattached_motorisation: true,
         zero_toe: true,
+        capture_on_move: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

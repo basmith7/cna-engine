@@ -29,7 +29,8 @@
     "campaign_victory": true,
     "roads_built": true,
     "unattached_motorisation": true,
-    "zero_toe": true
+    "zero_toe": true,
+    "capture_on_move": true
   },
   "clock": {
     "game_turn": 7,

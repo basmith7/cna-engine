@@ -870,6 +870,7 @@ impl GameState {
             if combat {
                 let eligible = self.reactors_next_to(data, &at, &left, pieces, assault);
                 self.capture_lone_rommel(data, &eligible, &mut events);
+                self.capture_lone_non_combat(data, &eligible, &mut events);
                 // R-138: Rommel offered a reaction stands in the mover's
                 // ZOC, so in contact: he pays to break off if he goes.
                 for id in &eligible {
