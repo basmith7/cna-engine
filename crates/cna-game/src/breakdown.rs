@@ -8,8 +8,9 @@ use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use crate::state::Weather;
 use cna_data::map::HexId;
-use cna_data::oa::Nation;
+use cna_data::oa::{Nation, UnitId};
 use cna_data::scenario::Side;
+use cna_data::weapons::WeaponClass;
 use cna_rules::movement::Step;
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +30,11 @@ pub struct Wreck {
     /// touches them until the next (21.6x, 22.13).
     #[serde(default, skip_serializing_if = "crate::breakdown::is_zero")]
     pub towed: u32,
+    /// The unit these points broke down with at the start, which repair
+    /// returns them to (61.38's `all_tanks`); none for loose points,
+    /// which repair turns into replacement points (22.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<UnitId>,
 }
 
 pub(crate) fn is_zero(n: &u32) -> bool {
@@ -192,6 +198,7 @@ impl GameState {
             let mut taken = 0;
             for w in wrecks.iter_mut().filter(|w| w.side != side) {
                 w.side = side;
+                w.unit = None;
                 taken += w.points;
             }
             events.push(Event::WrecksCaptured {
@@ -330,7 +337,9 @@ impl GameState {
                     let wrecks = self.broken_down.entry(at).or_default();
                     match wrecks
                         .iter_mut()
-                        .find(|w| w.side == side && w.nation == nation && w.weapon == weapon)
+                        .find(|w| {
+                            w.side == side && w.nation == nation && w.weapon == weapon && w.unit.is_none()
+                        })
                     {
                         Some(w) => {
                             w.points += 1;
@@ -343,6 +352,7 @@ impl GameState {
                             points: 1,
                             this_stage: 1,
                             towed: 0,
+                            unit: None,
                         }),
                     }
                 }
@@ -389,7 +399,9 @@ impl GameState {
                 let wrecks = self.broken_down.entry(hex.clone()).or_default();
                 match wrecks
                     .iter_mut()
-                    .find(|w| w.side == *side && w.nation == nation && w.weapon == name)
+                    .find(|w| {
+                        w.side == *side && w.nation == nation && w.weapon == name && w.unit.is_none()
+                    })
                 {
                     Some(w) => w.points += points,
                     None => wrecks.push(Wreck {
@@ -399,11 +411,92 @@ impl GameState {
                         points,
                         this_stage: 0,
                         towed: 0,
+                        unit: None,
                     }),
                 }
                 if let Some(from) = row.repair_from {
                     let held = self.repair_holds.entry(hex).or_insert(from);
                     *held = (*held).max(from);
+                }
+            }
+        }
+    }
+}
+
+impl GameState {
+    /// Rommel's Arrival's `all_tanks` row, with the `tanks_with_units` and
+    /// `breakdown` modules on: every tank TOE point of each unit under the
+    /// row's units (as set up, assignments included) starts broken down
+    /// in the unit's hex, at the unit's OA maximum, held for that unit
+    /// (61.38). Run once set-up is done, since the 7th Armoured is placed
+    /// by its owner. A battalion left with no TOE is not eliminated: its
+    /// tanks are its own, waiting for repair.
+    pub(crate) fn place_tanks_with_units(&mut self, data: &Data) {
+        if !(self.modules.tanks_with_units && self.modules.breakdown) {
+            return;
+        }
+        for (side, setup) in &data.scenario.sides {
+            for row in setup.broken_down.iter().filter(|r| r.all_tanks) {
+                let ids: Vec<PieceId> = self
+                    .pieces
+                    .values()
+                    .filter(|p| {
+                        p.side == *side
+                            && matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                            && p.hex().is_some()
+                            && row.units.iter().any(|hq| {
+                                p.id.unit().as_ref() == Some(hq) || self.in_formation(data, &p.id, hq)
+                            })
+                    })
+                    .map(|p| p.id.clone())
+                    .collect();
+                for id in ids {
+                    let p = &self.pieces[&id];
+                    let (Some(nation), Some(unit), Some(hex)) =
+                        (p.nation, id.unit(), p.hex().cloned())
+                    else {
+                        continue;
+                    };
+                    let Some(oa) = data.oa.unit(&unit) else {
+                        continue;
+                    };
+                    let tanks: Vec<(String, u32)> = oa
+                        .toe
+                        .iter()
+                        .filter(|t| {
+                            data.weapons
+                                .resolve(nation, &t.weapon)
+                                .is_some_and(|r| r.class == WeaponClass::Tank)
+                        })
+                        .map(|t| (t.weapon.clone(), t.points))
+                        .filter(|(_, n)| *n > 0)
+                        .collect();
+                    if tanks.is_empty() {
+                        continue;
+                    }
+                    let p = self.pieces.get_mut(&id).expect("listed");
+                    for (weapon, _) in &tanks {
+                        if let Some(w) = p.weapons.iter_mut().find(|w| &w.weapon == weapon) {
+                            p.toe -= w.points.min(p.toe);
+                            w.points = 0;
+                        }
+                    }
+                    let wrecks = self.broken_down.entry(hex.clone()).or_default();
+                    for (weapon, max) in tanks {
+                        wrecks.push(Wreck {
+                            side: *side,
+                            nation: Some(nation),
+                            weapon,
+                            points: max,
+                            this_stage: 0,
+                            towed: 0,
+                            unit: Some(unit.clone()),
+                        });
+                    }
+                    if let Some(from) = row.repair_from {
+                        let held = self.repair_holds.entry(hex).or_insert(from);
+                        *held = (*held).max(from);
+                    }
                 }
             }
         }
@@ -472,6 +565,128 @@ mod tests {
         let g = GameState::with_modules(&graziani, 1, crate::state::Modules::ALL).unwrap();
         assert!(g.broken_down.is_empty(), "Graziani's prints none");
     }
+    /// Rommel's Arrival with every module on, set up, at the start of play.
+    fn rommel(modules: Modules) -> (Data, GameState) {
+        let data = Data::load("rommels-arrival").unwrap();
+        let mut s = GameState::with_modules(&data, 3, modules).unwrap();
+        crate::state::test_support::auto_place(&data, &mut s);
+        assert!(s.pending.is_none());
+        (data, s)
+    }
+
+    /// The 7th Armoured's pieces (its HQs included) whose OA unit
+    /// lists tanks, with them.
+    fn tank_units(data: &Data, s: &GameState) -> Vec<(crate::piece::PieceId, Vec<(String, u32)>)> {
+        use cna_data::weapons::WeaponClass;
+        let hq = cna_data::oa::UnitId::parse("unit:cw:7th-armored-div-hq").unwrap();
+        s.pieces
+            .values()
+            .filter(|p| {
+                matches!(p.kind, PieceKind::Combat | PieceKind::Hq)
+                    && (p.id.unit() == Some(hq.clone()) || s.in_formation(data, &p.id, &hq))
+            })
+            .filter_map(|p| {
+                let oa = data.oa.unit(&p.id.unit()?)?;
+                let tanks: Vec<(String, u32)> = oa
+                    .toe
+                    .iter()
+                    .filter(|t| {
+                        data.weapons
+                            .resolve(p.nation.unwrap(), &t.weapon)
+                            .is_some_and(|r| r.class == WeaponClass::Tank)
+                            && t.points > 0
+                    })
+                    .map(|t| (t.weapon.clone(), t.points))
+                    .collect();
+                (!tanks.is_empty()).then(|| (p.id.clone(), tanks))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_7th_armoured_s_tanks_start_broken_down_with_their_units_61_38() {
+        let (data, s) = rommel(Modules::ALL);
+        let units = tank_units(&data, &s);
+        assert_eq!(units.len(), 6, "three battalions and three HQs: {units:?}");
+        let mut emptied = 0;
+        for (id, tanks) in &units {
+            let p = &s.pieces[id];
+            assert!(p.hex().is_some(), "{id} is not eliminated: {:?}", p.location);
+            for (weapon, max) in tanks {
+                let on: u32 = p
+                    .weapons
+                    .iter()
+                    .filter(|w| &w.weapon == weapon)
+                    .map(|w| w.points)
+                    .sum();
+                assert_eq!(on, 0, "{id}'s {weapon} are all broken down");
+                let held: u32 = s.broken_down[p.hex().unwrap()]
+                    .iter()
+                    .filter(|w| w.unit == id.unit() && &w.weapon == weapon)
+                    .map(|w| w.points)
+                    .sum();
+                assert_eq!(held, *max, "{id}'s {weapon}: its OA maximum, in its hex");
+            }
+            if p.toe == 0 {
+                emptied += 1;
+            }
+        }
+        assert!(emptied > 0, "a tank battalion with no TOE left stands");
+        let mut off = Modules::ALL;
+        off.tanks_with_units = false;
+        let (_, plain) = rommel(off);
+        assert!(plain.broken_down.values().flatten().all(|w| w.unit.is_none()));
+    }
+
+    #[test]
+    fn repair_returns_the_tanks_to_their_unit_not_as_replacements_61_38() {
+        use crate::clock::{Half, Phase};
+        let mut modules = Modules::ALL;
+        modules.abstract_supply = false;
+        let (data, mut s) = rommel(modules);
+        let (id, tanks) = tank_units(&data, &s).remove(0);
+        let (weapon, max) = tanks[0].clone();
+        let hex = s.pieces[&id].hex().unwrap().clone();
+        let toe = s.pieces[&id].toe;
+        s.player_a = Some(Side::Cw);
+        s.clock.phase = Phase::Repair;
+        s.clock.half = Some(Half::A);
+        let mut repaired = 0;
+        for _ in 0..50 {
+            s.field_rolled.clear();
+            let order = Order::Repair {
+                hex: hex.clone(),
+                weapon: weapon.clone(),
+                fuel_from: None,
+            };
+            let events = s.apply(&data, Side::Cw, order).unwrap();
+            let crate::event::Event::FieldRepaired { repaired: n, .. } = events[0] else {
+                panic!("{events:?}");
+            };
+            repaired += n;
+            if repaired > 0 {
+                break;
+            }
+        }
+        assert!(repaired > 0, "fifty rolls repaired nothing");
+        let p = &s.pieces[&id];
+        let on: u32 = p
+            .weapons
+            .iter()
+            .filter(|w| w.weapon == weapon)
+            .map(|w| w.points)
+            .sum();
+        assert_eq!(on, repaired, "back in the battalion");
+        assert_eq!(p.toe, toe + repaired);
+        assert!(s.repaired.is_empty(), "no replacement points: {:?}", s.repaired);
+        let left: u32 = s.broken_down[&hex]
+            .iter()
+            .filter(|w| w.unit == id.unit() && w.weapon == weapon)
+            .map(|w| w.points)
+            .sum();
+        assert_eq!(left + repaired, max);
+    }
+
     use crate::order::Order;
     use crate::piece::PieceKind;
     use crate::state::{GameState, Modules};
@@ -645,6 +860,7 @@ mod tests {
                     points: 2,
                     this_stage: 0,
                     towed: 0,
+                    unit: None,
                 }],
             );
             let order = Order::Move {

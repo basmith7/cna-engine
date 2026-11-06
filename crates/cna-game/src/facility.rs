@@ -243,17 +243,8 @@ impl GameState {
         } else {
             (attempted * percent).div_ceil(100)
         };
-        self.take_wrecks(hex, player, weapon, repaired, true);
-        if repaired > 0 {
-            *self
-                .repaired
-                .entry(player)
-                .or_default()
-                .entry(hex.clone())
-                .or_default()
-                .entry(weapon.to_string())
-                .or_default() += repaired;
-        }
+        let taken = self.take_wrecks(hex, player, weapon, repaired, true);
+        self.credit_repaired(player, hex, weapon, taken);
         Ok(vec![Event::FacilityRepaired {
             hex: hex.clone(),
             weapon: weapon.to_string(),
@@ -399,7 +390,8 @@ impl GameState {
             ));
         }
         // Move the points, keeping each wreck's nation.
-        let mut moved: Vec<(Option<cna_data::oa::Nation>, u32)> = Vec::new();
+        let mut moved: Vec<(Option<cna_data::oa::Nation>, Option<cna_data::oa::UnitId>, u32)> =
+            Vec::new();
         let mut left = points;
         let wrecks = self.broken_down.get_mut(hex).expect("checked above");
         for w in wrecks
@@ -413,17 +405,17 @@ impl GameState {
             w.points -= k;
             w.this_stage = w.this_stage.min(w.points);
             left -= k;
-            moved.push((w.nation, k));
+            moved.push((w.nation, w.unit.clone(), k));
         }
         wrecks.retain(|w| w.points > 0);
         if wrecks.is_empty() {
             self.broken_down.remove(hex);
         }
         let dest = self.broken_down.entry(to.clone()).or_default();
-        for (nation, k) in moved {
-            match dest
-                .iter_mut()
-                .find(|w| w.side == player && w.weapon == weapon && w.nation == nation)
+        for (nation, unit, k) in moved {
+            match dest.iter_mut().find(|w| {
+                w.side == player && w.weapon == weapon && w.nation == nation && w.unit == unit
+            })
             {
                 Some(w) => {
                     w.points += k;
@@ -437,6 +429,7 @@ impl GameState {
                     points: k,
                     this_stage: k,
                     towed: k,
+                    unit,
                 }),
             }
         }
@@ -477,6 +470,7 @@ mod tests {
                 points: 4,
                 this_stage: 0,
                 towed: 0,
+                unit: None,
             }],
         );
         (state, hex)

@@ -76,6 +76,10 @@ enum Cmd {
         /// Play without the scenario's release schedule (61.38, R-159).
         #[arg(long)]
         no_release_schedule: bool,
+        /// Play without the 7th Armoured's tanks starting broken down with
+        /// their units (61.38).
+        #[arg(long)]
+        no_tanks_with_units: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -209,6 +213,7 @@ fn main() -> Result<()> {
             no_withdrawals,
             no_broken_down_starts,
             no_release_schedule,
+            no_tanks_with_units,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -227,6 +232,7 @@ fn main() -> Result<()> {
                 withdrawals: !no_withdrawals,
                 broken_down_starts: !no_broken_down_starts,
                 release_schedule: !no_release_schedule,
+                tanks_with_units: !no_tanks_with_units,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;

@@ -140,6 +140,10 @@ pub struct Modules {
     /// only as its release schedule allows (61.38, R-159).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub release_schedule: bool,
+    /// The tanks a scenario's `all_tanks` row names start broken down
+    /// with their units, which repair returns them to (61.38).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub tanks_with_units: bool,
 }
 
 impl Modules {
@@ -159,6 +163,7 @@ impl Modules {
         withdrawals: true,
         broken_down_starts: true,
         release_schedule: true,
+        tanks_with_units: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

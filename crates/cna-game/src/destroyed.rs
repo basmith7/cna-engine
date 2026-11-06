@@ -71,6 +71,7 @@ impl GameState {
                 points: 1,
                 this_stage: 0,
                 towed: 0,
+                unit: None,
             }),
         }
         for e in out.iter_mut() {
@@ -420,6 +421,7 @@ mod tests {
             points,
             this_stage: 0,
             towed: 0,
+            unit: None,
         }
     }
 
