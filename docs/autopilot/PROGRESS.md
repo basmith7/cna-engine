@@ -26,6 +26,17 @@ scenario builds at set-up as finished; #146 closes the mission's docs
 spec and plan in PR #148, labelled `needs-brian`, waiting on your review;
 cna has since answered both of its requests (R-163, R-166).
 
+**2026-11-06 night:** #159 (merged) builds reassignment (19.2x) as
+the `reassignment` module. An eliminated parent's surviving units become
+independent. In phase C an independent unit attached to a parent takes a
+free slot of its 19.3 chart row (Reassign, in the stack panel), except
+the Italian battalions whose parent never reached Africa (19.27). The
+Commonwealth swaps battalions between brigades (engine only). The stack
+panel also gains Attach to ⟨HQ⟩ for HQs other than the unit's own parent,
+which had no browser control. A fresh review found four slot-counting
+faults, all fixed. #160 (merged) adds the tests `capture_on_move`
+lacked at its reaction and retreat call sites.
+
 **2026-11-06 late evening:** cna answered the 0-TOE request (R-164).
 #156 (merged) bumps `vendor/cna` to 111220a and builds it as the `zero_toe`
 module: a combat unit with no TOE left (61.38's battalions whose tanks
@@ -344,15 +355,17 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
 - `vendor/cna` is at cna 111220a (#156).
-- R-164 and 10.29 follow-ups (#156, #157 bodies): `capture_on_move`'s
-  reaction and retreat-before-assault call sites have no test yet; under
-  10.29 "alone" means with no friendly combat unit, so Rommel or an HQ
-  with TOE does not shield a supply unit (as at a segment's start before).
+- 10.29 under `capture_on_move`: "alone" means with no friendly combat
+  unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
+  a segment's start before). Its call sites are tested since #160.
 - New games: `cna-play new --without <module>,…` replaces the old
   `--no-<module>` flags (#158).
-- Next Land Game gap for a run with nothing else: reassignment (19.2x:
-  an independent unit taking a free slot, the Commonwealth battalion
-  shuffle), listed under *Not yet* in `NOT_SIMULATED.md`'s Organisation row.
+- Reassignment (#159), two calls to glance at: the battalion swap needs
+  both battalions standing alone in phase C (my reading of "at will");
+  an orphaned unit may take a slot under another nation's parent (19.2x
+  does not forbid it). Still not built: historical shifts of parent and
+  the Commonwealth armour limits' changes, and a browser control for the
+  swap.
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
