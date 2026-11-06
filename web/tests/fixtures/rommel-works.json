@@ -1,0 +1,7991 @@
+{
+  "scenario": "rommels-arrival",
+  "rules_commit": "fff7856e64cbf0869678dc9de2a7a6fdcc67ec15",
+  "ruleset": {
+    "R-001": 1,
+    "R-009": 1,
+    "R-011": 1,
+    "R-012": 2,
+    "R-015": 2,
+    "R-018": 2
+  },
+  "modules": {
+    "abstract_supply": true,
+    "breakdown": true,
+    "construction": true,
+    "fleet": true,
+    "patrols": true,
+    "captured_equipment": true,
+    "destroyed_tanks": true,
+    "towing": true,
+    "rail_ends": true,
+    "set_up_works": true,
+    "pre_play_convoys": true,
+    "withdrawals": true,
+    "broken_down_starts": true,
+    "release_schedule": true,
+    "placed_works": true,
+    "campaign_victory": true
+  },
+  "clock": {
+    "game_turn": 26,
+    "stage": 3,
+    "phase": "initiative-declaration",
+    "half": null,
+    "segment": null
+  },
+  "motorisation": {
+    "cw": {
+      "A2021": 25,
+      "A2022": 20,
+      "A4827": 35,
+      "B4004": 3,
+      "C4507": 25,
+      "C4807": 5
+    }
+  },
+  "initiative": null,
+  "player_a": null,
+  "works_to_place": [
+    {
+      "side": "cw",
+      "index": 0
+    }
+  ],
+  "attachment_tracked": true,
+  "weather": "normal",
+  "pieces": {
+    "supply:axis:1": {
+      "id": "supply:axis:1",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:10": {
+      "id": "supply:axis:10",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:11": {
+      "id": "supply:axis:11",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:12": {
+      "id": "supply:axis:12",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:13": {
+      "id": "supply:axis:13",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:14": {
+      "id": "supply:axis:14",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:15": {
+      "id": "supply:axis:15",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:16": {
+      "id": "supply:axis:16",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:17": {
+      "id": "supply:axis:17",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:18": {
+      "id": "supply:axis:18",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "box": "tripoli"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:2": {
+      "id": "supply:axis:2",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1714"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:3": {
+      "id": "supply:axis:3",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1715"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:4": {
+      "id": "supply:axis:4",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1715"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:5": {
+      "id": "supply:axis:5",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1715"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:6": {
+      "id": "supply:axis:6",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1716"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:7": {
+      "id": "supply:axis:7",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1716"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:8": {
+      "id": "supply:axis:8",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1716"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:9": {
+      "id": "supply:axis:9",
+      "side": "axis",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1813"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:dummy-1": {
+      "id": "supply:axis:dummy-1",
+      "side": "axis",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1813"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:dummy-2": {
+      "id": "supply:axis:dummy-2",
+      "side": "axis",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1813"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:axis:dummy-3": {
+      "id": "supply:axis:dummy-3",
+      "side": "axis",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1816"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:1": {
+      "id": "supply:cw:1",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A4827"
+      },
+      "load": {
+        "ammo": 20,
+        "fuel": 30
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:10": {
+      "id": "supply:cw:10",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2021"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:11": {
+      "id": "supply:cw:11",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2021"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:12": {
+      "id": "supply:cw:12",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2021"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:13": {
+      "id": "supply:cw:13",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2629"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:14": {
+      "id": "supply:cw:14",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2629"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:15": {
+      "id": "supply:cw:15",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A2629"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:16": {
+      "id": "supply:cw:16",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:17": {
+      "id": "supply:cw:17",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E3613"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:18": {
+      "id": "supply:cw:18",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:19": {
+      "id": "supply:cw:19",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "E1730"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 60
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:2": {
+      "id": "supply:cw:2",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 15
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:3": {
+      "id": "supply:cw:3",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 15
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:4": {
+      "id": "supply:cw:4",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 15
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:5": {
+      "id": "supply:cw:5",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 15
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:6": {
+      "id": "supply:cw:6",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "C4807"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 15
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:7": {
+      "id": "supply:cw:7",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3729"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:8": {
+      "id": "supply:cw:8",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3729"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:9": {
+      "id": "supply:cw:9",
+      "side": "cw",
+      "kind": "supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3729"
+      },
+      "load": {
+        "ammo": 40,
+        "fuel": 25
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-1": {
+      "id": "supply:cw:dummy-1",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3933"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-2": {
+      "id": "supply:cw:dummy-2",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3933"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-3": {
+      "id": "supply:cw:dummy-3",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A3933"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "supply:cw:dummy-4": {
+      "id": "supply:cw:dummy-4",
+      "side": "cw",
+      "kind": "dummy-supply-unit",
+      "nation": null,
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": null,
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "B4004"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-buffs": {
+      "id": "unit:cw:1-buffs",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:22-gds",
+      "attached_to": "unit:cw:22-gds",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-ches": {
+      "id": "unit:cw:1-ches",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "u",
+      "parent": null,
+      "toe": 3,
+      "cpa": "8",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-essex": {
+      "id": "unit:cw:1-essex",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "m",
+      "parent": "unit:cw:23rd-infantry-bde-hq",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-fr-mtr-marine": {
+      "id": "unit:cw:1-fr-mtr-marine",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "v",
+      "parent": null,
+      "toe": 1,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "B4004"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-krrc": {
+      "id": "unit:cw:1-krrc",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "n",
+      "parent": "unit:cw:7-spt-hq",
+      "attached_to": "unit:cw:7-spt-hq",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol": {
+      "id": "unit:cw:1-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol-arty": {
+      "id": "unit:cw:1-pol-arty",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "y",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 4,
+      "weapons": [
+        {
+          "weapon": "18-pounder",
+          "points": 4
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-pol-at": {
+      "id": "unit:cw:1-pol-at",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "dd",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "2-pounder",
+          "points": 1
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-polcv": {
+      "id": "unit:cw:1-polcv",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "ss",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 4,
+      "cpa": "45",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-ranger": {
+      "id": "unit:cw:1-ranger",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "l",
+      "parent": "unit:cw:2-spt",
+      "attached_to": "unit:cw:2-spt",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-rha": {
+      "id": "unit:cw:1-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "25-pounder",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-rnf": {
+      "id": "unit:cw:1-rnf",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "u",
+      "parent": null,
+      "toe": 3,
+      "cpa": "8",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "D3613"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-rtr": {
+      "id": "unit:cw:1-rtr",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:7th-armored-bde-hq",
+      "attached_to": "unit:cw:7th-armored-bde-hq",
+      "toe": 7,
+      "weapons": [
+        {
+          "weapon": "A9",
+          "points": 7
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-sostff": {
+      "id": "unit:cw:1-sostff",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": null,
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:1-thrf": {
+      "id": "unit:cw:1-thrf",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "l",
+      "parent": "unit:cw:2-spt",
+      "attached_to": "unit:cw:2-spt",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:102-nh": {
+      "id": "unit:cw:102-nh",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "bb",
+      "parent": "unit:cw:2-spt",
+      "attached_to": "unit:cw:2-spt",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "2-pounders",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:104-rha": {
+      "id": "unit:cw:104-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 4,
+      "weapons": [
+        {
+          "weapon": "25-pounder",
+          "points": 4
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:106-rha": {
+      "id": "unit:cw:106-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "aa",
+      "parent": null,
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "2-pounder",
+          "points": 8
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:107-rha": {
+      "id": "unit:cw:107-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "25-pounder",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:11-czech": {
+      "id": "unit:cw:11-czech",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": null,
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:11-hus": {
+      "id": "unit:cw:11-hus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "ll",
+      "parent": "unit:cw:7-spt-hq",
+      "attached_to": "unit:cw:7-spt-hq",
+      "toe": 6,
+      "cpa": "45",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:11-pav": {
+      "id": "unit:cw:11-pav",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "l",
+      "parent": "unit:cw:3-in",
+      "attached_to": "unit:cw:3-in",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4507"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:149th-anti-tank-regt": {
+      "id": "unit:cw:149th-anti-tank-regt",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "aa",
+      "parent": null,
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "2-pounder",
+          "points": 8
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:18-ke": {
+      "id": "unit:cw:18-ke",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "l",
+      "parent": "unit:cw:3-in",
+      "attached_to": "unit:cw:3-in",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4507"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-13-aus": {
+      "id": "unit:cw:2-13-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:20-aus",
+      "attached_to": "unit:cw:20-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-15-aus": {
+      "id": "unit:cw:2-15-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:20-aus",
+      "attached_to": "unit:cw:20-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-17-aus": {
+      "id": "unit:cw:2-17-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:20-aus",
+      "attached_to": "unit:cw:20-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-23-aus": {
+      "id": "unit:cw:2-23-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:26-aus",
+      "attached_to": "unit:cw:26-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-24-aus": {
+      "id": "unit:cw:2-24-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:26-aus",
+      "attached_to": "unit:cw:26-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-28-aus": {
+      "id": "unit:cw:2-28-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:24-aus",
+      "attached_to": "unit:cw:24-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-3-aus-at": {
+      "id": "unit:cw:2-3-aus-at",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "aa",
+      "parent": "unit:cw:9-aus",
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "2-pounder",
+          "points": 8
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-43-aus": {
+      "id": "unit:cw:2-43-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:24-aus",
+      "attached_to": "unit:cw:24-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-48-aus": {
+      "id": "unit:cw:2-48-aus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:26-aus",
+      "attached_to": "unit:cw:26-aus",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-armd-div-hq": {
+      "id": "unit:cw:2-armd-div-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "b",
+      "parent": null,
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "Mk VI Lights",
+          "points": 1
+        }
+      ],
+      "cpa": "30*",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A2022"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-kor": {
+      "id": "unit:cw:2-kor",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "m",
+      "parent": null,
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-pol": {
+      "id": "unit:cw:2-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-rflbde": {
+      "id": "unit:cw:2-rflbde",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "n",
+      "parent": "unit:cw:7-spt-hq",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-rha": {
+      "id": "unit:cw:2-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": "unit:cw:2-spt",
+      "attached_to": "unit:cw:2-spt",
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "25-pounders",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-rlnc": {
+      "id": "unit:cw:2-rlnc",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "l",
+      "parent": "unit:cw:3-in",
+      "attached_to": "unit:cw:3-in",
+      "toe": 6,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4507"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-sctgds": {
+      "id": "unit:cw:2-sctgds",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:22-gds",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:2-spt": {
+      "id": "unit:cw:2-spt",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": "unit:cw:2-armd-div-hq",
+      "toe": 0,
+      "cpa": "30",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:20-aus": {
+      "id": "unit:cw:20-aus",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "f",
+      "parent": "unit:cw:9-aus",
+      "toe": 1,
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:22-gds": {
+      "id": "unit:cw:22-gds",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": null,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:24-aus": {
+      "id": "unit:cw:24-aus",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "f",
+      "parent": "unit:cw:9-aus",
+      "toe": 1,
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:26-aus": {
+      "id": "unit:cw:26-aus",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "f",
+      "parent": "unit:cw:9-aus",
+      "attached_to": "unit:cw:9-aus",
+      "toe": 1,
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-armd-bde-hq": {
+      "id": "unit:cw:3-armd-bde-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "d",
+      "parent": "unit:cw:2-armd-div-hq",
+      "attached_to": "unit:cw:2-armd-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "Crusader Mk I",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A2022"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-cldgds": {
+      "id": "unit:cw:3-cldgds",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "p",
+      "parent": "unit:cw:22-gds",
+      "toe": 6,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-hus": {
+      "id": "unit:cw:3-hus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:3-armd-bde-hq",
+      "attached_to": "unit:cw:3-armd-bde-hq",
+      "toe": 10,
+      "weapons": [
+        {
+          "weapon": "Mark VI Light",
+          "points": 10
+        }
+      ],
+      "cpa": "25",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2022"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-in": {
+      "id": "unit:cw:3-in",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "C4507"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-pol": {
+      "id": "unit:cw:3-pol",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "s",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 5,
+      "cpa": "10",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:3-rha": {
+      "id": "unit:cw:3-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "aa",
+      "parent": "unit:cw:7-spt-hq",
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "2-pounders",
+          "points": 6
+        }
+      ],
+      "cpa": "15",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:4-rha": {
+      "id": "unit:cw:4-rha",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": "unit:cw:7-spt-hq",
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "18/25-pounders",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:4th-armored-bde-hq": {
+      "id": "unit:cw:4th-armored-bde-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "b",
+      "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "Mark VI Light",
+          "points": 1
+        }
+      ],
+      "cpa": "30*",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:5-rtr": {
+      "id": "unit:cw:5-rtr",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:3-armd-bde-hq",
+      "attached_to": "unit:cw:3-armd-bde-hq",
+      "toe": 10,
+      "weapons": [
+        {
+          "weapon": "A13 Cruisers",
+          "points": 10
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2022"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:51-fld": {
+      "id": "unit:cw:51-fld",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "25-pounder",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A4827"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:6-rtr": {
+      "id": "unit:cw:6-rtr",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:3-armd-bde-hq",
+      "attached_to": "unit:cw:3-armd-bde-hq",
+      "toe": 10,
+      "weapons": [
+        {
+          "weapon": "Mark VI Lights",
+          "points": 10
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2022"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:64-med": {
+      "id": "unit:cw:64-med",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "4.5\" Gun",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:65th-anti-tank-regt": {
+      "id": "unit:cw:65th-anti-tank-regt",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "aa",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "2-pounders",
+          "points": 6
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:7-hus": {
+      "id": "unit:cw:7-hus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:4th-armored-bde-hq",
+      "toe": 10,
+      "weapons": [
+        {
+          "weapon": "Mark VI Lights",
+          "points": 10
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3514"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:7-med": {
+      "id": "unit:cw:7-med",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "60-pounder",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "D3613"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:7-spt-hq": {
+      "id": "unit:cw:7-spt-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
+      "toe": 0,
+      "cpa": "30",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:70th-infantry-div-hq": {
+      "id": "unit:cw:70th-infantry-div-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:7th-armored-bde-hq": {
+      "id": "unit:cw:7th-armored-bde-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "d",
+      "parent": "unit:cw:7th-armored-div-hq",
+      "attached_to": "unit:cw:7th-armored-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "A9",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:7th-armored-div-hq": {
+      "id": "unit:cw:7th-armored-div-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "b",
+      "parent": null,
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "Mark VI Light",
+          "points": 1
+        }
+      ],
+      "cpa": "30*",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:8-fld": {
+      "id": "unit:cw:8-fld",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "25-pounder",
+          "points": 6
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:8-hus": {
+      "id": "unit:cw:8-hus",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "g",
+      "parent": "unit:cw:7th-armored-bde-hq",
+      "attached_to": "unit:cw:7th-armored-bde-hq",
+      "toe": 7,
+      "weapons": [
+        {
+          "weapon": "A10",
+          "points": 7
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E3513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:8-med": {
+      "id": "unit:cw:8-med",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "x",
+      "parent": null,
+      "toe": 4,
+      "weapons": [
+        {
+          "weapon": "6\" Howitzer",
+          "points": 1
+        },
+        {
+          "weapon": "60-pounder",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:9-aus": {
+      "id": "unit:cw:9-aus",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "C4807"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:kdgd": {
+      "id": "unit:cw:kdgd",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "pp",
+      "parent": "unit:cw:2-spt",
+      "attached_to": "unit:cw:2-spt",
+      "toe": 6,
+      "cpa": "45",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A2021"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:kopanski-mg": {
+      "id": "unit:cw:kopanski-mg",
+      "side": "cw",
+      "kind": "combat",
+      "nation": "cw",
+      "id_code": "w",
+      "parent": "unit:cw:polish-hq",
+      "attached_to": "unit:cw:polish-hq",
+      "toe": 1,
+      "cpa": "8",
+      "morale": 1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:lrdg-1": {
+      "id": "unit:cw:lrdg-1",
+      "side": "cw",
+      "kind": "raider",
+      "nation": "cw",
+      "id_code": null,
+      "parent": null,
+      "hidden": true,
+      "toe": 0,
+      "cpa": "50",
+      "morale": null,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "B0513"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:cw:polish-hq": {
+      "id": "unit:cw:polish-hq",
+      "side": "cw",
+      "kind": "hq",
+      "nation": "cw",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "E1730"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:1-oasis-koy": {
+      "id": "unit:de:1-oasis-koy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "r",
+      "parent": null,
+      "toe": 1,
+      "cpa": "25",
+      "morale": 0,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "A1318"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:2-mg-bn": {
+      "id": "unit:de:2-mg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "n",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 9,
+      "cpa": "8+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:2-oasis-koy": {
+      "id": "unit:de:2-oasis-koy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "r",
+      "parent": null,
+      "toe": 1,
+      "cpa": "25",
+      "morale": 0,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "A0817"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:200-pi-bn": {
+      "id": "unit:de:200-pi-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "gg",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:3-aufkl-bn": {
+      "id": "unit:de:3-aufkl-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "ff",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 8,
+      "cpa": "45",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:3-oasis-koy": {
+      "id": "unit:de:3-oasis-koy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "r",
+      "parent": null,
+      "toe": 1,
+      "cpa": "25",
+      "morale": 0,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:33-pzjg-bn": {
+      "id": "unit:de:33-pzjg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "x",
+      "parent": "unit:de:15-pz-div-hq",
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "3.7cm",
+          "points": 5
+        },
+        {
+          "weapon": "5cm",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:39-pzjg-bn": {
+      "id": "unit:de:39-pzjg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "x",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "3.7cm",
+          "points": 5
+        },
+        {
+          "weapon": "5cm",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:5-pz-regt-hq": {
+      "id": "unit:de:5-pz-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "de",
+      "id_code": "c",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "PzII",
+          "points": 1
+        }
+      ],
+      "cpa": "30†",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:523-coastal-arty-bn": {
+      "id": "unit:de:523-coastal-arty-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "v",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "155mm (Fr. 1915 short)",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:528-arty-bn": {
+      "id": "unit:de:528-arty-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "v",
+      "parent": "unit:de:arko-104-hq",
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "155mm (Fr. 1915 short)",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1717"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:529-coastal-arty-bn": {
+      "id": "unit:de:529-coastal-arty-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "v",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "155mm (Fr. 1915 short)",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1717"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:532-coastal-arty-bn": {
+      "id": "unit:de:532-coastal-arty-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "v",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "155mm (Fr. 1915 short)",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1717"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:5le-div-hq": {
+      "id": "unit:de:5le-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "de",
+      "id_code": "c",
+      "parent": null,
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "PzII",
+          "points": 1
+        }
+      ],
+      "cpa": "30†",
+      "morale": 2,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:605-sp-pzjg-bn": {
+      "id": "unit:de:605-sp-pzjg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "y",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "Pzjg1",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:606-flak-bn": {
+      "id": "unit:de:606-flak-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "cc",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 4,
+      "weapons": [
+        {
+          "weapon": "Heavy AA",
+          "points": 4
+        }
+      ],
+      "cpa": "15",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:8-mg-bn": {
+      "id": "unit:de:8-mg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "n",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 9,
+      "cpa": "8+",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:dak-hq": {
+      "id": "unit:de:dak-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "de",
+      "id_code": "a",
+      "parent": null,
+      "toe": 0,
+      "cpa": "60",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:i-5-pz-bn": {
+      "id": "unit:de:i-5-pz-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "f",
+      "parent": "unit:de:5-pz-regt-hq",
+      "attached_to": "unit:de:5-pz-regt-hq",
+      "toe": 14,
+      "weapons": [
+        {
+          "weapon": "PzI",
+          "points": 1
+        },
+        {
+          "weapon": "PzII",
+          "points": 4
+        },
+        {
+          "weapon": "PzIIIE",
+          "points": 1
+        },
+        {
+          "weapon": "PzIIIH",
+          "points": 7
+        },
+        {
+          "weapon": "PzIVD",
+          "points": 1
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:i-75-arty-bn": {
+      "id": "unit:de:i-75-arty-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "v",
+      "parent": "unit:de:5le-div-hq",
+      "attached_to": "unit:de:5le-div-hq",
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "10.5cm Med Gun",
+          "points": 3
+        }
+      ],
+      "cpa": "20",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:ii-5-pz-bn": {
+      "id": "unit:de:ii-5-pz-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "de",
+      "id_code": "f",
+      "parent": "unit:de:5-pz-regt-hq",
+      "attached_to": "unit:de:5-pz-regt-hq",
+      "toe": 14,
+      "weapons": [
+        {
+          "weapon": "PzII",
+          "points": 5
+        },
+        {
+          "weapon": "PzIIIH",
+          "points": 6
+        },
+        {
+          "weapon": "PzIVD",
+          "points": 2
+        },
+        {
+          "weapon": "PzIVE",
+          "points": 1
+        }
+      ],
+      "cpa": "25",
+      "morale": 2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1716"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:de:rommel": {
+      "id": "unit:de:rommel",
+      "side": "axis",
+      "kind": "commander",
+      "nation": "de",
+      "id_code": null,
+      "parent": null,
+      "toe": 0,
+      "cpa": "60",
+      "morale": 1,
+      "status": null,
+      "equivalent": null,
+      "location": {
+        "hex": "A1717"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:102nd-anti-tank-bn": {
+      "id": "unit:it:102nd-anti-tank-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "qq",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 8,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 8
+        }
+      ],
+      "cpa": "15",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:102nd-trento-div-hq": {
+      "id": "unit:it:102nd-trento-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "b",
+      "parent": null,
+      "toe": 1,
+      "cpa": "30",
+      "morale": 0,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:10th-artillery-regt": {
+      "id": "unit:it:10th-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:10th-bersaglieri-mtr-bn": {
+      "id": "unit:it:10th-bersaglieri-mtr-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "t",
+      "parent": "unit:it:7th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:7th-bersaglieri-regt-hq",
+      "toe": 7,
+      "cpa": "10+",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:11th-bersaglieri-mtr-bn": {
+      "id": "unit:it:11th-bersaglieri-mtr-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "t",
+      "parent": "unit:it:7th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:7th-bersaglieri-regt-hq",
+      "toe": 7,
+      "cpa": "10+",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:12th-artillery-regt": {
+      "id": "unit:it:12th-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/18 Gun-Howitzer",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:12th-bersaglieri-mitrg-bn": {
+      "id": "unit:it:12th-bersaglieri-mitrg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "t",
+      "parent": "unit:it:8th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:8th-bersaglieri-regt-hq",
+      "toe": 7,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:132-regt-corazzata-hq": {
+      "id": "unit:it:132-regt-corazzata-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "d",
+      "parent": "unit:it:ariete-132nd-div-hq",
+      "attached_to": "unit:it:ariete-132nd-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "M13/40",
+          "points": 1
+        }
+      ],
+      "cpa": "30*",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:132nd-artillery-regt": {
+      "id": "unit:it:132nd-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:ariete-132nd-div-hq",
+      "attached_to": "unit:it:ariete-132nd-div-hq",
+      "toe": 15,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 3
+        },
+        {
+          "weapon": "75/18 Gun-Howitzer",
+          "points": 3
+        },
+        {
+          "weapon": "105/28 Gun",
+          "points": 3
+        },
+        {
+          "weapon": "Light AA",
+          "points": 6
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:15th-infantry-regt-hq": {
+      "id": "unit:it:15th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:16th-infantry-regt-hq": {
+      "id": "unit:it:16th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:17th-anti-tank-coy": {
+      "id": "unit:it:17th-anti-tank-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "rr",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:17th-engineer-bn": {
+      "id": "unit:it:17th-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:17th-machinegun-bn": {
+      "id": "unit:it:17th-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:17th-pavia-div-hq": {
+      "id": "unit:it:17th-pavia-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "e",
+      "parent": null,
+      "toe": 4,
+      "cpa": "30*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:19th-infantry-regt-hq": {
+      "id": "unit:it:19th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:1st-bn-2-arty-rgppmnto": {
+      "id": "unit:it:1st-bn-2-arty-rgppmnto",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "mm",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:20th-infantry-regt-hq": {
+      "id": "unit:it:20th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:25th-anti-tank-coy": {
+      "id": "unit:it:25th-anti-tank-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "rr",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:25th-bologna-div-hq": {
+      "id": "unit:it:25th-bologna-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "e",
+      "parent": null,
+      "toe": 4,
+      "cpa": "30*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:25th-engineer-bn": {
+      "id": "unit:it:25th-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:25th-machinegun-bn": {
+      "id": "unit:it:25th-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:26th-artillery-regt": {
+      "id": "unit:it:26th-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:27-brescia-div-hq": {
+      "id": "unit:it:27-brescia-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "b",
+      "parent": null,
+      "toe": 1,
+      "cpa": "30",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:27th-anti-tank-coy": {
+      "id": "unit:it:27th-anti-tank-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "rr",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:27th-engineer-bn": {
+      "id": "unit:it:27th-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:27th-infantry-regt-hq": {
+      "id": "unit:it:27th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:27th-machinegun-bn": {
+      "id": "unit:it:27th-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:28th-infantry-regt-hq": {
+      "id": "unit:it:28th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:17th-pavia-div-hq",
+      "attached_to": "unit:it:17th-pavia-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:2nd-anti-tank-bn": {
+      "id": "unit:it:2nd-anti-tank-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "qq",
+      "parent": "unit:it:ariete-132nd-div-hq",
+      "attached_to": "unit:it:ariete-132nd-div-hq",
+      "toe": 6,
+      "weapons": [
+        {
+          "weapon": "47/32",
+          "points": 6
+        }
+      ],
+      "cpa": "15",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:2nd-bn-2-arty-rgppmnto": {
+      "id": "unit:it:2nd-bn-2-arty-rgppmnto",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "mm",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "75/18 Gun-Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:350th-gaf-s-di-c-arty-regt": {
+      "id": "unit:it:350th-gaf-s-di-c-arty-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "mm",
+      "parent": null,
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "105/28 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -2,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:39th-infantry-regt-hq": {
+      "id": "unit:it:39th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:3rd-bersaglieri-mitrg-bn": {
+      "id": "unit:it:3rd-bersaglieri-mitrg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "n",
+      "parent": "unit:it:8th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:8th-bersaglieri-regt-hq",
+      "toe": 6,
+      "cpa": "25",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:3rd-bn-2-arty-rgppmnto": {
+      "id": "unit:it:3rd-bn-2-arty-rgppmnto",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "mm",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:40th-infantry-regt-hq": {
+      "id": "unit:it:40th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:25th-bologna-div-hq",
+      "attached_to": "unit:it:25th-bologna-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:42nd-artillery-regt": {
+      "id": "unit:it:42nd-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:46th-artillery-regt": {
+      "id": "unit:it:46th-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "jj",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:4th-bn-2-arty-rgppmnto": {
+      "id": "unit:it:4th-bn-2-arty-rgppmnto",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "mm",
+      "parent": null,
+      "toe": 3,
+      "weapons": [
+        {
+          "weapon": "105/28 Gun",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:51st-engineer-bn": {
+      "id": "unit:it:51st-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:551st-machinegun-bn": {
+      "id": "unit:it:551st-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:55th-anti-tank-coy": {
+      "id": "unit:it:55th-anti-tank-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "rr",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:55th-engineer-bn": {
+      "id": "unit:it:55th-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:55th-machinegun-bn": {
+      "id": "unit:it:55th-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:55th-savona-div-hq",
+      "attached_to": "unit:it:55th-savona-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:55th-savona-div-hq": {
+      "id": "unit:it:55th-savona-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "e",
+      "parent": null,
+      "toe": 4,
+      "cpa": "30*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:57th-artillery-regt": {
+      "id": "unit:it:57th-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": "unit:it:27-brescia-div-hq",
+      "attached_to": "unit:it:27-brescia-div-hq",
+      "toe": 9,
+      "weapons": [
+        {
+          "weapon": "75/18 Gun-Howitzer",
+          "points": 6
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:5th-bersaglieri-mitrg-bn": {
+      "id": "unit:it:5th-bersaglieri-mitrg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "t",
+      "parent": "unit:it:8th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:8th-bersaglieri-regt-hq",
+      "toe": 7,
+      "cpa": "10+",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:60th-anti-tank-coy": {
+      "id": "unit:it:60th-anti-tank-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "rr",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "47/32 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "15",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:60th-bersaglieri-mitrg-coy": {
+      "id": "unit:it:60th-bersaglieri-mitrg-coy",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "aaa",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "company",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:60th-engineer-bn": {
+      "id": "unit:it:60th-engineer-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bbb",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 1,
+      "cpa": "25",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:60th-machinegun-bn": {
+      "id": "unit:it:60th-machinegun-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "bb",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 2,
+      "cpa": "8",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:60th-sabratha-div-hq": {
+      "id": "unit:it:60th-sabratha-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "b",
+      "parent": null,
+      "toe": 1,
+      "cpa": "30",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:61st-regt-mtr-hq": {
+      "id": "unit:it:61st-regt-mtr-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "j",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "20*",
+      "morale": 0,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:62nd-regt-mtr-hq": {
+      "id": "unit:it:62nd-regt-mtr-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "j",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 2,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 2
+        }
+      ],
+      "cpa": "20*",
+      "morale": 0,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:7th-bersaglieri-regt-hq": {
+      "id": "unit:it:7th-bersaglieri-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "c",
+      "parent": "unit:it:102nd-trento-div-hq",
+      "attached_to": "unit:it:102nd-trento-div-hq",
+      "toe": 1,
+      "cpa": "30*",
+      "morale": 0,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:85th-infantry-regt-hq": {
+      "id": "unit:it:85th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:86th-infantry-regt-hq": {
+      "id": "unit:it:86th-infantry-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "h",
+      "parent": "unit:it:60th-sabratha-div-hq",
+      "attached_to": "unit:it:60th-sabratha-div-hq",
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "65/17 Gun",
+          "points": 1
+        }
+      ],
+      "cpa": "20*",
+      "morale": -1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:8th-bersaglieri-mitrg-bn": {
+      "id": "unit:it:8th-bersaglieri-mitrg-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "n",
+      "parent": "unit:it:7th-bersaglieri-regt-hq",
+      "attached_to": "unit:it:7th-bersaglieri-regt-hq",
+      "toe": 6,
+      "cpa": "25",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:8th-bersaglieri-regt-hq": {
+      "id": "unit:it:8th-bersaglieri-regt-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "c",
+      "parent": "unit:it:ariete-132nd-div-hq",
+      "attached_to": "unit:it:ariete-132nd-div-hq",
+      "toe": 1,
+      "cpa": "30*",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ariete-132nd-div-hq": {
+      "id": "unit:it:ariete-132nd-div-hq",
+      "side": "axis",
+      "kind": "hq",
+      "nation": "it",
+      "id_code": "d",
+      "parent": null,
+      "toe": 1,
+      "weapons": [
+        {
+          "weapon": "M13/40",
+          "points": 1
+        }
+      ],
+      "cpa": "30*",
+      "morale": 1,
+      "status": null,
+      "equivalent": "hq",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-15-infantry-bn": {
+      "id": "unit:it:i-15-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:15th-infantry-regt-hq",
+      "attached_to": "unit:it:15th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-16-infantry-bn": {
+      "id": "unit:it:i-16-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:16th-infantry-regt-hq",
+      "attached_to": "unit:it:16th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-19-infantry-bn": {
+      "id": "unit:it:i-19-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:19th-infantry-regt-hq",
+      "attached_to": "unit:it:19th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-20-infantry-bn": {
+      "id": "unit:it:i-20-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:20th-infantry-regt-hq",
+      "attached_to": "unit:it:20th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-27-infantry-bn": {
+      "id": "unit:it:i-27-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:27th-infantry-regt-hq",
+      "attached_to": "unit:it:27th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-28-infantry-bn": {
+      "id": "unit:it:i-28-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:28th-infantry-regt-hq",
+      "attached_to": "unit:it:28th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-39-infantry-bn": {
+      "id": "unit:it:i-39-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:39th-infantry-regt-hq",
+      "attached_to": "unit:it:39th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-40-infantry-bn": {
+      "id": "unit:it:i-40-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:40th-infantry-regt-hq",
+      "attached_to": "unit:it:40th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-61-bn": {
+      "id": "unit:it:i-61-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:61st-regt-mtr-hq",
+      "attached_to": "unit:it:61st-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:i-62-bn": {
+      "id": "unit:it:i-62-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:62nd-regt-mtr-hq",
+      "attached_to": "unit:it:62nd-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-15-infantry-bn": {
+      "id": "unit:it:ii-15-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:15th-infantry-regt-hq",
+      "attached_to": "unit:it:15th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-16-infantry-bn": {
+      "id": "unit:it:ii-16-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:16th-infantry-regt-hq",
+      "attached_to": "unit:it:16th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-19-infantry-bn": {
+      "id": "unit:it:ii-19-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:19th-infantry-regt-hq",
+      "attached_to": "unit:it:19th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-20-infantry-bn": {
+      "id": "unit:it:ii-20-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:20th-infantry-regt-hq",
+      "attached_to": "unit:it:20th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-27-infantry-bn": {
+      "id": "unit:it:ii-27-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:27th-infantry-regt-hq",
+      "attached_to": "unit:it:27th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-28-infantry-bn": {
+      "id": "unit:it:ii-28-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:28th-infantry-regt-hq",
+      "attached_to": "unit:it:28th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-39-infantry-bn": {
+      "id": "unit:it:ii-39-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:39th-infantry-regt-hq",
+      "attached_to": "unit:it:39th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-40-infantry-bn": {
+      "id": "unit:it:ii-40-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:40th-infantry-regt-hq",
+      "attached_to": "unit:it:40th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-61-bn": {
+      "id": "unit:it:ii-61-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:61st-regt-mtr-hq",
+      "attached_to": "unit:it:61st-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ii-62-bn": {
+      "id": "unit:it:ii-62-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:62nd-regt-mtr-hq",
+      "attached_to": "unit:it:62nd-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-15-infantry-bn": {
+      "id": "unit:it:iii-15-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:15th-infantry-regt-hq",
+      "attached_to": "unit:it:15th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-16-infantry-bn": {
+      "id": "unit:it:iii-16-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:16th-infantry-regt-hq",
+      "attached_to": "unit:it:16th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 3
+      },
+      "location": {
+        "hex": "A2008"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-19-infantry-bn": {
+      "id": "unit:it:iii-19-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:19th-infantry-regt-hq",
+      "attached_to": "unit:it:19th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-20-infantry-bn": {
+      "id": "unit:it:iii-20-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:20th-infantry-regt-hq",
+      "attached_to": "unit:it:20th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 2
+      },
+      "location": {
+        "hex": "A2205"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-27-infantry-bn": {
+      "id": "unit:it:iii-27-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:27th-infantry-regt-hq",
+      "attached_to": "unit:it:27th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-28-infantry-bn": {
+      "id": "unit:it:iii-28-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:28th-infantry-regt-hq",
+      "attached_to": "unit:it:28th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 0
+      },
+      "location": {
+        "hex": "A2010"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-39-infantry-bn": {
+      "id": "unit:it:iii-39-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:39th-infantry-regt-hq",
+      "attached_to": "unit:it:39th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-40-infantry-bn": {
+      "id": "unit:it:iii-40-infantry-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:40th-infantry-regt-hq",
+      "attached_to": "unit:it:40th-infantry-regt-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": -1,
+      "status": null,
+      "equivalent": "battalion",
+      "entry": {
+        "block": 0,
+        "index": 1
+      },
+      "location": {
+        "hex": "A2006"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-61": {
+      "id": "unit:it:iii-61",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:61st-regt-mtr-hq",
+      "attached_to": "unit:it:61st-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:iii-62-bn": {
+      "id": "unit:it:iii-62-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "u",
+      "parent": "unit:it:62nd-regt-mtr-hq",
+      "attached_to": "unit:it:62nd-regt-mtr-hq",
+      "toe": 7,
+      "cpa": "10",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:ixm-tank-bn": {
+      "id": "unit:it:ixm-tank-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "l",
+      "parent": "unit:it:132-regt-corazzata-hq",
+      "attached_to": "unit:it:132-regt-corazzata-hq",
+      "toe": 7,
+      "weapons": [
+        {
+          "weapon": "M13/40",
+          "points": 7
+        }
+      ],
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:reco-nizza-cavalleria": {
+      "id": "unit:it:reco-nizza-cavalleria",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "ww",
+      "parent": "unit:it:ariete-132nd-div-hq",
+      "attached_to": "unit:it:ariete-132nd-div-hq",
+      "toe": 6,
+      "cpa": "45",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:viiim-tank-bn": {
+      "id": "unit:it:viiim-tank-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "l",
+      "parent": "unit:it:132-regt-corazzata-hq",
+      "attached_to": "unit:it:132-regt-corazzata-hq",
+      "toe": 7,
+      "weapons": [
+        {
+          "weapon": "M13/40",
+          "points": 7
+        }
+      ],
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:viim-tank-bn": {
+      "id": "unit:it:viim-tank-bn",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "l",
+      "parent": "unit:it:132-regt-corazzata-hq",
+      "attached_to": "unit:it:132-regt-corazzata-hq",
+      "toe": 7,
+      "weapons": [
+        {
+          "weapon": "M13/40",
+          "points": 7
+        }
+      ],
+      "cpa": "30",
+      "morale": 1,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "hex": "A1615"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    },
+    "unit:it:xxi-corps-artillery-regt": {
+      "id": "unit:it:xxi-corps-artillery-regt",
+      "side": "axis",
+      "kind": "combat",
+      "nation": "it",
+      "id_code": "kk",
+      "parent": null,
+      "toe": 12,
+      "weapons": [
+        {
+          "weapon": "75/27 Gun",
+          "points": 3
+        },
+        {
+          "weapon": "100/17 Howitzer",
+          "points": 6
+        },
+        {
+          "weapon": "Light AA",
+          "points": 3
+        }
+      ],
+      "cpa": "15",
+      "morale": 0,
+      "status": null,
+      "equivalent": "battalion",
+      "location": {
+        "box": "tripoli"
+      },
+      "cp_spent": 0.0,
+      "cp_enemy_half": 0.0,
+      "cohesion": {
+        "level": 0,
+        "dp_tally": 0
+      },
+      "contact": false,
+      "engaged": false
+    }
+  },
+  "pending": {
+    "set-up": {
+      "side": "cw"
+    }
+  },
+  "cycle": 0,
+  "moved": [],
+  "zoc": {},
+  "continuing": [],
+  "shifted": [],
+  "combat": {},
+  "over": null,
+  "rng": {
+    "seed": 7,
+    "draws": 0
+  },
+  "log": [
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:1",
+          "hex": "A1714"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:10",
+          "hex": "A1714"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:2",
+          "hex": "A1714"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:3",
+          "hex": "A1715"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:4",
+          "hex": "A1715"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:5",
+          "hex": "A1715"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:6",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:7",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:8",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:9",
+          "hex": "A1813"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-1",
+          "hex": "A1813"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-2",
+          "hex": "A1813"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "supply:axis:dummy-3",
+          "hex": "A1816"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:2-mg-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:200-pi-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:3-aufkl-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:3-oasis-koy",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:33-pzjg-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:39-pzjg-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:5-pz-regt-hq",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:523-coastal-arty-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:528-arty-bn",
+          "hex": "A1717"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:529-coastal-arty-bn",
+          "hex": "A1717"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:532-coastal-arty-bn",
+          "hex": "A1717"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:5le-div-hq",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:605-sp-pzjg-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:606-flak-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:8-mg-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:dak-hq",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:i-5-pz-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:i-75-arty-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:ii-5-pz-bn",
+          "hex": "A1716"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:de:rommel",
+          "hex": "A1717"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:10th-artillery-regt",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:12th-artillery-regt",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:12th-bersaglieri-mitrg-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:132-regt-corazzata-hq",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:132nd-artillery-regt",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:15th-infantry-regt-hq",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:16th-infantry-regt-hq",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:17th-anti-tank-coy",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:17th-engineer-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:17th-machinegun-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:17th-pavia-div-hq",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:19th-infantry-regt-hq",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:20th-infantry-regt-hq",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:25th-anti-tank-coy",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:25th-bologna-div-hq",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:25th-engineer-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:25th-machinegun-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:26th-artillery-regt",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:27-brescia-div-hq",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:27th-anti-tank-coy",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:27th-engineer-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:27th-infantry-regt-hq",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:27th-machinegun-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:28th-infantry-regt-hq",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:2nd-anti-tank-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:39th-infantry-regt-hq",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:3rd-bersaglieri-mitrg-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:40th-infantry-regt-hq",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:55th-anti-tank-coy",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:55th-engineer-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:55th-machinegun-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:55th-savona-div-hq",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:57th-artillery-regt",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:5th-bersaglieri-mitrg-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:8th-bersaglieri-regt-hq",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ariete-132nd-div-hq",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-15-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-16-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-19-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-20-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-27-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-28-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-39-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:i-40-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-15-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-16-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-19-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-20-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-27-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-28-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-39-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ii-40-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-15-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-16-infantry-bn",
+          "hex": "A2008"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-19-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-20-infantry-bn",
+          "hex": "A2205"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-27-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-28-infantry-bn",
+          "hex": "A2010"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-39-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:iii-40-infantry-bn",
+          "hex": "A2006"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:ixm-tank-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:reco-nizza-cavalleria",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:viiim-tank-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "axis",
+      "order": {
+        "place": {
+          "piece": "unit:it:viim-tank-bn",
+          "hex": "A1615"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:10",
+          "hex": "A2021"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:11",
+          "hex": "A2021"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:12",
+          "hex": "A2021"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:13",
+          "hex": "A2629"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:14",
+          "hex": "A2629"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:15",
+          "hex": "A2629"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:16",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:17",
+          "hex": "E3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:7",
+          "hex": "A3729"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:8",
+          "hex": "A3729"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:9",
+          "hex": "A3729"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-1",
+          "hex": "A3933"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-2",
+          "hex": "A3933"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-3",
+          "hex": "A3933"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "supply:cw:dummy-4",
+          "hex": "B4004"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:1-buffs",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:1-krrc",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:1-rnf",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:1-rtr",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:107-rha",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:11-hus",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:149th-anti-tank-regt",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-13-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-15-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-17-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-28-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-3-aus-at",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-43-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-rflbde",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:2-sctgds",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:20-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:22-gds",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:24-aus",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:3-cldgds",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:3-rha",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:4-rha",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:4th-armored-bde-hq",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:51-fld",
+          "hex": "A4827"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:7-hus",
+          "hex": "E3514"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:7-med",
+          "hex": "D3613"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:7-spt-hq",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:70th-infantry-div-hq",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:7th-armored-bde-hq",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:7th-armored-div-hq",
+          "hex": "E3513"
+        }
+      }
+    },
+    {
+      "player": "cw",
+      "order": {
+        "place": {
+          "piece": "unit:cw:8-hus",
+          "hex": "E3513"
+        }
+      }
+    }
+  ]
+}
