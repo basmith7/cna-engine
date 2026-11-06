@@ -1,6 +1,6 @@
 {
   "scenario": "operation-crusader",
-  "rules_commit": "fff7856e64cbf0869678dc9de2a7a6fdcc67ec15",
+  "rules_commit": "e5479f00063b4c687fb0a59b4d5db6c003f07c07",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -26,7 +26,8 @@
     "release_schedule": true,
     "tanks_with_units": true,
     "placed_works": true,
-    "campaign_victory": true
+    "campaign_victory": true,
+    "roads_built": true
   },
   "clock": {
     "game_turn": 57,

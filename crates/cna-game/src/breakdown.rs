@@ -74,7 +74,8 @@ impl GameState {
         let (Some(f), Some(t)) = (data.map.hex(from), data.map.hex(to)) else {
             return;
         };
-        let hexside = data.map.hexside(from, to);
+        let built = self.hexside(data, from, to);
+        let hexside = built.as_deref();
         let step = Step {
             from: f,
             to: t,
@@ -515,8 +516,15 @@ mod tests {
         let s = GameState::with_modules(&data, 1, crate::state::Modules::ALL).unwrap();
         let alex = HexId::parse("E3613").unwrap();
         let wrecks = &s.broken_down[&alex];
-        assert!(wrecks.iter().all(|w| w.side == Side::Cw && w.this_stage == 0));
-        assert_eq!(wrecks.iter().map(|w| w.points).sum::<u32>(), 3 + 15 + 18 + 7 + 8);
+        assert!(
+            wrecks
+                .iter()
+                .all(|w| w.side == Side::Cw && w.this_stage == 0)
+        );
+        assert_eq!(
+            wrecks.iter().map(|w| w.points).sum::<u32>(),
+            3 + 15 + 18 + 7 + 8
+        );
         for w in wrecks {
             assert!(
                 data.weapons.resolve(Nation::Cw, &w.weapon).is_some(),
@@ -543,15 +551,28 @@ mod tests {
             .iter()
             .map(|w| {
                 assert_eq!(w.side, Side::Axis);
-                (data.weapons.resolve(w.nation.unwrap(), &w.weapon).unwrap().id.clone(), w.points)
+                (
+                    data.weapons
+                        .resolve(w.nation.unwrap(), &w.weapon)
+                        .unwrap()
+                        .id
+                        .clone(),
+                    w.points,
+                )
             })
             .collect();
         got.sort();
         assert_eq!(
             got,
-            [("weapon:de:pz-iii-h".to_string(), 3), ("weapon:de:pz-iv-d".to_string(), 1)]
+            [
+                ("weapon:de:pz-iii-h".to_string(), 3),
+                ("weapon:de:pz-iv-d".to_string(), 1)
+            ]
         );
-        assert!(s.repair_hold_bar(&tobruk).is_none(), "no date printed: repair at once");
+        assert!(
+            s.repair_hold_bar(&tobruk).is_none(),
+            "no date printed: repair at once"
+        );
     }
 
     #[test]

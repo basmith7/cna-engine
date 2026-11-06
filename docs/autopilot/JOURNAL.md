@@ -761,3 +761,9 @@ Done: #133, #134 (cna fff7856), #135 (broken_down_starts) merged. #137 (ratio le
 In flight: CI on #136/#137/#138; merge order #137, #138, #136.
 Next: plan Task 2 rest (cna's typed `minefield_sets` and fortification `side`: player-placed works at set-up), Task 5 rest (7th Armoured `all_tanks`: a TOE-0 tank battalion is eliminated by note_losses; repair returns points as replacements, not to the unit), R-102 motorisation (61.72), Task 7 rest (64.71–64.75).
 Blocked: none. /tmp is tmpfs: CARGO_TARGET_DIR under work/targets/.
+
+## 2026-11-06 06:25 MST — autopilot/m5-roads-built
+Done: the killed third run's work recovered. #140 (campaign victory) merged; #143 (its review's leak + 64.73 no-CPA fix) merged; #141 (placed works) merged; #139 (all_tanks) review fixes 357cee4 (75 % per battalion, held points under the TOE ceiling), re-pinned on main, CI running; #144 (no set-up fort in a major city, #141's review) CI running.
+In flight: this PR #142 (vendor/cna → e5479f0 + roads_built) conflicts with main since #141: merge origin/main, take either side of fixtures/tests/games pins, union-resolve Modules fields in state.rs / cna-play main.rs, regenerate pins (AGENTS.md), gates, merge.
+Next: merge #139/#144 if green (re-pin #142 after #139). Then follow-ups: #141 review's open points (Bardia forts may be optional: cna question; set-up placement ignores enemy ZOC; view_for at The Last Chance set-up ~210 ms native: work_placements recomputed per view); #139's open points (0-TOE battalion can't be eliminated; player can't pick which unit a repair credits). 61.72 waits on the cna request filed on main.
+Blocked: none.

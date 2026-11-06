@@ -327,6 +327,8 @@ pub struct Map {
     regions: Regions,
     /// Cross-sheet neighbours from `seams.json`, both ways.
     seams: BTreeMap<HexId, Vec<HexId>>,
+    /// The hex across each seam edge, `(hex, side) -> other`, both ways.
+    seam_sides: BTreeMap<(HexId, Direction), HexId>,
     seam_pairs: usize,
 }
 
@@ -437,6 +439,7 @@ impl Map {
         }
         let mut seams: BTreeMap<HexId, Vec<HexId>> = BTreeMap::new();
         let mut seam_pairs = 0;
+        let mut seam_sides = BTreeMap::new();
         for seam in read_json::<SeamsFile>(src, "seams.json")?.seams {
             for p in seam.pairs {
                 for h in [&p.west, &p.east] {
@@ -456,6 +459,8 @@ impl Map {
                     .or_default()
                     .push(p.west.clone());
                 seam_pairs += 1;
+                seam_sides.insert((p.west.clone(), p.west_side), p.east.clone());
+                seam_sides.insert((p.east.clone(), p.east_side), p.west.clone());
                 let graded = p.features.contains(&HexsideFeature::Slope)
                     || p.features.contains(&HexsideFeature::Escarpment);
                 match &p.up {
@@ -506,6 +511,7 @@ impl Map {
             places,
             regions,
             seams,
+            seam_sides,
             seam_pairs,
         })
     }
@@ -551,6 +557,24 @@ impl Map {
     /// hexside (or two hexes that are not adjacent).
     pub fn hexside(&self, a: &HexId, b: &HexId) -> Option<&Hexside> {
         self.hexsides.get(&pair_key(a.clone(), b.clone()))
+    }
+
+    /// The two hexes a `hexsides.json` key names (cna's `hexsideId`):
+    /// `a|b`, or `a|side` for a sheet-edge record, read as the seam pair
+    /// it lies on. `None` for a malformed key or an edge with no hex
+    /// across it.
+    pub fn hexside_pair(&self, key: &str) -> Option<(HexId, HexId)> {
+        let (a, b) = key.split_once('|')?;
+        let a = HexId::parse(a).ok()?;
+        let b = match b {
+            "E" | "SE" | "SW" | "W" | "NW" | "NE" => {
+                let side: Direction =
+                    serde_json::from_value(serde_json::Value::String(b.into())).ok()?;
+                self.seam_sides.get(&(a.clone(), side))?.clone()
+            }
+            _ => HexId::parse(b).ok()?,
+        };
+        Some(pair_key(a, b))
     }
 
     /// A sheet-edge record: the features drawn up to the edge of the sheet

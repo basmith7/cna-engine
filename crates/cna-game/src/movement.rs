@@ -527,7 +527,8 @@ impl GameState {
         at_in_zoc: bool,
     ) -> Result<(Cp, Zoc), Illegal> {
         let hex = self.entry(data, mover, at, to)?;
-        let hexside = data.map.hexside(at, to);
+        let built = self.hexside(data, at, to);
+        let hexside = built.as_deref();
         let step = Step {
             from: data.map.hex(at).expect("on the map"),
             to: hex,

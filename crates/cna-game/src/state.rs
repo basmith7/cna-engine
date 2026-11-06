@@ -153,6 +153,12 @@ pub struct Modules {
     /// occupation's end-of-game supply test, under §32's supply units.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub campaign_victory: bool,
+    /// The scenario's roads and railroads built at set-up are finished
+    /// (`construction.road_hexsides_built`, `railroad_hexsides_built`),
+    /// and the railway is cut where it starts destroyed
+    /// (`railroad_destroyed`; 61.6, 62.5, 63.72).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub roads_built: bool,
 }
 
 impl Modules {
@@ -175,6 +181,7 @@ impl Modules {
         tanks_with_units: true,
         placed_works: true,
         campaign_victory: true,
+        roads_built: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

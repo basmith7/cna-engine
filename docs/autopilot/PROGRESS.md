@@ -375,16 +375,6 @@ the bullet once it lands and `vendor/cna` is bumped.
   rows' notes suggest), or a ruling that the owner places them freely at
   set-up within an area cna lists as hexes.
 
-- **Roads and railroads built at set-up as hex data** (Mission 5:
-  scenario set-ups, Task 4 of `docs/plans/2026-11-06-m5-scenario-set-ups.md`).
-  `construction.roads_built` in Operation Crusader, Rommel's Arrival and
-  The Last Chance is prose ("every unfinished road, except the Siwa
-  Track, built only as far as D2001"; "the whole unfinished road network
-  around Tobruk"; the Last Chance's railroad "except the three hexes just
-  west of el Alamein, destroyed"). Wanted: the hexsides (or hex pairs)
-  each row upgrades from unfinished to built road, and the railroad
-  hexes built or destroyed, so the engine can set them at set-up.
-
 ## Runs and quota
 
 | Started | Minutes | Weekly before→after | 5h before→after | Cost | Turns | Result |

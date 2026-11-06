@@ -88,6 +88,10 @@ enum Cmd {
         /// end-of-game supply test (64.71–64.73).
         #[arg(long)]
         no_campaign_victory: bool,
+        /// Play without the scenario's roads and railroads built at
+        /// set-up: its unfinished roads stay tracks.
+        #[arg(long)]
+        no_roads_built: bool,
         #[arg(short, long, default_value = "state.json")]
         output: PathBuf,
     },
@@ -224,6 +228,7 @@ fn main() -> Result<()> {
             no_release_schedule,
             no_tanks_with_units,
             no_campaign_victory,
+            no_roads_built,
             output,
         } => {
             let data = Data::load(&scenario)?;
@@ -245,6 +250,7 @@ fn main() -> Result<()> {
                 release_schedule: !no_release_schedule,
                 tanks_with_units: !no_tanks_with_units,
                 campaign_victory: !no_campaign_victory,
+                roads_built: !no_roads_built,
             };
             let state = GameState::with_modules(&data, seed, modules)?;
             write_state(&output, &state)?;
