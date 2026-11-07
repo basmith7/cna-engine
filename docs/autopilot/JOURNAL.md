@@ -942,3 +942,9 @@ Done: #187 bumps vendor/cna to 7947d00 (R-188, option 3 = what #185 built), home
 In flight: CI on #187.
 Next: merge #187 once CI is green. Nothing else unblocked.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 12:50 MST — autopilot/soak-every-scenario
+Done: #187 merged (vendor/cna → 7947d00, R-188). #188 (draft): `cna-game::soak` plays 2 OpStages of every scenario with random moves from `reachable`; found reachable offering moves apply refuses (32.22 unpayable fuel, 61.38 held units leaving Cairo/Alexandria). reach.rs now filters both, memoised per answer (no slowdown). Regression tests in fuel.rs, release.rs.
+In flight: gates on #188 (clippy, cargo test --no-fail-fast, probe check), CI.
+Next: ready + merge #188. Extend the soak: React/Retreat purposes and random barrages/assaults, to find more reach↔apply disagreements.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
