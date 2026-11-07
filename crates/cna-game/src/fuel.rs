@@ -54,7 +54,7 @@ impl GameState {
     /// `total` CP: once for the stage's first move, and once more for the
     /// first spending past its CPA (32.22). Returns the sum and whether
     /// each kind falls due now.
-    fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
+    pub(crate) fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
         // A brigade counter pays by its battalion components.
         let (eq, parts) = components(piece.equivalent.unwrap_or(Equivalent::Hq));
         let mut each = parts * fuel_owed(self.fuel_class(data, piece), eq, Carrying::Nothing);
@@ -389,6 +389,49 @@ mod tests {
             )
             .unwrap();
         assert!(reaches.iter().all(|r| r.fuel == 0));
+    }
+
+    #[test]
+    fn no_move_is_offered_whose_fuel_cannot_be_paid_r120() {
+        let data = graziani();
+        let mut state = game(&data);
+        let (tank, _) = tank_and_move(&data, &mut state);
+        let here = state.pieces[&tank].hex().unwrap().clone();
+        let reach = |state: &GameState| {
+            state
+                .reachable(
+                    &data,
+                    Side::Axis,
+                    std::slice::from_ref(&tank),
+                    Purpose::Move,
+                )
+                .unwrap()
+        };
+        // 3 fuel pays the stage's first 2 but not the 4 past the CPA.
+        supply_at(&mut state, &here, 3);
+        let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
+        // A move that may be interrupted pays only up to its stop, so
+        // the reach holds it to the first fuel alone; every other move
+        // offered stays within the CPA, and the engine takes each.
+        let reaches = reach(&state);
+        let sure: Vec<_> = reaches.iter().filter(|r| !r.may_be_interrupted).collect();
+        assert!(!sure.is_empty());
+        assert!(sure.iter().all(|r| r.cp <= cpa && r.fuel == 2), "{sure:?}");
+        for r in sure {
+            let order = Order::Move {
+                pieces: vec![tank.clone()],
+                path: r.path.clone(),
+                assault: false,
+                fuel_from: None,
+            };
+            state.clone().apply(&data, Side::Axis, order).unwrap();
+        }
+        // Too little for the first: nothing is offered.
+        let mut dry = game(&data);
+        let (tank2, _) = tank_and_move(&data, &mut dry);
+        assert_eq!(tank2, tank);
+        supply_at(&mut dry, &here, 1);
+        assert!(reach(&dry).is_empty());
     }
 
     #[test]
