@@ -575,6 +575,13 @@ impl GameState {
             let Ok(p) = self.may_commit_release(data, &c.piece, &t) else {
                 continue;
             };
+            if self
+                .assault_target(data, &self.pieces[&c.piece], &c.hex, &t)
+                .is_err()
+                || self.release_unpaid(data, phasing, &c.piece, &t).is_err()
+            {
+                continue;
+            }
             let n = c.points.min(left).min(p);
             if n > 0 {
                 out.push((c.piece, t, n));
@@ -649,6 +656,31 @@ impl GameState {
         Ok(aimed.min(p.toe))
     }
 
+    /// As at assignment, the attackers must be able to pay for the
+    /// assault (32.21): a release may not leave one they cannot.
+    fn release_unpaid(
+        &self,
+        data: &Data,
+        player: Side,
+        piece: &PieceId,
+        target: &HexId,
+    ) -> Result<(), Illegal> {
+        let mut attackers: BTreeSet<PieceId> = self
+            .phasing_commits(player, true)
+            .into_iter()
+            .filter(|(_, t)| t == target)
+            .map(|(c, _)| c.piece)
+            .collect();
+        attackers.insert(piece.clone());
+        self.plan_ammo(
+            data,
+            &attackers.into_iter().collect::<Vec<_>>(),
+            Role::Assault,
+            true,
+        )
+        .refuse()
+    }
+
     /// `Order::ReleaseAntiArmour` (14.23): `points` of `piece`'s
     /// anti-armour points aimed at `target`, which held no armour, move
     /// to the close assault on it, from what the hex has left to free.
@@ -696,22 +728,7 @@ impl GameState {
         }
         let from = self.pieces[piece].hex().cloned().expect("checked");
         self.assault_target(data, &self.pieces[piece], &from, target)?;
-        // As at assignment, the attackers must be able to pay for the
-        // assault (32.21): a release may not leave one they cannot.
-        let mut attackers: BTreeSet<PieceId> = self
-            .phasing_commits(player, true)
-            .into_iter()
-            .filter(|(_, t)| t == target)
-            .map(|(c, _)| c.piece)
-            .collect();
-        attackers.insert(piece.clone());
-        self.plan_ammo(
-            data,
-            &attackers.into_iter().collect::<Vec<_>>(),
-            Role::Assault,
-            true,
-        )
-        .refuse()?;
+        self.release_unpaid(data, player, piece, target)?;
         let a = self
             .combat
             .assignments
@@ -728,7 +745,8 @@ impl GameState {
             al.points -= n;
             owed -= n;
         }
-        a.anti_armour.retain(|al| al.points > 0);
+        // An allocation released in full stays at 0: the unit fired
+        // anti-armour this segment all the same (14.14's vulnerability).
         match a
             .close_assault
             .iter_mut()
@@ -744,6 +762,20 @@ impl GameState {
             self.combat.no_armour.remove(target);
         } else {
             self.combat.no_armour.insert(target.clone(), left - points);
+        }
+        // The 50 % rule (15.9x) on the unit's assault as it now stands,
+        // judged on its TOE now (its assignment's TOE is not kept).
+        let most = a
+            .close_assault
+            .iter()
+            .map(|al| al.points)
+            .max()
+            .unwrap_or(0);
+        let p = self.pieces.get_mut(piece).expect("checked");
+        if most * 2 < p.toe {
+            self.combat.probing.insert(piece.clone());
+        } else {
+            self.combat.probing.remove(piece);
         }
         let p = self.pieces.get_mut(piece).expect("checked");
         if p.released.is_some() {
@@ -3379,6 +3411,15 @@ mod tests {
     /// have no armour, and 1 KRRC assaults it; the defenders commit
     /// nothing. With `release` on, as new games play.
     fn rtr_fires_at_nothing(data: &Data, aa: u32, release: bool) -> GameState {
+        rtr_fires_at_nothing_with(data, aa, release, true)
+    }
+
+    fn rtr_fires_at_nothing_with(
+        data: &Data,
+        aa: u32,
+        release: bool,
+        krrc_assaults: bool,
+    ) -> GameState {
         let mut state = with_tanks(data);
         state.modules.no_armour_release = release;
         let c4020 = Some("C4020");
@@ -3391,10 +3432,14 @@ mod tests {
             (
                 Side::Cw,
                 Order::AssignForces {
-                    assignments: vec![
-                        assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)]),
-                        assign("unit:cw:1-rtr", vec![alloc(c4020, aa)], vec![]),
-                    ],
+                    assignments: if krrc_assaults {
+                        vec![
+                            assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)]),
+                            assign("unit:cw:1-rtr", vec![alloc(c4020, aa)], vec![]),
+                        ]
+                    } else {
+                        vec![assign("unit:cw:1-rtr", vec![alloc(c4020, aa)], vec![])]
+                    },
                 },
             ),
             (
@@ -3406,7 +3451,9 @@ mod tests {
         ] {
             state.apply(data, side, order).unwrap();
         }
-        assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
+        if krrc_assaults || release {
+            assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
+        }
         state
     }
 
@@ -3541,5 +3588,45 @@ mod tests {
             state.apply(&data, side, order).unwrap();
         }
         assert!(state.anti_armour_releases(&data).is_empty());
+    }
+
+    #[test]
+    fn the_close_assault_step_opens_for_a_release_with_no_assault_assigned_14_23() {
+        let data = graziani();
+        let mut state = rtr_fires_at_nothing_with(&data, 7, true, false);
+        assert!(state.assaults_to_resolve().is_empty());
+        state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 3))
+            .unwrap();
+        assert_eq!(state.assaults_to_resolve(), [hex("C4020")]);
+        // Three of seven is under half: a probe (15.9x).
+        assert!(state.combat.probing.contains(&pid("unit:cw:1-rtr")));
+    }
+
+    #[test]
+    fn a_step_with_nothing_to_release_or_assault_is_skipped_as_before() {
+        let data = graziani();
+        let state = rtr_fires_at_nothing_with(&data, 7, false, false);
+        assert_ne!(state.clock.segment, Some(Segment::CloseAssault));
+    }
+
+    #[test]
+    fn only_the_phasing_side_sees_what_it_may_release_14_23() {
+        use crate::view::{Aliases, view_for};
+        let data = graziani();
+        let state = rtr_fires_at_nothing(&data, 7, true);
+        let a = Aliases::new([9; 32]);
+        let cw = view_for(&state, &data, &a, Some(Side::Cw), false).unwrap();
+        assert_eq!(cw["combat"]["no_armour"]["C4020"], 3);
+        assert_eq!(cw["anti_armour_releases"].as_array().unwrap().len(), 1);
+        for viewer in [Some(Side::Axis), None] {
+            let v = view_for(&state, &data, &a, viewer, false).unwrap();
+            assert!(v["combat"].get("no_armour").is_none(), "{viewer:?}");
+            assert_eq!(
+                v["anti_armour_releases"],
+                serde_json::json!([]),
+                "{viewer:?}"
+            );
+        }
     }
 }
