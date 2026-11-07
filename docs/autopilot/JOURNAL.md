@@ -821,3 +821,9 @@ Done: #159 (19.2x `reassignment` module, a023243) and #160 (capture_on_move reac
 In flight: none.
 Next: if Feedback approves #148, Mission 6 slice 1. Else: a browser control for SwapBattalions; 19.2x historical shifts / CW armour limit changes (NOT_SIMULATED Organisation row).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 20:00 MST — autopilot/no-armour-release
+Done: #164 (this branch): 14.23 as `no_armour_release` module (resolve_anti_armour records armourless targets' allowance in `combat.no_armour`; `Order::ReleaseAntiArmour` moves AA points to CA before the hex is assaulted, with 15.21/15.36/18.2x/32.21 checks; view `anti_armour_releases`; close assault panel button; Playwright test at Halfaya). Pins regenerated (modules line only). 8c82eef, d149c4b.
+In flight: gates locally; fresh review.
+Next: fold the review in, ready + merge #164. Missions 6 and 7 still wait on Brian (#148, #161); cna has not answered the air requests yet.
+Blocked: Missions 6 and 7 on Brian's review.
