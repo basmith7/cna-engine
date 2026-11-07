@@ -41,6 +41,18 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 early morning:** #164 (merged) builds 14.23, the "no
+armour" rule, as the `no_armour_release` module (on in new games): when
+anti-armour fire hits a hex that holds no armour, up to half the points
+aimed at it (rounded down) may join a close assault on it. In the
+browser, a *No armour found* panel in the close assault step offers
+*Release n to assault*. A fresh review found five faults, all fixed: two
+leaks of the points aimed (to the other side and to spectators), the step
+not opening when no assault was assigned, probes not judged again, and a
+gun losing 14.14's vulnerability. Two new requests for cna are below:
+halftracks (14.48: German `j` and Italian `t` battalions have armour
+protection 1 even when on foot) and dummy tank formations under §32.
+
 **2026-11-06 night:** #159 (merged) builds reassignment (19.2x) as
 the `reassignment` module. An eliminated parent's surviving units become
 independent. In phase C an independent unit attached to a parent takes a
@@ -360,6 +372,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- One call in #164 to glance at: a hex whose only armour is withheld
+  from combat counts as holding armour, so it frees no anti-armour
+  points (the reading closest to "the hex holds none").
 - Two calls in #163 to glance at: reinforcements and set-ups that bring
   an armoured formation more than its current row are not trimmed (the
   OA stands, so The Last Chance's armoured divisions keep two brigades),
@@ -456,6 +471,7 @@ the bullet once it lands and `vendor/cna` is bumped.
 - **Printed flak on the map and in the boxes, as data** (Mission 7, PR #161; blocks R-111 in slice 3). 41.85 and R-111 speak of flak printed on the map and in the Tripoli-type boxes, but no file types it. Needed: each printed flak value and where it stands.
 - **Historical shifts of parent as typed data** (19.2x; Mission 5 follow-up, blocks nothing else). The rule lets the owner make a historical change of parent "in the month named, or never", but the OA sheets carry these only as prose notes (e.g. de.json's "showed up with the 5th Light and later the 21st Panzer", the 22nd Armoured Brigade note in cw.json). Needed: per shift, the unit, the parent it leaves, the parent it joins and the month (as `replaces`/`assigns` already type the compulsory replacement counters).
 - **Halftracks (14.48, E-004) as typed data and a class ruling** (Mission 5 follow-up; blocks building 14.48). The characteristics chart's notes say German `j` and Italian `t` battalions count as halftracks only when carried by truck or motorisation points (the `‡` on de j's CPA; the Italian note on `t`), and have no armour protection otherwise; the rows give both `armour_protection: 1` unconditionally, and the condition lives only in prose notes. Needed: a typed field (e.g. `halftrack: true` on those rows), and a ruling on what a halftrack unit is for the rest of combat: armour or infantry on the barrage table's class columns, whether it may be withheld from close assault (15.1x lets only armour and guns be withheld), and under §32 which motorisation points a halftrack loss takes with it (14.48's "carrying truck points").
+- **Dummy tank formations under §32** (16.4; Mission 5 follow-up, blocks building 16.4). 16.41 makes one in the construction segment from 10 stores in the hex, but abstract supply (§32) has no stores, only ammunition and fuel loads. Needed: what a dummy costs and where it is paid from with abstract supply, or a ruling that it is left out without the Logistics Game.
 
 ## Runs and quota
 

@@ -827,3 +827,10 @@ Done: #164 (this branch): 14.23 as `no_armour_release` module (resolve_anti_armo
 In flight: gates locally; fresh review.
 Next: fold the review in, ready + merge #164. Missions 6 and 7 still wait on Brian (#148, #161); cna has not answered the air requests yet.
 Blocked: Missions 6 and 7 on Brian's review.
+
+## 2026-11-06 20:30 MST — main (hand-off)
+Done: #164 merged (0285729): 14.23 `no_armour_release` module + browser panel; review's five fixes in 94538c4. Requests for cna posted: halftracks (14.48 typed + class ruling), dummy tank formations under §32.
+In flight: none.
+Next: if Feedback approves #148 or #161, that mission's slice 1. Else bump vendor/cna as cna answers (air requests, halftracks, dummies) and build the answers; halftracks touch strength.rs `parts` (protection only while `organisation::riding`).
+Blocked: Missions 6 and 7 on Brian's review.
+
