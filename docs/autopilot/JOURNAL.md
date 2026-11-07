@@ -930,3 +930,9 @@ Done: review fixes (identified/hidden units unnumbered); numbering now a keyed S
 In flight: workspace tests + Playwright on #185; CI on #185/#186.
 Next: merge #186 and #185 when green; PROGRESS hand-off; remove worktrees ../wt-r185, ../wt-progress.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 12:05 MST — main (hand-off)
+Done: #185 (R-182 blind barrage, `blind_barrage` module; hash-of-seed numbering, golden m5 on Modules::ALL, save check accepts blind plot targets) and #186 (R-185 ZOC test) merged, CI green. Request for cna posted (f696206): dummy tanks betrayed by counter faces / pins under R-182.
+In flight: none.
+Next: when cna answers the dummy-tank request, bump vendor/cna (regenerate per AGENTS.md) and build its option. Otherwise nothing unblocked is queued.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

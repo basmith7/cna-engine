@@ -41,6 +41,18 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 night:** #185 (merged) builds R-182, blind barrage, as the
+`blind_barrage` module (on in new games): as the barrage step opens, the
+engine numbers each side's targets by hex and class (shuffled by a keyed
+hash of the secret seed, so no dice move), and a fire names
+"Infantry no. 2 in C3922" unless a patrol or a close assault has
+identified the unit, or it is a ship. A fire at a dummy tank formation's
+number is rolled and does nothing. The golden game now plays with it.
+#186 (merged) adds the R-185 test the last run asked for (Italians on the map but
+ringed by enemy ZOC lose the Italian Campaign). A fresh review found
+that the enemy's counter faces can betray a dummy tank formation among
+the numbers; that is asked of cna below.
+
 **2026-11-07 evening (late):** cna answered all four requests within the
 hour (R-182–R-187). #182 (merged) bumps `vendor/cna` to 8e35bab and
 homes each ruling; #184 (merged) builds R-183–R-187 (folding in #183): The Last Chance's
@@ -518,7 +530,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 8e35bab (#182). Next to build: R-182, blind barrage targets numbered by class (12.22), which needs identification tracked (patrols, earlier combat) and a browser control.
+- `vendor/cna` is at cna 8e35bab (#182). R-182 is built (#185). Calls to glance at there: the engine, not the owner, picks the numbering; 12.32's one-barrage-per-target check goes by the name fired at, so a refusal never tells the firer two names are one unit; identified units get no number. Nothing unblocked is queued beyond cna's answer to the dummy-tank request below.
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
