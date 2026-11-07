@@ -36,6 +36,9 @@ const cases: [Event, string][] = [
   [{ arrived: { pieces: ["u:a", "u:b"], at: { port: "alexandria" } } }, "A, B arrive at Alexandria."],
   [{ stationed: { ship: "u:a", hex: "C4131" } }, "A puts to sea at C4131 (30.1x)."],
   [{ "in-port": { ships: ["u:a"] } }, "A is back in Alexandria (30.1x)."],
+  [{ "chariot-raid-planned": { game_turn: 44, stage: 2 } }, "The Axis plans a chariot raid on Alexandria, seven OpStages from GT44/2 (30.41)."],
+  [{ "chariot-raid": { roll: 1, dice: 3, damage: 8, hits: { "u:a": 5, "u:b": 3 }, sunk: ["u:b"] } }, "Chariot raid on Alexandria: die 1, 3 dice, 8 gun points of damage (A 5, B 3). B is sunk."],
+  [{ "chariot-raid": { roll: 6, dice: 0, damage: 0 } }, "Chariot raid on Alexandria: die 6, 0 dice, 0 gun points of damage."],
   [{ "fleet-strikes-rolled": { strikes: 1 } }, "The Axis rolls 1 strike on the fleet (32.72)."],
   [{ "fleet-struck": { column: 4, reading: 16, damage: 1, hits: { "u:a": 1 } } }, "Axis strike on Alexandria: column 4, dice 16, 1 gun point of damage (A 1)."],
   [{ "fleet-struck": { column: 1, reading: 2, damage: 0 } }, "Axis strike on Alexandria: column 1, dice 2, 0 gun points of damage."],
@@ -138,9 +141,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 96 variants", () => {
+  it("covers all 98 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(96);
+    expect(tags.size).toBe(98);
   });
 
   it.each(cases)("%j", (event, line) => {

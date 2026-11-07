@@ -333,6 +333,13 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const sunk = (d.sunk ?? []).length > 0 ? ` ${list(d.sunk!, name)} ${d.sunk!.length === 1 ? "is" : "are"} sunk.` : "";
     return `Axis strike on Alexandria: column ${d.column}, dice ${d.reading}, ${d.damage} gun ${d.damage === 1 ? "point" : "points"} of damage${hits.length > 0 ? ` (${hits.join(", ")})` : ""}.${sunk}`;
   }
+  if ("chariot-raid-planned" in e) return `The Axis plans a chariot raid on Alexandria, seven OpStages from GT${e["chariot-raid-planned"].game_turn}/${e["chariot-raid-planned"].stage} (30.41).`;
+  if ("chariot-raid" in e) {
+    const d = e["chariot-raid"];
+    const hits = Object.entries(d.hits ?? {}).map(([ship, n]) => `${name(ship)} ${n}`);
+    const sunk = (d.sunk ?? []).length > 0 ? ` ${list(d.sunk!, name)} ${d.sunk!.length === 1 ? "is" : "are"} sunk.` : "";
+    return `Chariot raid on Alexandria: die ${d.roll}, ${d.dice} ${d.dice === 1 ? "die" : "dice"}, ${d.damage} gun ${d.damage === 1 ? "point" : "points"} of damage${hits.length > 0 ? ` (${hits.join(", ")})` : ""}.${sunk}`;
+  }
   if ("ship-repaired" in e) return `${name(e["ship-repaired"].ship)} repairs a gun point, guns ${e["ship-repaired"].guns} now (30.37).`;
   if ("captured" in e) return `${name(e.captured.piece)} captured at ${e.captured.hex}.`;
   if ("game-over" in e) {

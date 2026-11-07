@@ -218,6 +218,8 @@ export type Order =
   /** Phase L: a patrol of each source's points against `target` (16.x). */
   | { patrol: { sources: [PieceId, number][]; target: HexId; exclude?: PieceId[] } }
   | { station: { ship: PieceId; hex: HexId } }
+  /** Phase C, the Axis: note the chariot raid on Alexandria for the seventh OpStage after (30.41). */
+  | "plan-chariot-raid"
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -343,6 +345,10 @@ export type Event =
   | { "fleet-strikes-rolled": { strikes: number } }
   /** An Axis strike on the ships in Alexandria (32.73, 32.74): gun points laid per ship, and those sunk. */
   | { "fleet-struck": { column: number; reading: number; damage: number; hits?: Record<PieceId, number>; sunk?: PieceId[] } }
+  /** The Axis noted its chariot raid (30.41): its secret, sent to the Axis alone. */
+  | { "chariot-raid-planned": { game_turn: number; stage: number } }
+  /** The chariot raid on Alexandria (30.4x): the table's die, the dice of damage it gave, and the gun points laid per ship. */
+  | { "chariot-raid": { roll: number; dice: number; damage: number; hits?: Record<PieceId, number>; sunk?: PieceId[] } }
   /** A damaged ship got a gun point back after six OpStages in Alexandria (30.37). */
   | { "ship-repaired": { ship: PieceId; guns: number } }
   | "bizerta-opened"
@@ -599,6 +605,8 @@ export interface View {
   raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
   /** Phase C: the viewer's units whose O/A notes date a shift of parent to this month, and the parent each joins (null: independent); the engine judges attachment and slots (19.24). */
   parent_shifts?: { piece: PieceId; to: PieceId | null }[];
+  /** Phase C: the Axis viewer may plan its chariot raid now (30.41). */
+  chariot_raid_plannable?: boolean;
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
