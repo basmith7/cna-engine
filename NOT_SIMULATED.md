@@ -71,7 +71,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-184 | as decided: a `margins` band naming a `side` wins for that side whoever is ahead, so The Long Retreat's 0 Axis points is a Commonwealth tactical win (`cna-game::victory`) |
 | R-185 | as decided: the Italian Campaign's `margins` give its plain (tactical) win and a draw at 0; with `cut_off`, if no combat unit of the side named has an R-110 route to its source at the end, the winner named takes that level whatever the points (`cna-game::victory`) |
 | R-186 | as decided, with the `abstract_supply` module on: a place of a points victory scores only if one of its holders passes the scenario's `points_supply` test at the end: `draw`, a loaded friendly supply unit in its hex or within 32.16's reach (the test 64.73 uses), or `trace`, R-110's route to the places named (`cna-game::victory`) |
-| R-187 | not yet: the hold's `count`, `place_kinds` and `counted_once` are not read, so Rommel's Arrival's Egyptian hold asks for every Egyptian hex and is never met |
+| R-187 | as decided: a hold with a `count` is met by that many places of its `place_kinds` in its region, each held in every hex, a `counted_once` group (Alexandria's two hexes) counting once (`cna-game::victory`) |
 
 # Rulings implemented as decided
 

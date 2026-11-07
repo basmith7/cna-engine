@@ -666,6 +666,14 @@ pub struct Objective {
     pub hold: Placement,
     #[serde(default)]
     pub any_hex: bool,
+    /// Hold this many whole places of `place_kinds` in the region (R-187).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub place_kinds: Vec<crate::map::PlaceKind>,
+    /// Groups of place ids that count once between them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub counted_once: Vec<Vec<String>>,
 }
 
 /// Where a holding unit's route must reach (R-110): any hex of these

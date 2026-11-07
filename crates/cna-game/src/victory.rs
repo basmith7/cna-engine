@@ -458,6 +458,68 @@ impl<'a> Tracer<'a> {
         }
     }
 
+    /// R-187: `n` whole places of the objective's kinds in its regions,
+    /// each held in every hex, a `counted_once` group counting once.
+    fn counted(&self, level: &Level, objective: &Objective, n: u32) -> Condition {
+        let (name, _) = self.hexes_of(objective);
+        let countries: Vec<_> = objective
+            .hold
+            .locators
+            .iter()
+            .filter_map(|l| match l {
+                Locator::Region(c) => Some(*c),
+                _ => None,
+            })
+            .collect();
+        let mut hexes = Vec::new();
+        let mut held = Vec::new();
+        let mut unsupplied = Vec::new();
+        let mut counted: BTreeSet<String> = BTreeSet::new();
+        for place in self.data.map.places().filter(|p| {
+            objective.place_kinds.contains(&p.kind)
+                && self
+                    .data
+                    .map
+                    .country(&p.hex)
+                    .is_some_and(|c| countries.contains(&c))
+        }) {
+            let mut whole = true;
+            for h in &place.hexes {
+                hexes.push(h.clone());
+                let mut supplied = false;
+                for id in self.holders(h) {
+                    match &level.supply_trace {
+                        Some(t) if !self.traces(h, t) => unsupplied.push(id),
+                        _ => supplied = true,
+                    }
+                }
+                if supplied {
+                    held.push(h.clone());
+                } else {
+                    whole = false;
+                }
+            }
+            if whole {
+                let key = objective
+                    .counted_once
+                    .iter()
+                    .position(|g| g.contains(&place.id))
+                    .map_or_else(|| place.id.clone(), |i| format!("group {i}"));
+                counted.insert(key);
+            }
+        }
+        Condition {
+            side: level.side,
+            level: level.level,
+            objective: name,
+            hexes,
+            any_hex: false,
+            held,
+            unsupplied,
+            met: counted.len() >= n as usize,
+        }
+    }
+
     fn hexes_of(&self, objective: &Objective) -> (String, Vec<HexId>) {
         objective_hexes(self.data, objective)
     }
@@ -480,6 +542,9 @@ impl<'a> Tracer<'a> {
     }
 
     fn condition(&self, level: &Level, objective: &Objective) -> Condition {
+        if let Some(n) = objective.count {
+            return self.counted(level, objective, n);
+        }
         let (name, hexes) = self.hexes_of(objective);
         let mut held = Vec::new();
         let mut unsupplied = Vec::new();
@@ -1129,6 +1194,56 @@ mod tests {
         // Without abstract supply, the data's test does not apply.
         dry.modules.abstract_supply = false;
         assert_eq!(scored(&dry), before);
+    }
+
+    #[test]
+    fn rommel_s_egyptian_hold_is_two_whole_villages_or_cities_r_187() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let victory = data.scenario.victory.as_ref().unwrap();
+        let (level, objective) = victory
+            .levels
+            .iter()
+            .flat_map(|l| l.all_of.iter().map(move |o| (l, o)))
+            .find(|(_, o)| o.count.is_some())
+            .expect("the counted hold");
+        let mut state = set_up(&data, 5);
+        // Sweep the Commonwealth away; then hold Egyptian places one by one.
+        for p in state.pieces.values_mut() {
+            if p.side == Side::Cw {
+                p.location = Location::Eliminated;
+            }
+        }
+        let axis: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .map(|p| p.id.clone())
+            .collect();
+        let place = |id: &str| data.map.place(id).unwrap().clone();
+        let met = |state: &GameState| {
+            Tracer::new(&data, state, Side::Axis)
+                .condition(level, objective)
+                .met
+        };
+        assert!(!met(&state));
+        // Alexandria's two hexes are one place between them (counted once).
+        let (ae, aw) = (place("alexandria-east"), place("alexandria-west"));
+        state.put(&axis[0], Location::Hex(ae.hex.clone()));
+        state.put(&axis[1], Location::Hex(aw.hex.clone()));
+        assert!(!met(&state), "Alexandria counts once");
+        // A second Egyptian village makes two.
+        let village = data
+            .map
+            .places()
+            .find(|p| {
+                p.kind == cna_data::map::PlaceKind::Village
+                    && p.hexes.len() == 1
+                    && data.map.country(&p.hex) == Some(cna_data::map::Country::Egypt)
+            })
+            .expect("an Egyptian village")
+            .clone();
+        state.put(&axis[2], Location::Hex(village.hex.clone()));
+        assert!(met(&state));
     }
 
     #[test]
