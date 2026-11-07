@@ -677,3 +677,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-06 19:46 | 42 | 12→13 | none→none | $7.55 | 5 | The "no armour" rule (14.23) is now in the engine and the browser, and merged to main as #164. Missions 6 and 7 are still waiting on your review. **What 14.23 d |
 | 2026-11-07 00:44 | 56 | 13→14 | none→none | $9.93 | 6 | Three PRs went in this run. They build cna's answers to the requests this repo posted: R-177 (halftracks) and R-176 (historical changes of a unit's parent). Mis |
 | 2026-11-07 01:44 | 66 | 14→15 | none→none | $11.82 | 146 | This run merged two PRs. Missions 6 and 7 are still waiting on your review of #148 and #161, which this run didn't touch. - **#168, merged (2b70cfb): a fix to h |
+| 2026-11-07 03:44 | 81 | 15→15 | none→none | $11.96 | 6 | All four PRs from this run are merged, and PROGRESS.md and the journal are updated on main (5883e34). cna had answered three of our requests, so this run built  |
