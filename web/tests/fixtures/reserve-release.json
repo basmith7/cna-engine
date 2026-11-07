@@ -37,7 +37,8 @@
     "parent_shifts": true,
     "halftracks": true,
     "chariot_raid": true,
-    "dummy_tanks": true
+    "infantry_types": true,
+    "substitute_arrival": true
   },
   "clock": {
     "game_turn": 1,

@@ -222,6 +222,38 @@ impl GameState {
     }
 }
 
+impl GameState {
+    /// As phase C opens, with `substitute_arrival` on (R-180): each
+    /// substitute whose missing unit is back in play and assigned to its
+    /// parent becomes an ordinary non-assigned attachment, and one its
+    /// parent's 19.5 rows no longer take is detached, at no CP, where it
+    /// stands (the parent's hex). Both players' are settled at once: the
+    /// engine judges them in id order, each kept if it fits beside those
+    /// kept before it, where the rule lets the owner choose.
+    pub(crate) fn settle_substitutes(&mut self, data: &Data, events: &mut Vec<Event>) {
+        if !self.modules.substitute_arrival {
+            return;
+        }
+        let outlived: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(|q| q.substitute && q.attached_to.is_some() && !self.stands_in(data, q))
+            .map(|q| q.id.clone())
+            .collect();
+        for id in outlived {
+            let p = self.pieces.get_mut(&id).expect("listed");
+            p.substitute = false;
+            let on = p.attached_to.take().expect("listed");
+            let from = PieceId::from(&on);
+            if self.attachment_cap_refusal(data, &id, &from).is_none() {
+                self.pieces.get_mut(&id).expect("listed").attached_to = Some(on);
+            } else {
+                events.push(Event::Detached { piece: id, from });
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 impl GameState {
     /// Puts a piece somewhere by hand, as a test fixture does: it stands
@@ -244,6 +276,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use crate::data::Data;
+    use crate::event::Event;
     use crate::movement::test_support::{hex, moving, mv, pid};
     use crate::order::Order;
     use crate::piece::{Location, Piece};
@@ -785,5 +818,148 @@ mod tests {
             .rows
             .retain(|r| r.parent != "infantry-division");
         assert!(!state.is_shell(&chartless, &nz));
+    }
+
+    #[test]
+    fn a_heavy_weapons_unit_is_outside_the_infantry_limit_but_inside_the_total_r179() {
+        // Maletti's row: two units, one of them infantry (19.5). The
+        // Mechili garrison carries the heavy-weapons symbol (R-179), so
+        // with the module it attaches beside an infantry battalion, and
+        // still fills the row's second unit.
+        let data = graziani();
+        let (bn, hw, corps) = (
+            "unit:it:viii-libyan-bn",
+            "unit:it:mechili-garrison-bn",
+            "unit:it:xx-corps-artillery-regt",
+        );
+        for on in [false, true] {
+            let mut state = organising_with(&data, MALETTI, &[bn, hw, corps]);
+            state.modules.infantry_types = on;
+            state
+                .apply(&data, Side::Axis, attach_to(MALETTI, bn))
+                .unwrap();
+            let got = state.apply(&data, Side::Axis, attach_to(MALETTI, hw));
+            if !on {
+                let err = got.unwrap_err();
+                assert_eq!(err.case, "19.5");
+                assert!(err.reason.contains("infantry"), "{}", err.reason);
+                continue;
+            }
+            got.unwrap();
+            let err = state
+                .apply(&data, Side::Axis, attach_to(MALETTI, corps))
+                .unwrap_err();
+            assert_eq!(err.case, "19.5");
+            assert!(err.reason.contains("3 unit(s)"), "{}", err.reason);
+        }
+    }
+
+    const REGT: &str = "unit:it:5th-libyan-regt-hq";
+    const XVII: &str = "unit:it:xvii-libyan-bn";
+    const XVIII: &str = "unit:it:xviii-libyan-bn";
+
+    /// Phase C with the 5th Libyan Regiment attached to Maletti, its
+    /// XVII Battalion gone and the independent XVIII standing in for it
+    /// (19.4x); the VIII attached to Maletti too when `full`. Then the
+    /// XVII is back in play, in Maletti's hex.
+    fn substitute_outlived(data: &Data, arrival: bool, full: bool) -> GameState {
+        let bn1 = "unit:it:viii-libyan-bn";
+        let corps = "unit:it:xx-corps-artillery-regt";
+        let mut state = organising_with(data, MALETTI, &[REGT, bn1, XVIII, corps]);
+        state.modules.substitute_arrival = arrival;
+        let at = state.pieces[&pid(MALETTI)].location.clone();
+        state.put(&pid(XVII), Location::Eliminated);
+        let mut attach = vec![(MALETTI, REGT), (REGT, XVIII)];
+        if full {
+            attach.push((MALETTI, bn1));
+        }
+        for (to, piece) in attach {
+            state
+                .apply(data, Side::Axis, attach_to(to, piece))
+                .unwrap_or_else(|e| panic!("{piece} to {to}: {e:?}"));
+        }
+        assert!(state.pieces[&pid(XVIII)].substitute);
+        state.put(&pid(XVII), at);
+        state
+    }
+
+    #[test]
+    fn a_substitute_counts_once_the_unit_it_stands_for_is_back_r180() {
+        // Maletti carries the VIII; the corps artillery would make its
+        // second unit. With the XVII back, the XVIII is Maletti's extra
+        // too, so nothing more attaches until phase C settles it.
+        let data = graziani();
+        let corps = "unit:it:xx-corps-artillery-regt";
+        let mut state = substitute_outlived(&data, false, true);
+        state
+            .apply(&data, Side::Axis, attach_to(MALETTI, corps))
+            .unwrap();
+        let mut state = substitute_outlived(&data, true, true);
+        let err = state
+            .apply(&data, Side::Axis, attach_to(MALETTI, corps))
+            .unwrap_err();
+        assert_eq!(err.case, "19.5");
+    }
+
+    #[test]
+    fn a_substitute_that_no_longer_fits_is_detached_free_in_phase_c_r180() {
+        let data = graziani();
+        let mut state = substitute_outlived(&data, true, true);
+        let before = state.pieces[&pid(XVIII)].clone();
+        let mut events = Vec::new();
+        state.settle_substitutes(&data, &mut events);
+        assert_eq!(
+            events,
+            vec![Event::Detached {
+                piece: pid(XVIII),
+                from: pid(REGT),
+            }]
+        );
+        let after = &state.pieces[&pid(XVIII)];
+        assert_eq!(after.attached_to, None);
+        assert!(!after.substitute);
+        assert_eq!(after.cp_spent, before.cp_spent);
+        assert_eq!(after.location, state.pieces[&pid(REGT)].location);
+    }
+
+    #[test]
+    fn a_substitute_that_fits_stays_as_an_ordinary_attachment_r180() {
+        // Without the VIII, Maletti's row has room for the XVIII.
+        let data = graziani();
+        let mut state = substitute_outlived(&data, true, false);
+        let mut events = Vec::new();
+        state.settle_substitutes(&data, &mut events);
+        assert!(events.is_empty(), "{events:?}");
+        let after = &state.pieces[&pid(XVIII)];
+        assert_eq!(after.attached_to, pid(REGT).unit());
+        assert!(!after.substitute);
+    }
+
+    #[test]
+    fn without_the_module_a_substitute_stands_for_good() {
+        let data = graziani();
+        let mut state = substitute_outlived(&data, false, true);
+        let mut events = Vec::new();
+        state.settle_substitutes(&data, &mut events);
+        assert!(events.is_empty(), "{events:?}");
+        assert!(state.pieces[&pid(XVIII)].substitute);
+    }
+
+    #[test]
+    fn phase_c_opening_settles_the_substitutes_r180() {
+        // The hook runs as the clock reaches phase C, opened or skipped.
+        let data = graziani();
+        let mut state = substitute_outlived(&data, true, true);
+        state.clock.phase = crate::clock::Phase::Weather;
+        let mut events = Vec::new();
+        state.clock = state.clock.next();
+        state.advance(&data, &mut events);
+        assert!(
+            events.contains(&Event::Detached {
+                piece: pid(XVIII),
+                from: pid(REGT),
+            }),
+            "{events:?}"
+        );
     }
 }

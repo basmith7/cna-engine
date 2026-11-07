@@ -108,7 +108,7 @@ impl GameState {
 
     /// Runs the clock on until a phase that waits for a player (A, F or
     /// G) or the end of the scenario.
-    fn advance(&mut self, data: &Data, events: &mut Vec<Event>) {
+    pub(crate) fn advance(&mut self, data: &Data, events: &mut Vec<Event>) {
         loop {
             let clock = self.clock;
             if clock.phase == Phase::InitiativeDeclaration {
@@ -122,6 +122,9 @@ impl GameState {
                 self.over = Some(report.clone());
                 events.push(Event::GameOver { report });
                 return;
+            }
+            if clock.phase == Phase::Organisation {
+                self.settle_substitutes(data, events);
             }
             match clock.phase {
                 Phase::InitiativeDeclaration => {

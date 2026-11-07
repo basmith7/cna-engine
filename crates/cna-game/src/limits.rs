@@ -18,6 +18,9 @@ use std::collections::BTreeMap;
 enum Kind {
     Tank,
     Infantry,
+    /// Machine-gun and heavy-weapons infantry, outside the chart's
+    /// infantry limit (R-179).
+    SupportInfantry,
     Artillery,
     Gun,
     Recce,
@@ -55,7 +58,7 @@ impl GameState {
         let carries = piece.unit().is_some_and(|u| {
             self.attached_under(&u)
                 .iter()
-                .any(|q| q.parent != q.attached_to && !Self::is_substitute(q))
+                .any(|q| q.parent != q.attached_to && !self.stands_in(data, q))
         });
         if substitute && !carries {
             return None;
@@ -107,7 +110,7 @@ impl GameState {
                 .into_iter()
                 .filter(|q| {
                     q.parent != q.attached_to
-                        && !Self::is_substitute(q)
+                        && !self.stands_in(data, q)
                         && !self.assigned_within(data, q, &unit)
                 })
                 .collect()
@@ -216,9 +219,16 @@ impl GameState {
 
     /// Whether attached `q` stands in for a missing assigned unit of
     /// the parent it is attached to (19.4x substitution), as judged when
-    /// it attached.
-    fn is_substitute(q: &Piece) -> bool {
-        q.substitute && q.attached_to.is_some()
+    /// it attached; with `substitute_arrival` on, only while a unit it
+    /// stands for is still missing (R-180).
+    pub(crate) fn stands_in(&self, data: &Data, q: &Piece) -> bool {
+        let Some(on) = q.attached_to.as_ref().filter(|_| q.substitute) else {
+            return false;
+        };
+        !self.modules.substitute_arrival
+            || self
+                .substitutes_for(data, &PieceId::from(on), None)
+                .contains(&q.id)
     }
 
     /// The independent units attached to `to` as substitutes (and `new`,
@@ -339,7 +349,16 @@ impl GameState {
         if t.starts_with("Tank") {
             Kind::Tank
         } else if t.starts_with("Infantry") {
-            Kind::Infantry
+            let typed = self.modules.infantry_types
+                && p.id
+                    .unit()
+                    .and_then(|u| data.oa.unit(&u))
+                    .is_some_and(|u| u.infantry_type.is_some());
+            if typed {
+                Kind::SupportInfantry
+            } else {
+                Kind::Infantry
+            }
         } else if t.starts_with("Artillery") {
             Kind::Artillery
         } else if t.starts_with("Anti-tank") {

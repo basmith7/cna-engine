@@ -163,7 +163,7 @@ impl GameState {
             .filter(|p| p.location != Location::Eliminated)
             .filter(|p| {
                 p.parent.as_ref() == Some(parent)
-                    || (p.substitute && p.attached_to.as_ref() == Some(parent))
+                    || (p.attached_to.as_ref() == Some(parent) && self.stands_in(data, p))
             })
             .chain(
                 self.withdrawn
