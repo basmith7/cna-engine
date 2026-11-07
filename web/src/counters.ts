@@ -64,6 +64,19 @@ export function shipName(id: PieceId): string {
     .join(" ");
 }
 
+const BLIND_CLASS: Record<string, string> = { infantry: "Infantry", armor: "Armour", gun: "Gun" };
+
+/**
+ * How an id the view holds no piece for reads: a blind barrage target
+ * (`blind:<hex>:<class>:<n>`, R-182) as "Infantry no. 2 in C4020", anything
+ * else as itself.
+ */
+export function unknownName(id: string): string {
+  const m = /^blind:([A-Z][0-9]{4}):([a-z]+):([0-9]+)$/.exec(id);
+  if (!m) return id;
+  return `${BLIND_CLASS[m[2]] ?? m[2]} no. ${m[3]} in ${m[1]}`;
+}
+
 export function label(p: Piece): { short: string; long: string } {
   if (p.kind === "ship") return { short: shipName(p.id), long: `HMS ${shipName(p.id)}` };
   if (p.kind === "supply-unit" || p.kind === "dummy-supply-unit") return { short: "Supply", long: "Supply unit" };

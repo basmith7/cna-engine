@@ -918,3 +918,9 @@ Done: #180 (absorb_by_loss_order), #181 (captured_wrecks: R-152 repaired wrecks,
 In flight: none.
 Next: R-182 (blind barrage targets numbered by class, 12.22): track identification (patrol, earlier combat), number targets per class per step, browser control. Also a test for R-185 with Italians on the map but cut off by ZOC.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 11:15 MST — autopilot/blind-barrage
+Done: #185 (draft): R-182 as `blind_barrage` (cna-game::blind): numbering per hex/class shuffled at step 2 open, `blind:<hex>:<class>:<n>` fire targets, `GameState.identified` (patrol described, close assault), view own-only, web `unknownName` label. Golden m5 + construction/ammo tests keep the module off (dice-dependent).
+In flight: workspace tests; e2e fixture pins (Modules::ALL now serialises blind_barrage) need `regenerate_e2e_fixtures` + two-player pin.
+Next: regenerate pins, gates, Playwright, ready + merge #185; then PROGRESS hand-off.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

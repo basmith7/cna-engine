@@ -6,7 +6,7 @@
   // the side to act or the step changes, so a submitted answer's inputs
   // never outlive it; a refused answer keeps them.
   import { sideName } from "./clock";
-  import { label } from "./counters";
+  import { label, unknownName } from "./counters";
   import { assignOrder, barrageOrder, committed, fireRowFor, roleRowFor, shipPoints, type FireRow, type RoleRow } from "./sealed";
   import { ammoNote } from "./supply";
   import type { Committer, Firer, Illegal, Order, PieceId, SealedOptions, View } from "./types";
@@ -17,7 +17,7 @@
     onorder,
   }: { view: View; options: { ok: SealedOptions } | { ok: null; illegal: Illegal }; onorder: (o: Order) => void } = $props();
 
-  const name = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).long : id);
+  const name = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).long : unknownName(id));
   const side = $derived(view.to_act);
 
   // Gun positions: the guns ticked to stand forward.
@@ -86,7 +86,7 @@
     </p>
   {:else if "barrage" in options.ok}
     {@const firers = options.ok.barrage.firers}
-    <p>Each unit below may barrage an enemy unit next to it with some of its TOE points (12.2x). Add a fire per target; seal with none to fire nothing.</p>
+    <p>Each unit below may barrage an enemy unit next to it with some of its TOE points (12.2x). A unit not yet identified by patrol or close assault is fired at blind, as a class and a number in its hex (12.24). Add a fire per target; seal with none to fire nothing.</p>
     {#if firers.length === 0}
       <p class="hint">None of your units has a target in reach.</p>
     {/if}
