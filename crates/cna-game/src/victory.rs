@@ -1188,7 +1188,11 @@ mod tests {
         assert!(state.could_exert(&data, &hex("C3018")));
         assert!(state.could_exert(&data, &hex("C3020")));
         let r = evaluate(&data, &state);
-        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Strategic)), "{r:?}");
+        assert_eq!(
+            (r.axis, r.cw),
+            (None, Some(VictoryLevel::Strategic)),
+            "{r:?}"
+        );
         // A friend in C2919 lifts the ZOC there (R-110): a way opens.
         put(&mut state, "unit:it:sceferzen-oasis-garrison-bn", "C2919");
         let r = evaluate(&data, &state);
