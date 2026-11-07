@@ -384,6 +384,9 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         // 3.61: the target side learns the types that fired, not numbers.
         E::AntiArmour { side, .. } => Reduced(Some(*side), &["points", "shift"]),
         E::ForcesAssigned { side, .. } => Reduced(Some(*side), &["assignments"]),
+        // Assignments stay the owner's (14.1x); the other side sees the
+        // assault's attackers when it is made.
+        E::AntiArmourReleased { side, .. } => Own(Some(*side)),
         E::Assault { attackers, .. } => {
             Assault(attackers.first().and_then(of).or_else(|| state.phasing()))
         }

@@ -199,7 +199,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// What `viewer` may see of `state` (`None`: a spectator, to whom both
 /// sides are the enemy). `open`: the game is played with open
 /// information, so layers 2 and 3 are skipped. Adds `to_act`,
-/// `assaults_to_resolve` and, per piece, `unit_type` from the
+/// `assaults_to_resolve`, `anti_armour_releases` (the phasing viewer's
+/// anti-armour points it may move to a close assault, 14.23) and, per piece, `unit_type` from the
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
 /// units), `shell: true` on a formation that is a shell (9.26), and in
@@ -229,6 +230,17 @@ pub fn view_for(
         "assaults_to_resolve".into(),
         json!(state.assaults_to_resolve()),
     );
+    // 14.23: anti-armour points the phasing viewer may move to assault.
+    let releases: Vec<Value> = if viewer.is_none() || viewer == state.phasing() || open {
+        state
+            .anti_armour_releases(data)
+            .into_iter()
+            .map(|(piece, target, points)| json!({"piece": piece, "target": target, "points": points}))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    obj.insert("anti_armour_releases".into(), json!(releases));
     // The viewer's raiders it may form now, and from which units (27.13).
     let formings: Vec<Value> = viewer
         .map(|side| state.raider_formings(data, side))

@@ -219,6 +219,14 @@ pub enum Event {
         reading: u8,
         damage: u32,
     },
+    /// Anti-armour points aimed at a hex with no armour moved to the
+    /// close assault on it (14.23).
+    AntiArmourReleased {
+        side: Side,
+        piece: PieceId,
+        target: HexId,
+        points: u32,
+    },
     /// One close assault or probe resolved (15.x).
     Assault {
         target: HexId,
