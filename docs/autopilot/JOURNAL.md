@@ -924,3 +924,9 @@ Done: #185 (draft): R-182 as `blind_barrage` (cna-game::blind): numbering per he
 In flight: workspace tests; e2e fixture pins (Modules::ALL now serialises blind_barrage) need `regenerate_e2e_fixtures` + two-player pin.
 Next: regenerate pins, gates, Playwright, ready + merge #185; then PROGRESS hand-off.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 11:25 MST — autopilot/blind-barrage
+Done: review fixes (identified/hidden units unnumbered); numbering now a keyed SHA-256 of seed+clock (no RNG draws), so golden m5 plays with Modules::ALL (server DB tests replay it as a live game) via test-only `blindfold`; pins + e2e fixtures regenerated; combat.spec targets `blind:C3922:infantry:2`. Request for cna posted on main (f696206): dummy tanks betrayed by counter faces/pins. #186 (R-185 ZOC test, autopilot/r185-zoc-test, worktree ../wt-r185).
+In flight: workspace tests + Playwright on #185; CI on #185/#186.
+Next: merge #186 and #185 when green; PROGRESS hand-off; remove worktrees ../wt-r185, ../wt-progress.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
