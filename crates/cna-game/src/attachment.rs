@@ -705,7 +705,12 @@ mod tests {
         let art = "unit:it:1st-maletti-artillery-bn";
         let (bn, corps) = ("unit:it:viii-libyan-bn", "unit:it:xx-corps-artillery-regt");
         let mut state = organising_with(&data, MALETTI, &[regt, art, bn, corps]);
-        for (to, piece) in [(MALETTI, regt), (regt, art), (MALETTI, bn), (MALETTI, corps)] {
+        for (to, piece) in [
+            (MALETTI, regt),
+            (regt, art),
+            (MALETTI, bn),
+            (MALETTI, corps),
+        ] {
             state
                 .apply(&data, Side::Axis, attach_to(to, piece))
                 .unwrap_or_else(|e| panic!("{piece} to {to}: {e:?}"));
