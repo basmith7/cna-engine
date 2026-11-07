@@ -88,12 +88,17 @@ async fn the_sixty_first_order_from_one_account_in_a_minute_is_429(pool: PgPool)
     let (games, id, _, _) = seated(&pool).await;
     let app = router(games);
     let first = golden().orders[0].clone();
-    let body = json!({"side": first.player, "order": first.order, "seq": 0}).to_string();
     let who = if first.player == cna_data::scenario::Side::Axis {
         "1"
     } else {
         "2"
     };
+    let body = json!({
+        "side": first.player,
+        "order": first.order,
+        "version": version(&app, id, who).await,
+    })
+    .to_string();
     let uri = format!("/api/games/{id}/orders");
     for i in 0..60 {
         let s = status(&app, json_req("POST", &uri, who), body.clone()).await;

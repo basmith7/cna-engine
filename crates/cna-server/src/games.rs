@@ -10,9 +10,10 @@ use cna_game::data::Data;
 use cna_game::event::{Event, Illegal};
 use cna_game::order::{LoggedOrder, Order};
 use cna_game::state::{GameState, Modules};
-use cna_game::view::Aliases;
+use cna_game::view::{Aliases, view_for};
 use cna_rules::ruleset::Ruleset;
 use rand_core::{OsRng, RngCore};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use sqlx::Row;
@@ -38,8 +39,11 @@ pub const MAX_IDLE: Duration = Duration::from_secs(30 * 60);
 /// `events_for` for its own side.
 #[derive(Debug, Clone)]
 pub struct Applied {
-    /// The order's index in the log.
+    /// The order's index in the log: the server's alone, never sent to
+    /// a client (the gaps would count the orders its view hides).
     pub seq: i64,
+    /// The order's random name, which clients page and reconnect by.
+    pub cursor: String,
     pub side: Side,
     pub events: Vec<Event>,
 }
@@ -50,10 +54,8 @@ pub enum GameError {
     NotFound,
     /// The caller does not hold the seat for the side it ordered as.
     NotYourSeat,
-    /// The caller's `seq` is not the game's next one (it is `seq`).
-    Conflict {
-        seq: i64,
-    },
+    /// The caller's `seq` or `version` is not the game's now.
+    Conflict,
     /// The engine refused the order (real ids: pass it through
     /// `refusal_for` before a client sees it).
     Illegal(Illegal),
@@ -77,7 +79,7 @@ impl std::fmt::Display for GameError {
         match self {
             GameError::NotFound => write!(f, "no such game"),
             GameError::NotYourSeat => write!(f, "not your seat"),
-            GameError::Conflict { seq } => write!(f, "stale seq: the game is at {seq}"),
+            GameError::Conflict => write!(f, "the game moved on"),
             GameError::Illegal(i) => write!(f, "{i}"),
             GameError::Unknown(e) => write!(f, "{e}"),
             GameError::Stale => write!(f, "the game no longer replays under these rules"),
@@ -114,6 +116,9 @@ pub struct Live {
     /// Signalled when a player joins or leaves.
     pub seats: broadcast::Sender<()>,
     last_used: Instant,
+    /// Each side's `version` at the log length it was taken at: the
+    /// stale check runs on every order, and a view is not cheap.
+    versions: std::sync::Mutex<HashMap<Side, (usize, String)>>,
 }
 
 impl Live {
@@ -121,6 +126,50 @@ impl Live {
     pub fn seq(&self) -> i64 {
         self.state.log.len() as i64
     }
+
+    /// The game as `side` may see it, and its `version`.
+    pub fn view(&self, side: Side) -> anyhow::Result<(Value, String)> {
+        let view = view_for(&self.state, self.data, &self.aliases, Some(side), self.open)?;
+        let v = version(&view);
+        self.versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(side, (self.state.log.len(), v.clone()));
+        Ok((view, v))
+    }
+
+    /// `side`'s `version` now. Only an order changes the state, so a
+    /// version taken at this log length is still the one.
+    pub fn version(&self, side: Side) -> anyhow::Result<String> {
+        let held = self
+            .versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&side)
+            .filter(|(n, _)| *n == self.state.log.len())
+            .map(|(_, v)| v.clone());
+        match held {
+            Some(v) => Ok(v),
+            None => Ok(self.view(side)?.1),
+        }
+    }
+}
+
+/// The version a client holds of the game: a hash of its view, so it
+/// changes only when what that seat may see does, and an order the
+/// other side keeps secret leaves it as it was. An order sent against
+/// another version is refused as stale.
+pub fn version(view: &Value) -> String {
+    let digest = Sha256::digest(view.to_string().as_bytes());
+    digest[..16].iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// What an order is checked against: the `seq` it must take (the
+/// server's own callers), or the `version` of the caller's view.
+#[derive(Debug, Clone, Copy)]
+pub enum At<'a> {
+    Seq(i64),
+    Version(&'a str),
 }
 
 /// One game's slot: empty until loaded (or after a failed load).
@@ -566,6 +615,19 @@ impl Games {
         order: &Order,
         seq: i64,
     ) -> Result<Vec<Event>, GameError> {
+        self.apply_at(game, account, side, order, At::Seq(seq))
+            .await
+    }
+
+    /// `apply`, checked against `at`: a client's `version`, or a `seq`.
+    pub async fn apply_at(
+        &self,
+        game: GameId,
+        account: AccountId,
+        side: Side,
+        order: &Order,
+        at: At<'_>,
+    ) -> Result<Vec<Event>, GameError> {
         // The seat first: a caller with none must not make us load the game.
         if self.seat_of(game, account).await? != Some(side) {
             return Err(GameError::NotYourSeat);
@@ -583,9 +645,14 @@ impl Games {
             Some(_) => return Err(GameError::Refused("the game is not in play")),
         }
         let mut live = self.get(game).await?;
-        if seq != live.seq() {
-            return Err(GameError::Conflict { seq: live.seq() });
+        let current = match at {
+            At::Seq(seq) => seq == live.seq(),
+            At::Version(v) => live.version(side)? == v,
+        };
+        if !current {
+            return Err(GameError::Conflict);
         }
+        let seq = live.seq();
         let real = live
             .aliases
             .unalias_order(&live.state, side, order)
@@ -616,7 +683,7 @@ impl Games {
         // (the connection lost after COMMIT): drop the cached game so the
         // next request reloads it from the database instead of trying
         // this seq again for ever.
-        let stored_ok: Result<(), GameError> = async {
+        let stored_ok: Result<String, GameError> = async {
             let mut tx = self.pool.begin().await?;
             // Checked again under the row lock a leave also takes: an
             // order racing a leave must not land in an abandoned game.
@@ -628,13 +695,15 @@ impl Games {
             if status != "active" {
                 return Err(GameError::Refused("the game is not in play"));
             }
-            sqlx::query(r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4)"#)
-                .bind(game)
-                .bind(seq)
-                .bind(side_str(side))
-                .bind(Json(&stored))
-                .execute(&mut *tx)
-                .await?;
+            let cursor: String = sqlx::query_scalar(
+                r#"INSERT INTO orders (game_id, seq, side, "order") VALUES ($1, $2, $3, $4) RETURNING cursor"#,
+            )
+            .bind(game)
+            .bind(seq)
+            .bind(side_str(side))
+            .bind(Json(&stored))
+            .fetch_one(&mut *tx)
+            .await?;
             sqlx::query(
                 "UPDATE games SET to_act = $2, updated_at = now(), clock = $4, \
                  status = CASE WHEN $3 THEN 'over' ELSE status END WHERE id = $1",
@@ -665,18 +734,22 @@ impl Games {
                 .await?;
             }
             tx.commit().await?;
-            Ok(())
+            Ok(cursor)
         }
         .await;
-        if let Err(e) = stored_ok {
-            *live.0 = None;
-            return Err(e);
-        }
+        let cursor = match stored_ok {
+            Ok(c) => c,
+            Err(e) => {
+                *live.0 = None;
+                return Err(e);
+            }
+        };
 
         live.state = next;
         // No subscribers is not an error.
         let _ = live.tx.send(Arc::new(Applied {
             seq,
+            cursor,
             side,
             events: events.clone(),
         }));
@@ -778,6 +851,7 @@ impl Games {
             tx: broadcast::channel(64).0,
             seats: broadcast::channel(4).0,
             last_used: Instant::now(),
+            versions: Default::default(),
         })
     }
 
@@ -885,6 +959,7 @@ impl Games {
                     if i >= first {
                         out.push(Applied {
                             seq: i as i64,
+                            cursor: String::new(),
                             side: o.player,
                             events,
                         });
@@ -894,10 +969,33 @@ impl Games {
             }))
         })
         .await;
-        match replayed {
-            Ok(Ok(r)) => Ok(r?),
-            _ => Err(GameError::Panicked),
+        let mut applied = match replayed {
+            Ok(Ok(r)) => r?,
+            _ => return Err(GameError::Panicked),
+        };
+        let cursors: HashMap<i64, String> =
+            sqlx::query_as("SELECT seq, cursor FROM orders WHERE game_id = $1 AND seq >= $2")
+                .bind(game)
+                .bind(first as i64)
+                .fetch_all(&self.pool)
+                .await?
+                .into_iter()
+                .collect();
+        for a in &mut applied {
+            a.cursor = cursors.get(&a.seq).cloned().unwrap_or_default();
         }
+        Ok(applied)
+    }
+
+    /// The `seq` of `game`'s order named `cursor`, if it has one.
+    pub async fn seq_of(&self, game: GameId, cursor: &str) -> Result<Option<i64>, GameError> {
+        Ok(
+            sqlx::query_scalar("SELECT seq FROM orders WHERE game_id = $1 AND cursor = $2")
+                .bind(game)
+                .bind(cursor)
+                .fetch_optional(&self.pool)
+                .await?,
+        )
     }
 
     /// Games held in memory.

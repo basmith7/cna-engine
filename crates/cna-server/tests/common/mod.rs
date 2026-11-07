@@ -186,3 +186,65 @@ pub async fn call(
     let v = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
     (status, v)
 }
+
+/// The `version` of game `id` that `who` holds now (`GET /api/games/{id}`).
+pub async fn version(app: &Router, id: GameId, who: &str) -> Value {
+    let (s, g) = call(app, "GET", &format!("/api/games/{id}"), Some(who), None).await;
+    assert_eq!(s, StatusCode::OK, "{g}");
+    g["version"].clone()
+}
+
+/// Posts `order` as `side` from `who`, against the version `who` holds now.
+pub async fn post_order(
+    app: &Router,
+    id: GameId,
+    who: &str,
+    side: impl serde::Serialize,
+    order: impl serde::Serialize,
+) -> (StatusCode, Value) {
+    let body = serde_json::json!({
+        "side": side,
+        "order": order,
+        "version": version(app, id, who).await,
+    });
+    call(
+        app,
+        "POST",
+        &format!("/api/games/{id}/orders"),
+        Some(who),
+        Some(body),
+    )
+    .await
+}
+
+/// How many golden orders bring the Commonwealth to where it may place
+/// two dummy tanks (16.42, a secret order), and two hexes for them.
+pub fn before_dummy_tanks() -> (usize, Vec<cna_data::map::HexId>) {
+    let log = golden();
+    let data = cna_embed::data(&log.scenario).unwrap();
+    let mut state = GameState::with_modules(data, log.seed, log.modules).unwrap();
+    let mut at = 0;
+    loop {
+        let hexes = state.dummy_tank_hexes_placeable(data, Side::Cw);
+        if hexes.len() >= 2 {
+            return (at, hexes[..2].to_vec());
+        }
+        let o = &log.orders[at];
+        state.apply(data, o.player, o.order.clone()).unwrap();
+        at += 1;
+    }
+}
+
+/// The cursor of game `id`'s order `seq`; `None` before the first.
+pub async fn cursor_at(pool: &PgPool, id: GameId, seq: i64) -> Option<String> {
+    if seq < 0 {
+        return None;
+    }
+    let c = sqlx::query_scalar("SELECT cursor FROM orders WHERE game_id = $1 AND seq = $2")
+        .bind(id)
+        .bind(seq)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    Some(c)
+}

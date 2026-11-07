@@ -111,10 +111,9 @@ async fn a_game_is_shown_only_to_its_seats_each_its_own_view(pool: PgPool) {
     let uri = format!("/api/games/{id}");
     let (s, axis) = call(&app, "GET", &uri, Some(AXIS), None).await;
     assert_eq!(s, StatusCode::OK);
-    assert_eq!(
-        (axis["side"].as_str(), axis["seq"].as_i64()),
-        (Some("axis"), Some(0))
-    );
+    assert_eq!(axis["side"], "axis");
+    assert!(axis["version"].is_string(), "{axis}");
+    assert!(axis.get("seq").is_none(), "no seq to count orders by");
     assert!(axis["view"]["pieces"].is_object(), "{}", axis["view"]);
     let (s, cw) = call(&app, "GET", &uri, Some(CW), None).await;
     assert_eq!(s, StatusCode::OK);
@@ -139,7 +138,11 @@ async fn orders_come_only_from_their_seat_in_turn_and_current(pool: PgPool) {
     let (app, games, id) = app(&pool).await;
     let uri = format!("/api/games/{id}/orders");
     let log = golden();
-    let first = json!({"side": "axis", "order": log.orders[0].order, "seq": 0});
+    let first = json!({
+        "side": "axis",
+        "order": log.orders[0].order,
+        "version": version(&app, id, AXIS).await,
+    });
     let (s, _) = call(&app, "POST", &uri, Some(CW), Some(first.clone())).await;
     assert_eq!(
         s,
@@ -153,7 +156,8 @@ async fn orders_come_only_from_their_seat_in_turn_and_current(pool: PgPool) {
     assert!(ok["ok"].is_array(), "{ok}");
     let (s, stale) = call(&app, "POST", &uri, Some(AXIS), Some(first)).await;
     assert_eq!(s, StatusCode::CONFLICT);
-    assert_eq!(stale["seq"], 1);
+    assert_eq!(stale["stale"], true, "{stale}");
+    assert!(stale.get("seq").is_none(), "{stale}");
 
     let cw_order = &log
         .orders
@@ -161,25 +165,11 @@ async fn orders_come_only_from_their_seat_in_turn_and_current(pool: PgPool) {
         .find(|o| o.player == Side::Cw)
         .unwrap()
         .order;
-    let (s, refused) = call(
-        &app,
-        "POST",
-        &uri,
-        Some(CW),
-        Some(json!({"side": "cw", "order": cw_order, "seq": 1})),
-    )
-    .await;
+    let (s, refused) = post_order(&app, id, CW, "cw", cw_order).await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(refused["illegal"]["case"].is_string(), "{refused}");
     assert_eq!(cw_leaks(&games, id, &refused).await, Vec::<String>::new());
-    let (s, _) = call(
-        &app,
-        "POST",
-        &uri,
-        Some(AXIS),
-        Some(json!({"side": "axis", "order": "nonsense", "seq": 1})),
-    )
-    .await;
+    let (s, _) = post_order(&app, id, AXIS, "axis", "nonsense").await;
     assert!(s.is_client_error(), "{s}");
 }
 
@@ -194,7 +184,6 @@ async fn orders_come_only_from_their_seat_in_turn_and_current(pool: PgPool) {
 async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) {
     let (app, games, id) = app(&pool).await;
     let log = golden();
-    let orders = format!("/api/games/{id}/orders");
     let view = format!("/api/games/{id}");
     let save = format!("/api/games/{id}/save");
     let (s, _) = call(&app, "GET", &save, Some(AXIS), None).await;
@@ -221,8 +210,7 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
                 "order {i}"
             );
         }
-        let body = json!({"side": o.player, "order": o.order, "seq": i});
-        let (s, answer) = call(&app, "POST", &orders, Some(who), Some(body)).await;
+        let (s, answer) = post_order(&app, id, who, o.player, &o.order).await;
         assert_eq!(s, StatusCode::OK, "order {i}: {answer}");
         if o.player == Side::Cw {
             assert_eq!(
@@ -232,7 +220,6 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
             );
         }
         let (_, seen) = call(&app, "GET", &view, Some(CW), None).await;
-        assert_eq!(seen["seq"], i + 1);
         if games.get(id).await.unwrap().state.is_over() {
             // Over, the view hides nothing (`view_for`).
             assert_eq!(i + 1, log.orders.len(), "the game ends on its last order");
@@ -269,16 +256,23 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     let rows = stream.as_array().unwrap();
     // A row for each Commonwealth order, and for each Axis order that
     // shows the Commonwealth something; none left empty to be counted.
-    let cw_orders: Vec<_> = (0..log.orders.len())
-        .filter(|&n| log.orders[n].player == Side::Cw)
-        .map(|n| json!(n))
-        .collect();
+    let cw_orders: Vec<String> = sqlx::query_scalar(
+        "SELECT cursor FROM orders WHERE game_id = $1 AND side = 'cw' ORDER BY seq",
+    )
+    .bind(id)
+    .fetch_all(&pool)
+    .await
+    .unwrap();
     let cw_rows: Vec<_> = rows
         .iter()
         .filter(|r| r["side"] == "cw")
-        .map(|r| r["seq"].clone())
+        .map(|r| r["cursor"].as_str().unwrap().to_owned())
         .collect();
     assert_eq!(cw_rows, cw_orders);
+    assert!(
+        rows.iter().all(|r| r.get("seq").is_none()),
+        "no seq in a row"
+    );
     assert!(
         rows.iter()
             .all(|r| r["side"] == "cw" || !r["events"].as_array().unwrap().is_empty()),
@@ -286,19 +280,26 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     );
     assert!(rows.len() < log.orders.len(), "some Axis order is secret");
     assert_eq!(cw_leaks(&games, id, &stream).await, Vec::<String>::new());
+    let at_455 = cursor_at(&pool, id, 455).await.unwrap();
     let (_, tail) = call(
         &app,
         "GET",
-        &format!("/api/games/{id}/events?after=455"),
+        &format!("/api/games/{id}/events?after={at_455}"),
         Some(CW),
         None,
     )
     .await;
     // Rebuilt from the snapshot at 450, the tail's rows are those the
     // replay from the seed gives.
+    let later: Vec<String> =
+        sqlx::query_scalar("SELECT cursor FROM orders WHERE game_id = $1 AND seq > 455")
+            .bind(id)
+            .fetch_all(&pool)
+            .await
+            .unwrap();
     let after: Vec<_> = rows
         .iter()
-        .filter(|r| r["seq"].as_i64().unwrap() > 455)
+        .filter(|r| later.iter().any(|c| r["cursor"] == c.as_str()))
         .cloned()
         .collect();
     assert!(!after.is_empty());
@@ -312,6 +313,15 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     )
     .await;
     assert_eq!(s, StatusCode::FORBIDDEN);
+    let (s, _) = call(
+        &app,
+        "GET",
+        &format!("/api/games/{id}/events?after=455"),
+        Some(CW),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST, "a seq is no cursor");
     let over = games.get(id).await.unwrap().state.is_over();
     let (s, _) = call(&app, "GET", &save, Some(CW), None).await;
     assert_eq!(
@@ -329,37 +339,34 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     not(feature = "db-tests"),
     ignore = "needs Postgres: --features db-tests"
 )]
-async fn the_feed_does_not_count_the_other_sides_secret_orders(pool: PgPool) {
+async fn nothing_the_other_side_reads_counts_secret_orders(pool: PgPool) {
     // Dummy tanks placed in phase C (16.42) are secret: the enemy's feed
-    // shows no row for them, not an empty row each. Graziani's Axis is
-    // Italian, so the Commonwealth places them.
+    // shows no row for them, not an empty row each, and the game it
+    // reads (its version too) is the same as before them. Graziani's
+    // Axis is Italian, so the Commonwealth places them.
     let (games, id, axis, cw) = seated(&pool).await;
     let app = router_for_play(games.clone());
-    let log = golden();
-    let data = cna_embed::data(&log.scenario).unwrap();
-    let mut state = cna_game::state::GameState::with_modules(data, log.seed, log.modules).unwrap();
-    let mut at = 0;
-    let hexes = loop {
-        let hexes = state.dummy_tank_hexes_placeable(data, Side::Cw);
-        if hexes.len() >= 2 {
-            break hexes;
-        }
-        let o = &log.orders[at];
-        state.apply(data, o.player, o.order.clone()).unwrap();
-        at += 1;
-    };
+    let (at, hexes) = before_dummy_tanks();
     play(&games, id, axis, cw, at).await;
-    let orders = format!("/api/games/{id}/orders");
-    for (k, hex) in hexes[..2].iter().enumerate() {
-        let body = json!({
-            "side": "cw",
-            "order": cna_game::order::Order::PlaceDummyTank { hex: hex.clone() },
-            "seq": at + k,
-        });
-        let (s, answer) = call(&app, "POST", &orders, Some(CW), Some(body)).await;
+    let game = format!("/api/games/{id}");
+    let (_, before) = call(&app, "GET", &game, Some(AXIS), None).await;
+    let cw_before = version(&app, id, CW).await;
+    for hex in &hexes {
+        let order = cna_game::order::Order::PlaceDummyTank { hex: hex.clone() };
+        let (s, answer) = post_order(&app, id, CW, "cw", order).await;
         assert_eq!(s, StatusCode::OK, "{answer}");
     }
-    let feed = format!("/api/games/{id}/events?after={}", at as i64 - 1);
+    let (_, after) = call(&app, "GET", &game, Some(AXIS), None).await;
+    assert_eq!(after, before, "the Axis's game changed with the dummies");
+    assert_ne!(
+        version(&app, id, CW).await,
+        cw_before,
+        "the Commonwealth's did"
+    );
+    let feed = format!(
+        "/api/games/{id}/events?after={}",
+        cursor_at(&pool, id, at as i64 - 1).await.unwrap()
+    );
     let (_, seen) = call(&app, "GET", &feed, Some(AXIS), None).await;
     assert_eq!(seen, json!([]), "the Axis counts the dummies");
     let (_, own) = call(&app, "GET", &feed, Some(CW), None).await;

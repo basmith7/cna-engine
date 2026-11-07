@@ -1,17 +1,18 @@
 // The engine behind an online game: the server's HTTP API
 // (`crates/cna-server/src/api.rs`) and its live stream (`stream.rs`).
-// The server judges every order; this keeps the seat's view, the next
-// order's `seq`, and the events the stream has shown, and tells
-// subscribers when any of them change.
+// The server judges every order; this keeps the seat's view, its
+// `version` (which the next order carries), and the events the stream
+// has shown, and tells subscribers when any of them change. The server
+// sends no order numbers: they would count the orders the view hides.
 import type { Engine } from "./engine";
 import type { GameStatus, MyGame } from "./lobby";
 import type { ApplyResult, Event, HexId, Illegal, Order, PieceId, PreviewResult, Purpose, ReachResult, SealedOptionsResult, Side, View } from "./types";
 
 /** What `GET /api/games/{id}` answers. */
-type GameBody = { side: Side; seq: number; open: boolean; status: GameStatus; view: View };
+type GameBody = { side: Side; version: string; open: boolean; status: GameStatus; view: View };
 
-/** One stream message (`stream.rs`): the orders up to `seq`, as this seat may see them, and the view after. */
-type StreamMessage = { seq: number; events: Event[]; view: View };
+/** One stream message (`stream.rs`): the events of the orders since the last, as this seat may see them, and the view after with its `version`. */
+type StreamMessage = { version: string; events: Event[]; view: View };
 
 /** An entry of `GET /api/games?mine`; only the fields read here. */
 type MineEntry = Pick<MyGame, "id" | "opponent">;
@@ -46,8 +47,10 @@ export class NetworkEngine implements Engine {
   open = false;
   /** The game's status when last read: only an `active` game takes orders. */
   status: GameStatus = "active";
-  /** The `seq` the next order must carry. */
-  seq = 0;
+  /** The `version` of the view held, which the next order carries: a hash of the view, not a count. */
+  version = "";
+  /** Versions held before the current one: a stream message still carrying one was overtaken by a reload. */
+  private readonly past = new Set<string>();
   /** The opponent's name, once known; `null` while the seat is empty or the lobby list could not be read. */
   opponent: string | null = null;
   /** Every event the stream has delivered, in order. */
@@ -72,7 +75,7 @@ export class NetworkEngine implements Engine {
     return e;
   }
 
-  /** Calls `f` whenever the view, `seq` or log changes; returns the unsubscribe. */
+  /** Calls `f` whenever the view, `version` or log changes; returns the unsubscribe. */
   onChange(f: () => void): () => void {
     this.listeners.add(f);
     return () => this.listeners.delete(f);
@@ -137,9 +140,9 @@ export class NetworkEngine implements Engine {
     return this.answer<PreviewResult>("POST", "/preview", { order });
   }
 
-  /** Sends `order` with the `seq` held; on a stale `seq`, reloads the game and answers "the game moved on". */
+  /** Sends `order` with the `version` held; on a stale one, reloads the game and answers "the game moved on". */
   async apply(side: Side, order: Order): Promise<ApplyResult> {
-    const r = await this.request("POST", "/orders", { side, order, seq: this.seq });
+    const r = await this.request("POST", "/orders", { side, order, version: this.version });
     const b = await body(r);
     if (r.ok) {
       await this.refresh();
@@ -147,20 +150,20 @@ export class NetworkEngine implements Engine {
     }
     const illegal = illegalOf(b);
     if (illegal) return { illegal };
-    if (r.status === 409 && typeof (b as { seq?: unknown } | null)?.seq === "number") {
+    if (r.status === 409 && (b as { stale?: unknown } | null)?.stale === true) {
       await this.refresh();
       return { illegal: { case: STALE_CASE, reason: MOVED_ON } };
     }
     return { illegal: { case: "server", reason: errorText(b) ?? `the server answered ${r.status}` } };
   }
 
-  /** Reloads view and `seq` from `GET /api/games/{id}`. */
+  /** Reloads view and `version` from `GET /api/games/{id}`. */
   private async refresh(): Promise<void> {
     const g = await this.get<GameBody>("");
     this.side = g.side;
     this.open = g.open;
     this.status = g.status;
-    this.seq = g.seq;
+    this.hold(g.version);
     this.current = g.view;
     this.changed();
   }
@@ -187,14 +190,22 @@ export class NetworkEngine implements Engine {
     this.changed();
   }
 
-  /** One stream message: the view replaced whole, its events logged. A message older than the view held is ignored. */
+  /** One stream message: its events logged, and the view replaced whole unless a reload already moved past it. */
   private receive(data: string): void {
     const m = JSON.parse(data) as StreamMessage;
-    if (m.seq + 1 < this.seq) return;
-    this.current = m.view;
-    this.seq = m.seq + 1;
     this.log.push(...m.events);
+    if (!this.past.has(m.version)) {
+      this.current = m.view;
+      this.hold(m.version);
+    }
     this.changed();
+  }
+
+  private hold(version: string): void {
+    if (version === this.version) return;
+    if (this.version) this.past.add(this.version);
+    this.past.delete(version);
+    this.version = version;
   }
 
   private changed(): void {

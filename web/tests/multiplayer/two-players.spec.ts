@@ -108,12 +108,12 @@ test("alice and bob play the golden game's first 77 orders over the server, bob 
     await route.fulfill({ response: r });
   });
   let messages = 0;
-  let streamed = 0;
+  let streamed = "";
   const drainStream = async () => {
     for (const data of await bob.evaluate(() => (window as unknown as { __sse: string[] }).__sse.splice(0))) {
       messages++;
-      const json = JSON.parse(data) as { seq?: number };
-      streamed = Math.max(streamed, json.seq ?? 0);
+      const json = JSON.parse(data) as { version?: string };
+      streamed = json.version ?? streamed;
       check(`stream message ${messages}`, json);
     }
   };
@@ -126,18 +126,20 @@ test("alice and bob play the golden game's first 77 orders over the server, bob 
   await alice.goto(`/game/${id}`);
   await alice.locator("[data-stack]").first().waitFor();
 
-  const seq = async () => ((await (await alice.request.get(`/api/games/${id}`)).json()) as { seq: number }).seq;
+  // Clients are told no order count (it would count the hidden ones); the test route is.
+  const taken = async () => Number(await (await alice.request.get(`/test/games/${id}/orders`)).text());
   for (const [i, logged] of golden.orders.slice(0, ORDERS).entries()) {
     const page = logged.player === "axis" ? alice : bob;
     await expect(page.getByTestId("to-act"), `order ${i}`).toHaveText(`${sideName(logged.player)} to act`);
     await perform(page, i, logged, hexOf);
-    await expect.poll(seq, { message: `order ${i} accepted` }).toBe(i + 1);
+    await expect.poll(taken, { message: `order ${i} accepted` }).toBe(i + 1);
     await expect(page.getByTestId("log-entries").locator("li.illegal")).toHaveCount(0);
     await drainStream();
   }
 
-  // Bob's stream has the last order (seq counts from 0), and every check is in.
-  await expect.poll(async () => (await drainStream(), streamed), { message: "bob's stream reached the last order" }).toBe(ORDERS - 1);
+  // Bob's stream has reached the game as he sees it now, and every check is in.
+  const bobVersion = ((await (await bob.request.get(`/api/games/${id}`)).json()) as { version: string }).version;
+  await expect.poll(async () => (await drainStream(), streamed), { message: "bob's stream reached the last order" }).toBe(bobVersion);
   await Promise.all(checks);
   expect(responses, "bob's browser fetched from the server").toBeGreaterThan(0);
   expect(messages, "bob's stream carried the orders").toBeGreaterThan(0);

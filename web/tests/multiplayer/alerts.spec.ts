@@ -34,11 +34,12 @@ async function toBobsMove(alice: Page, bob: Page): Promise<number> {
   for (let seq = 0; ; seq++) {
     const o = golden.orders[seq];
     expect(o.player, `the move passes to the Commonwealth before order ${seq}`).toBe("axis");
-    let r = await send(alice, "POST", `/api/games/${id}/orders`, { side: "axis", order: o.order, seq });
+    const { version } = (await (await alice.request.get(`/api/games/${id}`)).json()) as { version: string };
+    let r = await send(alice, "POST", `/api/games/${id}/orders`, { side: "axis", order: o.order, version });
     // The server limits orders per account; a second game in a row meets it.
     while (r.status() === 429) {
       await alice.waitForTimeout(1_000);
-      r = await send(alice, "POST", `/api/games/${id}/orders`, { side: "axis", order: o.order, seq });
+      r = await send(alice, "POST", `/api/games/${id}/orders`, { side: "axis", order: o.order, version });
     }
     expect(r.ok(), await r.text()).toBe(true);
     const g = (await (await alice.request.get(`/api/games/${id}`)).json()) as { view: { to_act: string | null } };

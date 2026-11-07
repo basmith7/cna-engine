@@ -91,7 +91,7 @@ async fn an_order_is_stored_only_from_its_seat_when_legal_and_current(pool: PgPo
     let e = games
         .apply(id, axis, Side::Axis, &log.orders[1].order, 0)
         .await;
-    assert!(matches!(e, Err(GameError::Conflict { seq: 1 })), "{e:?}");
+    assert!(matches!(e, Err(GameError::Conflict)), "{e:?}");
     assert_eq!(count(&pool, sql, id).await, 1);
     assert_eq!(games.get(id).await.unwrap().seq(), 1);
 }
