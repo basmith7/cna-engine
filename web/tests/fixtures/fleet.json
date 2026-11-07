@@ -33,7 +33,8 @@
     "capture_on_move": true,
     "reassignment": true,
     "armour_limits": true,
-    "no_armour_release": true
+    "no_armour_release": true,
+    "halftracks": true
   },
   "clock": {
     "game_turn": 2,
