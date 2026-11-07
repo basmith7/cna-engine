@@ -894,3 +894,9 @@ Done: #174 (R-181 scenario_arrivals) and #175 (#173 follow-ups) merged. #176 (re
 In flight: none besides CI.
 Next: merge #176 if not merged (CI green). Then on #177: merge origin/main, regenerate pins, add a test withdrawing a unit mid-combat (review's open doubt about `assignments`/`escorts`/`continuing` keyed by piece), plus a half-point tie test if feasible; full gates + Playwright; ready and merge.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 08:05 MST — autopilot/voluntary-withdrawals
+Done: #177 tests added (5b321f2): mid-segment withdrawal refused (`engaged`), half-point lead wins; gates green locally; marked ready.
+In flight: subagents: /tmp/cna-seq (autopilot/hide-seq: opaque order token so clients can't count hidden orders), /tmp/cna-loss (autopilot/loss-order: `Order::SetLossOrder`, standing TOE loss priority, 12.45/14.4x/15.83).
+Next: merge #177 on green CI; review, gate and merge the two subagent PRs.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
