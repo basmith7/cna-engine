@@ -735,7 +735,11 @@ mod tests {
         let brigade: Vec<PieceId> = s
             .pieces
             .values()
-            .filter(|p| p.parent.as_ref().is_some_and(|u| u.as_str() == "unit:cw:18-aus"))
+            .filter(|p| {
+                p.parent
+                    .as_ref()
+                    .is_some_and(|u| u.as_str() == "unit:cw:18-aus")
+            })
             .map(|p| p.id.clone())
             .collect();
         assert!(brigade.len() > 1, "{brigade:?}");
