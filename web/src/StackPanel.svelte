@@ -4,7 +4,7 @@
   // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, nested, shipsAtSea, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import { attachElsewhereOrders, attachmentOrder, reassignOrder, tickable } from "./moves";
+  import { attachElsewhereOrders, attachmentOrder, reassignOrder, swapOrders, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
@@ -175,6 +175,16 @@
               {@const reassign = reassignOrder(view, p)}
               {#if reassign}
                 <button type="button" class="attach" data-order="reassign" title="Take a free slot of the parent it is attached to (19.2x)" onclick={() => onorder(reassign)}>Reassign</button>
+              {/if}
+              {@const swaps = swapOrders(view, p)}
+              {#if swaps.length > 0}
+                <select class="attach" data-order="swap-battalions" aria-label="Swap brigades with" title="Trade brigades with a battalion standing alone; each brigade must keep its slots (19.2x)" value="" onchange={(e) => { const i = Number((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ""; if (swaps[i]) onorder(swaps[i]); }}>
+                  <option value="" disabled>Swap brigade with…</option>
+                  {#each swaps as s, i (s["swap-battalions"].with)}
+                    {@const q = view.pieces[s["swap-battalions"].with]}
+                    <option value={i} data-with={q.id}>{label(q).short} ({q.parent ? (view.pieces[q.parent] ? label(view.pieces[q.parent]).short : q.parent) : "independent"})</option>
+                  {/each}
+                </select>
               {/if}
             {/if}
           </li>
