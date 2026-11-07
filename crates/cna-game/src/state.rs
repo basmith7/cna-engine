@@ -192,6 +192,12 @@ pub struct Modules {
     /// close assault on it this segment (14.23).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub no_armour_release: bool,
+    /// Historical shifts of parent (19.24, R-176): in phase C a unit
+    /// whose O/A notes date a change of parent this month may make it,
+    /// within 19.21; a shift not made in its month is never made. Needs
+    /// `reassignment` on too.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub parent_shifts: bool,
 }
 
 impl Modules {
@@ -221,6 +227,7 @@ impl Modules {
         reassignment: true,
         armour_limits: true,
         no_armour_release: true,
+        parent_shifts: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -807,6 +814,9 @@ impl GameState {
             (None, Order::Attach { piece, to }) => self.attach(data, player, piece, to),
             (None, Order::Detach { piece }) => self.detach(player, piece),
             (None, Order::Reassign { piece }) => self.reassign(data, player, piece),
+            (None, Order::ShiftParent { piece, to }) => {
+                self.shift_parent(data, player, piece, to.as_ref())
+            }
             (None, Order::SwapBattalions { piece, with }) => {
                 self.swap_battalions(data, player, piece, with)
             }

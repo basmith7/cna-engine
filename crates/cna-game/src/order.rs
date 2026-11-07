@@ -108,6 +108,10 @@ pub enum Order {
     /// Phase C: the independent `piece`, attached to a parent with a
     /// free slot it fills, becomes assigned to that parent (19.2x).
     Reassign { piece: PieceId },
+    /// Phase C: `piece` leaves its parent for `to` (none: independent),
+    /// a change its O/A notes date to this month (19.24, R-176). It must
+    /// be attached to `to`, which needs a slot it fills.
+    ShiftParent { piece: PieceId, to: Option<PieceId> },
     /// Phase C, Commonwealth: two battalions standing alone trade the
     /// brigades they are assigned to, or `with` is independent and takes
     /// `piece`'s place while `piece` leaves it (19.2x).

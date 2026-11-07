@@ -5,7 +5,8 @@
 //! to it in phase C, and the Commonwealth may swap battalions between
 //! brigades. With `armour_limits` on, a Commonwealth parent whose
 //! chart row tightens at a new Game-Turn loses the units it no longer
-//! has a slot for. Historical shifts are not built (`NOT_SIMULATED.md`).
+//! has a slot for. With `parent_shifts` on, a unit makes the change of
+//! parent its O/A notes date, in that month or never (19.24, R-176).
 
 use crate::clock::Phase;
 use crate::data::Data;
@@ -250,6 +251,113 @@ impl GameState {
             piece: piece.clone(),
             to: Some(PieceId::from(&to)),
             from: None,
+        }])
+    }
+
+    /// `Order::ShiftParent`: `piece` leaves its parent for `to` (none:
+    /// independent), a change its O/A notes date to this month (19.24,
+    /// R-176). The shift is made within 19.21: the unit must be attached
+    /// to `to`, which needs a slot it fills, as `reassign` judges it.
+    pub(crate) fn shift_parent(
+        &mut self,
+        data: &Data,
+        player: Side,
+        piece: &PieceId,
+        to: Option<&PieceId>,
+    ) -> Result<Vec<Event>, Illegal> {
+        if !self.modules.parent_shifts {
+            return Err(Illegal::new(
+                "19.24",
+                "this game plays without historical shifts of parent",
+            ));
+        }
+        let p = self.reassigning(player, piece)?;
+        let to = match to {
+            Some(t) => Some(t.unit().ok_or_else(|| {
+                Illegal::new("19.24", format!("{t} is not a unit that takes others"))
+            })?),
+            None => None,
+        };
+        let unit = piece.unit().expect("a combat unit or HQ has a sheet id");
+        let sheet = data.oa.unit(&unit).expect("a piece's unit is on a sheet");
+        let Some(from) = p.parent.clone() else {
+            return Err(Illegal::new(
+                "19.24",
+                format!("{piece} is independent: it is assigned by Reassign, in any month"),
+            ));
+        };
+        let named = |t: &Option<UnitId>| t.as_ref().map_or("no parent".into(), |u| u.to_string());
+        let Some(shift) = sheet
+            .shifts
+            .iter()
+            .find(|s| s.from.as_ref() == Some(&from) && s.to == to)
+        else {
+            return Err(Illegal::new(
+                "19.24",
+                format!(
+                    "{piece}'s O/A notes list no shift from {from} to {}",
+                    named(&to)
+                ),
+            ));
+        };
+        let Some(month) = &shift.month else {
+            return Err(Illegal::new(
+                "19.24",
+                format!(
+                    "{piece}'s O/A note gives no month for its shift: it may not be made (R-176)"
+                ),
+            ));
+        };
+        let now = data
+            .calendar
+            .week(u32::from(self.clock.game_turn))
+            .map(|w| w.month_key());
+        if now.as_deref() != Some(month.as_str()) {
+            return Err(Illegal::new(
+                "19.24",
+                format!(
+                    "{piece}'s shift to {} is made in {month} or never",
+                    named(&to)
+                ),
+            ));
+        }
+        if let Some(to) = &to {
+            if p.attached_to.as_ref() != Some(to) {
+                return Err(Illegal::new(
+                    "19.24",
+                    format!("{piece} must be attached to the parent it joins, {to}"),
+                ));
+            }
+            if self
+                .pieces
+                .get(&PieceId::from(to))
+                .is_none_or(|q| q.location == Location::Eliminated)
+            {
+                return Err(Illegal::new(
+                    "19.24",
+                    format!("{to} is not in play: no slot to fill"),
+                ));
+            }
+            // Where the chart has no row for `to`, its O/A notes govern,
+            // and the note that dates this shift is one of them.
+            let mut holders = self.slot_holders(data, to);
+            if let Some(before) = self.filled(data, to, &holders) {
+                holders.push(sheet);
+                if self.filled(data, to, &holders) <= Some(before) {
+                    return Err(Illegal::new(
+                        "19.24",
+                        format!("{to} has no free slot that {piece} fills"),
+                    ));
+                }
+            }
+        }
+        let p = self.pieces.get_mut(piece).expect("checked");
+        p.parent = to.clone();
+        p.substitute = false;
+        Ok(vec![Event::Reassigned {
+            piece: piece.clone(),
+            to: to.as_ref().map(PieceId::from),
+            from: Some(PieceId::from(&from)),
         }])
     }
 
@@ -756,5 +864,175 @@ mod tests {
                 .any(|e| matches!(e, Event::Reassigned { from: Some(f), .. } if *f == spt)),
             "{events:?}"
         );
+    }
+
+    /// The 3/1 Punjab, of the 5th Indian Brigade, joins the 25th Indian
+    /// Brigade when the 25th arrives, in May 1942 (R-176's example).
+    const PUNJAB: &str = "unit:cw:3-1-pjb";
+    const FIFTH: &str = "unit:cw:5-in-hq";
+    const TWENTY_FIFTH: &str = "unit:cw:25-in-hq";
+
+    /// Graziani in the Commonwealth's phase C at Game-Turn `turn`, the
+    /// 25th Indian Brigade (none of its battalions) beside the 3/1
+    /// Punjab, which stands alone.
+    fn shifting(data: &Data, turn: u8) -> GameState {
+        let mut state = cw_organising(data, &[PUNJAB]);
+        state.modules.parent_shifts = true;
+        state.clock.game_turn = turn;
+        let at = state.pieces[&pid(PUNJAB)].location.clone();
+        let head = cna_data::oa::UnitId::parse(TWENTY_FIFTH).unwrap();
+        let hq = crate::setup::reinforcement(
+            Side::Cw,
+            &head,
+            &data.oa,
+            &data.chars,
+            cna_data::time::GameTime::new(turn, 1),
+            at,
+        )
+        .unwrap()
+        .into_iter()
+        .find(|p| p.id == pid(TWENTY_FIFTH))
+        .unwrap();
+        state.pieces.insert(hq.id.clone(), hq);
+        state
+    }
+
+    fn shift(piece: &str, to: Option<&str>) -> Order {
+        Order::ShiftParent {
+            piece: pid(piece),
+            to: to.map(pid),
+        }
+    }
+
+    /// Applies `order` as the Commonwealth, which must be refused and
+    /// change nothing; the reason.
+    fn refused(state: &mut GameState, data: &Data, order: Order) -> String {
+        let before = serde_json::to_string(&*state).unwrap();
+        let err = state.apply(data, Side::Cw, order).unwrap_err();
+        assert_eq!(serde_json::to_string(&*state).unwrap(), before);
+        err.reason
+    }
+
+    #[test]
+    fn a_unit_shifts_parent_in_the_month_its_note_dates() {
+        let data = graziani();
+        // Game-Turn 82, the fourth week of May 1942.
+        let mut state = shifting(&data, 82);
+        assert_eq!(state.pieces[&pid(PUNJAB)].parent, pid(FIFTH).unit());
+        let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
+        assert!(why.contains("must be attached"), "{why}");
+        state.pieces.get_mut(&pid(PUNJAB)).unwrap().attached_to = pid(TWENTY_FIFTH).unit();
+        let cp = state.pieces[&pid(PUNJAB)].cp_spent;
+        let events = state
+            .apply(&data, Side::Cw, shift(PUNJAB, Some(TWENTY_FIFTH)))
+            .unwrap();
+        assert_eq!(
+            events,
+            vec![Event::Reassigned {
+                piece: pid(PUNJAB),
+                to: Some(pid(TWENTY_FIFTH)),
+                from: Some(pid(FIFTH)),
+            }]
+        );
+        let p = &state.pieces[&pid(PUNJAB)];
+        assert_eq!(p.parent, pid(TWENTY_FIFTH).unit());
+        assert_eq!(p.cp_spent, cp, "a shift costs no CP");
+        // Made once: the shift from the 5th no longer applies.
+        let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
+        assert!(why.contains("list no shift"), "{why}");
+    }
+
+    #[test]
+    fn a_shift_is_refused_outside_its_month() {
+        let data = graziani();
+        for turn in [78, 83] {
+            // April and June 1942.
+            let mut state = shifting(&data, turn);
+            state.pieces.get_mut(&pid(PUNJAB)).unwrap().attached_to = pid(TWENTY_FIFTH).unit();
+            let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
+            assert!(why.contains("1942-05 or never"), "{turn}: {why}");
+        }
+    }
+
+    #[test]
+    fn a_shift_whose_note_gives_no_month_is_never_made() {
+        let data = graziani();
+        let mut state = shifting(&data, 82);
+        // The 1st RTR leaves the 7th Armoured Brigade for the 22nd
+        // "later": no month.
+        let rtr = "unit:cw:1-rtr";
+        state.pieces.get_mut(&pid(rtr)).unwrap().parent = pid("unit:cw:7th-armored-bde-hq").unit();
+        let why = refused(
+            &mut state,
+            &data,
+            shift(rtr, Some("unit:cw:22-armd-bde-hq")),
+        );
+        assert!(why.contains("gives no month"), "{why}");
+    }
+
+    #[test]
+    fn only_a_listed_shift_is_made() {
+        let data = graziani();
+        let mut state = shifting(&data, 82);
+        // To no parent: not the shift the note gives.
+        let why = refused(&mut state, &data, shift(PUNJAB, None));
+        assert!(why.contains("list no shift"), "{why}");
+        // Another brigade: not listed either.
+        let why = refused(&mut state, &data, shift(PUNJAB, Some("unit:cw:11-in-hq")));
+        assert!(why.contains("list no shift"), "{why}");
+    }
+
+    #[test]
+    fn a_shift_waits_for_phase_c_and_the_module() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.reassignment = true;
+        state.modules.parent_shifts = true;
+        let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
+        assert!(why.contains("phase C"), "{why}");
+        let mut state = shifting(&data, 82);
+        state.pieces.get_mut(&pid(PUNJAB)).unwrap().attached_to = pid(TWENTY_FIFTH).unit();
+        state.modules.parent_shifts = false;
+        let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
+        assert!(why.contains("without historical shifts"), "{why}");
+    }
+
+    #[test]
+    fn a_shift_to_no_parent_leaves_the_unit_independent() {
+        // The 22nd Guards Brigade leaves the 70th Division in April 1941
+        // (Game-Turns 27-30); its attachment stays.
+        let data = graziani();
+        let mut state = shifting(&data, 28);
+        let gds = "unit:cw:22-gds";
+        let head = cna_data::oa::UnitId::parse(gds).unwrap();
+        let at = state.pieces[&pid(PUNJAB)].location.clone();
+        for p in crate::setup::reinforcement(
+            Side::Cw,
+            &head,
+            &data.oa,
+            &data.chars,
+            cna_data::time::GameTime::new(28, 1),
+            at,
+        )
+        .unwrap()
+        {
+            state.pieces.insert(p.id.clone(), p);
+        }
+        let seventieth = "unit:cw:70th-infantry-div-hq";
+        let g = state.pieces.get_mut(&pid(gds)).unwrap();
+        g.parent = pid(seventieth).unit();
+        g.attached_to = pid(seventieth).unit();
+        let events = state.apply(&data, Side::Cw, shift(gds, None)).unwrap();
+        assert_eq!(
+            events,
+            vec![Event::Reassigned {
+                piece: pid(gds),
+                to: None,
+                from: Some(pid(seventieth)),
+            }]
+        );
+        let g = &state.pieces[&pid(gds)];
+        assert_eq!(g.parent, None);
+        assert_eq!(g.attached_to, pid(seventieth).unit());
     }
 }
