@@ -52,8 +52,13 @@ an empty row per secret order, and return fire that wipes out a
 formation's real armour now kills its dummy (16.45). #176 builds R-157's
 last piece (`returning_transport`): a return printed "Tpt: See ..."
 brings back the motorisation points that left with the withdrawals it
-names. Voluntary Commonwealth withdrawals (20.9, 64.75) are being built
-on a draft PR stacked on #176.
+names. #177 (draft, stacked on #176) builds voluntary Commonwealth
+withdrawals (20.9, 64.75) as `voluntary_withdrawals`: in a campaign
+game the Commonwealth may withdraw a battalion at 75 % or more from
+Cairo or Alexandria (*Withdraw (64.75)* in the stack panel) for half a
+point per whole week away, at most three; *Bring back* costs two and
+bars it for 26 Game-Turns. A fresh review's bug is fixed; it needs one
+more test before it is merged.
 
 **2026-11-07 midday:** cna answered three requests, and all three are
 built. #170 (merged) bumps `vendor/cna` to 215864b. #172 (merged) builds R-179
