@@ -126,6 +126,11 @@ impl GameState {
         if p.toe * 4 < self.toe_ceiling(data, p) * 3 {
             return Some(format!("{id} is under 75 % of its TOE"));
         }
+        if self.engaged(id) {
+            return Some(format!(
+                "{id} is in this segment's movement or combat: withdraw it once that ends"
+            ));
+        }
         let now = self.clock.game_turn;
         if let Some(back) = self.voluntary.get(id).and_then(|v| v.returned)
             && now < back.saturating_add(LOCKOUT_TURNS)
@@ -136,6 +141,28 @@ impl GameState {
             ));
         }
         None
+    }
+
+    /// Whether `id` is named in the records of the movement or combat
+    /// segment under way, which assume it stays on the map until the
+    /// segment ends.
+    fn engaged(&self, id: &PieceId) -> bool {
+        let c = &self.combat;
+        c.assignments.values().flatten().any(|a| &a.piece == id)
+            || c.plots
+                .values()
+                .flatten()
+                .any(|f| &f.piece == id || &f.target == id)
+            || c.forward.contains(id)
+            || c.probing.contains(id)
+            || c.pinned.contains(id)
+            || c.retreated.contains(id)
+            || c.charged.contains_key(id)
+            || c.barrage_involved.contains(id)
+            || self.moved.contains(id)
+            || self.continuing.contains(id)
+            || self.shifted.contains(id)
+            || self.escorts.iter().any(|(k, v)| k == id || v.contains(id))
     }
 
     /// `Order::WithdrawVoluntarily` (20.9, 64.75).
@@ -542,5 +569,80 @@ mod tests {
         let with = crate::victory::evaluate(&data, &state).points.unwrap();
         assert_eq!(with.cw, without.cw + 3);
         assert_eq!(with.axis, without.axis);
+    }
+
+    #[test]
+    fn a_unit_in_the_segment_under_way_is_refused() {
+        let data = data();
+        let base = game(&data);
+        let mut s = base.clone();
+        let id = battalion(&mut s, &data, cairo(&data));
+        let engagements: Vec<fn(&mut GameState, &PieceId)> = vec![
+            |s, id| {
+                s.combat.assignments.insert(
+                    Side::Cw,
+                    vec![crate::order::Assignment {
+                        piece: id.clone(),
+                        anti_armour: vec![],
+                        close_assault: vec![],
+                    }],
+                );
+            },
+            |s, id| {
+                s.combat.charged.insert(id.clone(), Default::default());
+            },
+            |s, id| {
+                s.moved.insert(id.clone());
+            },
+            |s, id| {
+                s.escorts.insert(
+                    PieceId::supply(Side::Cw, 1),
+                    std::iter::once(id.clone()).collect(),
+                );
+            },
+        ];
+        for engage in engagements {
+            let mut e = s.clone();
+            engage(&mut e, &id);
+            let err = withdraw(&mut e, &data, &id).unwrap_err();
+            assert!(err.to_string().contains("segment"), "{err}");
+            assert!(
+                !e.voluntary_options(&data, Side::Cw)
+                    .withdrawable
+                    .contains(&id)
+            );
+            assert!(e.pieces.contains_key(&id), "still on the map");
+        }
+        // Free of the segment's records, it goes.
+        withdraw(&mut s, &data, &id).unwrap();
+    }
+
+    #[test]
+    fn a_half_point_lead_wins() {
+        let data = data();
+        let mut state = game(&data);
+        let board = crate::victory::evaluate(&data, &state).points.unwrap();
+        let behind = board.axis - board.cw;
+        assert!(behind >= 0, "the Commonwealth starts level or behind");
+        // Half a point more than the Axis lead, spread over records of
+        // at most three points each.
+        let mut left = (2 * behind + 1) as u32;
+        let mut n = 0;
+        while left > 0 {
+            let banked = left.min(CAP_HALVES);
+            state.voluntary.insert(
+                PieceId::from(format!("test-{n}")),
+                Voluntary {
+                    banked,
+                    ..Voluntary::default()
+                },
+            );
+            left -= banked;
+            n += 1;
+        }
+        let report = crate::victory::evaluate(&data, &state);
+        assert_eq!(report.points.unwrap().cw, board.axis, "rounded down");
+        assert!(report.cw.is_some(), "{report:?}");
+        assert_eq!(report.axis, None);
     }
 }
