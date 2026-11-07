@@ -906,3 +906,9 @@ Done: #177 (voluntary withdrawals + engaged/half-point tests), #178 (`Order::Set
 In flight: none.
 Next: nothing unblocked is queued; candidates: rating-absorbing losses (14.4x/15.83) by owner choice, 12.23 blind barrage targets. Check Feedback for Brian's verdict on #148/#161 first.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 10:05 MST — autopilot/captured-wrecks
+Done: #180 (autopilot/absorb-loss-order): `absorb_by_loss_order` module, the standing loss order also picks points absorbing damage by rating (14.4x, 15.83, 15.84). #181 (this branch, stacked on #180): `captured_wrecks` module, captured broken-down vehicles repaired become captured equipment by class (R-152), and next-hex wreck capture needs a passable step (21.51). Gates green locally on both; fresh review clean on #180, its #181 fix applied. Four requests for cna posted on main (Last Chance/Long Retreat/Italian Campaign victory data, points-place supply under §32, 12.22 vs 3.61).
+In flight: CI on #180/#181.
+Next: merge #180, retarget #181 to main, merge it. Then: build cna's answers to the four requests when they land (bump vendor/cna).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
