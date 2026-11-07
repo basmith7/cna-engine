@@ -80,6 +80,19 @@ impl GameRng {
         }
     }
 
+    /// A number in `0..n`, unbiased, for a shuffle no table rolls
+    /// (R-182's numbering of blind barrage targets). `n` must not be 0.
+    pub fn below(&mut self, n: u32) -> u32 {
+        assert!(n > 0, "below(0)");
+        let limit = u32::MAX - (u32::MAX % n);
+        loop {
+            let w = self.word();
+            if w < limit {
+                return w % n;
+            }
+        }
+    }
+
     /// Two dice read sequentially, 11–66 (SPI 11.4): the first die is the
     /// tens.
     pub fn two_dice_sequential(&mut self) -> u8 {

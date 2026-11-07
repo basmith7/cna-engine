@@ -937,6 +937,16 @@ impl GameState {
         self.spend_ammo(plan.payments, &mut events);
         // 16.44: a dummy dies as soon as its formation is close-assaulted.
         self.expose_dummy_tank(other, target, &mut events);
+        // 12.24: units that met in a close assault are identified to
+        // each other's barrages from now on (R-182).
+        let in_hex: Vec<PieceId> = self
+            .pieces
+            .values()
+            .filter(|p| p.side == other && p.hex() == Some(target))
+            .map(|p| p.id.clone())
+            .collect();
+        self.identify(phasing, in_hex);
+        self.identify(other, attacker_ids.clone());
         let probe = attacker_ids
             .iter()
             .all(|id| self.combat.probing.contains(id));

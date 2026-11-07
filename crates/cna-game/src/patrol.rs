@@ -582,6 +582,9 @@ impl GameState {
                 .collect();
         }
 
+        // 12.24: a described unit is identified to the patroller (R-182).
+        self.identify(player, described.iter().map(|d| d.piece.clone()));
+
         // 3. Objective Loss (16.32, 16.8).
         let die = self.rng.d6();
         let row = data

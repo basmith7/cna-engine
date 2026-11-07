@@ -112,19 +112,29 @@ impl GameState {
             return None;
         }
         let blockship = ship.kind == crate::piece::PieceKind::Blockship;
-        let ship_points: BTreeMap<PieceId, u32> = self
+        let reach = |hex: &cna_data::map::HexId| {
+            if blockship {
+                self.blockship_points(data, ship, hex).ok()
+            } else {
+                self.bombardment_points(data, ship, hex).ok()
+            }
+        };
+        let mut ship_points: BTreeMap<PieceId, u32> = self
             .pieces
             .values()
-            .filter(|t| t.side != side && self.is_target(data, t))
-            .filter_map(|t| {
-                let n = if blockship {
-                    self.blockship_points(data, ship, t.hex()?).ok()?
-                } else {
-                    self.bombardment_points(data, ship, t.hex()?).ok()?
-                };
-                Some((t.id.clone(), n))
-            })
+            .filter(|t| t.side != side && self.is_target(data, t) && self.may_name(side, &t.id))
+            .filter_map(|t| Some((t.id.clone(), reach(t.hex()?)?)))
             .collect();
+        // R-182: the numbered targets of every hex in reach.
+        if let Some(hexes) = self.combat.numbering.get(&side.other()) {
+            for hex in hexes.keys() {
+                if let Some(n) = reach(hex) {
+                    for id in self.blind_targets(side, hex) {
+                        ship_points.insert(id, n);
+                    }
+                }
+            }
+        }
         let points = *ship_points.values().max()?;
         Some(Firer {
             piece: id.clone(),
@@ -180,12 +190,21 @@ impl GameState {
                             return Some(f);
                         }
                         let p = self.barrage_firer(data, side, id).ok()?;
-                        let targets: Vec<PieceId> = self
+                        // R-182: a unit by name once identified, and
+                        // every adjacent hex's numbered targets.
+                        let mut targets: Vec<PieceId> = self
                             .pieces
                             .values()
+                            .filter(|t| self.may_name(side, &t.id))
                             .filter(|t| self.barrage_target(data, side, p, &t.id).is_ok())
                             .map(|t| t.id.clone())
                             .collect();
+                        if self.modules.blind_barrage {
+                            let from = p.hex().expect("a firer is on the map");
+                            for hex in data.map.neighbours(from) {
+                                targets.extend(self.blind_targets(side, &hex));
+                            }
+                        }
                         // A firer with nobody in reach is no choice.
                         if targets.is_empty() {
                             return None;
