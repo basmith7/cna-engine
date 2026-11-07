@@ -666,6 +666,14 @@ pub struct Objective {
     pub hold: Placement,
     #[serde(default)]
     pub any_hex: bool,
+    /// Hold this many whole places of `place_kinds` in the region (R-187).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub place_kinds: Vec<crate::map::PlaceKind>,
+    /// Groups of place ids that count once between them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub counted_once: Vec<Vec<String>>,
 }
 
 /// Where a holding unit's route must reach (R-110): any hex of these
@@ -709,6 +717,78 @@ pub struct PointsObjective {
 pub struct Margin {
     pub min: i32,
     pub level: String,
+    /// The side that wins this band whoever is ahead (R-184).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub side: Option<Side>,
+}
+
+/// Failing every levels row, each side's TOE points of land units on its
+/// named sheet decide `level` (R-183).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToeOnSheet {
+    pub level: VictoryLevel,
+    pub sheets: SheetsBySide,
+    /// OA units whose points are not counted.
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    /// An HQ's own TOE points count.
+    #[serde(default)]
+    pub hq: bool,
+    /// Gun TOE points count beside infantry and armour.
+    #[serde(default)]
+    pub guns: bool,
+    /// Broken-down points on the sheet, assigned to no unit, count for
+    /// their owner.
+    #[serde(default)]
+    pub broken_down: bool,
+    /// Equal totals: `draw` (no victory), or the side that wins.
+    #[serde(default)]
+    pub tie: Option<String>,
+}
+
+/// Judged at the end, before the points: if no combat unit of `side` on
+/// the map has `trace`, `winner` wins `level` (R-185).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CutOff {
+    pub side: Side,
+    pub winner: Side,
+    pub level: VictoryLevel,
+    pub trace: SupplyTrace,
+}
+
+/// Under abstract supply, the test each scoring side's holders meet at
+/// the end (R-186).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PointsSupply {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis: Option<SupplyTest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cw: Option<SupplyTest>,
+}
+
+impl PointsSupply {
+    pub fn side(&self, side: Side) -> Option<&SupplyTest> {
+        match side {
+            Side::Axis => self.axis.as_ref(),
+            Side::Cw => self.cw.as_ref(),
+        }
+    }
+}
+
+/// One side's end-of-game supply test: draw on a friendly supply unit
+/// (32.16), or an R-110 route.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupplyTest {
+    #[serde(default)]
+    pub draw: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<SupplyTrace>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SheetsBySide {
+    pub axis: char,
+    pub cw: char,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -724,6 +804,12 @@ pub struct Victory {
     /// highest `over` first in the file.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ratios: Vec<Ratio>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub toe_on_sheet: Option<ToeOnSheet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cut_off: Option<CutOff>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub points_supply: Option<PointsSupply>,
     #[serde(default)]
     pub notes: Vec<String>,
 }

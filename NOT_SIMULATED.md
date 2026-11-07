@@ -67,11 +67,11 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-116 | Air Game: not in the engine yet |
 | R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a committed defender out of ammunition does not defend, and when every committed defender that owes ammunition is out the hex surrenders, HQs included (`cna-game::combat::assault`) |
 | R-182 | not yet: blind barrage targets numbered by class (12.22); the firer names any counter in the hex (*Combat systems* below) |
-| R-183 | not yet: The Last Chance's `toe_on_sheet` tactical count is not read, so failing the strategic hold neither side wins |
-| R-184 | not yet: a `margins` row's `side` is not read, so The Long Retreat's 0 points gives no one a win |
-| R-185 | not yet: the Italian Campaign's `margins` give its plain (tactical) win; the `cut_off` strategic win is not read |
-| R-186 | not yet: `points_supply` is not read, so Crusader's, The Long Retreat's and the Italian Campaign's places score with no supply test |
-| R-187 | not yet: the hold's `count`, `place_kinds` and `counted_once` are not read, so Rommel's Arrival's Egyptian hold asks for every Egyptian hex and is never met |
+| R-183 | as decided: failing every levels row, each side's TOE points of combat units (and HQs, guns and loose broken-down points as `toe_on_sheet` says) in hexes of its named sheet, less the excluded units, decide its `level`; equal totals follow `tie` (`cna-game::victory::toe_on_sheet`); the report's `points` carry the two totals |
+| R-184 | as decided: a `margins` band naming a `side` wins for that side whoever is ahead, so The Long Retreat's 0 Axis points is a Commonwealth tactical win (`cna-game::victory`) |
+| R-185 | as decided: the Italian Campaign's `margins` give its plain (tactical) win and a draw at 0; with `cut_off`, if no combat unit of the side named has an R-110 route to its source at the end, the winner named takes that level whatever the points (`cna-game::victory`) |
+| R-186 | as decided, with the `abstract_supply` module on: a place of a points victory scores only if one of its holders passes the scenario's `points_supply` test at the end: `draw`, a loaded friendly supply unit in its hex or within 32.16's reach (the test 64.73 uses), or `trace`, R-110's route to the places named (`cna-game::victory`) |
+| R-187 | as decided: a hold with a `count` is met by that many places of its `place_kinds` in its region, each held in every hex, a `counted_once` group (Alexandria's two hexes) counting once (`cna-game::victory`) |
 
 # Rulings implemented as decided
 

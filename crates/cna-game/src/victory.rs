@@ -154,7 +154,84 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
             }
         }
     }
+    if report.axis.is_none()
+        && report.cw.is_none()
+        && let Some(t) = &victory.toe_on_sheet
+    {
+        let axis = toe_on_sheet(data, state, t, Side::Axis);
+        let cw = toe_on_sheet(data, state, t, Side::Cw);
+        let winner = match axis.cmp(&cw) {
+            std::cmp::Ordering::Greater => Some(Side::Axis),
+            std::cmp::Ordering::Less => Some(Side::Cw),
+            std::cmp::Ordering::Equal => match t.tie.as_deref() {
+                Some("axis") => Some(Side::Axis),
+                Some("cw") => Some(Side::Cw),
+                _ => None,
+            },
+        };
+        match winner {
+            Some(Side::Axis) => report.axis = Some(t.level),
+            Some(Side::Cw) => report.cw = Some(t.level),
+            None => {}
+        }
+        report.points = Some(Points { axis, cw });
+    }
     report
+}
+
+/// `side`'s TOE strength points of land units in hexes of its sheet
+/// (R-183): combat units, HQs if `hq`, less gun points unless `guns`,
+/// less `exclude`'s units, plus broken-down points there assigned to no
+/// unit if `broken_down`.
+fn toe_on_sheet(
+    data: &Data,
+    state: &GameState,
+    t: &cna_data::scenario::ToeOnSheet,
+    side: Side,
+) -> i32 {
+    use crate::combat::strength::Class;
+    use crate::piece::PieceKind;
+    let sheet = match side {
+        Side::Axis => t.sheets.axis,
+        Side::Cw => t.sheets.cw,
+    };
+    let on_sheet = |h: &HexId| h.sheet() == sheet;
+    let mut total: u32 = 0;
+    for p in state.pieces.values() {
+        if p.side != side
+            || !p.hex().is_some_and(on_sheet)
+            || t.exclude.iter().any(|x| x == p.id.as_str())
+        {
+            continue;
+        }
+        match p.kind {
+            PieceKind::Combat => {}
+            PieceKind::Hq if t.hq => {}
+            _ => continue,
+        }
+        total += if t.guns {
+            p.toe
+        } else {
+            let guns: u32 = state
+                .parts(data, p)
+                .iter()
+                .filter(|part| part.class == Class::Gun)
+                .map(|part| part.points)
+                .sum();
+            p.toe.saturating_sub(guns)
+        };
+    }
+    if t.broken_down {
+        total += state
+            .broken_down
+            .iter()
+            .filter(|(h, _)| on_sheet(h))
+            .flat_map(|(_, ws)| ws.iter())
+            .filter(|w| w.side == side && w.unit.is_none())
+            .map(|w| w.points)
+            .sum::<u32>();
+    }
+    i32::try_from(total).unwrap_or(i32::MAX)
 }
 
 /// A points victory: each place scores for the side whose combat units
@@ -186,14 +263,30 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             .collect();
         let holder = (sides.len() == 1).then(|| *sides.first().unwrap());
         let mut unsupplied = Vec::new();
-        if campaign && holder.is_some() {
+        // R-186: under abstract supply a scenario's own end-of-game test.
+        let test = holder
+            .filter(|_| state.modules.abstract_supply)
+            .and_then(|h| victory.points_supply.as_ref()?.side(h));
+        if let Some(side) = holder
+            && (campaign || test.is_some())
+        {
             let ids: Vec<&PieceId> = state
                 .pieces
                 .values()
                 .filter(|p| state.is_combatant(p) && p.hex().is_some_and(|h| hexes.contains(h)))
                 .map(|p| &p.id)
                 .collect();
-            if !ids.iter().any(|id| state.passes_end_supply(data, id)) {
+            let tracer = Tracer::new(data, state, side);
+            let passes = |id: &PieceId| match test {
+                Some(t) => {
+                    (t.draw && state.passes_end_supply(data, id))
+                        || t.trace.as_ref().is_some_and(|tr| {
+                            state.pieces[id].hex().is_some_and(|h| tracer.traces(h, tr))
+                        })
+                }
+                None => state.passes_end_supply(data, id),
+            };
+            if !ids.iter().any(|id| passes(id)) {
                 unsupplied = ids.into_iter().cloned().collect();
             }
         }
@@ -237,21 +330,44 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
     } else {
         (Side::Cw, totals.cw - totals.axis)
     };
+    let band = victory
+        .margins
+        .iter()
+        .filter(|m| victory.ratios.is_empty() && margin >= m.min)
+        .max_by_key(|m| m.min);
     let level = if victory.ratios.is_empty() {
-        victory
-            .margins
-            .iter()
-            .filter(|m| margin >= m.min)
-            .max_by_key(|m| m.min)
-            .and_then(|m| named(&m.level))
+        band.and_then(|m| named(&m.level))
     } else {
         ratio_level(&victory.ratios, &doubled)
     };
-    // Anyone ahead, by half a point or more, wins at the level found.
-    if doubled.axis != doubled.cw {
-        match winner {
-            Side::Axis => report.axis = level,
-            Side::Cw => report.cw = level,
+    // A band that names its side wins for it whoever is ahead (R-184:
+    // The Long Retreat's 0 Axis points); otherwise anyone ahead, by half
+    // a point or more, wins at the level found.
+    let winner = band
+        .and_then(|m| m.side)
+        .or((doubled.axis != doubled.cw).then_some(winner));
+    match winner {
+        Some(Side::Axis) => report.axis = level,
+        Some(Side::Cw) => report.cw = level,
+        None => {}
+    }
+    // R-185: a side none of whose combat units can trace to its source
+    // loses, whatever the points.
+    if let Some(c) = &victory.cut_off {
+        let tracer = Tracer::new(data, state, c.side);
+        let cut = !state
+            .pieces
+            .values()
+            .filter(|p| p.side == c.side && state.is_combatant(p))
+            .filter_map(|p| p.hex())
+            .any(|h| tracer.traces(h, &c.trace));
+        if cut {
+            report.axis = None;
+            report.cw = None;
+            match c.winner {
+                Side::Axis => report.axis = Some(c.level),
+                Side::Cw => report.cw = Some(c.level),
+            }
         }
     }
     if victory.margins.is_empty() && victory.ratios.is_empty() {
@@ -342,6 +458,68 @@ impl<'a> Tracer<'a> {
         }
     }
 
+    /// R-187: `n` whole places of the objective's kinds in its regions,
+    /// each held in every hex, a `counted_once` group counting once.
+    fn counted(&self, level: &Level, objective: &Objective, n: u32) -> Condition {
+        let (name, _) = self.hexes_of(objective);
+        let countries: Vec<_> = objective
+            .hold
+            .locators
+            .iter()
+            .filter_map(|l| match l {
+                Locator::Region(c) => Some(*c),
+                _ => None,
+            })
+            .collect();
+        let mut hexes = Vec::new();
+        let mut held = Vec::new();
+        let mut unsupplied = Vec::new();
+        let mut counted: BTreeSet<String> = BTreeSet::new();
+        for place in self.data.map.places().filter(|p| {
+            objective.place_kinds.contains(&p.kind)
+                && self
+                    .data
+                    .map
+                    .country(&p.hex)
+                    .is_some_and(|c| countries.contains(&c))
+        }) {
+            let mut whole = true;
+            for h in &place.hexes {
+                hexes.push(h.clone());
+                let mut supplied = false;
+                for id in self.holders(h) {
+                    match &level.supply_trace {
+                        Some(t) if !self.traces(h, t) => unsupplied.push(id),
+                        _ => supplied = true,
+                    }
+                }
+                if supplied {
+                    held.push(h.clone());
+                } else {
+                    whole = false;
+                }
+            }
+            if whole {
+                let key = objective
+                    .counted_once
+                    .iter()
+                    .position(|g| g.contains(&place.id))
+                    .map_or_else(|| place.id.clone(), |i| format!("group {i}"));
+                counted.insert(key);
+            }
+        }
+        Condition {
+            side: level.side,
+            level: level.level,
+            objective: name,
+            hexes,
+            any_hex: false,
+            held,
+            unsupplied,
+            met: counted.len() >= n as usize,
+        }
+    }
+
     fn hexes_of(&self, objective: &Objective) -> (String, Vec<HexId>) {
         objective_hexes(self.data, objective)
     }
@@ -364,6 +542,9 @@ impl<'a> Tracer<'a> {
     }
 
     fn condition(&self, level: &Level, objective: &Objective) -> Condition {
+        if let Some(n) = objective.count {
+            return self.counted(level, objective, n);
+        }
         let (name, hexes) = self.hexes_of(objective);
         let mut held = Vec::new();
         let mut unsupplied = Vec::new();
@@ -616,6 +797,9 @@ mod tests {
     fn a_points_victory_scores_each_place_for_its_sole_holder() {
         let data = crusader();
         let mut state = crusader_set_up(&data);
+        // Holding alone, with no supply test: R-186's applies only under
+        // abstract supply (its own test below).
+        state.modules.abstract_supply = false;
         // Empty every objective, then give Tobruk (6 Axis, 4 CW) to the
         // Commonwealth and Bardia (2 Axis, 3 CW) to the Axis.
         let objective_hexes: Vec<HexId> = data
@@ -887,6 +1071,179 @@ mod tests {
         }
         put(&mut state, "unit:it:sceferzen-oasis-garrison-bn", "C2919");
         assert_eq!(evaluate(&data, &state).axis, Some(VictoryLevel::Tactical));
+    }
+
+    #[test]
+    fn no_axis_points_in_the_long_retreat_is_a_commonwealth_win_r_184() {
+        let data = Data::load("the-long-retreat").unwrap();
+        let mut state = set_up(&data, 5);
+        // Nobody holds anything: 0 to 0.
+        for p in state.pieces.values_mut() {
+            p.location = Location::Eliminated;
+        }
+        let r = evaluate(&data, &state);
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Tactical)));
+    }
+
+    #[test]
+    fn the_last_chance_s_tactical_win_is_the_larger_toe_on_the_enemy_s_sheet_r_183() {
+        let data = Data::load("the-last-chance").unwrap();
+        let state = set_up(&data, 5);
+        let r = evaluate(&data, &state);
+        let Points { axis, cw } = r.points.expect("the TOE totals");
+        // The Axis has no brigade in Alexandria at set-up, so the count
+        // decides: the larger total wins tactical.
+        let expected = match axis.cmp(&cw) {
+            std::cmp::Ordering::Greater => (Some(VictoryLevel::Tactical), None),
+            std::cmp::Ordering::Less => (None, Some(VictoryLevel::Tactical)),
+            std::cmp::Ordering::Equal => (None, None),
+        };
+        assert_eq!((r.axis, r.cw), expected, "axis {axis}, cw {cw}");
+        // Layforce is not counted: moving it changes nothing.
+        let t = data
+            .scenario
+            .victory
+            .as_ref()
+            .unwrap()
+            .toe_on_sheet
+            .as_ref()
+            .unwrap();
+        let only = |state: &GameState, side| toe_on_sheet(&data, state, t, side);
+        let on_d = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Cw
+                    && p.kind == PieceKind::Combat
+                    && p.toe > 0
+                    && p.hex().is_some_and(|h| h.sheet() == 'D')
+            })
+            .cloned()
+            .expect("a Commonwealth combat unit on sheet D");
+        // A copy of it under Layforce's id counts nothing; under any
+        // other id, its points.
+        let with = |id: &str| {
+            let mut s = state.clone();
+            let mut p = on_d.clone();
+            p.id = PieceId::from(id.to_string());
+            s.pieces.insert(p.id.clone(), p);
+            only(&s, Side::Cw)
+        };
+        assert_eq!(with(&t.exclude[0]), cw);
+        assert_eq!(with("unit:cw:not-excluded"), cw + on_d.toe as i32);
+        // With nothing on the sheets, equal totals: no victory.
+        let mut empty = state.clone();
+        for p in empty.pieces.values_mut() {
+            p.location = Location::Eliminated;
+        }
+        let r = evaluate(&data, &empty);
+        assert_eq!((r.axis, r.cw), (None, None));
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
+    }
+
+    #[test]
+    fn italians_cut_off_from_nofilia_lose_the_italian_campaign_r_185() {
+        let data = Data::load("italian-campaign").unwrap();
+        let state = set_up(&data, 5);
+        // At set-up the Italians trace home: the points decide.
+        let r = evaluate(&data, &state);
+        assert_ne!(r.cw, Some(VictoryLevel::Strategic), "{r:?}");
+        // With no Italian combat unit on the map, nobody traces.
+        let mut gone = state.clone();
+        for p in gone.pieces.values_mut() {
+            if p.side == Side::Axis {
+                p.location = Location::Eliminated;
+            }
+        }
+        let r = evaluate(&data, &gone);
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Strategic)));
+    }
+
+    #[test]
+    fn crusader_s_places_score_only_for_holders_that_can_draw_supply_r_186() {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut state =
+            crate::state::GameState::with_modules(&data, 5, crate::state::Modules::ALL).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let scored = |state: &GameState| -> Vec<(String, Option<Side>, i32)> {
+            evaluate(&data, state)
+                .scored
+                .into_iter()
+                .map(|s| (s.objective, s.holder, s.points))
+                .collect()
+        };
+        let before = scored(&state);
+        assert!(
+            before.iter().any(|(_, h, n)| h.is_some() && *n > 0),
+            "{before:?}"
+        );
+        // Every supply unit gone: a held place scores nothing.
+        let mut dry = state.clone();
+        for p in dry.pieces.values_mut() {
+            if p.kind == crate::piece::PieceKind::SupplyUnit {
+                p.location = Location::Eliminated;
+            }
+        }
+        for (place, holder, points) in scored(&dry) {
+            assert!(
+                holder.is_none() || points == 0,
+                "{place} scored {points} unsupplied"
+            );
+        }
+        // Without abstract supply, the data's test does not apply.
+        dry.modules.abstract_supply = false;
+        assert_eq!(scored(&dry), before);
+    }
+
+    #[test]
+    fn rommel_s_egyptian_hold_is_two_whole_villages_or_cities_r_187() {
+        let data = Data::load("rommels-arrival").unwrap();
+        let victory = data.scenario.victory.as_ref().unwrap();
+        let (level, objective) = victory
+            .levels
+            .iter()
+            .flat_map(|l| l.all_of.iter().map(move |o| (l, o)))
+            .find(|(_, o)| o.count.is_some())
+            .expect("the counted hold");
+        let mut state = set_up(&data, 5);
+        // Sweep the Commonwealth away; then hold Egyptian places one by one.
+        for p in state.pieces.values_mut() {
+            if p.side == Side::Cw {
+                p.location = Location::Eliminated;
+            }
+        }
+        let axis: Vec<PieceId> = state
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Axis && p.kind == PieceKind::Combat && p.hex().is_some())
+            .map(|p| p.id.clone())
+            .collect();
+        let place = |id: &str| data.map.place(id).unwrap().clone();
+        let met = |state: &GameState| {
+            Tracer::new(&data, state, Side::Axis)
+                .condition(level, objective)
+                .met
+        };
+        assert!(!met(&state));
+        // Alexandria's two hexes are one place between them (counted once).
+        let (ae, aw) = (place("alexandria-east"), place("alexandria-west"));
+        state.put(&axis[0], Location::Hex(ae.hex.clone()));
+        state.put(&axis[1], Location::Hex(aw.hex.clone()));
+        assert!(!met(&state), "Alexandria counts once");
+        // A second Egyptian village makes two.
+        let village = data
+            .map
+            .places()
+            .find(|p| {
+                p.kind == cna_data::map::PlaceKind::Village
+                    && p.hexes.len() == 1
+                    && data.map.country(&p.hex) == Some(cna_data::map::Country::Egypt)
+            })
+            .expect("an Egyptian village")
+            .clone();
+        state.put(&axis[2], Location::Hex(village.hex.clone()));
+        assert!(met(&state));
     }
 
     #[test]
