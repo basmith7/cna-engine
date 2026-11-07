@@ -627,3 +627,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-06 14:44 | 71 | 10→10 | none→none | $7.62 | 103 | All three PRs merged to main. CI was green on each, and so were the local gates, the `web/` checks and Playwright (65/65). Feedback was empty and #148 (the Miss |
 | 2026-11-06 15:55 | 60 | 10→11 | none→none | $8.73 | 46 | Reassignment (SPI 19.2x) is built and merged as #159, and #160 adds the missing `capture_on_move` tests. Brian's review of the Mission 6 spec (#148) is still th |
 | 2026-11-06 18:44 | 61 | 11→12 | none→none | $15.39 | 172 | This run produced the Mission 7 spec (the Air Game), which now waits on your review, and merged two Mission 5 follow-ups. Mission 6 (#148) is still waiting on y |
+| 2026-11-06 19:46 | 42 | 12→13 | none→none | $7.55 | 5 | The "no armour" rule (14.23) is now in the engine and the browser, and merged to main as #164. Missions 6 and 7 are still waiting on your review. **What 14.23 d |
