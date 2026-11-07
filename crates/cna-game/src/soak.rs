@@ -72,7 +72,9 @@ mod tests {
     /// Answers what the non-phasing player owes mid-move: ZOC at random
     /// (10.16); a reaction (8.5x), half the time, by one eligible unit
     /// to a hex `reachable` offers it, else declined. A reaction `apply`
-    /// refuses is a disagreement, kept in `faults`.
+    /// refuses is a disagreement, kept in `faults`, but for fuel: the
+    /// reaction overlay quotes fuel nothing in range can pay, by design
+    /// (`reach`'s `a_reaction_quotes_the_fuel_it_owes`).
     fn answer_pending(
         data: &Data,
         state: &mut GameState,
@@ -108,6 +110,7 @@ mod tests {
                                     *state = trial;
                                     continue;
                                 }
+                                Err(e) if e.case == "32.22" => Order::Pass,
                                 Err(e) => {
                                     faults.push(format!(
                                         "{} {side}: reachable offers {id} a reaction to {} by {:?}, apply says {e:?}",
