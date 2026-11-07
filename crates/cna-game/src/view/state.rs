@@ -37,6 +37,7 @@
 //! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
 //! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
+//! | `transport_out` | as is: the printed motorisation that left with a withdrawal, as the public `withdrawn` event shows it |
 //! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
 //! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
@@ -152,6 +153,7 @@ const STATE_KEEPS: &[&str] = &[
     "continuing",
     "shifted",
     "escorts",
+    "transport_out",
 ];
 
 /// Top-level fields with an enemy's part removed (by this module's code).

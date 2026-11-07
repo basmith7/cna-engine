@@ -34,6 +34,10 @@ pub struct Row {
     pub pick: Option<Pick>,
     /// A withdrawal's printed "Tpt" (R-157).
     pub transport: Option<Transport>,
+    /// On a return printed "Tpt: See ...": the withdrawals whose
+    /// transport comes back with it (R-157).
+    #[serde(default)]
+    pub transport_from: Vec<GameTime>,
     #[serde(default)]
     pub notes: Vec<String>,
 }

@@ -238,6 +238,10 @@ pub struct Modules {
     /// motorisation points for their trucks, instead of by the schedule.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub scenario_arrivals: bool,
+    /// A return printed "Tpt: See ..." brings back the motorisation
+    /// points that left on the withdrawals it names (R-157).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub returning_transport: bool,
 }
 
 impl Modules {
@@ -274,6 +278,7 @@ impl Modules {
         infantry_types: true,
         substitute_arrival: true,
         scenario_arrivals: true,
+        returning_transport: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -331,6 +336,10 @@ pub struct GameState {
     /// schedule row that brings them back.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub withdrawn: BTreeMap<PieceId, Piece>,
+    /// Motorisation points that left with each OpStage's withdrawals,
+    /// until a return brings them back (R-157, `returning_transport`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub transport_out: Vec<crate::withdraw::TransportOut>,
     /// The Commonwealth's choice for this OpStage's `pick` withdrawal
     /// (20.82, R-154), by the row's slot kind.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -597,6 +606,7 @@ impl GameState {
             motorisation,
             pending_motorisation,
             withdrawn: BTreeMap::new(),
+            transport_out: Vec::new(),
             withdrawal_picks: BTreeMap::new(),
             initiative: None,
             rommel_recalled: false,
