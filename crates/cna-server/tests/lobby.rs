@@ -287,7 +287,11 @@ async fn orders_wait_for_both_seats_and_stop_once_abandoned(pool: PgPool) {
     };
     let (id, _) = create(&app, ALICE, json!({"side": mine})).await;
     let orders = format!("/api/games/{id}/orders");
-    let body = json!({"side": mine, "order": first.order, "seq": 0});
+    let body = json!({
+        "side": mine,
+        "order": first.order,
+        "version": version(&app, id, ALICE).await,
+    });
     let (s, b) = call(&app, "POST", &orders, Some(ALICE), Some(body.clone())).await;
     assert_eq!(s, StatusCode::CONFLICT, "no opponent yet: {b}");
     join(&app, BOB, id, json!({"side": theirs})).await;

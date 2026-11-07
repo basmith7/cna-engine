@@ -43,7 +43,14 @@ async fn golden_game_over_http(pool: PgPool) {
             assert_eq!(res.status(), StatusCode::CONFLICT, "a save before the end");
         }
         let who = if o.player == Side::Axis { "1" } else { "2" };
-        let body = json!({"side": o.player, "order": o.order, "seq": seq});
+        let res = send("GET", format!("/api/games/{id}"), who, Body::empty())
+            .await
+            .unwrap();
+        let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let game: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let body = json!({"side": o.player, "order": o.order, "version": game["version"]});
         let res = send(
             "POST",
             format!("/api/games/{id}/orders"),

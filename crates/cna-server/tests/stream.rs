@@ -79,14 +79,14 @@ struct Sse {
 impl Sse {
     /// The next message with an id: the id and the parsed data.
     /// Keep-alive comments are skipped.
-    async fn next(&mut self) -> (i64, Value) {
+    async fn next(&mut self) -> (String, Value) {
         loop {
             if let Some(end) = self.buf.find("\n\n") {
                 let frame: String = self.buf.drain(..end + 2).collect();
                 let (mut id, mut data) = (None, String::new());
                 for line in frame.lines() {
                     if let Some(v) = line.strip_prefix("id:") {
-                        id = Some(v.trim().parse().unwrap());
+                        id = Some(v.trim().to_owned());
                     } else if let Some(v) = line.strip_prefix("data:") {
                         data.push_str(v.trim_start());
                     }
@@ -148,17 +148,14 @@ fn who(side: Side) -> &'static str {
     if side == Side::Axis { AXIS } else { CW }
 }
 
-/// What `who` reads from `/events` for the orders after `after`, as one
-/// flat list.
-async fn events_since(app: &Router, id: GameId, who: &str, after: i64) -> Value {
-    let v = send(
-        app,
-        "GET",
-        &format!("/api/games/{id}/events?after={after}"),
-        who,
-        None,
-    )
-    .await;
+/// What `who` reads from `/events` for the orders after the one named
+/// `after` (all for `None`), as one flat list.
+async fn events_since(app: &Router, id: GameId, who: &str, after: Option<String>) -> Value {
+    let uri = match after {
+        Some(c) => format!("/api/games/{id}/events?after={c}"),
+        None => format!("/api/games/{id}/events"),
+    };
+    let v = send(app, "GET", &uri, who, None).await;
     json!(
         v.as_array()
             .unwrap()
@@ -170,15 +167,8 @@ async fn events_since(app: &Router, id: GameId, who: &str, after: i64) -> Value 
 
 async fn order(app: &Router, id: GameId, i: usize) {
     let o = &golden().orders[i];
-    let body = json!({"side": o.player, "order": o.order, "seq": i});
-    send(
-        app,
-        "POST",
-        &format!("/api/games/{id}/orders"),
-        who(o.player),
-        Some(body),
-    )
-    .await;
+    let (s, answer) = post_order(app, id, who(o.player), o.player, &o.order).await;
+    assert_eq!(s, StatusCode::OK, "order {i}: {answer}");
 }
 
 async fn cw_leaks(games: &Games, id: GameId, body: &Value) -> Vec<String> {
@@ -204,15 +194,27 @@ async fn each_seat_streams_only_its_own_side_of_an_order(pool: PgPool) {
     for i in 0..4 {
         order(&app, id, i).await;
         for (stream, side) in [(&mut axis, Side::Axis), (&mut cw, Side::Cw)] {
-            let (seq, msg) = stream.next().await;
-            assert_eq!((seq, &msg["seq"]), (i as i64, &json!(i)), "order {i}");
+            let (cursor, msg) = stream.next().await;
+            assert_eq!(
+                Some(cursor),
+                cursor_at(&pool, id, i as i64).await,
+                "order {i}"
+            );
+            assert!(msg.get("seq").is_none(), "{msg}");
             assert_eq!(
                 msg["events"],
-                events_since(&app, id, who(side), i as i64 - 1).await,
+                events_since(
+                    &app,
+                    id,
+                    who(side),
+                    cursor_at(&pool, id, i as i64 - 1).await
+                )
+                .await,
                 "order {i}, {side:?}"
             );
             let game = send(&app, "GET", &format!("/api/games/{id}"), who(side), None).await;
             assert_eq!(msg["view"], game["view"], "order {i}, {side:?}");
+            assert_eq!(msg["version"], game["version"], "order {i}, {side:?}");
             if side == Side::Cw {
                 assert_eq!(cw_leaks(&games, id, &msg).await, Vec::<String>::new());
             }
@@ -240,25 +242,73 @@ async fn a_reconnecting_stream_first_catches_up(pool: PgPool) {
     play(&games, id, axis, cw, 3).await;
     let app = router(games.clone());
 
-    let (s, cw_stream) = open(&app, id, CW, Some("0")).await;
+    let at = |seq| cursor_at(&pool, id, seq);
+    let (s, cw_stream) = open(&app, id, CW, at(0).await.as_deref()).await;
     assert_eq!(s, StatusCode::OK);
     let mut cw_stream = cw_stream.unwrap();
-    let (seq, msg) = cw_stream.next().await;
-    assert_eq!(seq, 2, "the last order's seq");
-    assert_eq!(msg["events"], events_since(&app, id, CW, 0).await);
+    let (cursor, msg) = cw_stream.next().await;
+    assert_eq!(Some(cursor), at(2).await, "the last order's cursor");
+    assert_eq!(msg["events"], events_since(&app, id, CW, at(0).await).await);
     assert_eq!(cw_leaks(&games, id, &msg).await, Vec::<String>::new());
     cw_stream.quiet().await;
 
     // `?after=` does the same; then both go on live.
-    let (s, ax) = open_uri(&app, &format!("/api/games/{id}/stream?after=1"), AXIS, None).await;
+    let one = at(1).await.unwrap();
+    let (s, ax) = open_uri(
+        &app,
+        &format!("/api/games/{id}/stream?after={one}"),
+        AXIS,
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::OK);
     let mut ax = ax.unwrap();
-    let (seq, msg) = ax.next().await;
-    assert_eq!(seq, 2);
-    assert_eq!(msg["events"], events_since(&app, id, AXIS, 1).await);
+    let (cursor, msg) = ax.next().await;
+    assert_eq!(Some(cursor), at(2).await);
+    assert_eq!(msg["events"], events_since(&app, id, AXIS, Some(one)).await);
     order(&app, id, 3).await;
-    assert_eq!(ax.next().await.0, 3);
-    assert_eq!(cw_stream.next().await.0, 3);
+    assert_eq!(Some(ax.next().await.0), at(3).await);
+    assert_eq!(Some(cw_stream.next().await.0), at(3).await);
+    // A seq is no cursor.
+    let (s, _) = open(&app, id, CW, Some("2")).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn the_other_sides_secret_orders_send_nothing(pool: PgPool) {
+    // Dummy tanks (16.42) are secret: the Axis's stream gets no message
+    // for them, and a catch-up over them shows no event and the view the
+    // Axis had, so neither the messages nor their ids count them.
+    let (games, id, axis, cw) = seated(&pool).await;
+    let (n, hexes) = before_dummy_tanks();
+    play(&games, id, axis, cw, n).await;
+    let app = router(games.clone());
+    let before = send(&app, "GET", &format!("/api/games/{id}"), AXIS, None).await;
+    let (s, ax) = open(&app, id, AXIS, None).await;
+    assert_eq!(s, StatusCode::OK);
+    let mut ax = ax.unwrap();
+    let (s, mine) = open(&app, id, CW, None).await;
+    assert_eq!(s, StatusCode::OK);
+    let mut mine = mine.unwrap();
+    for hex in hexes {
+        let order = cna_game::order::Order::PlaceDummyTank { hex };
+        let (s, answer) = post_order(&app, id, CW, "cw", order).await;
+        assert_eq!(s, StatusCode::OK, "{answer}");
+        let (_, msg) = mine.next().await;
+        assert!(!msg["events"].as_array().unwrap().is_empty(), "{msg}");
+    }
+    ax.quiet().await;
+    let last = cursor_at(&pool, id, n as i64 - 1).await;
+    let (s, again) = open(&app, id, AXIS, last.as_deref()).await;
+    assert_eq!(s, StatusCode::OK);
+    let (_, msg) = again.unwrap().next().await;
+    assert_eq!(msg["events"], json!([]));
+    assert_eq!(msg["view"], before["view"]);
+    assert_eq!(msg["version"], before["version"]);
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]

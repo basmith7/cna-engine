@@ -18,6 +18,7 @@ pub fn routes() -> Router<App> {
     Router::new()
         .route("/next-seed", post(next_seed))
         .route("/games/{id}/hash", get(hash))
+        .route("/games/{id}/orders", get(orders))
         .route("/games/{id}/leaks", post(leaks))
         .layer(axum::extract::DefaultBodyLimit::disable())
 }
@@ -38,6 +39,12 @@ async fn hash(State(games): State<Games>, Path(id): Path<GameId>) -> Result<Stri
     let live = games.get(id).await?;
     let json = live.state.to_json().map_err(ApiError::internal)?;
     Ok(format!("{:x}", Sha256::digest(json.as_bytes())))
+}
+
+/// How many orders the game has taken: what a client is never told,
+/// for the e2e driver to wait on.
+async fn orders(State(games): State<Games>, Path(id): Path<GameId>) -> Result<String, ApiError> {
+    Ok(games.get(id).await?.seq().to_string())
 }
 
 #[derive(Deserialize)]

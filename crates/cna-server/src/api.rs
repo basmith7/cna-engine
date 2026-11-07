@@ -7,7 +7,7 @@
 
 use crate::App;
 use crate::auth::CurrentAccount;
-use crate::games::{GameError, GameId, Games, LiveGuard};
+use crate::games::{At, GameError, GameId, Games, LiveGuard};
 use crate::limits::Limiters;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -19,13 +19,13 @@ use cna_game::event::Event;
 use cna_game::order::Order;
 use cna_game::piece::PieceId;
 use cna_game::reach::Purpose;
-use cna_game::view::{events_for, refusal_for, view_for};
+use cna_game::view::{events_for, refusal_for};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// An error answer: a status and `{"error": message}`, or a body of
-/// its own (`{"illegal": ...}`, a stale `seq`).
+/// its own (`{"illegal": ...}`, a stale `version`).
 #[derive(Debug)]
 pub struct ApiError {
     status: StatusCode,
@@ -61,9 +61,9 @@ impl From<GameError> for ApiError {
         match e {
             GameError::NotFound => ApiError::new(StatusCode::NOT_FOUND, e),
             GameError::NotYourSeat => ApiError::forbidden(),
-            GameError::Conflict { seq } => ApiError {
+            GameError::Conflict => ApiError {
                 status: StatusCode::CONFLICT,
-                body: json!({ "error": e.to_string(), "seq": seq }),
+                body: json!({ "error": e.to_string(), "stale": true }),
             },
             GameError::Unknown(_) => unknown_piece(),
             GameError::Stale => ApiError::new(StatusCode::GONE, e),
@@ -395,25 +395,24 @@ async fn leave(
     Ok(Json(json!({ "id": id, "status": "abandoned" })))
 }
 
-/// `{"side", "seq", "open", "status", "view"}`: the caller's seat, the
-/// next order's `seq`, whether nothing is hidden, the game's status
-/// (only an `active` game takes orders), and the game as that seat may
-/// see it.
+/// `{"side", "version", "open", "status", "view"}`: the caller's seat,
+/// the `version` its next order must carry (a hash of the view, see
+/// `games::version`), whether nothing is hidden, the game's status (only
+/// an `active` game takes orders), and the game as that seat may see it.
 async fn game(
     State(games): State<Games>,
     account: CurrentAccount,
     Path(id): Path<GameId>,
 ) -> ApiResult {
     let (side, live) = seated(&games, id, account).await?;
-    let view = view_for(&live.state, live.data, &live.aliases, Some(side), live.open)
-        .map_err(ApiError::internal)?;
+    let (view, version) = live.view(side).map_err(ApiError::internal)?;
     let status: String = sqlx::query_scalar("SELECT status FROM games WHERE id = $1")
         .bind(id)
         .fetch_one(games.pool())
         .await?;
     Ok(Json(json!({
         "side": side,
-        "seq": live.seq(),
+        "version": version,
         "open": live.open,
         "status": status,
         "view": view,
@@ -422,14 +421,16 @@ async fn game(
 
 #[derive(Deserialize)]
 struct EventsQuery {
-    after: Option<i64>,
+    after: Option<String>,
 }
 
-/// The orders after `?after=seq` (all without it), each `{"seq",
-/// "side", "events"}` with the events the caller may see. The other
-/// side's orders that leave the caller nothing to see are left out, so
-/// that a secret order (a dummy tank placed, a raid's plan) is not
-/// counted by an empty row.
+/// The orders after the one whose `cursor` is `?after=` (all without
+/// it), each `{"cursor", "side", "events"}` with the events the caller
+/// may see. The other side's orders that leave the caller nothing to see
+/// are left out, so that a secret order (a dummy tank placed, a raid's
+/// plan) is not counted by an empty row; and the cursors are random, not
+/// the order's `seq`, whose gaps would count them as well. 400 for a
+/// cursor the game does not have.
 async fn events(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -440,7 +441,8 @@ async fn events(
         .seat_of(id, account.0)
         .await?
         .ok_or_else(ApiError::forbidden)?;
-    let applied = games.applied_after(id, q.after).await?;
+    let after = after_cursor(&games, id, q.after.as_deref()).await?;
+    let applied = games.applied_after(id, after).await?;
     let live = games.get(id).await?;
     Ok(Json(json!(
         applied
@@ -449,7 +451,7 @@ async fn events(
                 let events = events_json(&live, side, &a.events);
                 (a.side == side || !events.is_empty()).then(|| {
                     json!({
-                        "seq": a.seq,
+                        "cursor": a.cursor,
                         "side": a.side,
                         "events": events,
                     })
@@ -459,15 +461,32 @@ async fn events(
     )))
 }
 
+/// The `seq` of the order named by the `cursor` a client sent; 400 for
+/// one the game does not have.
+pub(crate) async fn after_cursor(
+    games: &Games,
+    id: GameId,
+    cursor: Option<&str>,
+) -> Result<Option<i64>, ApiError> {
+    let Some(cursor) = cursor else {
+        return Ok(None);
+    };
+    match games.seq_of(id, cursor).await? {
+        Some(seq) => Ok(Some(seq)),
+        None => Err(ApiError::new(StatusCode::BAD_REQUEST, "unknown cursor")),
+    }
+}
+
 #[derive(Deserialize)]
 struct OrderBody {
     side: Side,
     order: Order,
-    seq: i64,
+    version: String,
 }
 
 /// Applies an order from the caller's seat: `{"ok": events}`,
-/// `{"illegal"}` (422), 409 on a stale `seq`, 403 for the other side.
+/// `{"illegal"}` (422), 409 `{"stale": true}` when `version` is not the
+/// caller's view's now, 403 for the other side.
 async fn orders(
     State(games): State<Games>,
     State(limits): State<Arc<Limiters>>,
@@ -478,7 +497,10 @@ async fn orders(
     if !limits.order(account.0) {
         return Err(too_many("orders"));
     }
-    match games.apply(id, account.0, b.side, &b.order, b.seq).await {
+    match games
+        .apply_at(id, account.0, b.side, &b.order, At::Version(&b.version))
+        .await
+    {
         Ok(events) => {
             let live = games.get(id).await?;
             Ok(Json(json!({ "ok": events_json(&live, b.side, &events) })))

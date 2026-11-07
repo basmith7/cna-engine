@@ -1,12 +1,16 @@
 //! `GET /api/games/{id}/stream`: the live channel. Each accepted order
-//! goes to every open stream as one server-sent event, `id: <seq>` and
-//! data `{seq, events, view}` as the stream's seat may see them. A
-//! client reconnecting with `Last-Event-ID` (or `?after=`) first gets one
-//! catch-up message: the events of every order since, and the view now.
+//! goes to every open stream as one server-sent event, `id: <cursor>`
+//! (the order's random name) and data `{version, events, view}` as the
+//! stream's seat may see them; an order of the other side that leaves
+//! the seat no events and its view as it was is not sent at all, so that
+//! nothing (not a `seq`, not an empty message) counts the orders the
+//! seat's view hides. A client reconnecting with `Last-Event-ID` (or
+//! `?after=`, a cursor) first gets one catch-up message: the events of
+//! every order since, and the view now.
 //! When a player joins or leaves, every open stream gets `event: seats`
 //! with data `{}` and no id, so the client reloads the game's status.
 
-use crate::api::ApiError;
+use crate::api::{ApiError, after_cursor};
 use crate::auth::CurrentAccount;
 use crate::games::{AccountId, Applied, GameId, Games};
 use axum::extract::{Path, Query, State};
@@ -14,7 +18,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::sse::{Event as Sse, KeepAlive};
 use axum::response::{IntoResponse, Response};
 use cna_data::scenario::Side;
-use cna_game::view::{events_for, view_for};
+use cna_game::view::events_for;
 use futures_util::stream::{self, Stream};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -106,7 +110,7 @@ impl Drop for Ticket {
 
 #[derive(Deserialize)]
 pub struct StreamQuery {
-    after: Option<i64>,
+    after: Option<String>,
 }
 
 /// What a stream holds between messages.
@@ -119,30 +123,45 @@ struct Open {
     seats: Option<broadcast::Receiver<()>>,
     /// Orders up to this seq have been sent (or predate the stream).
     sent: i64,
-    catch_up: Option<i64>,
+    catch_up: Option<(i64, String)>,
+    /// The version of the view last sent.
+    version: Option<String>,
     ticket: Ticket,
 }
 
-/// One message: `applied` as `side` may see it, with the view now.
+/// One message: its event id, its version, its data.
+struct Message {
+    cursor: String,
+    version: String,
+    data: Value,
+}
+
+/// One message: `applied` as `side` may see it, with the view now; its
+/// id is the last order's cursor, else `cursor` (nothing since it).
 async fn message(
     games: &Games,
     id: GameId,
     side: Side,
     applied: &[Applied],
-) -> Result<(i64, Value), ApiError> {
+    cursor: &str,
+) -> Result<Message, ApiError> {
     let live = games.get(id).await?;
     let events: Vec<Value> = applied
         .iter()
         .flat_map(|a| events_for(&live.state, &live.aliases, &a.events, Some(side), live.open))
         .collect();
-    let seq = applied.last().map_or(live.seq() - 1, |a| a.seq);
-    let view = view_for(&live.state, live.data, &live.aliases, Some(side), live.open)
-        .map_err(ApiError::internal)?;
-    Ok((seq, json!({ "seq": seq, "events": events, "view": view })))
+    let cursor = applied.last().map_or(cursor, |a| &a.cursor).to_owned();
+    let (view, version) = live.view(side).map_err(ApiError::internal)?;
+    let data = json!({ "version": version, "events": events, "view": view });
+    Ok(Message {
+        cursor,
+        version,
+        data,
+    })
 }
 
-fn sse(seq: i64, data: &Value) -> Sse {
-    Sse::default().id(seq.to_string()).data(data.to_string())
+fn sse(m: &Message) -> Sse {
+    Sse::default().id(m.cursor.clone()).data(m.data.to_string())
 }
 
 /// The next message of `open`, or `None` to end the stream: its
@@ -159,7 +178,7 @@ async fn next(open: Open) -> Option<(Result<Sse, Infallible>, Open)> {
 }
 
 async fn next_message(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)> {
-    if let Some(after) = open.catch_up.take() {
+    if let Some((after, cursor)) = open.catch_up.take() {
         let applied = match open.games.applied_after(open.id, Some(after)).await {
             Ok(a) => a,
             Err(e) => {
@@ -167,11 +186,12 @@ async fn next_message(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)>
                 return None;
             }
         };
-        let (seq, data) = message(&open.games, open.id, open.side, &applied)
+        let m = message(&open.games, open.id, open.side, &applied, &cursor)
             .await
             .ok()?;
-        open.sent = open.sent.max(seq);
-        return Some((Ok(sse(seq, &data)), open));
+        open.sent = open.sent.max(applied.last().map_or(after, |a| a.seq));
+        open.version = Some(m.version.clone());
+        return Some((Ok(sse(&m)), open));
     }
     loop {
         let seats = async {
@@ -199,16 +219,24 @@ async fn next_message(mut open: Open) -> Option<(Result<Sse, Infallible>, Open)>
         if applied.seq <= open.sent {
             continue; // in the catch-up already
         }
-        let (seq, data) = message(
+        open.sent = applied.seq;
+        let m = message(
             &open.games,
             open.id,
             open.side,
             std::slice::from_ref(&*applied),
+            "",
         )
         .await
         .ok()?;
-        open.sent = seq;
-        return Some((Ok(sse(seq, &data)), open));
+        // The other side's order that changed nothing this seat sees is
+        // not sent: a message would count it.
+        let silent = m.data["events"].as_array().is_some_and(|e| e.is_empty());
+        if applied.side != open.side && silent && open.version.as_ref() == Some(&m.version) {
+            continue;
+        }
+        open.version = Some(m.version.clone());
+        return Some((Ok(sse(&m)), open));
     }
 }
 
@@ -222,7 +250,8 @@ pub async fn stream(
     let last = headers
         .get("last-event-id")
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.trim().parse::<i64>().ok());
+        .map(|v| v.trim().to_owned())
+        .filter(|v| !v.is_empty());
     let side = games
         .seat_of(id, account.0)
         .await?
@@ -244,19 +273,31 @@ pub async fn stream(
     }
     // Subscribed under the game's lock, so no order falls between the
     // catch-up and the first live message.
-    let (rx, seats, sent) = {
+    let (rx, seats, sent, version) = {
         let live = games.get(id).await?;
-        (live.tx.subscribe(), live.seats.subscribe(), live.seq() - 1)
+        let (_, version) = live.view(side).map_err(ApiError::internal)?;
+        (
+            live.tx.subscribe(),
+            live.seats.subscribe(),
+            live.seq() - 1,
+            version,
+        )
     };
-    let catch_up = last.or(q.after);
+    let catch_up = match last.or(q.after) {
+        Some(c) => after_cursor(&games, id, Some(&c))
+            .await?
+            .map(|seq| (seq, c)),
+        None => None,
+    };
     let open = Open {
         games,
         id,
         side,
         rx,
         seats: Some(seats),
-        sent: catch_up.map_or(sent, |_| -1),
+        sent: catch_up.as_ref().map_or(sent, |_| -1),
         catch_up,
+        version: Some(version),
         ticket,
     };
     let s: std::pin::Pin<Box<dyn Stream<Item = Result<Sse, Infallible>> + Send>> =
