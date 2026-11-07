@@ -640,8 +640,8 @@ mod tests {
         let (game, _) = golden_before(68);
         let view = game.view().unwrap();
         assert_eq!(
-            view["combat"]["plots"]["axis"][0]["target"],
-            "unit:cw:1-krrc"
+            view["combat"]["plots"]["axis"][0]["target"], "blind:C3922:infantry:2",
+            "1 KRRC, unidentified, by its number (R-182)"
         );
         assert!(view["combat"]["plots"]["cw"].as_array().unwrap().is_empty());
         // 71: the Axis assignments are in; the Commonwealth sees none.
@@ -696,12 +696,10 @@ mod tests {
             .iter()
             .find(|f| f["piece"] == "unit:it:1st-libyan-artillery-regt")
             .unwrap();
-        assert!(
-            gun["targets"]
-                .as_array()
-                .unwrap()
-                .contains(&json!("unit:cw:1-krrc"))
-        );
+        // R-182: unidentified, 1 KRRC is offered only by its number.
+        let targets = gun["targets"].as_array().unwrap();
+        assert!(targets.contains(&json!("blind:C3922:infantry:2")));
+        assert!(!targets.contains(&json!("unit:cw:1-krrc")));
         assert_eq!(gun["forward"], true);
         assert_eq!(game.sealed_options("cw").unwrap()["illegal"]["case"], "5.2");
         let (game, _) = golden_before(68);

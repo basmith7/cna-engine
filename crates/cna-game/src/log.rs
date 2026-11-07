@@ -174,7 +174,20 @@ impl GameState {
         c.assaults.keys().try_for_each(|h| ids.hex("assaults", h))?;
         for fire in c.plots.values().flatten() {
             ids.piece("a barrage plot", &fire.piece)?;
-            ids.piece("a barrage plot", &fire.target)?;
+            // A blind target (R-182) names its hex, not a piece.
+            match crate::blind::parse_blind(&fire.target) {
+                Some((h, _, _)) => ids.hex("a barrage plot", &h)?,
+                None => ids.piece("a barrage plot", &fire.target)?,
+            }
+        }
+        for hexes in c.numbering.values() {
+            for (h, classes) in hexes {
+                ids.hex("the barrage numbering", h)?;
+                ids.pieces(
+                    "the barrage numbering",
+                    classes.values().flatten().flatten(),
+                )?;
+            }
         }
         for a in c.assignments.values().flatten() {
             ids.piece("an assignment", &a.piece)?;
