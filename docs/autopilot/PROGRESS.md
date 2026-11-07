@@ -49,7 +49,11 @@ checks `apply` accepts each, the save round-trips and the log replays. It
 found the overlay offering moves the engine then refused, in every
 scenario: moves whose fuel no supply unit in range could pay (32.22), and
 Rommel's Arrival's held units leaving Cairo or Alexandria early (61.38).
-The overlay now leaves those out, at no cost in speed.
+The overlay now leaves those out, at no cost in speed, and the move
+panel says why a stack nothing can fuel has no move. A fresh review's
+finding is fixed (moves that may be interrupted were hidden though
+legal). A deeper local run (six OpStages, three seeds, every scenario)
+is clean.
 
 **2026-11-07 night:** #185 (merged) builds R-182, blind barrage, as the
 `blind_barrage` module (on in new games): as the barrage step opens, the
@@ -487,7 +491,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   engine would refuse for fuel, but the reaction and retreat-before-assault
   overlays still show such hexes with their fuel quoted (as an earlier
   test pins), so a click there is refused with 32.22. Say if you want
-  those hidden too.
+  those hidden too. A move that may be interrupted (by a ZOC declaration
+  or a reaction) is held only to the stage's first fuel, so one whose
+  stop lies past the CPA can still be offered and refused.
 - **Review the Mission 7 spec: PR #161** (the Air Game, §33–47, as one module on §32 as §47 changes it; independent of #148). Three questions, each with a default: Air Game the default for new games (no: a tick-box); build it before the Logistics Game (yes); the engine forms squadrons at set-up, changeable (yes).
 - **Review the Mission 6 spec: PR #148** (the Logistics Game, §48–58, as
   one module). It asks you three questions, each with a default: whether
