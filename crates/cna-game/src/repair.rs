@@ -274,7 +274,8 @@ impl GameState {
 
     /// Puts repaired points where they go: those that broke down with a
     /// unit back into it, if it is still in play (61.38's `all_tanks`);
-    /// with `captured_wrecks` on, an enemy's captured ones as the
+    /// with `captured_wrecks` and `captured_equipment` on, an enemy's
+    /// captured ones as the
     /// captor's captured-equipment points of their class (R-152); the
     /// rest wait in `hex` as replacement points (22.5).
     pub(crate) fn credit_repaired(
@@ -293,6 +294,7 @@ impl GameState {
         } in taken
         {
             if self.modules.captured_wrecks
+                && self.modules.captured_equipment
                 && let Some(nation) = nation.filter(|n| crate::captured::side_of(*n) != side)
                 && let Some((key, each)) = crate::captured::wreck_spoil(data, nation, weapon)
             {
