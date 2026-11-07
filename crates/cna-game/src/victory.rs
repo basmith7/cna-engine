@@ -263,14 +263,30 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             .collect();
         let holder = (sides.len() == 1).then(|| *sides.first().unwrap());
         let mut unsupplied = Vec::new();
-        if campaign && holder.is_some() {
+        // R-186: under abstract supply a scenario's own end-of-game test.
+        let test = holder
+            .filter(|_| state.modules.abstract_supply)
+            .and_then(|h| victory.points_supply.as_ref()?.side(h));
+        if let Some(side) = holder
+            && (campaign || test.is_some())
+        {
             let ids: Vec<&PieceId> = state
                 .pieces
                 .values()
                 .filter(|p| state.is_combatant(p) && p.hex().is_some_and(|h| hexes.contains(h)))
                 .map(|p| &p.id)
                 .collect();
-            if !ids.iter().any(|id| state.passes_end_supply(data, id)) {
+            let tracer = Tracer::new(data, state, side);
+            let passes = |id: &PieceId| match test {
+                Some(t) => {
+                    (t.draw && state.passes_end_supply(data, id))
+                        || t.trace.as_ref().is_some_and(|tr| {
+                            state.pieces[id].hex().is_some_and(|h| tracer.traces(h, tr))
+                        })
+                }
+                None => state.passes_end_supply(data, id),
+            };
+            if !ids.iter().any(|id| passes(id)) {
                 unsupplied = ids.into_iter().cloned().collect();
             }
         }
@@ -716,6 +732,9 @@ mod tests {
     fn a_points_victory_scores_each_place_for_its_sole_holder() {
         let data = crusader();
         let mut state = crusader_set_up(&data);
+        // Holding alone, with no supply test: R-186's applies only under
+        // abstract supply (its own test below).
+        state.modules.abstract_supply = false;
         // Empty every objective, then give Tobruk (6 Axis, 4 CW) to the
         // Commonwealth and Bardia (2 Axis, 3 CW) to the Axis.
         let objective_hexes: Vec<HexId> = data
@@ -1074,6 +1093,42 @@ mod tests {
         }
         let r = evaluate(&data, &gone);
         assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Strategic)));
+    }
+
+    #[test]
+    fn crusader_s_places_score_only_for_holders_that_can_draw_supply_r_186() {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut state =
+            crate::state::GameState::with_modules(&data, 5, crate::state::Modules::ALL).unwrap();
+        crate::state::test_support::auto_place(&data, &mut state);
+        let scored = |state: &GameState| -> Vec<(String, Option<Side>, i32)> {
+            evaluate(&data, state)
+                .scored
+                .into_iter()
+                .map(|s| (s.objective, s.holder, s.points))
+                .collect()
+        };
+        let before = scored(&state);
+        assert!(
+            before.iter().any(|(_, h, n)| h.is_some() && *n > 0),
+            "{before:?}"
+        );
+        // Every supply unit gone: a held place scores nothing.
+        let mut dry = state.clone();
+        for p in dry.pieces.values_mut() {
+            if p.kind == crate::piece::PieceKind::SupplyUnit {
+                p.location = Location::Eliminated;
+            }
+        }
+        for (place, holder, points) in scored(&dry) {
+            assert!(
+                holder.is_none() || points == 0,
+                "{place} scored {points} unsupplied"
+            );
+        }
+        // Without abstract supply, the data's test does not apply.
+        dry.modules.abstract_supply = false;
+        assert_eq!(scored(&dry), before);
     }
 
     #[test]

@@ -748,6 +748,35 @@ pub struct CutOff {
     pub trace: SupplyTrace,
 }
 
+/// Under abstract supply, the test each scoring side's holders meet at
+/// the end (R-186).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PointsSupply {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis: Option<SupplyTest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cw: Option<SupplyTest>,
+}
+
+impl PointsSupply {
+    pub fn side(&self, side: Side) -> Option<&SupplyTest> {
+        match side {
+            Side::Axis => self.axis.as_ref(),
+            Side::Cw => self.cw.as_ref(),
+        }
+    }
+}
+
+/// One side's end-of-game supply test: draw on a friendly supply unit
+/// (32.16), or an R-110 route.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupplyTest {
+    #[serde(default)]
+    pub draw: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<SupplyTrace>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SheetsBySide {
     pub axis: char,
@@ -771,6 +800,8 @@ pub struct Victory {
     pub toe_on_sheet: Option<ToeOnSheet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cut_off: Option<CutOff>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub points_supply: Option<PointsSupply>,
     #[serde(default)]
     pub notes: Vec<String>,
 }
