@@ -124,3 +124,33 @@ test("in phase C a unit attaches to an HQ not its parent, and asks to be reassig
   expect(await page.evaluate((id) => window.__cna.view().pieces[id].parent ?? null, AT)).toBeNull();
   await expectDomMatchesView(page);
 });
+
+test("in the Commonwealth's phase C two battalions standing alone trade brigades (19.2x)", async ({ page }) => {
+  await openFixture(page, "set-up-done");
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await controls.locator('[data-order="pass"]').click();
+  await throughCurtain(page, "cw");
+  // The 1st Royal Fusiliers (5th Indian Brigade) and the 2nd Cameron
+  // Highlanders (11th Indian Brigade): each detaches to stand alone.
+  const RFSLR = "unit:cw:1-rfslr";
+  const CMRN = "unit:cw:2-cmrn";
+  const parentOf = (id: string) => page.evaluate((id) => window.__cna.view().pieces[id].parent ?? null, id);
+  const hexOf = (id: string) => page.evaluate((id) => (window.__cna.view().pieces[id].location as { hex: string }).hex, id);
+  const [fifth, eleventh] = [await parentOf(RFSLR), await parentOf(CMRN)];
+  expect(fifth).toBe("unit:cw:5-in-hq");
+  expect(eleventh).toBe("unit:cw:11-in-hq");
+  for (const id of [RFSLR, CMRN]) {
+    await clickHex(page, await hexOf(id));
+    if (await attachedTo(page, id)) await row(page, id).locator('[data-order="detach"]').click();
+    expect(await attachedTo(page, id)).toBeNull();
+  }
+  await clickHex(page, await hexOf(RFSLR));
+  const swap = row(page, RFSLR).locator('[data-order="swap-battalions"]');
+  await expect(swap.locator(`option[data-with="${CMRN}"]`)).toHaveCount(1);
+  await swap.selectOption({ index: await swap.locator("option").evaluateAll((os, id) => os.findIndex((o) => o.getAttribute("data-with") === id), CMRN) });
+  await expect(log(page).filter({ hasText: /is assigned to/ })).toHaveCount(2);
+  expect(await parentOf(RFSLR)).toBe(eleventh);
+  expect(await parentOf(CMRN)).toBe(fifth);
+  await expectDomMatchesView(page);
+});
