@@ -948,3 +948,9 @@ Done: #187 merged (vendor/cna → 7947d00, R-188). #188 (draft): `cna-game::soak
 In flight: gates on #188 (clippy, cargo test --no-fail-fast, probe check), CI.
 Next: ready + merge #188. Extend the soak: React/Retreat purposes and random barrages/assaults, to find more reach↔apply disagreements.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 13:15 MST — autopilot/soak-every-scenario
+Done: review fix e7382cc (interruptible moves held only to first fuel at 0 CP; soak checks the ceiling where a move stopped). React/RBA overlays left quoting unpayable fuel (pinned by a_reaction_quotes_the_fuel_it_owes + e2e fixtures). Deep local soak (6 stages × seeds 3/11/29) clean.
+In flight: gates + CI on #188 (head e7382cc).
+Next: merge #188 when CI is green. Then extend the soak to combat (barrage fires, assault assignments, Order::Assault) — needs allocation building from the view.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
