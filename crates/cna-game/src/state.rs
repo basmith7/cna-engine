@@ -210,7 +210,10 @@ pub struct Modules {
     /// The chariot raid (30.4x): once in a campaign game, from July 1941,
     /// the Axis secretly plans a raid on Alexandria in phase C, which
     /// strikes the ships in harbour as phase E closes seven OpStages
-    /// later. Needs `fleet` on too.
+    /// later. Needs `fleet` on too, and a phase C to plan in, which
+    /// opens only with `abstract_supply` or `construction` on (or
+    /// replacements waiting): phase C is not opened for the raid alone,
+    /// as that would tell the Commonwealth whether one is still to come.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub chariot_raid: bool,
 }
