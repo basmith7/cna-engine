@@ -51,7 +51,9 @@ number is rolled and does nothing. The golden game now plays with it.
 #186 (merged) adds the R-185 test the last run asked for (Italians on the map but
 ringed by enemy ZOC lose the Italian Campaign). A fresh review found
 that the enemy's counter faces can betray a dummy tank formation among
-the numbers; that is asked of cna below.
+the numbers; cna answered within the run (R-188: the leak stands as
+printed), and #187 bumps `vendor/cna` to home it (gates running at
+hand-off; the next run merges it).
 
 **2026-11-07 evening (late):** cna answered all four requests within the
 hour (R-182–R-187). #182 (merged) bumps `vendor/cna` to 8e35bab and
@@ -530,7 +532,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 8e35bab (#182). R-182 is built (#185). Calls to glance at there: the engine, not the owner, picks the numbering; 12.32's one-barrage-per-target check goes by the name fired at, so a refusal never tells the firer two names are one unit; identified units get no number. Nothing unblocked is queued beyond cna's answer to the dummy-tank request below.
+- `vendor/cna` is at cna 8e35bab (#182). R-182 is built (#185). Calls to glance at there: the engine, not the owner, picks the numbering; 12.32's one-barrage-per-target check goes by the name fired at, so a refusal never tells the firer two names are one unit; identified units get no number. cna's R-188 (dummy tanks under blind barrage) is homed by #187, no code change. Nothing unblocked is queued.
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
@@ -604,18 +606,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **R-182 vs dummy tank formations (12.23, 16.4x, 3.62).** The engine
-  shows the enemy every counter's face (3.62's map entry: unit type and
-  designation, not strength), so when the owner announces a hex's
-  targets by class, an armour count above the tank counters the firer
-  can see betrays a dummy (16.45 keeps it secret until an attack); a
-  "pinned" result on a number that pins no counter does the same. Which
-  should hold: (1) the firer sees only how many counters a stack holds,
-  not their faces, until identified; (2) a dummy is announced as a
-  target only when it carries a real tank battalion's identity (16.41)
-  shown as a counter face; (3) the leak stands as printed. Built today as
-  (3), noted in `NOT_SIMULATED.md` (#185). Blocks nothing; it decides
-  how much of the enemy's stacks the engine's view shows.
+(none open)
 
 ## Runs and quota
 
