@@ -383,14 +383,30 @@ impl GameState {
                 }
             }
         }
+        // Leaving for no parent, a unit attached to the parent it leaves
+        // stays attached as a non-assigned unit only where 19.5's caps
+        // allow; otherwise it detaches, at no CP.
+        let old = PieceId::from(&from);
+        let detach = to.is_none()
+            && p.attached_to.as_ref() == Some(&from)
+            && (!self.pieces.contains_key(&old)
+                || self.attachment_cap_refusal(data, piece, &old).is_some());
         let p = self.pieces.get_mut(piece).expect("checked");
         p.parent = to.clone();
         p.substitute = false;
-        Ok(vec![Event::Reassigned {
+        let mut events = vec![Event::Reassigned {
             piece: piece.clone(),
             to: to.as_ref().map(PieceId::from),
-            from: Some(PieceId::from(&from)),
-        }])
+            from: Some(old.clone()),
+        }];
+        if detach {
+            p.attached_to = None;
+            events.push(Event::Detached {
+                piece: piece.clone(),
+                from: old,
+            });
+        }
+        Ok(events)
     }
 
     /// `Order::SwapBattalions`: two Commonwealth battalions standing
@@ -1039,42 +1055,101 @@ mod tests {
         assert!(why.contains("without historical shifts"), "{why}");
     }
 
-    #[test]
-    fn a_shift_to_no_parent_leaves_the_unit_independent() {
-        // The 22nd Guards Brigade leaves the 70th Division in April 1941
-        // (Game-Turns 27-30); its attachment stays.
-        let data = graziani();
-        let mut state = shifting(&data, 28);
-        let gds = "unit:cw:22-gds";
-        let head = cna_data::oa::UnitId::parse(gds).unwrap();
+    const GUARDS: &str = "unit:cw:22-gds";
+    const SEVENTIETH: &str = "unit:cw:70th-infantry-div-hq";
+
+    /// Game-Turn 28, April 1941: the 22nd Guards Brigade assigned and
+    /// attached to the 70th Division beside it, as after its February
+    /// shift, ready to leave it (R-176).
+    fn guards_leaving(data: &Data) -> GameState {
+        let mut state = shifting(data, 28);
         let at = state.pieces[&pid(PUNJAB)].location.clone();
-        for p in crate::setup::reinforcement(
-            Side::Cw,
-            &head,
-            &data.oa,
-            &data.chars,
-            cna_data::time::GameTime::new(28, 1),
-            at,
-        )
-        .unwrap()
-        {
+        for head in [GUARDS, SEVENTIETH] {
+            let head = cna_data::oa::UnitId::parse(head).unwrap();
+            let p = crate::setup::reinforcement(
+                Side::Cw,
+                &head,
+                &data.oa,
+                &data.chars,
+                cna_data::time::GameTime::new(28, 1),
+                at.clone(),
+            )
+            .unwrap()
+            .into_iter()
+            .find(|p| p.id == PieceId::from(&head))
+            .unwrap();
             state.pieces.insert(p.id.clone(), p);
         }
-        let seventieth = "unit:cw:70th-infantry-div-hq";
-        let g = state.pieces.get_mut(&pid(gds)).unwrap();
-        g.parent = pid(seventieth).unit();
-        g.attached_to = pid(seventieth).unit();
-        let events = state.apply(&data, Side::Cw, shift(gds, None)).unwrap();
+        let g = state.pieces.get_mut(&pid(GUARDS)).unwrap();
+        g.parent = pid(SEVENTIETH).unit();
+        g.attached_to = pid(SEVENTIETH).unit();
+        state
+    }
+
+    #[test]
+    fn a_shift_to_no_parent_keeps_an_attachment_the_caps_allow() {
+        // The Commonwealth infantry division's 19.5 row takes no brigade
+        // beyond its structure, so the chart is widened here to one that
+        // does: under it the Guards stay attached.
+        let mut data = graziani();
+        for r in &mut data.max_attachments.rows {
+            if r.parent == "infantry-division" && r.covers(28) {
+                r.alternatives = vec![cna_data::max_attachments::Alternative {
+                    brigades: 1,
+                    units: r.max_units,
+                }];
+            }
+        }
+        let mut state = guards_leaving(&data);
+        assert_eq!(
+            state.attachment_cap_refusal(&data, &pid(GUARDS), &pid(SEVENTIETH)),
+            None,
+            "the 70th's 19.5 row takes the Guards as a non-assigned unit"
+        );
+        let events = state.apply(&data, Side::Cw, shift(GUARDS, None)).unwrap();
         assert_eq!(
             events,
             vec![Event::Reassigned {
-                piece: pid(gds),
+                piece: pid(GUARDS),
                 to: None,
-                from: Some(pid(seventieth)),
+                from: Some(pid(SEVENTIETH)),
             }]
         );
-        let g = &state.pieces[&pid(gds)];
+        let g = &state.pieces[&pid(GUARDS)];
         assert_eq!(g.parent, None);
-        assert_eq!(g.attached_to, pid(seventieth).unit());
+        assert_eq!(g.attached_to, pid(SEVENTIETH).unit());
+    }
+
+    #[test]
+    fn a_shift_to_no_parent_detaches_a_unit_the_caps_no_longer_allow() {
+        // The Commonwealth infantry division's 19.5 row takes no brigade
+        // beyond its structure: the Guards, independent now, may not stay
+        // attached to the 70th.
+        let data = graziani();
+        let mut state = guards_leaving(&data);
+        let why = state
+            .attachment_cap_refusal(&data, &pid(GUARDS), &pid(SEVENTIETH))
+            .expect("the row refuses a brigade");
+        assert!(why.contains("1 brigade(s)"), "{why}");
+        let cp = state.pieces[&pid(GUARDS)].cp_spent;
+        let events = state.apply(&data, Side::Cw, shift(GUARDS, None)).unwrap();
+        assert_eq!(
+            events,
+            vec![
+                Event::Reassigned {
+                    piece: pid(GUARDS),
+                    to: None,
+                    from: Some(pid(SEVENTIETH)),
+                },
+                Event::Detached {
+                    piece: pid(GUARDS),
+                    from: pid(SEVENTIETH),
+                },
+            ]
+        );
+        let g = &state.pieces[&pid(GUARDS)];
+        assert_eq!(g.parent, None);
+        assert_eq!(g.attached_to, None);
+        assert_eq!(g.cp_spent, cp, "the detachment costs no CP");
     }
 }

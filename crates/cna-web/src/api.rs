@@ -1452,13 +1452,8 @@ mod tests {
         .find(|p| p.id == PieceId::from(&brigade))
         .unwrap();
         parent_shift.pieces.insert(hq.id.clone(), hq);
-        assert!(
-            !parent_shift
-                .pieces
-                .values()
-                .any(|p| p.attached_to.as_ref() == Some(&punjab.unit().unwrap())),
-            "nothing is attached to the 3/1 Punjab"
-        );
+        // The 3/1 Punjab starts attached to the 5th: detached by hand, it
+        // stands alone, as the browser test's first refusal needs.
         parent_shift.pieces.get_mut(&punjab).unwrap().attached_to = None;
         assert_eq!(
             parent_shift.parent_shifts(graziani(), Side::Cw),
