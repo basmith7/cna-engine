@@ -146,12 +146,27 @@ impl GameState {
         needed: u32,
         events: &mut Vec<Event>,
     ) -> (u32, u32) {
+        self.absorb_capped(data, shares, rate, needed, None, events)
+    }
+
+    /// `absorb_by`, taking no more than `halftracks` halftrack points
+    /// when given (E-004) and a motorisation point with each (14.48,
+    /// R-177); the count left is written back.
+    pub(crate) fn absorb_capped(
+        &mut self,
+        data: &Data,
+        shares: &mut [Share],
+        rate: impl Fn(&PieceId, &Part) -> u32,
+        needed: u32,
+        mut halftracks: Option<&mut u32>,
+        events: &mut Vec<Event>,
+    ) -> (u32, u32) {
         let mut absorbed = 0;
         let mut removed = 0;
         let mut per_piece: Vec<(PieceId, u32)> = Vec::new();
         let mut destroyed = Vec::new();
         while absorbed < needed {
-            let mut best: Option<(usize, Option<String>, u32, bool)> = None;
+            let mut best: Option<(usize, Option<String>, u32, bool, bool)> = None;
             for (i, share) in shares.iter().enumerate() {
                 if share.points == 0 {
                     continue;
@@ -159,20 +174,26 @@ impl GameState {
                 let piece = &self.pieces[&share.piece];
                 for part in self.parts(data, piece) {
                     let r = rate(&share.piece, &part);
-                    if r == 0 || part.points == 0 {
+                    let capped = part.halftrack && halftracks.is_some();
+                    if r == 0 || part.points == 0 || (capped && halftracks.as_deref() == Some(&0)) {
                         continue;
                     }
                     if best.as_ref().is_none_or(|b| r > b.2) {
-                        best = Some((i, part.weapon.clone(), r, part.tank));
+                        best = Some((i, part.weapon.clone(), r, part.tank, capped));
                     }
                 }
             }
-            let Some((i, weapon, r, tank)) = best else {
+            let Some((i, weapon, r, tank, capped)) = best else {
                 break;
             };
             let id = shares[i].piece.clone();
             if !self.take_loss_entry(&id, weapon.as_deref()) {
                 break;
+            }
+            if capped && let Some(left) = halftracks.as_deref_mut() {
+                *left -= 1;
+                let p = self.pieces.get_mut(&id).expect("a piece");
+                p.motorised = p.motorised.saturating_sub(1);
             }
             if tank {
                 self.mark_destroyed_tank(&id, weapon.as_deref(), &mut destroyed);

@@ -22,6 +22,10 @@ use cna_rules::anti_armour::damage_for;
 use cna_rules::close_assault::{column_for, loss_base_factor, resolve_side, shift};
 use cna_rules::morale::{MoraleLookup, lookup};
 use cna_rules::strength::assault_actual;
+
+/// Halftrack points a side may lose to anti-armour fire in a segment
+/// (E-004).
+const HALFTRACK_CAP: u32 = 2;
 use cna_rules::supply::Role;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -436,8 +440,9 @@ impl GameState {
             });
             rolled.push((a, damage));
         }
+        let mut halftracks_lost = BTreeMap::new();
         for (mut a, damage) in rolled {
-            self.absorb(data, &mut a.shares, |p| p.protection, damage, events);
+            self.anti_armour_losses(data, &mut a.shares, damage, &mut halftracks_lost, events);
             if a.side == phasing {
                 for h in &a.from {
                     self.charge_combat_hex(h, PHASING_CEILING, events);
@@ -445,6 +450,54 @@ impl GameState {
             }
             self.charge_combat_hex(&a.target, NON_PHASING_CEILING, events);
         }
+    }
+
+    /// One anti-armour attack's damage absorbed by armour protection,
+    /// the best-protected points first (14.4x). With `halftracks` on
+    /// (14.48, E-004, R-177): halftracks that are the only armour the
+    /// fire can touch have their protection doubled, and no side loses
+    /// more than two halftrack points a segment (`lost` counts them),
+    /// each taking a motorisation point with it. Returns (absorbed, TOE
+    /// points removed).
+    pub(crate) fn anti_armour_losses(
+        &mut self,
+        data: &Data,
+        shares: &mut [Share],
+        damage: u32,
+        lost: &mut BTreeMap<Side, u32>,
+        events: &mut Vec<Event>,
+    ) -> (u32, u32) {
+        if !self.modules.halftracks {
+            return self.absorb(data, shares, |p| p.protection, damage, events);
+        }
+        let Some(side) = shares.first().map(|s| self.pieces[&s.piece].side) else {
+            return (0, 0);
+        };
+        let armoured: Vec<Part> = shares
+            .iter()
+            .filter(|s| s.points > 0)
+            .flat_map(|s| self.parts(data, &self.pieces[&s.piece]))
+            .filter(Part::armoured)
+            .collect();
+        let doubled = !armoured.is_empty() && armoured.iter().all(|p| p.halftrack);
+        let mut left = HALFTRACK_CAP.saturating_sub(lost.get(&side).copied().unwrap_or(0));
+        let before = left;
+        let out = self.absorb_capped(
+            data,
+            shares,
+            |_, p| {
+                if doubled && p.halftrack {
+                    2 * p.protection
+                } else {
+                    p.protection
+                }
+            },
+            damage,
+            Some(&mut left),
+            events,
+        );
+        *lost.entry(side).or_default() += before - left;
+        out
     }
 
     /// The side's largest unit equivalent, as the size table names it
@@ -3046,6 +3099,152 @@ mod tests {
         // The Axis fired 8 + 14 = 22 raw, 2 actual: its strength before
         // the cruisers' fire landed, not after.
         assert_eq!((fired[1].0, fired[1].1), (Side::Axis, 2));
+    }
+
+    /// Graziani set up with the halftracks module as given, and a `t`
+    /// battalion of five points at C4020.
+    fn halftrack_state(data: &Data, on: bool, riding: bool) -> (GameState, PieceId) {
+        let mut state = crate::state::test_support::set_up(data, 3);
+        state.modules.halftracks = on;
+        let id = super::super::strength::test_support::halftrack(data, &mut state, 5, riding);
+        (state, id)
+    }
+
+    fn shares_of(ids: &[&PieceId], state: &GameState) -> Vec<Share> {
+        ids.iter()
+            .map(|id| Share {
+                piece: (*id).clone(),
+                points: state.pieces[*id].toe,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_halftrack_on_foot_takes_no_anti_armour_loss_r177() {
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, true, false);
+        let mut shares = shares_of(&[&ht], &state);
+        let mut lost = BTreeMap::new();
+        let (_, removed) =
+            state.anti_armour_losses(&data, &mut shares, 6, &mut lost, &mut Vec::new());
+        assert_eq!(removed, 0);
+        assert_eq!(state.pieces[&ht].toe, 5);
+    }
+
+    #[test]
+    fn halftracks_alone_double_their_protection_14_48() {
+        // 2 damage: one doubled point (2) absorbs it all.
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, true, true);
+        let mut shares = shares_of(&[&ht], &state);
+        let mut lost = BTreeMap::new();
+        let (absorbed, removed) =
+            state.anti_armour_losses(&data, &mut shares, 2, &mut lost, &mut Vec::new());
+        assert_eq!((absorbed, removed), (2, 1));
+        assert_eq!(state.pieces[&ht].toe, 4);
+        // The motorisation point that carried it went with it (§32).
+        assert_eq!(state.pieces[&ht].motorised, 4);
+    }
+
+    #[test]
+    fn halftracks_beside_tanks_keep_protection_1() {
+        // The LXII(L) tanks (CV33, protection 1) share the fire: 2 damage
+        // takes two points of protection 1.
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, true, true);
+        let tanks = pid("unit:it:lxiil-tank-bn");
+        state.put(&tanks, Location::Hex(hex("C4020")));
+        let mut shares = shares_of(&[&ht, &tanks], &state);
+        let mut lost = BTreeMap::new();
+        let (absorbed, removed) =
+            state.anti_armour_losses(&data, &mut shares, 2, &mut lost, &mut Vec::new());
+        assert_eq!((absorbed, removed), (2, 2));
+    }
+
+    #[test]
+    fn no_more_than_two_halftrack_points_are_lost_a_segment_e004() {
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, true, true);
+        let mut lost = BTreeMap::new();
+        let mut shares = shares_of(&[&ht], &state);
+        let (_, removed) =
+            state.anti_armour_losses(&data, &mut shares, 20, &mut lost, &mut Vec::new());
+        assert_eq!(removed, 2);
+        assert_eq!(state.pieces[&ht].toe, 3);
+        assert_eq!(state.pieces[&ht].motorised, 3);
+        // A second attack in the same segment takes none.
+        let mut shares = shares_of(&[&ht], &state);
+        let (_, removed) =
+            state.anti_armour_losses(&data, &mut shares, 20, &mut lost, &mut Vec::new());
+        assert_eq!(removed, 0);
+        assert_eq!(state.pieces[&ht].toe, 3);
+    }
+
+    #[test]
+    fn without_the_module_a_halftrack_on_foot_absorbs_as_armour() {
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, false, false);
+        let mut shares = shares_of(&[&ht], &state);
+        let mut lost = BTreeMap::new();
+        let (_, removed) =
+            state.anti_armour_losses(&data, &mut shares, 3, &mut lost, &mut Vec::new());
+        assert_eq!(removed, 3);
+        assert_eq!(state.pieces[&ht].toe, 2);
+    }
+
+    #[test]
+    fn a_halftrack_is_never_withheld_from_close_assault_r177() {
+        // Infantry class: an unassigned halftrack defends in full.
+        let data = graziani();
+        for (on, held) in [(true, false), (false, true)] {
+            let (state, ht) = halftrack_state(&data, on, true);
+            let commits = state.defending_commits(&data, Side::Axis, &hex("C4020"), true);
+            assert_eq!(
+                !commits.iter().any(|c| c.piece == ht),
+                held,
+                "module {on}: {commits:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn anti_armour_fire_at_riding_halftracks_takes_two_points_at_most() {
+        // 1 RTR, raised to 30 A9 points, fires all 30 at C4020 (90 raw,
+        // 9 actual: at least 8 damage), where the riding `t` is the only
+        // armour; the Axis assigns nothing.
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        state.modules.halftracks = true;
+        let ht = super::super::strength::test_support::halftrack(&data, &mut state, 5, true);
+        set_points(&mut state, "unit:cw:1-rtr", 30);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![alloc(Some("C4020"), 30)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            )
+            .unwrap();
+        let fired = anti_armour_events(&events);
+        assert_eq!(fired.len(), 1, "{fired:?}");
+        assert!(fired[0].2 >= 4, "{fired:?}");
+        assert_eq!(state.pieces[&ht].toe, 3);
+        assert_eq!(state.pieces[&ht].motorised, 3);
     }
 
     #[test]
