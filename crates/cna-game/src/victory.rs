@@ -247,7 +247,8 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
     } else {
         ratio_level(&victory.ratios, &doubled)
     };
-    if margin > 0 {
+    // Anyone ahead, by half a point or more, wins at the level found.
+    if doubled.axis != doubled.cw {
         match winner {
             Side::Axis => report.axis = level,
             Side::Cw => report.cw = level,
