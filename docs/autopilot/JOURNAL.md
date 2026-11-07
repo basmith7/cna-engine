@@ -821,3 +821,9 @@ Done: #159 (19.2x `reassignment` module, a023243) and #160 (capture_on_move reac
 In flight: none.
 Next: if Feedback approves #148, Mission 6 slice 1. Else: a browser control for SwapBattalions; 19.2x historical shifts / CW armour limit changes (NOT_SIMULATED Organisation row).
 Blocked: Mission 6 on Brian's review of #148.
+
+## 2026-11-06 19:10 MST — autopilot/m7-spec
+Done: #161 (Mission 7 spec, Air Game on §32+§47; ready, `needs-brian`; fresh review's 15 findings in 86993b1). Six cna requests + historical-shifts request on main (e3b345e, ccd14b7, bad5afe). #162 draft (browser Swap brigade with…, 19.2x). #163 draft (`armour_limits` module, turns 19/71/92; pins regenerated, modules line only).
+In flight: full Playwright on #162 (/tmp/cna-swap); fresh review of #163; CI on both.
+Next: ready+merge #162, then merge main into #163 (NOT_SIMULATED line 180 conflicts) and merge it. Mission 6 (#148) and 7 (#161) wait on Brian; bump vendor/cna when cna answers the air requests.
+Blocked: Missions 6 and 7 on Brian's review.
