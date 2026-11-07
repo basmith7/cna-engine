@@ -41,6 +41,20 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 afternoon:** cna answered the 18th Australian request
+(R-181). #174 bumps `vendor/cna` to 4988be0 and builds it as
+`scenario_arrivals`: Rommel's Arrival's 18th Australian Brigade now lands
+in Alexandria on Game-Turn 27 OpStage 1 with its battalions and 30
+motorisation points, and its release row holds it there until 27/2 (the
+release block's `free` rows were never read before). #175 closes #173's
+two review follow-ups: the server's event feed no longer sends the enemy
+an empty row per secret order, and return fire that wipes out a
+formation's real armour now kills its dummy (16.45). #176 builds R-157's
+last piece (`returning_transport`): a return printed "Tpt: See ..."
+brings back the motorisation points that left with the withdrawals it
+names. Voluntary Commonwealth withdrawals (20.9, 64.75) are being built
+on a draft PR stacked on #176.
+
 **2026-11-07 midday:** cna answered three requests, and all three are
 built. #170 (merged) bumps `vendor/cna` to 215864b. #172 (merged) builds R-179
 (`infantry_types`: machine-gun and heavy-weapons units count toward a
@@ -410,6 +424,13 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #174–#176: the 18th Australian lands all in
+  Alexandria East (the first place listed, as set-up does) rather than
+  divided by the player; a returning brigade's motorisation points come
+  back to Cairo, where every return lands. #175 left one leak open: the
+  game's single order counter (`seq`) still lets a client count the
+  other side's hidden orders from gaps; hiding it is a design change of
+  its own.
 - Calls to glance at in #173 (dummy tanks): a dummy is a secret note on
   a hex, not a counter, so the enemy sees nothing of it (no fake tank
   battalion in its view; 16.41's borrowed identity is not built); it
@@ -444,7 +465,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 215864b (#170).
+- `vendor/cna` is at cna 4988be0 (#174).
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
@@ -518,7 +539,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Rommel's Arrival: the 18th Australian Brigade's landing as data** (61.38; Mission 5 follow-up, a missing reinforcement). The scenario says the brigade lands in Alexandria on Game-Turn 27 OpStage 1 and moves from the next stage, but only in prose (`sides.cw.reinforcements[2]`); its row in `reinforcement-schedule.json` is Game-Turn 14 OpStage 3, before the scenario starts, and no set-up block places it, so the engine never brings it on. Needed: a structured per-scenario arrival (unit, Game-Turn and OpStage, place `alexandria`), which the engine would also need for any other scenario whose landings differ from the schedule.
+(none open)
 
 ## Runs and quota
 
