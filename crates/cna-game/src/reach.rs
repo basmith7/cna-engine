@@ -415,14 +415,19 @@ impl GameState {
             let cities = Self::release_hexes(data, side).unwrap_or_default();
             let mut payable: BTreeMap<Vec<u32>, bool> = BTreeMap::new();
             let mut released: BTreeMap<bool, bool> = BTreeMap::new();
+            // A move that may be interrupted pays only for the steps it
+            // takes before the stop, which the reach does not price: there
+            // it is held to the least any step owes (the stage's first
+            // fuel), priced at no CP.
             reaches.retain(|r| {
+                let cost = if r.may_be_interrupted { Cp::ZERO } else { r.cp };
                 let owed: Vec<u32> = owned
                     .iter()
-                    .map(|id| self.fuel_due(data, &self.pieces[id], r.cp).0)
+                    .map(|id| self.fuel_due(data, &self.pieces[id], cost).0)
                     .collect();
                 let pays = *payable
                     .entry(owed)
-                    .or_insert_with(|| self.plan_fuel(data, &owned, r.cp, None).is_ok());
+                    .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok());
                 let inside = r.path.iter().all(|h| cities.contains(h));
                 pays && *released.entry(inside).or_insert_with(|| {
                     let order = Order::Move {

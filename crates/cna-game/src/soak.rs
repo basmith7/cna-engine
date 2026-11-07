@@ -229,14 +229,21 @@ mod tests {
         };
         let mut trial = state.clone();
         if let Err(e) = trial.apply(data, side, order.clone()) {
+            // A move that may be interrupted is held only to the stage's
+            // first fuel, not what it owes up to the stop (see `reach`).
+            if reach.may_be_interrupted && e.case == "32.22" {
+                return Ok(false);
+            }
             return Err(format!(
                 "{} {side}: reachable offers {pieces:?} to {} by {:?}, apply says {e:?}",
                 state.clock, reach.hex, reach.path
             ));
         }
         // A body over the ceiling (9.14) is legal mid-segment but would
-        // hold up `EndSegment`; leave it out.
-        if trial.over_ceiling_at(data, &reach.hex).is_some() {
+        // hold up `EndSegment`; leave it out. An interrupted move stops
+        // short, so the ceiling is checked where it stopped.
+        let end = trial.pieces[&pieces[0]].hex().cloned();
+        if end.is_some_and(|hex| trial.over_ceiling_at(data, &hex).is_some()) {
             return Ok(false);
         }
         *state = trial;
