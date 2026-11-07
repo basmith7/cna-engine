@@ -107,6 +107,8 @@
 //! | `eliminated` | public | | a board fact |
 //! | `withdrawn` | public | | counters leave the board on the printed schedule, with its printed motorisation (20.8x) |
 //! | `withdrawal-failed` | public | | counters are eliminated on the board (20.83) |
+//! | `withdrawn-voluntarily` | public | | the counter leaves the board from Cairo or Alexandria (20.9, 64.75) |
+//! | `returned-from-withdrawal` | public | | the counter reappears in Cairo (64.75) |
 //! | `withdrawal-picked` | own | Commonwealth | which units go is the player's until the check (20.82) |
 //! | `forces-assigned` | reduced | `side` | `assignments`: per-piece role allocations, written down secretly; the types that took part show in `assault` |
 //! | `combat-cp` | own | `piece` | CP, status |
@@ -312,6 +314,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::Eliminated { .. }
         | E::Withdrawn { .. }
         | E::WithdrawalFailed { .. }
+        | E::WithdrawnVoluntarily { .. }
+        | E::ReturnedFromWithdrawal { .. }
         | E::Captured { .. }
         | E::FortificationBuilt { .. }
         | E::MinefieldLaid { .. }

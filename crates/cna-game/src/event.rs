@@ -555,6 +555,15 @@ pub enum Event {
         pieces: Vec<PieceId>,
         reason: String,
     },
+    /// The Commonwealth withdrew a unit voluntarily from Cairo or
+    /// Alexandria (20.9, 64.75).
+    WithdrawnVoluntarily {
+        piece: PieceId,
+    },
+    /// A voluntarily withdrawn unit came back to Cairo (64.75).
+    ReturnedFromWithdrawal {
+        piece: PieceId,
+    },
     /// The Commonwealth chose the units of a `pick` withdrawal (20.82).
     WithdrawalPicked {
         fills: String,

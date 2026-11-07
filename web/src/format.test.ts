@@ -127,6 +127,8 @@ const cases: [Event, string][] = [
   [{ withdrawn: { pieces: ["u:a", "u:b"], motorisation: 10 } }, "A, B are withdrawn with 10 motorisation points (20.8x)."],
   [{ withdrawn: { pieces: ["u:a"], motorisation: 0 } }, "A is withdrawn (20.8x)."],
   [{ "withdrawal-failed": { pieces: ["u:a"], reason: "not in Cairo or Alexandria" } }, "Withdrawal of A fails, not in Cairo or Alexandria: eliminated (20.83)."],
+  [{ "withdrawn-voluntarily": { piece: "u:a" } }, "A withdrawn voluntarily (64.75)."],
+  [{ "returned-from-withdrawal": { piece: "u:a" } }, "A brought back to Cairo for 2 points (64.75)."],
   [{ "withdrawal-picked": { fills: "infantry-battalion", pieces: ["u:a"] } }, "A picked to withdraw as infantry-battalion (20.82)."],
   [
     { "forces-assigned": { side: "axis", assignments: [{ piece: "u:a", anti_armour: [{ target: "C4130", points: 2 }], close_assault: [{ points: 4 }] }] } },
@@ -146,9 +148,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 102 variants", () => {
+  it("covers all 104 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(102);
+    expect(tags.size).toBe(104);
   });
 
   it.each(cases)("%j", (event, line) => {

@@ -253,6 +253,14 @@ pub enum Order {
     /// `pick` of `fills` units: `pieces` are the ones that go with it
     /// (20.82, R-154). A later pick replaces an earlier one.
     PickWithdrawal { fills: String, pieces: Vec<PieceId> },
+    /// The Commonwealth, in a campaign game, while it is to act with
+    /// nothing pending: combat unit `piece`, at 75 % of its TOE in Cairo
+    /// or Alexandria, leaves the game for withdrawal points (20.9, 64.75).
+    WithdrawVoluntarily { piece: PieceId },
+    /// The Commonwealth, as for `WithdrawVoluntarily`: voluntarily
+    /// withdrawn `piece` comes back to Cairo as it left, for two points
+    /// (64.75).
+    ReturnWithdrawn { piece: PieceId },
     /// Phase C: raider counter `raider`, not in play, is formed in
     /// `from`'s hex from one of its recce or armoured-car TOE points
     /// (27.13, 27.16).

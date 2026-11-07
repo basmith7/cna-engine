@@ -107,7 +107,12 @@ impl GameState {
                         .expect("the schedule names units of the OA sheets");
                 let mut ids = Vec::new();
                 for mut p in pieces {
+                    // A voluntary withdrawal comes back only by order.
                     if self.pieces.contains_key(&p.id)
+                        || self
+                            .voluntary
+                            .get(&p.id)
+                            .is_some_and(|v| v.away_since.is_some())
                         || (!by_row && p.id.unit().is_some_and(|u| named(&u)))
                     {
                         continue;

@@ -306,6 +306,8 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["withdrawal-failed"];
     return `Withdrawal of ${list(d.pieces, name)} fails, ${d.reason}: eliminated (20.83).`;
   }
+  if ("withdrawn-voluntarily" in e) return `${name(e["withdrawn-voluntarily"].piece)} withdrawn voluntarily (64.75).`;
+  if ("returned-from-withdrawal" in e) return `${name(e["returned-from-withdrawal"].piece)} brought back to Cairo for 2 points (64.75).`;
   if ("withdrawal-picked" in e) {
     const d = e["withdrawal-picked"];
     return `${list(d.pieces, name)} picked to withdraw as ${d.fills} (20.82).`;
