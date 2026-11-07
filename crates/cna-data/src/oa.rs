@@ -191,6 +191,10 @@ pub struct Unit {
     /// Recce and Reconnaissance rows.
     #[serde(default)]
     pub vehicle: Option<ReconVehicle>,
+    /// A machine-gun or heavy-weapons unit, by its counter symbol
+    /// (R-179): none for every other unit.
+    #[serde(default)]
+    pub infantry_type: Option<InfantryType>,
     #[serde(default)]
     pub toe: Vec<ToeEntry>,
     pub arrives: Option<Arrival>,
@@ -320,6 +324,15 @@ pub enum Echelon {
     Division,
     Brigade,
     BattleGroup,
+}
+
+/// The infantry kinds the charts name apart from other infantry (19.5,
+/// 20.3, 15.4), as the counter's symbol shows them (R-179).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InfantryType {
+    MachineGun,
+    HeavyWeapons,
 }
 
 /// What a reconnaissance unit's TOE points break down as (R-125, 21.1x):
