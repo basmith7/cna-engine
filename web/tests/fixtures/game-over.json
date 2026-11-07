@@ -36,7 +36,8 @@
     "no_armour_release": true,
     "parent_shifts": true,
     "halftracks": true,
-    "chariot_raid": true
+    "chariot_raid": true,
+    "dummy_tanks": true
   },
   "clock": {
     "game_turn": 7,
