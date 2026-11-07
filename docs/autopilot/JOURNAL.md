@@ -888,3 +888,9 @@ Done: #174 review guards (6888a17: early-arrival cut-off, named subtree, trucks 
 In flight: CI on #174/#175; subagent building voluntary withdrawals (/tmp/cna-voluntary, autopilot/voluntary-withdrawals, stacked on #176, draft). PROGRESS hand-off drafted in /tmp/cna-progress-r181 (uncommitted; drops the 18th Aus request bullet).
 Next: merge #174 then #175; merge main into #176, regenerate pins, ready+merge; then the voluntary-withdrawals PR the same way.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 07:45 MST — autopilot/voluntary-withdrawals
+Done: #174 (R-181 scenario_arrivals) and #175 (#173 follow-ups) merged. #176 (returning_transport) ready, main merged in, gates green locally; CI was running at hand-off. #177 (this branch, draft): voluntary CW withdrawals (20.9/64.75, `voluntary_withdrawals`, engine + browser), built by a subagent; fresh review's half-point tie bug fixed (no test yet).
+In flight: none besides CI.
+Next: merge #176 if not merged (CI green). Then on #177: merge origin/main, regenerate pins, add a test withdrawing a unit mid-combat (review's open doubt about `assignments`/`escorts`/`continuing` keyed by piece), plus a half-point tie test if feasible; full gates + Playwright; ready and merge.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
