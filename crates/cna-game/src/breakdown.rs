@@ -975,7 +975,8 @@ mod tests {
         // An escarpment with no road or track over it, both hexes empty
         // and out of any Commonwealth ZOC.
         let clear = |h: &HexId| {
-            state.holder(h).is_none() && state.zoc_at(&data, h, Side::Axis) == crate::zoc::Zoc::Clear
+            state.holder(h).is_none()
+                && state.zoc_at(&data, h, Side::Axis) == crate::zoc::Zoc::Clear
         };
         let (below, above) = data
             .map
