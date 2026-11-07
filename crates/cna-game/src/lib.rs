@@ -55,6 +55,7 @@ mod rommel;
 #[cfg(test)]
 mod scenarios;
 pub mod setup;
+mod soak;
 mod spot_try;
 pub mod state;
 mod supply;

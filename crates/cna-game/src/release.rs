@@ -68,7 +68,7 @@ impl GameState {
     /// any set-up block the scenario places "within" so many hexes of one
     /// (Rommel's Arrival's Alexandria group, set up within one hex of
     /// Alexandria, is the Alexandria of 61.38).
-    fn release_hexes(data: &Data, side: Side) -> Option<BTreeSet<HexId>> {
+    pub(crate) fn release_hexes(data: &Data, side: Side) -> Option<BTreeSet<HexId>> {
         let setup = data.scenario.side(side);
         let r = setup.release.as_ref()?;
         let mut hexes = BTreeSet::new();
@@ -518,6 +518,26 @@ mod tests {
             },
         );
         assert!(off.release.is_empty());
+    }
+
+    #[test]
+    fn the_moves_offered_keep_held_units_inside_the_cities_61_38() {
+        use crate::reach::Purpose;
+        let data = data();
+        let s = at(&data, Modules::ALL, 26, 3);
+        let zone = GameState::release_hexes(&data, Side::Cw).unwrap();
+        let held = vec![pid("unit:cw:7-hus")];
+        let reaches = s.reachable(&data, Side::Cw, &held, Purpose::Move).unwrap();
+        assert!(!reaches.is_empty(), "moves within the cities stay offered");
+        for r in &reaches {
+            assert!(r.path.iter().all(|h| zone.contains(h)), "{r:?}");
+        }
+        let hq = vec![pid("unit:cw:70th-infantry-div-hq")];
+        let reaches = s.reachable(&data, Side::Cw, &hq, Purpose::Move).unwrap();
+        assert!(
+            reaches.iter().any(|r| !zone.contains(&r.hex)),
+            "an HQ is never held"
+        );
     }
 
     #[test]

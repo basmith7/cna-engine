@@ -9,6 +9,7 @@ use crate::combat::RetreatReason;
 use crate::data::Data;
 use crate::event::Illegal;
 use crate::movement::Start;
+use crate::order::Order;
 use crate::piece::{Location, PieceId};
 use crate::state::{GameState, Pending};
 use crate::zoc::Zoc;
@@ -401,6 +402,42 @@ impl GameState {
                     .unwrap_or(hexes);
                 r.short = hexes.saturating_sub(reached);
                 r.short == 0 || buy_out
+            });
+        }
+        if purpose == Purpose::Move {
+            // Two refusals that hang on the path, as `apply` makes them:
+            // fuel no supply unit in range can pay (32.22, R-120), and
+            // leaving Cairo or Alexandria before or past the release
+            // schedule (61.38). Each hangs on little of the path, so it
+            // is asked once per answer it can give, not once a hex: the
+            // fuel on what each piece owes, the release on whether the
+            // path stays inside the cities.
+            let cities = Self::release_hexes(data, side).unwrap_or_default();
+            let mut payable: BTreeMap<Vec<u32>, bool> = BTreeMap::new();
+            let mut released: BTreeMap<bool, bool> = BTreeMap::new();
+            // A move that may be interrupted pays only for the steps it
+            // takes before the stop, which the reach does not price: there
+            // it is held to the least any step owes (the stage's first
+            // fuel), priced at no CP.
+            reaches.retain(|r| {
+                let cost = if r.may_be_interrupted { Cp::ZERO } else { r.cp };
+                let owed: Vec<u32> = owned
+                    .iter()
+                    .map(|id| self.fuel_due(data, &self.pieces[id], cost).0)
+                    .collect();
+                let pays = *payable
+                    .entry(owed)
+                    .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok());
+                let inside = r.path.iter().all(|h| cities.contains(h));
+                pays && *released.entry(inside).or_insert_with(|| {
+                    let order = Order::Move {
+                        pieces: pieces.to_vec(),
+                        path: r.path.clone(),
+                        assault: false,
+                        fuel_from: None,
+                    };
+                    self.release_check(data, side, &order).is_ok()
+                })
             });
         }
         if purpose == Purpose::React {

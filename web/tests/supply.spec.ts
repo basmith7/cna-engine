@@ -48,19 +48,12 @@ test("a paid move: the panel quotes the fuel and its sources, the log names the 
   expect(payer).toContain(" at ");
 });
 
-test("a refused move: no supply in range has fuel, and the engine says 32.22", async ({ page }) => {
+test("no supply in range has fuel: no move is offered, and the panel says why (32.22)", async ({ page }) => {
   await toMovement(page);
   await clickHex(page, "C0414");
   await expect(page.getByTestId("fuel-none")).toBeVisible();
-  const target = await page.evaluate(() => {
-    const v = window.__cna.view();
-    const held = new Set((Object.values(v.pieces) as Piece[]).map((p) => (typeof p.location === "object" && "hex" in p.location ? p.location.hex : "")));
-    const hexes = [...document.querySelectorAll("polygon.reach")].map((e) => e.getAttribute("data-hex")!);
-    return hexes.find((h) => !held.has(h)) ?? null;
-  });
-  expect(target).not.toBeNull();
-  await page.locator(`polygon.hex[data-hex="${target}"]`).click();
-  await expect(page.getByTestId("log-entries").locator("li.illegal").last()).toContainText("Illegal (32.22)");
+  await expect(page.getByTestId("reach-count")).toContainText("0 hexes reachable");
+  await expect(page.locator("polygon.reach")).toHaveCount(0);
 });
 
 test("the barrage panel says what each firer's fire costs in ammunition, as the engine quotes it", async ({ page }) => {
