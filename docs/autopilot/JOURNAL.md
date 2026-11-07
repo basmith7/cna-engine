@@ -846,3 +846,9 @@ Done: #165 (28f5b93) vendor/cna → 4565419, air rulings parked in NOT_SIMULATED
 In flight: none.
 Next: if Feedback approves #148 or #161, that mission's slice 1 (cna's air data is now typed for #161). Else: only the dummy-tank request is open; small NOT_SIMULATED "Not yet" items (Organisation row: non-SP / MG exceptions, nested assigned units).
 Blocked: Missions 6 and 7 on Brian's review.
+
+## 2026-11-07 01:55 MST — autopilot/nested-assigned
+Done: #168 (this branch, 2c… see log): 19.4x nesting fix in limits.rs (`assigned_within`: a parent's own unit under its sub-formation is no extra for it) + test; NOT_SIMULATED Organisation row's "Not yet" trimmed. Main 98d22ce: two requests for cna (MG/HW typing; substitute when its unit arrives).
+In flight: gates for #168; subagent building the chariot raid (30.4x, `chariot_raid` module) on autopilot/chariot-raid.
+Next: merge #168 once CI green; review + merge the chariot-raid PR.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
