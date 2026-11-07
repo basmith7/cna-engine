@@ -695,6 +695,25 @@ mod tests {
     }
 
     #[test]
+    fn the_parent_s_own_unit_nested_under_its_regiment_is_no_extra_for_it() {
+        // Maletti's own artillery battalion attached to its 5th Libyan
+        // Regiment is an extra for the regiment but part of Maletti's
+        // structure (19.4x nesting), so Maletti still has room for two
+        // units of its own row: a battalion and a corps artillery regiment.
+        let data = graziani();
+        let regt = "unit:it:5th-libyan-regt-hq";
+        let art = "unit:it:1st-maletti-artillery-bn";
+        let (bn, corps) = ("unit:it:viii-libyan-bn", "unit:it:xx-corps-artillery-regt");
+        let mut state = organising_with(&data, MALETTI, &[regt, art, bn, corps]);
+        for (to, piece) in [(MALETTI, regt), (regt, art), (MALETTI, bn), (MALETTI, corps)] {
+            state
+                .apply(&data, Side::Axis, attach_to(to, piece))
+                .unwrap_or_else(|e| panic!("{piece} to {to}: {e:?}"));
+        }
+        assert_eq!(state.pieces[&pid(art)].attached_to, pid(regt).unit());
+    }
+
+    #[test]
     fn a_brigade_with_too_few_battalions_attached_is_a_shell_and_stacks_as_one() {
         let data = graziani();
         let state = moving(&data, 3, Side::Axis);

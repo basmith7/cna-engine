@@ -97,15 +97,22 @@ impl GameState {
         // The extra (non-assigned) attachments under the parent, nested
         // ones included, and the new one with its own; a substitute
         // stands in an assigned slot and is no extra (19.4x).
+        // A unit of the parent's own structure nested under one of its
+        // sub-formations counts as attached to the parent too, where it
+        // is no extra (19.4x nesting).
         let extra_of = |head: &UnitId| -> Vec<&Piece> {
             self.attached_under(head)
                 .into_iter()
-                .filter(|q| q.parent != q.attached_to && !Self::is_substitute(q))
+                .filter(|q| {
+                    q.parent != q.attached_to
+                        && !Self::is_substitute(q)
+                        && !self.assigned_within(data, q, &unit)
+                })
                 .collect()
         };
         let mut extra = extra_of(&unit);
         let new = &self.pieces[piece];
-        if !substitute {
+        if !substitute && !self.assigned_within(data, new, &unit) {
             extra.push(new);
         }
         if let Some(u) = piece.unit() {
@@ -176,6 +183,27 @@ impl GameState {
                 over.join(", ")
             )
         })
+    }
+
+    /// Whether `q` belongs to `head`'s structure: assigned to it, or to
+    /// a formation that is, however deep. A parent not in play is read
+    /// from its OA sheet.
+    fn assigned_within(&self, data: &Data, q: &Piece, head: &UnitId) -> bool {
+        let mut up = q.parent.clone();
+        // OA trees are a few levels deep; the bound guards a bad sheet.
+        for _ in 0..16 {
+            let Some(p) = up else {
+                return false;
+            };
+            if &p == head {
+                return true;
+            }
+            up = match self.pieces.get(&PieceId::from(&p)) {
+                Some(piece) => piece.parent.clone(),
+                None => data.oa.unit(&p).and_then(|u| u.parent.clone()),
+            };
+        }
+        false
     }
 
     /// Whether attached `q` stands in for a missing assigned unit of
