@@ -216,6 +216,17 @@ pub struct Modules {
     /// as that would tell the Commonwealth whether one is still to come.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub chariot_raid: bool,
+    /// Machine-gun and heavy-weapons units (`infantry_type`, R-179) count
+    /// toward a parent's Maximum Attachment Chart total but not against
+    /// its infantry limit (19.5).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub infantry_types: bool,
+    /// A substitute stands in only while the unit it replaces is missing
+    /// (R-180): once that unit is in play and assigned to the parent, the
+    /// substitute counts against the parent's 19.5 row, and what no
+    /// longer fits is detached, free, as the owner's next phase C opens.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub substitute_arrival: bool,
 }
 
 impl Modules {
@@ -248,6 +259,8 @@ impl Modules {
         parent_shifts: true,
         halftracks: true,
         chariot_raid: true,
+        infantry_types: true,
+        substitute_arrival: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

@@ -36,7 +36,9 @@
     "no_armour_release": true,
     "parent_shifts": true,
     "halftracks": true,
-    "chariot_raid": true
+    "chariot_raid": true,
+    "infantry_types": true,
+    "substitute_arrival": true
   },
   "seed": 7,
   "orders": [
