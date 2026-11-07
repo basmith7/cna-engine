@@ -132,6 +132,17 @@ rulings*). Each names where it is enforced.
 | R-163 | Logistics Game (§48–58): not in the engine yet; Mission 6 (spec PR #148) starts each unit with full tanks and one fire as R-163 decides |
 | R-164 | with the `zero_toe` module on (new games): a combat unit with no TOE points left (only 61.38's tanks broken down with their units, under `tanks_with_units`, leave one) is a non-combat unit until it absorbs one (`GameState::is_combatant`). Its stacking points do not count toward 10.11's ZOC test and its hex need not be held off (10.33). It may not enter an unoccupied enemy ZOC, does not react, escort supply (32.31) or capture supply it enters (32.1x), broken-down or destroyed vehicles (21.52, 14.52); it holds no victory or occupation hex (R-119, 64.7x), clears no assaulted hex (6.24), forces no surrender (6.26), and does not cancel an enemy ZOC for a friend (10.26), so its own broken-down tanks in an enemy ZOC cannot be towed. As an enemy it is no combat unit for 13.22's retreat limit or 8.2x's later segments. Alone in an enemy ZOC when the enemy's movement segment opens, it is captured (10.29: removed, no prisoner points), as any non-combat unit is, and with `capture_on_move` also at R-138's moments. It was already no barrage target and could not assault; an assault that leaves its side nothing with TOE in the hex still removes it (`eliminate_bare`), which R-164's Rationale reads as the same capture. It keeps its slot and CPA and absorbs replacements |
 | R-166 | Logistics Game (§48–58): not in the engine yet; Crusader's `pipeline_hexes_built` (and The Last Chance's `railroad_pipeline_sources`) are read by Mission 6's water slice |
+| R-165 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) reads each scenario's Malta capacity as levels of 18 aircraft |
+| R-167 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) places The Last Chance's eight Axis landing strips at set-up |
+| R-168 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) ranges off-map flights onto the map from `air-off-map-distances.json` |
+| R-169 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) keys scenario aircraft to the characteristics chart through cna's stand-ins |
+| R-170 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) reads Crusader's second-line Blenheim IV F by its `chart` key |
+| R-171 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) treats every supply unit as a supply dump under §47 |
+| R-172 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) keeps ports and the pipeline as targets under §47 |
+| R-173 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) charges an SGSU no upkeep under §47 |
+| R-174 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) charges refits and repairs no stores or fuel under §47 |
+| R-176 | not built yet: historical shifts of parent (19.24) are typed in cna's OA `shifts` but no order makes one (Organisation row) |
+| R-177 | not built yet: halftracks (14.48) are typed (`halftrack: true`) but read as before (Trucks, halftracks and mounted infantry row) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)

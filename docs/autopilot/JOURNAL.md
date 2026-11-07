@@ -834,3 +834,9 @@ In flight: none.
 Next: if Feedback approves #148 or #161, that mission's slice 1. Else bump vendor/cna as cna answers (air requests, halftracks, dummies) and build the answers; halftracks touch strength.rs `parts` (protection only while `organisation::riding`).
 Blocked: Missions 6 and 7 on Brian's review.
 
+
+## 2026-11-07 00:55 MST — autopilot/bump-cna-air-answers
+Done: #165 (94a223b) bumps vendor/cna to 4565419 (cna's answers: 7 air requests, R-176 shifts, R-177 halftracks); NOT_SIMULATED rows for R-165, R-167–R-174 (Air Game), R-176/R-177 "not built yet"; pins regenerated (commit line only). Gates green locally.
+In flight: subagents building R-177 (`/tmp/cna-halftracks`, branch autopilot/halftracks) and R-176 (`/tmp/cna-parent-shifts`, autopilot/parent-shifts), both stacked on #165.
+Next: merge #165 when CI green; open PRs for the two branches (retarget to main after #165 merges), regenerate pins on the second after the first merges.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
