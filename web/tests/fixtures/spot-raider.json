@@ -34,7 +34,8 @@
     "reassignment": true,
     "armour_limits": true,
     "no_armour_release": true,
-    "parent_shifts": true
+    "parent_shifts": true,
+    "halftracks": true
   },
   "clock": {
     "game_turn": 1,

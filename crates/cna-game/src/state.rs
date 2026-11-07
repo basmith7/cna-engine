@@ -198,6 +198,15 @@ pub struct Modules {
     /// `reassignment` on too.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub parent_shifts: bool,
+    /// Halftracks (14.48, E-004, R-177): a `halftrack` row's unit is
+    /// infantry class, armoured only while wholly carried by motorisation
+    /// points; alone under anti-armour fire its protection doubles, at
+    /// most two of its points are lost to that fire a segment, and each
+    /// takes a motorisation point with it. Units ride motorisation
+    /// points only with `abstract_supply` on (§32), so without it a
+    /// halftrack is never armoured.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub halftracks: bool,
 }
 
 impl Modules {
@@ -228,6 +237,7 @@ impl Modules {
         armour_limits: true,
         no_armour_release: true,
         parent_shifts: true,
+        halftracks: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {

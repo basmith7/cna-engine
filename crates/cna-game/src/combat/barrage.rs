@@ -282,7 +282,8 @@ mod tests {
             Event::Losses {
                 piece: rha.clone(),
                 points: 1,
-                toe: toe - 1
+                toe: toe - 1,
+                motorisation: 0,
             }
         );
         state.take_loss(&rha, 99, &mut events);
