@@ -942,3 +942,9 @@ Done: #187 bumps vendor/cna to 7947d00 (R-188, option 3 = what #185 built), home
 In flight: CI on #187.
 Next: merge #187 once CI is green. Nothing else unblocked.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 13:25 MST — main (hand-off)
+Done: #187 merged (vendor/cna → 7947d00). #188 (ready, autopilot/soak-every-scenario, head 9ba9dc7): soak of every scenario via reachable; reach(Move) drops unpayable-fuel (interruptible moves: first fuel only) and 61.38-held moves; MovePanel shows fuel-none on an empty overlay; supply.spec.ts updated. Local gates green (clippy, cargo test, probe check).
+In flight: CI run 42409898293 on #188 (web = Playwright, first run of the new supply.spec test).
+Next: if #188's CI is green, merge it (`gh pr merge 188 --merge --delete-branch`) and remove worktree /tmp/wt-soak; if web fails, fix supply.spec/MovePanel. Then extend the soak to combat (barrage fires, assignments, Order::Assault).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
