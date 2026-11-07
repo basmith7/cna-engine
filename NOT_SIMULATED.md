@@ -143,6 +143,9 @@ rulings*). Each names where it is enforced.
 | R-174 | Air Game (§33–47): not in the engine yet; Mission 7 (spec PR #161) charges refits and repairs no stores or fuel under §47 |
 | R-176 | with the `parent_shifts` module on (new games): a shift in a unit's OA `shifts` is made in its month or never (`Order::ShiftParent`; Organisation row) |
 | R-177 | built as option 1 with the `halftracks` module (new games), under §32's motorisation points; the full game's truck points are not (Trucks, halftracks and mounted infantry row) |
+| R-178 | not built yet: dummy tank formations (16.4) do not exist in the engine (Dummy tank formations row); under §32 they would cost no stores |
+| R-179 | not built yet: the engine does not read `infantry_type`, so machine-gun and heavy-weapons units still count against the 19.5 chart's infantry limit (Organisation row) |
+| R-180 | not built yet: a substitute keeps its place when the unit it stands for arrives (Organisation row) |
 | R-119 | the victory route trace and hold test (`cna-game::victory`) look at combat units only: an enemy supply unit or dummy blocks no route and denies no hold, a friendly one lifts no enemy ZOC |
 
 # Combat systems not simulated (Mission 2 slice 5)
