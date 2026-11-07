@@ -447,6 +447,26 @@ pub struct SideSetup {
     /// (61.38, R-159).
     #[serde(default)]
     pub release: Option<Release>,
+    /// Arrivals the scenario sets in place of the Reinforcement
+    /// Schedule's (R-181): a unit named here comes by this row, and its
+    /// schedule rows do not apply in this scenario.
+    #[serde(default)]
+    pub arrivals: Vec<ScenarioArrival>,
+}
+
+/// Units that enter play at `at` in the placement's hexes, each with its
+/// OA sheet, in phase D like a schedule row (R-181).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScenarioArrival {
+    pub at: GameTime,
+    pub units: Vec<UnitId>,
+    pub placement: Placement,
+    /// First-line trucks that come with them.
+    #[serde(default)]
+    pub trucks: Option<Trucks>,
+    #[serde(default)]
+    pub notes: Vec<String>,
 }
 
 /// A release schedule (61.38, R-159): units in `from` at the start may not
@@ -892,6 +912,7 @@ impl Scenario {
             fleet: None,
             broken_down: Vec::new(),
             release: None,
+            arrivals: Vec::new(),
         };
         self.sides.get(&side).unwrap_or(&EMPTY)
     }
@@ -1072,6 +1093,23 @@ mod tests {
             panic!("{p:?}")
         };
         assert!(hexes.len() > 20, "{hexes:?}");
+    }
+
+    #[test]
+    fn the_18th_australian_brigade_lands_at_alexandria_r_181() {
+        let s = Scenario::load("rommels-arrival").unwrap();
+        let [a] = s.side(Side::Cw).arrivals.as_slice() else {
+            panic!("{:?}", s.side(Side::Cw).arrivals)
+        };
+        assert_eq!(a.at, GameTime::new(27, 1));
+        assert_eq!(a.units.len(), 1);
+        assert_eq!(a.units[0].as_str(), "unit:cw:18-aus");
+        let Some(Locator::Place(ids)) = a.placement.sole() else {
+            panic!("{:?}", a.placement)
+        };
+        assert_eq!(ids, &["alexandria-east", "alexandria-west"]);
+        let t = a.trucks.unwrap();
+        assert_eq!((t.light, t.medium, t.heavy), (12, 30, 10));
     }
 
     #[test]

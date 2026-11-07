@@ -2,7 +2,7 @@
   "id": "chart-oddities",
   "kind": "bar",
   "question": "How often does a roll land on a printed oddity?",
-  "rules_commit": "215864bc16b9ba8f26ac3a59637bdc8e9da078fa",
+  "rules_commit": "4988be07f3af4799532390256a4cdfccabecd09c",
   "engine_commit": "see git log",
   "x": {
     "label": "Printed oddity (close assault, morale modifier)",

@@ -876,3 +876,15 @@ Done: #170 (vendor/cna → 215864b), #171 (Withdrawal pick panel, R-154), #172 (
 In flight: none (#173 merged 12:05 UTC after CI green).
 Next: #173's two review follow-ups: (1) cna-server /events feed returns an empty row per enemy order (counts dummies and chariot plans) — skip rows filtered to empty for the caller; (2) 16.45 exposure on the defender's return fire (combat/assault.rs, `a.side == other`). Then cna's answer on the 18th Australian landing when it lands.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 06:55 MST — autopilot/arrivals-r181
+Done: #174 (this branch) bumps vendor/cna to 4988be0 (cna #310, R-181) and builds `scenario_arrivals`: the 18th Australian lands at Alexandria GT27/1 with 30 motorisation points; release `free` rows now hold late arrivals until their stage. Pins regenerated; gates green locally.
+In flight: fresh review of #174; subagent on #173's follow-ups (/tmp/cna-followups, autopilot/dummy-followups: empty /events rows, 16.45 on return fire).
+Next: merge #174 when CI green + review fixes; delete the 18th Aus request bullet from PROGRESS; merge the follow-ups PR (merge main in, regenerate pins if needed).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 07:20 MST — autopilot/arrivals-r181
+Done: #174 review guards (6888a17: early-arrival cut-off, named subtree, trucks only with units, every scenario's arrival lands in one hex). #175 (autopilot/dummy-followups, subagent): empty /events rows dropped, 16.45 on return fire. #176 (autopilot/returning-transport, stacked on #174): `returning_transport` (R-157 transport_from) + R-135 stale "Not yet".
+In flight: CI on #174/#175; subagent building voluntary withdrawals (/tmp/cna-voluntary, autopilot/voluntary-withdrawals, stacked on #176, draft). PROGRESS hand-off drafted in /tmp/cna-progress-r181 (uncommitted; drops the 18th Aus request bullet).
+Next: merge #174 then #175; merge main into #176, regenerate pins, ready+merge; then the voluntary-withdrawals PR the same way.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

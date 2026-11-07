@@ -204,6 +204,40 @@ impl GameState {
         }
     }
 
+    /// A unit the release block frees `from` an OpStage that it did not
+    /// stand in at the start (61.38's 18th Australian Brigade, landing by
+    /// R-181) does not move before then; one held at the start is the
+    /// limit's business.
+    fn free_check(&self, data: &Data, player: Side, order: &Order) -> Result<(), Illegal> {
+        let (Some((listed, path, _)), Some(r)) = (
+            Self::moved_by(order),
+            data.scenario.side(player).release.as_ref(),
+        ) else {
+            return Ok(());
+        };
+        if path.is_empty() {
+            return Ok(());
+        }
+        let now = GameTime::new(self.clock.game_turn, self.clock.stage);
+        let moving: Vec<PieceId> = match self.carried(&listed) {
+            Ok(c) => c,
+            Err(_) => listed,
+        };
+        for f in r.free.iter().filter(|f| now < f.from) {
+            let early = moving.iter().find(|id| {
+                !self.release.held.contains(*id)
+                    && (id.unit().as_ref() == Some(&f.unit) || self.in_formation(data, id, &f.unit))
+            });
+            if let Some(id) = early {
+                return Err(Illegal::new(
+                    "61.38",
+                    format!("{id} moves from {} on", stage_name(f.from)),
+                ));
+            }
+        }
+        Ok(())
+    }
+
     /// Refuses an order that would take more held units out of a release
     /// city than the schedule allows this stage (61.38, R-159); otherwise
     /// what it releases, for `release_commit` once the order is applied.
@@ -214,7 +248,11 @@ impl GameState {
         order: &Order,
     ) -> Result<Released, Illegal> {
         let none = Released::default();
-        if !self.modules.release_schedule || self.release.held.is_empty() {
+        if !self.modules.release_schedule {
+            return Ok(none);
+        }
+        self.free_check(data, player, order)?;
+        if self.release.held.is_empty() {
             return Ok(none);
         }
         let (Some((listed, path, set_down)), Some(r)) = (
@@ -682,6 +720,63 @@ mod tests {
             "the 18th Australian lands at Alexandria"
         );
         assert!(arrived.iter().all(|id| !s.release.held.contains(*id)));
+    }
+
+    #[test]
+    fn the_18th_australian_brigade_lands_at_alexandria_and_waits_a_stage_r_181() {
+        let data = data();
+        let hq = pid("unit:cw:18-aus");
+        let alexandria = data.map.place("alexandria-east").unwrap().hex.clone();
+        let mut s = at(&data, Modules::ALL, 27, 1);
+        let p = &s.pieces[&hq];
+        assert_eq!(p.hex(), Some(&alexandria));
+        assert!(!s.release.held.contains(&hq));
+        // Its battalions come with it, as its OA sheet sets them.
+        let brigade: Vec<PieceId> = s
+            .pieces
+            .values()
+            .filter(|p| {
+                p.parent
+                    .as_ref()
+                    .is_some_and(|u| u.as_str() == "unit:cw:18-aus")
+            })
+            .map(|p| p.id.clone())
+            .collect();
+        assert!(brigade.len() > 1, "{brigade:?}");
+        refused(&data, &mut s, &["unit:cw:18-aus"]);
+        assert!(brigade.contains(&pid("unit:cw:2-10-aus")));
+        s.stand_alone(&pid("unit:cw:2-10-aus"));
+        refused(&data, &mut s, &["unit:cw:2-10-aus"]);
+        let mut s = at(&data, Modules::ALL, 27, 2);
+        allowed(&data, &mut s, &["unit:cw:18-aus"]);
+    }
+
+    #[test]
+    fn the_brigade_s_trucks_motorise_it_where_it_lands_r_181() {
+        let data = data();
+        let alexandria = data.map.place("alexandria-east").unwrap().hex.to_string();
+        let held = |s: &GameState| {
+            s.motorisation
+                .get(&Side::Cw)
+                .and_then(|m| m.get(&alexandria))
+                .copied()
+                .unwrap_or(0)
+        };
+        let before = held(&at(&data, Modules::ALL, 26, 3));
+        let after = held(&at(&data, Modules::ALL, 27, 1));
+        // 30 medium truck points; light and heavy motorise nothing here.
+        assert_eq!(after, before + 30);
+    }
+
+    #[test]
+    fn without_the_module_the_brigade_never_lands_r_181() {
+        let data = data();
+        let modules = Modules {
+            scenario_arrivals: false,
+            ..Modules::ALL
+        };
+        let s = at(&data, modules, 27, 2);
+        assert!(!s.pieces.contains_key(&pid("unit:cw:18-aus")));
     }
 
     #[test]
