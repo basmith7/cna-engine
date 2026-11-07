@@ -211,7 +211,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// and `parent_shifts`, its units' historical shifts of parent dated
 /// this month (19.24), and `chariot_raid_plannable` when the viewer may
 /// plan the chariot raid (30.41), and `dummy_tank_options`, the hexes
-/// it may note a dummy tank formation in (16.4x),
+/// it may note a dummy tank formation in (16.4x), and, whenever the Commonwealth viewer
+/// is to act in an OpStage whose withdrawal has a `pick`,
+/// `withdrawal_pick_options`, the picks it may make (20.82),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -286,6 +288,14 @@ pub fn view_for(
         .unwrap_or_default();
     if !dummies.is_empty() {
         obj.insert("dummy_tank_options".into(), json!(dummies));
+    }
+    // The Commonwealth viewer's withdrawal picks it may make now, among
+    // its own units (20.82, R-154).
+    let picks = viewer
+        .map(|side| state.withdrawal_pick_options(data, side))
+        .unwrap_or_default();
+    if !picks.is_empty() {
+        obj.insert("withdrawal_pick_options".into(), json!(picks));
     }
     let patrols = viewer
         .map(|side| state.patrol_options(data, side))

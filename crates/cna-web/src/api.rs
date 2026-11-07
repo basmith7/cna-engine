@@ -1460,6 +1460,27 @@ mod tests {
             vec![(punjab.clone(), Some(PieceId::from(&brigade)))]
         );
 
+        // The Commonwealth's phase C moved by hand to GT97/2, whose
+        // withdrawal (the 22nd Guards Brigade) takes three infantry
+        // battalions the Commonwealth picks (20.82, R-154).
+        let mut withdrawal_pick = golden_prefix(56);
+        withdrawal_pick
+            .apply(
+                graziani(),
+                Side::Axis,
+                Order::DeclareInitiative { player_a: Side::Cw },
+            )
+            .unwrap();
+        withdrawal_pick.clock.game_turn = 97;
+        withdrawal_pick.clock.stage = 2;
+        withdrawal_pick.modules.withdrawals = true;
+        assert_eq!(withdrawal_pick.to_act(), Some(Side::Cw));
+        let offered = withdrawal_pick.withdrawal_pick_options(graziani(), Side::Cw);
+        assert!(
+            offered.len() == 1 && offered[0].count == 3 && offered[0].candidates.len() > 3,
+            "{offered:?}"
+        );
+
         // The golden set-up, then its orders up to the first phase E,
         // GT2/1 (Graziani's `first_sail`), with the ships in Alexandria
         // (30.1x, 30.59).
@@ -1545,6 +1566,7 @@ mod tests {
             ("tow", tow),
             ("destroyed-repair", destroyed_repair),
             ("parent-shift", parent_shift),
+            ("withdrawal-pick", withdrawal_pick),
             ("game-over", game_over),
         ]
     }

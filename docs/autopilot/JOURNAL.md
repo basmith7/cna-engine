@@ -864,3 +864,9 @@ Done: #168 (2b70cfb) 19.4x nesting fix; #169 (522a941) `chariot_raid` module (30
 In flight: none.
 Next: if Feedback approves #148 or #161, that mission's slice 1. Else bump vendor/cna as cna answers and build the answers (the 18th Aus landing, then its GT27/2 hold under 61.38 `free`, which needs a new module). Voluntary withdrawals (20.9/64.75) need calls on timing, return place and "six months".
 Blocked: Missions 6 and 7 on Brian's review.
+
+## 2026-11-07 04:00 MST — autopilot/bump-cna-r178-r180
+Done: #170 (77a4c34) bumps vendor/cna to 215864b (R-178 dummy tanks free under §32, R-179 infantry_type, R-180 substitute on arrival); NOT_SIMULATED "not built yet" rows; pins regenerated.
+In flight: gates on #170; subagents building R-179+R-180 (/tmp/cna-org-r179, autopilot/org-r179-r180) and R-178 dummy tanks (/tmp/cna-dummy-tanks, autopilot/dummy-tanks), both stacked on #170; PickWithdrawal browser control (/tmp/cna-pick-withdrawal, off main).
+Next: merge #170 when green; retarget the stacked PRs to main (memory: stacked-pr-merge-order), regenerate pins on the second.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161); 18th Australian landing still unanswered by cna.
