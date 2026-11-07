@@ -900,3 +900,9 @@ Done: #177 tests added (5b321f2): mid-segment withdrawal refused (`engaged`), ha
 In flight: subagents: /tmp/cna-seq (autopilot/hide-seq: opaque order token so clients can't count hidden orders), /tmp/cna-loss (autopilot/loss-order: `Order::SetLossOrder`, standing TOE loss priority, 12.45/14.4x/15.83).
 Next: merge #177 on green CI; review, gate and merge the two subagent PRs.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 09:00 MST — main (hand-off)
+Done: #177 (voluntary withdrawals + engaged/half-point tests), #178 (`Order::SetLossOrder`, standing loss priority), #179 (server: opaque view-hash `version` + random cursors replace `seq` for clients; migration 0005) merged; combined main green locally.
+In flight: none.
+Next: nothing unblocked is queued; candidates: rating-absorbing losses (14.4x/15.83) by owner choice, 12.23 blind barrage targets. Check Feedback for Brian's verdict on #148/#161 first.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

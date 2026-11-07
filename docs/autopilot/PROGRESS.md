@@ -41,6 +41,19 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 afternoon (late):** #177 (merged) builds voluntary
+Commonwealth withdrawals (20.9, 64.75) with two last tests: a unit in
+the movement or combat segment under way may not be withdrawn until it
+ends, and a half-point lead wins. #178 (merged) builds a standing loss order: in
+the stack panel (*Losses first: …*, *Set*) the owner ranks a unit's
+weapon entries, and barrage, mine and patrol losses take them in that
+order (12.45); the losses that must absorb a rating (14.4x, 15.83) are
+still the engine's pick, to the fewest points lost. #179 (merged) closes the last
+online leak: clients no longer see the order counter (`seq`), so the
+enemy cannot count secret orders (dummy tanks, the chariot raid's plan);
+a stale order is caught by a hash of the caller's own view instead, and
+the event feed pages by random cursors.
+
 **2026-11-07 afternoon:** cna answered the 18th Australian request
 (R-181). #174 (merged) bumps `vendor/cna` to 4988be0 and builds it as
 `scenario_arrivals`: Rommel's Arrival's 18th Australian Brigade now lands
@@ -52,13 +65,12 @@ an empty row per secret order, and return fire that wipes out a
 formation's real armour now kills its dummy (16.45). #176 (merged) builds R-157's
 last piece (`returning_transport`): a return printed "Tpt: See ..."
 brings back the motorisation points that left with the withdrawals it
-names. #177 (draft, stacked on #176) builds voluntary Commonwealth
+names. #177 (merged later) builds voluntary Commonwealth
 withdrawals (20.9, 64.75) as `voluntary_withdrawals`: in a campaign
 game the Commonwealth may withdraw a battalion at 75 % or more from
 Cairo or Alexandria (*Withdraw (64.75)* in the stack panel) for half a
 point per whole week away, at most three; *Bring back* costs two and
-bars it for 26 Game-Turns. A fresh review's bug is fixed; it needs one
-more test before it is merged.
+bars it for 26 Game-Turns. A fresh review's bug is fixed.
 
 **2026-11-07 midday:** cna answered three requests, and all three are
 built. #170 (merged) bumps `vendor/cna` to 215864b. #172 (merged) builds R-179
@@ -429,13 +441,15 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #177–#179: a voluntary withdrawal waits for
+  the segment under way to end; the loss order covers point losses only
+  (the rating-absorbing ones stay the engine's); online, an order sent
+  against a view the enemy's secret orders left unchanged is accepted,
+  since refusing it would itself tell that something happened.
 - Calls to glance at in #174–#176: the 18th Australian lands all in
   Alexandria East (the first place listed, as set-up does) rather than
   divided by the player; a returning brigade's motorisation points come
-  back to Cairo, where every return lands. #175 left one leak open: the
-  game's single order counter (`seq`) still lets a client count the
-  other side's hidden orders from gaps; hiding it is a design change of
-  its own.
+  back to Cairo, where every return lands.
 - Calls to glance at in #173 (dummy tanks): a dummy is a secret note on
   a hex, not a counter, so the enemy sees nothing of it (no fake tank
   battalion in its view; 16.41's borrowed identity is not built); it
