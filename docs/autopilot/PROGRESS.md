@@ -41,6 +41,21 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 evening:** #180 (merged) builds the standing loss order into
+losses absorbed by rating (`absorb_by_loss_order`): anti-armour damage
+(14.4x), close-assault and retreat losses (15.83) and gun vulnerability
+(15.84) take a unit's listed weapon entries first, so an owner may lose
+three light tanks rather than one cruiser; past the list the engine
+still spends the best-rated points. #181 (merged; `captured_wrecks`): a captured
+broken-down vehicle, once repaired, is the captor's captured equipment
+of its class (R-152), where before it waited under the enemy model's
+name and no unit of the captor's could absorb it; and wrecks in a next
+hex are taken only by a unit that could step there (21.51: no tanks
+taking vehicles above an escarpment). Every short scenario was played
+through to its end with both sides passing, without a fault; that run
+found the Italian Campaign (90–0, no level) and The Long Retreat (0–0,
+no winner) give no result, so four requests for cna are below.
+
 **2026-11-07 afternoon (late):** #177 (merged) builds voluntary
 Commonwealth withdrawals (20.9, 64.75) with two last tests: a unit in
 the movement or combat segment under way may not be withdrawn until it
@@ -441,6 +456,12 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #180 and #181: a listed entry absorbs before a
+  better-rated unlisted one even when more points go (the owner's
+  stated choice, which 14.4x allows); among several units every unit's
+  first-listed entry goes before any second-listed. A captured recce
+  *truck* wreck still waits under the name `truck` (R-152 names no
+  truck-recce spoil).
 - Calls to glance at in #177–#179: a voluntary withdrawal waits for
   the segment under way to end; the loss order covers point losses only
   (the rating-absorbing ones stay the engine's); online, an order sent
@@ -484,7 +505,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 4988be0 (#174).
+- `vendor/cna` is at cna 4988be0 (#174). Four requests for cna are open below (victory data for The Last Chance, The Long Retreat and the Italian Campaign; points-place supply under §32; 12.22's blind targets).
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
