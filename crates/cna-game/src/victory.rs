@@ -335,6 +335,25 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
         Some(Side::Cw) => report.cw = level,
         None => {}
     }
+    // R-185: a side none of whose combat units can trace to its source
+    // loses, whatever the points.
+    if let Some(c) = &victory.cut_off {
+        let tracer = Tracer::new(data, state, c.side);
+        let cut = !state
+            .pieces
+            .values()
+            .filter(|p| p.side == c.side && state.is_combatant(p))
+            .filter_map(|p| p.hex())
+            .any(|h| tracer.traces(h, &c.trace));
+        if cut {
+            report.axis = None;
+            report.cw = None;
+            match c.winner {
+                Side::Axis => report.axis = Some(c.level),
+                Side::Cw => report.cw = Some(c.level),
+            }
+        }
+    }
     if victory.margins.is_empty() && victory.ratios.is_empty() {
         report
             .unchecked
@@ -1037,6 +1056,24 @@ mod tests {
         let r = evaluate(&data, &empty);
         assert_eq!((r.axis, r.cw), (None, None));
         assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
+    }
+
+    #[test]
+    fn italians_cut_off_from_nofilia_lose_the_italian_campaign_r_185() {
+        let data = Data::load("italian-campaign").unwrap();
+        let state = set_up(&data, 5);
+        // At set-up the Italians trace home: the points decide.
+        let r = evaluate(&data, &state);
+        assert_ne!(r.cw, Some(VictoryLevel::Strategic), "{r:?}");
+        // With no Italian combat unit on the map, nobody traces.
+        let mut gone = state.clone();
+        for p in gone.pieces.values_mut() {
+            if p.side == Side::Axis {
+                p.location = Location::Eliminated;
+            }
+        }
+        let r = evaluate(&data, &gone);
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Strategic)));
     }
 
     #[test]

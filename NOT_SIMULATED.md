@@ -69,7 +69,7 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-182 | not yet: blind barrage targets numbered by class (12.22); the firer names any counter in the hex (*Combat systems* below) |
 | R-183 | as decided: failing every levels row, each side's TOE points of combat units (and HQs, guns and loose broken-down points as `toe_on_sheet` says) in hexes of its named sheet, less the excluded units, decide its `level`; equal totals follow `tie` (`cna-game::victory::toe_on_sheet`); the report's `points` carry the two totals |
 | R-184 | as decided: a `margins` band naming a `side` wins for that side whoever is ahead, so The Long Retreat's 0 Axis points is a Commonwealth tactical win (`cna-game::victory`) |
-| R-185 | not yet: the Italian Campaign's `margins` give its plain (tactical) win; the `cut_off` strategic win is not read |
+| R-185 | as decided: the Italian Campaign's `margins` give its plain (tactical) win and a draw at 0; with `cut_off`, if no combat unit of the side named has an R-110 route to its source at the end, the winner named takes that level whatever the points (`cna-game::victory`) |
 | R-186 | not yet: `points_supply` is not read, so Crusader's, The Long Retreat's and the Italian Campaign's places score with no supply test |
 | R-187 | not yet: the hold's `count`, `place_kinds` and `counted_once` are not read, so Rommel's Arrival's Egyptian hold asks for every Egyptian hex and is never met |
 

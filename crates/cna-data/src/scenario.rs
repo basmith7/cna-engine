@@ -738,6 +738,16 @@ pub struct ToeOnSheet {
     pub tie: Option<String>,
 }
 
+/// Judged at the end, before the points: if no combat unit of `side` on
+/// the map has `trace`, `winner` wins `level` (R-185).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CutOff {
+    pub side: Side,
+    pub winner: Side,
+    pub level: VictoryLevel,
+    pub trace: SupplyTrace,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SheetsBySide {
     pub axis: char,
@@ -759,6 +769,8 @@ pub struct Victory {
     pub ratios: Vec<Ratio>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub toe_on_sheet: Option<ToeOnSheet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cut_off: Option<CutOff>,
     #[serde(default)]
     pub notes: Vec<String>,
 }
