@@ -43,7 +43,8 @@
     "scenario_arrivals": true,
     "returning_transport": true,
     "voluntary_withdrawals": true,
-    "absorb_by_loss_order": true
+    "absorb_by_loss_order": true,
+    "captured_wrecks": true
   },
   "seed": 7,
   "orders": [
