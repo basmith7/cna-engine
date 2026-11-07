@@ -41,6 +41,18 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 late morning:** #168 (merged) fixes 19.5's nesting: a
+unit of a parent's own structure attached under one of its
+sub-formations (Maletti's artillery under its 5th Libyan Regiment) no
+longer counts against the parent's Maximum Attachment Chart row. #169
+builds the chariot raid (30.4x) as the `chariot_raid` module: in a
+campaign game, from July 1941, once, the Axis secretly plans it in phase
+C (*Plan chariot raid*), and seven OpStages later the human torpedoes
+roll on the Chariot Raid Table against the ships in Alexandria. A fresh
+review found no bugs. Three new requests for cna are below; one is a
+real gap: Rommel's Arrival's 18th Australian Brigade never enters the
+game, since its landing is given only in prose.
+
 **2026-11-07 morning:** cna answered nine requests (seven for the Air
 Game, halftracks R-177, historical shifts of parent R-176). #165 (merged)
 bumps `vendor/cna` to 4565419; the air rulings (R-165, R-167–R-174) wait
@@ -384,6 +396,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- One call in #169 to glance at: the chariot raid strikes as phase E
+  closes (there is no land support air phase under §32), before that
+  stage's strike, and the engine lays its damage as it lays a strike's.
 - Calls to glance at in #166 and #167: the halftrack two-point cap
   counts per side across a whole anti-armour segment (not per hex), and
   the engine picks the points lost; a shift to no parent keeps the unit
