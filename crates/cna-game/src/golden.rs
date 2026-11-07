@@ -86,16 +86,6 @@ mod tests {
     }
 
     /// Applies the orders in turn; every one must be legal.
-    /// Every module bar blind barrage (R-182): the script names its
-    /// barrage targets, and its later orders follow the dice as they fell
-    /// before the numbering drew from the RNG.
-    fn m5_modules() -> Modules {
-        Modules {
-            blind_barrage: false,
-            ..Modules::ALL
-        }
-    }
-
     fn play(data: &Data, state: &mut GameState, orders: Vec<(Side, Order)>) -> Vec<Event> {
         let mut events = Vec::new();
         for (side, order) in orders {
@@ -115,6 +105,7 @@ mod tests {
                 events.extend(state.apply(data, Side::Cw, Order::Pass).unwrap());
             }
             assert_eq!(state.to_act(), Some(side), "at {}: {order:?}", state.clock);
+            let order = state.blindfold(side, order);
             let ev = state
                 .apply(data, side, order.clone())
                 .unwrap_or_else(|e| panic!("at {}: {order:?}: {e}", state.clock));
@@ -427,7 +418,7 @@ mod tests {
     #[ignore]
     fn regenerate_graziani_m5_fixture() {
         let data = Data::load("grazianis-offensive").unwrap();
-        let state = script(&data, m5_modules());
+        let state = script(&data, Modules::ALL);
         let json = serde_json::to_string_pretty(&state.to_log()).unwrap() + "\n";
         std::fs::write(m5_fixture(), json).unwrap();
         pin(&m5_fixture(), &state);
@@ -444,7 +435,7 @@ mod tests {
         let text = std::fs::read_to_string(m5_fixture()).unwrap();
         let log: Log = serde_json::from_str(&text).unwrap();
         assert!(log.modules.abstract_supply);
-        let live = script(&data, m5_modules());
+        let live = script(&data, Modules::ALL);
         assert_eq!(live.to_log(), log, "the fixture is stale: regenerate it");
         let replayed = replay(&data, &log).unwrap();
         let json = replayed.to_json().unwrap();

@@ -44,7 +44,8 @@
     "returning_transport": true,
     "voluntary_withdrawals": true,
     "absorb_by_loss_order": true,
-    "captured_wrecks": true
+    "captured_wrecks": true,
+    "blind_barrage": true
   },
   "clock": {
     "game_turn": 1,

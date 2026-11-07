@@ -1,8 +1,8 @@
 //! Blind barrage (SPI 12.22–12.24, R-182), the `blind_barrage` module.
 //!
 //! As step 2 opens, each side's targets are numbered by hex and class
-//! in an order the game's RNG shuffles (the owner's numbering: the
-//! engine numbers for him, as it makes the defender's patrol choices),
+//! in an order a keyed hash of the seed shuffles (the owner's numbering:
+//! the engine numbers for him, as it makes the defender's patrol choices),
 //! and a dummy tank formation is one more armour target. The firer names
 //! `blind:<hex>:<class>:<n>` and learns nothing of which unit it is; he
 //! names a unit itself only once it is identified to his side (patrol,
@@ -13,6 +13,7 @@ use crate::piece::{PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
 use cna_data::scenario::Side;
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 /// One side's numbering for a barrage step: by hex and class key, entry
@@ -53,7 +54,7 @@ pub fn parse_blind(id: &PieceId) -> Option<(HexId, String, usize)> {
 
 impl GameState {
     /// Numbers every side's barrage targets for the step (12.23): per
-    /// hex, per class, shuffled by the RNG; a dummy tank formation is an
+    /// hex, per class, shuffled by a hash of the seed; a dummy tank formation is an
     /// armour target. Ships are always identified and go unnumbered.
     pub(crate) fn number_targets(&mut self, data: &Data) {
         self.combat.numbering.clear();
@@ -63,7 +64,15 @@ impl GameState {
         let mut numbering: BTreeMap<Side, Numbering> = BTreeMap::new();
         for p in self.pieces.values() {
             let Some(hex) = p.hex() else { continue };
-            if p.kind.is_vessel() || !self.is_target(data, p) {
+            // A ship, or a unit identified to the enemy, is named, not
+            // numbered: one name per target, so 12.32 holds; a hidden
+            // raider is not on the enemy's map at all (27.31).
+            let known = |side: Side| {
+                self.identified
+                    .get(&side)
+                    .is_some_and(|s| s.contains(&p.id))
+            };
+            if p.kind.is_vessel() || p.hidden || known(p.side.other()) || !self.is_target(data, p) {
                 continue;
             }
             numbering
@@ -87,14 +96,21 @@ impl GameState {
                     .push(None);
             }
         }
-        // Fisher–Yates, in BTreeMap order, so the draws are fixed.
-        for hexes in numbering.values_mut() {
-            for classes in hexes.values_mut() {
+        // The order: a keyed hash of the game's seed, which no client
+        // sees, so the numbers tell the firer nothing and the dice are
+        // not drawn (games and scripts keep their rolls).
+        let seed = self.rng.seed();
+        let clock = self.clock.to_string();
+        for (side, hexes) in numbering.iter_mut() {
+            for (hex, classes) in hexes.iter_mut() {
                 for list in classes.values_mut() {
-                    for i in (1..list.len()).rev() {
-                        let j = self.rng.below(i as u32 + 1) as usize;
-                        list.swap(i, j);
-                    }
+                    list.sort_by_cached_key(|entry| {
+                        let mut h = Sha256::new();
+                        h.update(seed.to_le_bytes());
+                        h.update(format!("{clock}|{side}|{hex}|").as_bytes());
+                        h.update(entry.as_ref().map_or("dummy", PieceId::as_str).as_bytes());
+                        h.finalize()
+                    });
                 }
             }
         }
@@ -178,6 +194,32 @@ impl GameState {
             {
                 known.insert(id);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+impl GameState {
+    /// `order` as a firer who knew the owner's numbering would give it:
+    /// a fire at an enemy unit `player` may not name goes to that unit's
+    /// number. For scripts written before R-182.
+    pub(crate) fn blindfold(
+        &self,
+        player: Side,
+        order: crate::order::Order,
+    ) -> crate::order::Order {
+        match order {
+            crate::order::Order::Barrage { mut fires } => {
+                for f in &mut fires {
+                    if !self.may_name(player, &f.target)
+                        && let Some(id) = self.blind_id_of(&f.target)
+                    {
+                        f.target = id;
+                    }
+                }
+                crate::order::Order::Barrage { fires }
+            }
+            other => other,
         }
     }
 }
@@ -305,8 +347,11 @@ mod tests {
             .unwrap_err();
         assert_eq!(refused.case, "12.23");
         assert!(!refused.reason.contains("unit:"), "{}", refused.reason);
-        // Once a patrol or an assault has identified it, it may be named.
+        // Once a patrol or an assault has identified it, it may be named,
+        // and from the next step it has no number: one name per target.
         state.identify(Side::Cw, [target.clone()]);
+        state.number_targets(&data);
+        assert_eq!(state.blind_id_of(&target), None);
         state.apply(&data, Side::Cw, fire(target)).unwrap();
     }
 

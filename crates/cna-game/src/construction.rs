@@ -593,13 +593,7 @@ mod tests {
     /// engineer and infantry battalion stood together on clear ground
     /// out of the Commonwealth's reach.
     fn organising(data: &Data) -> (GameState, HexId, Vec<PieceId>) {
-        // Blind barrage's numbering draws from the RNG, which would move
-        // the weather these tests were written to.
-        let modules = Modules {
-            blind_barrage: false,
-            ..Modules::ALL
-        };
-        let mut state = GameState::with_modules(data, 3, modules).unwrap();
+        let mut state = GameState::with_modules(data, 3, Modules::ALL).unwrap();
         auto_place(data, &mut state);
         state
             .apply(
