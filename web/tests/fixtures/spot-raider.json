@@ -42,7 +42,8 @@
     "substitute_arrival": true,
     "scenario_arrivals": true,
     "returning_transport": true,
-    "voluntary_withdrawals": true
+    "voluntary_withdrawals": true,
+    "absorb_by_loss_order": true
   },
   "clock": {
     "game_turn": 1,

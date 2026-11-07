@@ -1,8 +1,9 @@
 //! TOE losses (SPI 12.45, 14.4x, 15.8x). A count of points lost goes by
 //! the owner's standing loss order (`Order::SetLossOrder`), then, past
 //! it, the engine chooses for the owner: the largest entry first. Damage
-//! absorbed by rate (`absorb`) is still the engine's choice, the fewest
-//! points lost. A piece at zero leaves the map.
+//! absorbed by rate (`absorb`) takes the loss order's entries first too
+//! (with `absorb_by_loss_order` on), then the best-rated points, so the
+//! fewest points go. A piece at zero leaves the map.
 
 use super::strength::Part;
 use crate::data::Data;
@@ -180,8 +181,10 @@ impl GameState {
     }
 
     /// Removes TOE points from `shares` until their `rate` (raw rating,
-    /// armour protection, vulnerability) absorbs at least `needed`, the
-    /// highest rate first; points rated zero absorb nothing and stay.
+    /// armour protection, vulnerability) absorbs at least `needed`: with
+    /// `absorb_by_loss_order` on, the entries of each piece's loss order
+    /// first, in its order; then the highest rate first. Points rated
+    /// zero absorb nothing and stay.
     /// Returns (absorbed, TOE points removed).
     pub(crate) fn absorb(
         &mut self,
@@ -224,7 +227,8 @@ impl GameState {
         let mut per_piece: Vec<(PieceId, u32, u32)> = Vec::new();
         let mut destroyed = Vec::new();
         while absorbed < needed {
-            let mut best: Option<(usize, Option<String>, u32, bool, bool)> = None;
+            // (share, weapon, rate, tank, capped, rank in the loss order)
+            let mut best: Option<(usize, Option<String>, u32, bool, bool, usize)> = None;
             for (i, share) in shares.iter().enumerate() {
                 if share.points == 0 {
                     continue;
@@ -236,12 +240,29 @@ impl GameState {
                     if r == 0 || part.points == 0 || (capped && halftracks.as_deref() == Some(&0)) {
                         continue;
                     }
-                    if best.as_ref().is_none_or(|b| r > b.2) {
-                        best = Some((i, part.weapon.clone(), r, part.tank, capped));
+                    // The owner's standing order first (14.4x: any points
+                    // that absorb at least the damage will do), then the
+                    // best rate, so the fewest points go.
+                    let rank = self
+                        .modules
+                        .absorb_by_loss_order
+                        .then(|| {
+                            piece
+                                .loss_order
+                                .iter()
+                                .position(|w| part.weapon.as_deref() == Some(w.as_str()))
+                        })
+                        .flatten()
+                        .unwrap_or(usize::MAX);
+                    if best
+                        .as_ref()
+                        .is_none_or(|b| rank < b.5 || (rank == b.5 && r > b.2))
+                    {
+                        best = Some((i, part.weapon.clone(), r, part.tank, capped, rank));
                     }
                 }
             }
-            let Some((i, weapon, r, tank, capped)) = best else {
+            let Some((i, weapon, r, tank, capped, _)) = best else {
                 break;
             };
             let id = shares[i].piece.clone();
@@ -407,6 +428,84 @@ mod tests {
             e(&[("A9", 3), ("A10", 0), ("A13", 0)])
         );
         assert_eq!(state.pieces[&rtr].toe, 5);
+    }
+
+    /// Armour protection per point of each of `id`'s weapon entries.
+    fn protection(data: &Data, state: &GameState, id: &PieceId) -> Vec<(String, u32)> {
+        state
+            .parts(data, &state.pieces[id])
+            .iter()
+            .filter_map(|p| Some((p.weapon.clone()?, p.protection)))
+            .collect()
+    }
+
+    /// `rtr` absorbing `damage` by armour protection, as anti-armour
+    /// fire's damage is (14.4x); returns the points removed.
+    fn absorb_damage(data: &Data, state: &mut GameState, rtr: &PieceId, damage: u32) -> u32 {
+        let mut shares = vec![Share {
+            piece: rtr.clone(),
+            points: state.pieces[rtr].toe,
+        }];
+        let (absorbed, removed) =
+            state.absorb(data, &mut shares, |p| p.protection, damage, &mut Vec::new());
+        assert!(absorbed >= damage, "{absorbed} absorbed of {damage}");
+        removed
+    }
+
+    #[test]
+    fn damage_is_absorbed_by_the_owner_s_order_first_14_4x() {
+        let (data, mut state, rtr) = mixed_1_rtr();
+        let rates = protection(&data, &state, &rtr);
+        let rate = |w: &str| rates.iter().find(|(n, _)| n == w).unwrap().1;
+        // The cruiser the engine would spend first, and a cheaper one.
+        let (best, _) = rates.iter().max_by_key(|(_, r)| *r).unwrap().clone();
+        let (cheap, low) = rates.iter().min_by_key(|(_, r)| *r).unwrap().clone();
+        assert!(low > 0 && low < rate(&best), "{rates:?}");
+        state.modules.absorb_by_loss_order = true;
+        state
+            .apply(&data, Side::Cw, set(&rtr, &[cheap.as_str()]))
+            .unwrap();
+        let before = entries(&state, &rtr);
+        // Damage the best point alone would absorb: the owner's cheap
+        // points take it instead, as many as it needs (14.4x's "three
+        // light tanks" rather than "one cruiser").
+        let damage = rate(&best);
+        let removed = absorb_damage(&data, &mut state, &rtr, damage);
+        assert_eq!(removed, damage.div_ceil(low));
+        for ((w, was), (_, now)) in before.iter().zip(entries(&state, &rtr)) {
+            let lost = if *w == cheap { removed } else { 0 };
+            assert_eq!(now, was - lost, "{w}");
+        }
+    }
+
+    #[test]
+    fn without_the_module_or_an_order_the_best_protected_point_absorbs_first() {
+        for (module, order) in [(false, true), (true, false)] {
+            let (data, mut state, rtr) = mixed_1_rtr();
+            let rates = protection(&data, &state, &rtr);
+            let top = rates.iter().map(|(_, r)| *r).max().unwrap();
+            let (cheap, _) = rates.iter().min_by_key(|(_, r)| *r).unwrap().clone();
+            state.modules.absorb_by_loss_order = module;
+            if order {
+                state
+                    .apply(&data, Side::Cw, set(&rtr, &[cheap.as_str()]))
+                    .unwrap();
+            }
+            let before = entries(&state, &rtr);
+            assert_eq!(absorb_damage(&data, &mut state, &rtr, top), 1);
+            // The one point lost is among the best protected.
+            let lost: Vec<String> = before
+                .iter()
+                .zip(entries(&state, &rtr))
+                .filter(|((_, was), (_, now))| now != was)
+                .map(|((w, _), _)| w.clone())
+                .collect();
+            assert_eq!(lost.len(), 1, "module {module}, order {order}");
+            assert!(
+                rates.contains(&(lost[0].clone(), top)),
+                "{lost:?} of {rates:?}"
+            );
+        }
     }
 
     #[test]
