@@ -211,6 +211,8 @@ export type Order =
   | { "release-guards": { piece: PieceId; points: number } }
   | { "raid-rommel": { piece: PieceId } }
   | { "pick-withdrawal": { fills: string; pieces: PieceId[] } }
+  | { "withdraw-voluntarily": { piece: PieceId } }
+  | { "return-withdrawn": { piece: PieceId } }
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
   | { "try-spot": { piece: PieceId } }
@@ -458,6 +460,8 @@ export type Event =
   | { withdrawn: { pieces: PieceId[]; motorisation: number } }
   | { "withdrawal-failed": { pieces: PieceId[]; reason: string } }
   | { "withdrawal-picked": { fills: string; pieces: PieceId[] } }
+  | { "withdrawn-voluntarily": { piece: PieceId } }
+  | { "returned-from-withdrawal": { piece: PieceId } }
   | { "forces-assigned": { side: Side; assignments?: Assignment[] } }
   | { "combat-cp": { piece: PieceId; cost: number } }
   | { "combat-cp-refunded": { piece: PieceId; cp: number; dp: number } }
@@ -620,6 +624,10 @@ export interface View {
   dummy_tanks?: Partial<Record<Side, HexId[]>>;
   /** The Commonwealth viewer, to act: the withdrawal picks it may make this OpStage (20.82, `cna_game::withdraw::PickOption`). */
   withdrawal_pick_options?: WithdrawalPick[];
+  /** The Commonwealth, to act in a campaign game: the units it may withdraw voluntarily, those it may bring back, and its net withdrawal half-points (20.9, 64.75). */
+  /** Pieces out of the game by withdrawal, as they left: the Commonwealth's own view (20.8x, 64.75). */
+  withdrawn?: Record<PieceId, Piece>;
+  voluntary_options?: { withdrawable: PieceId[]; returnable: PieceId[]; halves: number };
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */

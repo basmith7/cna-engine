@@ -242,6 +242,10 @@ pub struct Modules {
     /// points that left on the withdrawals it names (R-157).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub returning_transport: bool,
+    /// The Commonwealth may withdraw units voluntarily in the campaign
+    /// games, for withdrawal points (20.9, 64.75, R-109).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub voluntary_withdrawals: bool,
 }
 
 impl Modules {
@@ -279,6 +283,7 @@ impl Modules {
         substitute_arrival: true,
         scenario_arrivals: true,
         returning_transport: true,
+        voluntary_withdrawals: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -340,6 +345,10 @@ pub struct GameState {
     /// until a return brings them back (R-157, `returning_transport`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub transport_out: Vec<crate::withdraw::TransportOut>,
+    /// Each unit's voluntary withdrawals and the points they earned
+    /// (20.9, 64.75, `voluntary_withdrawals`).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub voluntary: BTreeMap<PieceId, crate::voluntary::Voluntary>,
     /// The Commonwealth's choice for this OpStage's `pick` withdrawal
     /// (20.82, R-154), by the row's slot kind.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -607,6 +616,7 @@ impl GameState {
             pending_motorisation,
             withdrawn: BTreeMap::new(),
             transport_out: Vec::new(),
+            voluntary: BTreeMap::new(),
             withdrawal_picks: BTreeMap::new(),
             initiative: None,
             rommel_recalled: false,
@@ -993,6 +1003,10 @@ impl GameState {
             (None, Order::PickWithdrawal { fills, pieces }) => {
                 self.pick_withdrawal(data, player, fills, pieces)
             }
+            (None, Order::WithdrawVoluntarily { piece }) => {
+                self.withdraw_voluntarily(data, player, piece)
+            }
+            (None, Order::ReturnWithdrawn { piece }) => self.return_withdrawn(data, player, piece),
             (None, Order::FormRaider { raider, from }) => {
                 self.form_raider(data, player, raider, from)
             }

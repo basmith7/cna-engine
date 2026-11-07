@@ -73,7 +73,7 @@ fn subtree(oa: &Oa, head: &UnitId, less: &[UnitId], out: &mut BTreeSet<UnitId>) 
 }
 
 impl GameState {
-    fn withdrawal_hexes(data: &Data) -> Vec<Location> {
+    pub(crate) fn withdrawal_hexes(data: &Data) -> Vec<Location> {
         PLACES
             .iter()
             .map(|p| {
