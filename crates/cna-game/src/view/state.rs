@@ -218,6 +218,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// it may note a dummy tank formation in (16.4x), and, whenever the Commonwealth viewer
 /// is to act in an OpStage whose withdrawal has a `pick`,
 /// `withdrawal_pick_options`, the picks it may make (20.82),
+/// and, whenever the Commonwealth viewer is to act in a campaign game,
+/// `voluntary_options`, the units it may withdraw voluntarily or bring
+/// back and its net withdrawal half-points (20.9, 64.75),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -292,6 +295,14 @@ pub fn view_for(
         .unwrap_or_default();
     if !dummies.is_empty() {
         obj.insert("dummy_tank_options".into(), json!(dummies));
+    }
+    // The Commonwealth viewer's voluntary withdrawals and returns open
+    // now (20.9, 64.75).
+    let voluntary = viewer
+        .map(|side| state.voluntary_options(data, side))
+        .unwrap_or_default();
+    if !voluntary.is_empty() {
+        obj.insert("voluntary_options".into(), json!(voluntary));
     }
     // The Commonwealth viewer's withdrawal picks it may make now, among
     // its own units (20.82, R-154).

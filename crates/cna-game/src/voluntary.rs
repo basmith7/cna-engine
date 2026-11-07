@@ -46,6 +46,22 @@ pub struct Voluntary {
     pub returned: Option<u8>,
 }
 
+/// The voluntary withdrawal orders open to the Commonwealth now: what
+/// `Order::WithdrawVoluntarily` and `Order::ReturnWithdrawn` accept, and
+/// the net half-points earned so far.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct VoluntaryOptions {
+    pub withdrawable: Vec<PieceId>,
+    pub returnable: Vec<PieceId>,
+    pub halves: i32,
+}
+
+impl VoluntaryOptions {
+    pub fn is_empty(&self) -> bool {
+        self.withdrawable.is_empty() && self.returnable.is_empty()
+    }
+}
+
 impl Voluntary {
     /// Half-points earned to Game-Turn `now`: the whole Game-Turns
     /// between the one it left in and `now`, both excluded, on top of
@@ -176,6 +192,33 @@ impl GameState {
         Ok(vec![Event::ReturnedFromWithdrawal { piece: id.clone() }])
     }
 
+    /// What `player` may withdraw or bring back now, for the browser:
+    /// the Commonwealth's alone, in a campaign game, while it is to act
+    /// with nothing pending.
+    pub fn voluntary_options(&self, data: &Data, player: Side) -> VoluntaryOptions {
+        if self.voluntary_open(data, player).is_err()
+            || self.to_act() != Some(player)
+            || self.pending_refusal().is_some()
+        {
+            return VoluntaryOptions::default();
+        }
+        VoluntaryOptions {
+            withdrawable: self
+                .pieces
+                .keys()
+                .filter(|id| self.voluntary_refusal(data, id).is_none())
+                .cloned()
+                .collect(),
+            returnable: self
+                .voluntary
+                .iter()
+                .filter(|(_, v)| v.away_since.is_some())
+                .map(|(id, _)| id.clone())
+                .collect(),
+            halves: self.withdrawal_halves(),
+        }
+    }
+
     /// The Commonwealth's net withdrawal half-points to now (64.75).
     pub fn withdrawal_halves(&self) -> i32 {
         let now = self.clock.game_turn;
@@ -286,6 +329,33 @@ mod tests {
             )
             .unwrap();
         assert_eq!(state.pieces[&id].location, cairo(&data));
+    }
+
+    #[test]
+    fn the_options_list_what_may_go_and_come_back() {
+        let data = data();
+        let mut state = game(&data);
+        let id = battalion(&mut state, &data, cairo(&data));
+        for _ in 0..200 {
+            if state.to_act() == Some(Side::Cw) && state.pending_refusal().is_none() {
+                break;
+            }
+            let who = state.to_act().unwrap();
+            if state.apply(&data, who, Order::Pass).is_err() {
+                state
+                    .apply(&data, who, Order::DeclareInitiative { player_a: Side::Cw })
+                    .unwrap();
+            }
+        }
+        state.pieces.get_mut(&id).unwrap().location = cairo(&data);
+        let o = state.voluntary_options(&data, Side::Cw);
+        assert!(o.withdrawable.contains(&id));
+        assert!(o.returnable.is_empty());
+        assert!(state.voluntary_options(&data, Side::Axis).is_empty());
+        withdraw(&mut state, &data, &id).unwrap();
+        let o = state.voluntary_options(&data, Side::Cw);
+        assert!(!o.withdrawable.contains(&id));
+        assert_eq!(o.returnable, vec![id]);
     }
 
     #[test]

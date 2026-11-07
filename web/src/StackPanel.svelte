@@ -180,6 +180,9 @@
                 {@const to = s["shift-parent"].to}
                 <button type="button" class="attach" data-order="shift-parent" data-to={to ?? ""} title="The change of parent its O/A notes date to this month, now or never; attached to the new parent, with a free slot (19.24)" onclick={() => onorder(s)}>{to ? `Shift to ${view.pieces[to] ? label(view.pieces[to]).short : to}` : "Shift to independent"}</button>
               {/each}
+              {#if view.voluntary_options?.withdrawable.includes(p.id)}
+                <button type="button" class="attach" data-order="withdraw-voluntarily" title="Leave the game from Cairo or Alexandria: half a point a whole Game-Turn away, at most three; bringing it back costs two (20.9, 64.75)" onclick={() => onorder({ "withdraw-voluntarily": { piece: p.id } })}>Withdraw (64.75)</button>
+              {/if}
               {@const swaps = swapOrders(view, p)}
               {#if swaps.length > 0}
                 <select class="attach" data-order="swap-battalions" aria-label="Swap brigades with" title="Trade brigades with a battalion standing alone; each brigade must keep its slots (19.2x)" value="" onchange={(e) => { const i = Number((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ""; if (swaps[i]) onorder(swaps[i]); }}>

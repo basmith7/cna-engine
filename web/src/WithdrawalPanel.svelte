@@ -21,7 +21,10 @@
   let ticks: Record<string, PieceId[]> = $state({});
   const ticked = (o: WithdrawalPick) => ticks[o.fills] ?? o.picked ?? o.candidates.slice(0, o.count);
   const kind = (fills: string) => fills.replaceAll("-", " ");
-  const name = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
+  const name = (id: PieceId) => {
+    const p = view.pieces[id] ?? view.withdrawn?.[id];
+    return p ? label(p).short : id;
+  };
   function where(l: Location | undefined): string {
     if (typeof l !== "object") return "";
     if ("hex" in l) return `at ${l.hex}`;
@@ -67,6 +70,22 @@
     <button type="button" data-order="pick-withdrawal" onclick={() => pick(o)}>Pick for withdrawal ({mine.length} of {o.count} ticked)</button>
   </section>
 {/each}
+
+{#if view.voluntary_options && view.voluntary_options.returnable.length > 0}
+  {@const v = view.voluntary_options}
+  <section class="panel" data-testid="voluntary-panel">
+    <h2>Withdrawn voluntarily (64.75)</h2>
+    <p>Withdrawal points so far: {v.halves / 2}. Each whole Game-Turn away earns half a point, at most three a unit; bringing one back to Cairo costs two, and it may not go again for 26 Game-Turns.</p>
+    <ul>
+      {#each v.returnable as id (id)}
+        <li data-unit={id}>
+          {name(id)}
+          <button type="button" data-order="return-withdrawn" onclick={() => onsend({ "return-withdrawn": { piece: id } })}>Bring back</button>
+        </li>
+      {/each}
+    </ul>
+  </section>
+{/if}
 
 <style>
   .panel {

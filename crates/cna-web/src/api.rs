@@ -1172,6 +1172,65 @@ mod tests {
         }
         assert!(crusader_set_up.pieces.values().any(|p| p.rommel_cpa == 5));
 
+        // The Campaign Game set up as Crusader is, then on to the first
+        // moment the Commonwealth is to act with nothing pending, with a
+        // battalion at full TOE moved into Cairo: it may withdraw
+        // voluntarily (20.9, 64.75).
+        let campaign = data("campaign-game").unwrap();
+        let mut voluntary = GameState::with_modules(campaign, 7, Modules::ALL).unwrap();
+        while let Some(Pending::SetUp { side }) = voluntary.pending.clone() {
+            let (piece, hex) = voluntary
+                .pieces
+                .values()
+                .filter(|p| p.side == side && p.is_pending())
+                .find_map(|p| {
+                    let hex = voluntary.placements(campaign, &p.id).into_iter().next()?;
+                    Some((p.id.clone(), hex))
+                })
+                .expect("a pending piece with a hex to go to");
+            voluntary
+                .apply(campaign, side, Order::Place { piece, hex })
+                .unwrap();
+        }
+        while !(voluntary.to_act() == Some(Side::Cw) && voluntary.pending.is_none()) {
+            let who = voluntary.to_act().expect("someone to act");
+            if voluntary.apply(campaign, who, Order::Pass).is_err() {
+                voluntary
+                    .apply(
+                        campaign,
+                        who,
+                        Order::DeclareInitiative { player_a: Side::Cw },
+                    )
+                    .unwrap();
+            }
+        }
+        let cairo =
+            cna_game::piece::Location::Hex(campaign.map.place("cairo").unwrap().hex.clone());
+        let ids: Vec<PieceId> = voluntary
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind == cna_game::piece::PieceKind::Combat)
+            .map(|p| p.id.clone())
+            .collect();
+        for id in ids {
+            let mut probe = voluntary.clone();
+            probe.pieces.get_mut(&id).unwrap().location = cairo.clone();
+            if probe
+                .voluntary_options(campaign, Side::Cw)
+                .withdrawable
+                .contains(&id)
+            {
+                voluntary = probe;
+                break;
+            }
+        }
+        assert!(
+            !voluntary
+                .voluntary_options(campaign, Side::Cw)
+                .withdrawable
+                .is_empty()
+        );
+
         // Rommel's Arrival with every piece placed: the Axis's 290
         // unattached motorisation points (61.72, R-160) hold its set-up
         // (`rommel-motorisation`); with those and the Commonwealth's in
@@ -1567,6 +1626,7 @@ mod tests {
             ("destroyed-repair", destroyed_repair),
             ("parent-shift", parent_shift),
             ("withdrawal-pick", withdrawal_pick),
+            ("voluntary-withdrawal", voluntary),
             ("game-over", game_over),
         ]
     }
