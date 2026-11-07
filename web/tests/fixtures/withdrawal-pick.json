@@ -40,7 +40,8 @@
     "dummy_tanks": true,
     "infantry_types": true,
     "substitute_arrival": true,
-    "scenario_arrivals": true
+    "scenario_arrivals": true,
+    "returning_transport": true
   },
   "clock": {
     "game_turn": 97,
