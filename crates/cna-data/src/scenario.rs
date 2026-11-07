@@ -709,6 +709,39 @@ pub struct PointsObjective {
 pub struct Margin {
     pub min: i32,
     pub level: String,
+    /// The side that wins this band whoever is ahead (R-184).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub side: Option<Side>,
+}
+
+/// Failing every levels row, each side's TOE points of land units on its
+/// named sheet decide `level` (R-183).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToeOnSheet {
+    pub level: VictoryLevel,
+    pub sheets: SheetsBySide,
+    /// OA units whose points are not counted.
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    /// An HQ's own TOE points count.
+    #[serde(default)]
+    pub hq: bool,
+    /// Gun TOE points count beside infantry and armour.
+    #[serde(default)]
+    pub guns: bool,
+    /// Broken-down points on the sheet, assigned to no unit, count for
+    /// their owner.
+    #[serde(default)]
+    pub broken_down: bool,
+    /// Equal totals: `draw` (no victory), or the side that wins.
+    #[serde(default)]
+    pub tie: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SheetsBySide {
+    pub axis: char,
+    pub cw: char,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -724,6 +757,8 @@ pub struct Victory {
     /// highest `over` first in the file.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ratios: Vec<Ratio>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub toe_on_sheet: Option<ToeOnSheet>,
     #[serde(default)]
     pub notes: Vec<String>,
 }

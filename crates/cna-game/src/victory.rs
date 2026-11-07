@@ -154,7 +154,84 @@ pub fn evaluate(data: &Data, state: &GameState) -> VictoryReport {
             }
         }
     }
+    if report.axis.is_none()
+        && report.cw.is_none()
+        && let Some(t) = &victory.toe_on_sheet
+    {
+        let axis = toe_on_sheet(data, state, t, Side::Axis);
+        let cw = toe_on_sheet(data, state, t, Side::Cw);
+        let winner = match axis.cmp(&cw) {
+            std::cmp::Ordering::Greater => Some(Side::Axis),
+            std::cmp::Ordering::Less => Some(Side::Cw),
+            std::cmp::Ordering::Equal => match t.tie.as_deref() {
+                Some("axis") => Some(Side::Axis),
+                Some("cw") => Some(Side::Cw),
+                _ => None,
+            },
+        };
+        match winner {
+            Some(Side::Axis) => report.axis = Some(t.level),
+            Some(Side::Cw) => report.cw = Some(t.level),
+            None => {}
+        }
+        report.points = Some(Points { axis, cw });
+    }
     report
+}
+
+/// `side`'s TOE strength points of land units in hexes of its sheet
+/// (R-183): combat units, HQs if `hq`, less gun points unless `guns`,
+/// less `exclude`'s units, plus broken-down points there assigned to no
+/// unit if `broken_down`.
+fn toe_on_sheet(
+    data: &Data,
+    state: &GameState,
+    t: &cna_data::scenario::ToeOnSheet,
+    side: Side,
+) -> i32 {
+    use crate::combat::strength::Class;
+    use crate::piece::PieceKind;
+    let sheet = match side {
+        Side::Axis => t.sheets.axis,
+        Side::Cw => t.sheets.cw,
+    };
+    let on_sheet = |h: &HexId| h.sheet() == sheet;
+    let mut total: u32 = 0;
+    for p in state.pieces.values() {
+        if p.side != side
+            || !p.hex().is_some_and(on_sheet)
+            || t.exclude.iter().any(|x| x == p.id.as_str())
+        {
+            continue;
+        }
+        match p.kind {
+            PieceKind::Combat => {}
+            PieceKind::Hq if t.hq => {}
+            _ => continue,
+        }
+        total += if t.guns {
+            p.toe
+        } else {
+            let guns: u32 = state
+                .parts(data, p)
+                .iter()
+                .filter(|part| part.class == Class::Gun)
+                .map(|part| part.points)
+                .sum();
+            p.toe.saturating_sub(guns)
+        };
+    }
+    if t.broken_down {
+        total += state
+            .broken_down
+            .iter()
+            .filter(|(h, _)| on_sheet(h))
+            .flat_map(|(_, ws)| ws.iter())
+            .filter(|w| w.side == side && w.unit.is_none())
+            .map(|w| w.points)
+            .sum::<u32>();
+    }
+    i32::try_from(total).unwrap_or(i32::MAX)
 }
 
 /// A points victory: each place scores for the side whose combat units
@@ -237,22 +314,26 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
     } else {
         (Side::Cw, totals.cw - totals.axis)
     };
+    let band = victory
+        .margins
+        .iter()
+        .filter(|m| victory.ratios.is_empty() && margin >= m.min)
+        .max_by_key(|m| m.min);
     let level = if victory.ratios.is_empty() {
-        victory
-            .margins
-            .iter()
-            .filter(|m| margin >= m.min)
-            .max_by_key(|m| m.min)
-            .and_then(|m| named(&m.level))
+        band.and_then(|m| named(&m.level))
     } else {
         ratio_level(&victory.ratios, &doubled)
     };
-    // Anyone ahead, by half a point or more, wins at the level found.
-    if doubled.axis != doubled.cw {
-        match winner {
-            Side::Axis => report.axis = level,
-            Side::Cw => report.cw = level,
-        }
+    // A band that names its side wins for it whoever is ahead (R-184:
+    // The Long Retreat's 0 Axis points); otherwise anyone ahead, by half
+    // a point or more, wins at the level found.
+    let winner = band
+        .and_then(|m| m.side)
+        .or((doubled.axis != doubled.cw).then_some(winner));
+    match winner {
+        Some(Side::Axis) => report.axis = level,
+        Some(Side::Cw) => report.cw = level,
+        None => {}
     }
     if victory.margins.is_empty() && victory.ratios.is_empty() {
         report
@@ -887,6 +968,75 @@ mod tests {
         }
         put(&mut state, "unit:it:sceferzen-oasis-garrison-bn", "C2919");
         assert_eq!(evaluate(&data, &state).axis, Some(VictoryLevel::Tactical));
+    }
+
+    #[test]
+    fn no_axis_points_in_the_long_retreat_is_a_commonwealth_win_r_184() {
+        let data = Data::load("the-long-retreat").unwrap();
+        let mut state = set_up(&data, 5);
+        // Nobody holds anything: 0 to 0.
+        for p in state.pieces.values_mut() {
+            p.location = Location::Eliminated;
+        }
+        let r = evaluate(&data, &state);
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Tactical)));
+    }
+
+    #[test]
+    fn the_last_chance_s_tactical_win_is_the_larger_toe_on_the_enemy_s_sheet_r_183() {
+        let data = Data::load("the-last-chance").unwrap();
+        let state = set_up(&data, 5);
+        let r = evaluate(&data, &state);
+        let Points { axis, cw } = r.points.expect("the TOE totals");
+        // The Axis has no brigade in Alexandria at set-up, so the count
+        // decides: the larger total wins tactical.
+        let expected = match axis.cmp(&cw) {
+            std::cmp::Ordering::Greater => (Some(VictoryLevel::Tactical), None),
+            std::cmp::Ordering::Less => (None, Some(VictoryLevel::Tactical)),
+            std::cmp::Ordering::Equal => (None, None),
+        };
+        assert_eq!((r.axis, r.cw), expected, "axis {axis}, cw {cw}");
+        // Layforce is not counted: moving it changes nothing.
+        let t = data
+            .scenario
+            .victory
+            .as_ref()
+            .unwrap()
+            .toe_on_sheet
+            .as_ref()
+            .unwrap();
+        let only = |state: &GameState, side| toe_on_sheet(&data, state, t, side);
+        let on_d = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Cw
+                    && p.kind == PieceKind::Combat
+                    && p.toe > 0
+                    && p.hex().is_some_and(|h| h.sheet() == 'D')
+            })
+            .cloned()
+            .expect("a Commonwealth combat unit on sheet D");
+        // A copy of it under Layforce's id counts nothing; under any
+        // other id, its points.
+        let with = |id: &str| {
+            let mut s = state.clone();
+            let mut p = on_d.clone();
+            p.id = PieceId::from(id.to_string());
+            s.pieces.insert(p.id.clone(), p);
+            only(&s, Side::Cw)
+        };
+        assert_eq!(with(&t.exclude[0]), cw);
+        assert_eq!(with("unit:cw:not-excluded"), cw + on_d.toe as i32);
+        // With nothing on the sheets, equal totals: no victory.
+        let mut empty = state.clone();
+        for p in empty.pieces.values_mut() {
+            p.location = Location::Eliminated;
+        }
+        let r = evaluate(&data, &empty);
+        assert_eq!((r.axis, r.cw), (None, None));
+        assert_eq!(r.points, Some(Points { axis: 0, cw: 0 }));
     }
 
     #[test]
