@@ -289,6 +289,7 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         // 30.3x: the damage shows on the Commonwealth's own counters, and
         // the Axis, who struck, sees what it did; the count left is not in it.
         | E::FleetStruck { .. }
+        | E::ChariotRaid { .. }
         | E::ShipRepaired { .. }
         | E::MovedOffMap { .. }
         | E::MoveInterrupted { .. }
@@ -354,6 +355,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::WithdrawalPicked { .. } => Own(Some(Side::Cw)),
         // 32.72: the number of strikes is rolled secretly.
         E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
+        // 30.41: the raid is noted secretly; made, it is public.
+        E::ChariotRaidPlanned { .. } => Own(Some(Side::Axis)),
         E::Towed { side, .. } => Own(Some(*side)),
         E::FieldRepaired { hex, weapon, .. } | E::FacilityRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {

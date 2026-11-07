@@ -20,6 +20,7 @@ mod destroyed;
 mod determinism;
 pub mod event;
 mod facility;
+pub mod chariot_raid;
 pub mod fleet;
 mod fuel;
 mod golden;

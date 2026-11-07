@@ -5,6 +5,7 @@ pub mod assault_size;
 pub mod barrage;
 pub mod breakdown;
 pub mod calendar;
+pub mod chariot;
 pub mod characteristics;
 pub mod close_assault;
 pub mod construction;

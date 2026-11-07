@@ -125,7 +125,7 @@ fn below_half(row: &cna_data::fleet::Ship, damage: u32) -> bool {
 
 /// A die stream of the fleet's own, seeded by the game, the OpStage and
 /// `tag`, so its rolls never shift the dice of play (as convoy bombing's).
-fn fleet_dice(seed: u64, game_turn: u8, stage: u8, tag: u64) -> crate::rng::GameRng {
+pub(crate) fn fleet_dice(seed: u64, game_turn: u8, stage: u8, tag: u64) -> crate::rng::GameRng {
     let salt = (1 << 40) | (tag << 32) | (u64::from(game_turn) << 8) | u64::from(stage);
     crate::rng::GameRng::new(seed ^ salt.wrapping_mul(0x9E37_79B9_7F4A_7C15))
 }
@@ -393,6 +393,25 @@ impl GameState {
             .fleet_bombardment
             .in_column(usize::from(column.saturating_sub(1)), reading)
             .unwrap_or(0);
+        let (hits, sunk) = self.lay_harbour_damage(data, damage);
+        events.push(Event::FleetStruck {
+            column,
+            reading,
+            damage,
+            hits,
+            sunk,
+        });
+    }
+
+    /// `damage` gun points laid a point at a time on the ship in harbour
+    /// with the most guns left, the lower id on a tie (32.74, the Axis's
+    /// choice made by the engine); a ship left with none is sunk (30.3x).
+    /// The points each ship took, and the ships sunk.
+    pub(crate) fn lay_harbour_damage(
+        &mut self,
+        data: &Data,
+        damage: u32,
+    ) -> (BTreeMap<PieceId, u32>, Vec<PieceId>) {
         let guns = |s: &Self, id: &PieceId| {
             ship_row(data, id).map_or(0, |row| current_ratings(row, s.fleet[id].damage).0)
         };
@@ -418,13 +437,7 @@ impl GameState {
             self.fleet.remove(id);
             self.pieces.get_mut(id).expect("a ship's piece").location = Location::Eliminated;
         }
-        events.push(Event::FleetStruck {
-            column,
-            reading,
-            damage,
-            hits,
-            sunk,
-        });
+        (hits, sunk)
     }
 
     /// A damaged ship in Alexandria counts the OpStage towards repair: a
@@ -483,6 +496,7 @@ impl GameState {
             events.push(Event::InPort { ships: back });
         }
         self.repair_ships(events, data);
+        self.make_chariot_raid(data, events);
         self.strike_the_fleet(data, events);
     }
 

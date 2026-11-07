@@ -205,6 +205,10 @@ pub enum Order {
     /// Phase E: the Commonwealth places `ship` at sea in `hex` for this
     /// OpStage (30.1x).
     Station { ship: PieceId, hex: HexId },
+    /// Phase C, the Axis in a campaign game from July 1941, once a game:
+    /// it notes secretly a chariot raid on Alexandria, made in the
+    /// seventh OpStage after (30.4x).
+    PlanChariotRaid,
     /// Phase L: a patrol of `sources`' points against `target`, the
     /// defender describing none of `exclude` (16.x).
     Patrol {
