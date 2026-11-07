@@ -42,14 +42,14 @@ armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
 **2026-11-07 afternoon:** cna answered the 18th Australian request
-(R-181). #174 bumps `vendor/cna` to 4988be0 and builds it as
+(R-181). #174 (merged) bumps `vendor/cna` to 4988be0 and builds it as
 `scenario_arrivals`: Rommel's Arrival's 18th Australian Brigade now lands
 in Alexandria on Game-Turn 27 OpStage 1 with its battalions and 30
 motorisation points, and its release row holds it there until 27/2 (the
 release block's `free` rows were never read before). #175 closes #173's
 two review follow-ups: the server's event feed no longer sends the enemy
 an empty row per secret order, and return fire that wipes out a
-formation's real armour now kills its dummy (16.45). #176 builds R-157's
+formation's real armour now kills its dummy (16.45). #176 (merged) builds R-157's
 last piece (`returning_transport`): a return printed "Tpt: See ..."
 brings back the motorisation points that left with the withdrawals it
 names. #177 (draft, stacked on #176) builds voluntary Commonwealth
