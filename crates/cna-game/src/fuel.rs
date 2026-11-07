@@ -410,13 +410,14 @@ mod tests {
         // 3 fuel pays the stage's first 2 but not the 4 past the CPA.
         supply_at(&mut state, &here, 3);
         let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
+        // A move that may be interrupted pays only up to its stop, so
+        // the reach holds it to the first fuel alone; every other move
+        // offered stays within the CPA, and the engine takes each.
         let reaches = reach(&state);
-        assert!(!reaches.is_empty());
-        assert!(
-            reaches.iter().all(|r| r.cp <= cpa && r.fuel == 2),
-            "{reaches:?}"
-        );
-        for r in &reaches {
+        let sure: Vec<_> = reaches.iter().filter(|r| !r.may_be_interrupted).collect();
+        assert!(!sure.is_empty());
+        assert!(sure.iter().all(|r| r.cp <= cpa && r.fuel == 2), "{sure:?}");
+        for r in sure {
             let order = Order::Move {
                 pieces: vec![tank.clone()],
                 path: r.path.clone(),
