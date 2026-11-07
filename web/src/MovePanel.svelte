@@ -70,6 +70,15 @@
   const maybe = $derived(reaches.filter((r) => r.may_be_interrupted).length);
   const dearest = $derived(reaches.reduce((m, r) => Math.max(m, r.cp), 0));
   const fuel = $derived(fuelSummary(reaches));
+  // The engine offers no move whose fuel nothing in range can pay
+  // (32.22), so an empty overlay under abstract supply (loads in the
+  // view) with no source in range says why.
+  const dry = $derived(
+    purpose === "move" &&
+      reaches.length === 0 &&
+      fuelSources.length === 0 &&
+      Object.values(view.pieces).some((p) => p.load),
+  );
   const under = $derived(hovered ? reaches.find((r) => r.hex === hovered) : undefined);
   const nameOf = (id: PieceId) => (view.pieces[id] ? label(view.pieces[id]).short : id);
   /** Ticked units told of an enemy raider in the hex they still stand in (27.42): each may try to spot it. */
@@ -128,7 +137,9 @@
     {:else}
       <p class="count" data-testid="reach-count">{reaches.length} hex{reaches.length === 1 ? "" : "es"} reachable, up to {cpLabel(dearest)} CP. Click one to go there by the cheapest path.</p>
     {/if}
-    {#if fuel}
+    {#if dry}
+      <p class="refusal" data-testid="fuel-none">No supply unit in range has fuel: a move that owes some is refused.</p>
+    {:else if fuel}
       <div class="fuel" data-testid="fuel">
         <p>Fuel owed (32.22): <span data-testid="fuel-owed">{fuel}</span>{#if under}, <span data-testid="fuel-hovered">{under.fuel} to {under.hex}</span>{/if}.</p>
         {#if fuelSources.length === 0}
