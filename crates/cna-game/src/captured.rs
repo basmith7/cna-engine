@@ -10,8 +10,9 @@ use crate::event::Event;
 use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
-use cna_data::oa::ReconVehicle;
+use cna_data::oa::{Nation, ReconVehicle};
 use cna_data::scenario::Side;
+use cna_data::weapons::WeaponClass;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// What a captured point of a gun or vehicle row becomes (R-152).
@@ -69,6 +70,41 @@ impl Spoil {
         ]
         .into_iter()
         .find(|s| s.key() == key)
+    }
+}
+
+/// What one repaired point of a captured broken-down vehicle gives its
+/// captor (R-152): a point of its weapon row's class, or for a recce
+/// unit's points (R-125) what its vehicle class gives, as `spoil_of`
+/// judges a surrendering recce unit; none for what neither names.
+pub(crate) fn wreck_spoil(
+    data: &Data,
+    nation: Nation,
+    weapon: &str,
+) -> Option<(&'static str, u32)> {
+    if let Some(row) = data.weapons.resolve(nation, weapon) {
+        let spoil = match row.class {
+            WeaponClass::Tank => Spoil::Tank,
+            WeaponClass::Artillery => Spoil::Artillery,
+            WeaponClass::AntiTank => Spoil::AntiTank,
+            WeaponClass::AntiAir => Spoil::AntiAir,
+        };
+        return Some((spoil.key(), 1));
+    }
+    if weapon == ReconVehicle::ArmouredCar.as_str() {
+        Some((ARMOURED_RECCE, 2))
+    } else if weapon == ReconVehicle::ArmouredRecce.as_str() {
+        Some((ARMOURED_RECCE, 1))
+    } else {
+        None
+    }
+}
+
+/// The side a nation's units fight for.
+pub(crate) fn side_of(nation: Nation) -> Side {
+    match nation {
+        Nation::Cw => Side::Cw,
+        Nation::De | Nation::It => Side::Axis,
     }
 }
 
