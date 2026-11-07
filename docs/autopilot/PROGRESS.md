@@ -592,7 +592,18 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-(none open)
+- **R-182 vs dummy tank formations (12.23, 16.4x, 3.62).** The engine
+  shows the enemy every counter's face (3.62's map entry: unit type and
+  designation, not strength), so when the owner announces a hex's
+  targets by class, an armour count above the tank counters the firer
+  can see betrays a dummy (16.45 keeps it secret until an attack); a
+  "pinned" result on a number that pins no counter does the same. Which
+  should hold: (1) the firer sees only how many counters a stack holds,
+  not their faces, until identified; (2) a dummy is announced as a
+  target only when it carries a real tank battalion's identity (16.41)
+  shown as a counter face; (3) the leak stands as printed. Built today as
+  (3), noted in `NOT_SIMULATED.md` (#185). Blocks nothing; it decides
+  how much of the enemy's stacks the engine's view shows.
 
 ## Runs and quota
 
