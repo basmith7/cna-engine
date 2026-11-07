@@ -266,7 +266,25 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
     )
     .await;
     assert_eq!(s, StatusCode::OK);
-    assert_eq!(stream.as_array().unwrap().len(), log.orders.len());
+    let rows = stream.as_array().unwrap();
+    // A row for each Commonwealth order, and for each Axis order that
+    // shows the Commonwealth something; none left empty to be counted.
+    let cw_orders: Vec<_> = (0..log.orders.len())
+        .filter(|&n| log.orders[n].player == Side::Cw)
+        .map(|n| json!(n))
+        .collect();
+    let cw_rows: Vec<_> = rows
+        .iter()
+        .filter(|r| r["side"] == "cw")
+        .map(|r| r["seq"].clone())
+        .collect();
+    assert_eq!(cw_rows, cw_orders);
+    assert!(
+        rows.iter()
+            .all(|r| r["side"] == "cw" || !r["events"].as_array().unwrap().is_empty()),
+        "an empty Axis row"
+    );
+    assert!(rows.len() < log.orders.len(), "some Axis order is secret");
     assert_eq!(cw_leaks(&games, id, &stream).await, Vec::<String>::new());
     let (_, tail) = call(
         &app,
@@ -276,25 +294,15 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
         None,
     )
     .await;
-    let seqs: Vec<_> = tail
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|a| a["seq"].clone())
-        .collect();
-    assert_eq!(
-        seqs,
-        (456..log.orders.len())
-            .map(|n| json!(n))
-            .collect::<Vec<_>>()
-    );
-    // Rebuilt from the snapshot at 450, the tail's events are those the
+    // Rebuilt from the snapshot at 450, the tail's rows are those the
     // replay from the seed gives.
-    assert_eq!(
-        tail.as_array().unwrap()[..],
-        stream.as_array().unwrap()[456..],
-        "events after a snapshot"
-    );
+    let after: Vec<_> = rows
+        .iter()
+        .filter(|r| r["seq"].as_i64().unwrap() > 455)
+        .cloned()
+        .collect();
+    assert!(!after.is_empty());
+    assert_eq!(tail, json!(after), "events after a snapshot");
     let (s, _) = call(
         &app,
         "GET",
@@ -314,6 +322,52 @@ async fn the_commonwealth_learns_no_axis_secret_over_a_whole_game(pool: PgPool) 
             StatusCode::CONFLICT
         }
     );
+}
+
+#[sqlx::test(migrator = "cna_server::MIGRATOR")]
+#[cfg_attr(
+    not(feature = "db-tests"),
+    ignore = "needs Postgres: --features db-tests"
+)]
+async fn the_feed_does_not_count_the_other_sides_secret_orders(pool: PgPool) {
+    // Dummy tanks placed in phase C (16.42) are secret: the enemy's feed
+    // shows no row for them, not an empty row each. Graziani's Axis is
+    // Italian, so the Commonwealth places them.
+    let (games, id, axis, cw) = seated(&pool).await;
+    let app = router_for_play(games.clone());
+    let log = golden();
+    let data = cna_embed::data(&log.scenario).unwrap();
+    let mut state = cna_game::state::GameState::with_modules(data, log.seed, log.modules).unwrap();
+    let mut at = 0;
+    let hexes = loop {
+        let hexes = state.dummy_tank_hexes_placeable(data, Side::Cw);
+        if hexes.len() >= 2 {
+            break hexes;
+        }
+        let o = &log.orders[at];
+        state.apply(data, o.player, o.order.clone()).unwrap();
+        at += 1;
+    };
+    play(&games, id, axis, cw, at).await;
+    let orders = format!("/api/games/{id}/orders");
+    for (k, hex) in hexes[..2].iter().enumerate() {
+        let body = json!({
+            "side": "cw",
+            "order": cna_game::order::Order::PlaceDummyTank { hex: hex.clone() },
+            "seq": at + k,
+        });
+        let (s, answer) = call(&app, "POST", &orders, Some(CW), Some(body)).await;
+        assert_eq!(s, StatusCode::OK, "{answer}");
+    }
+    let feed = format!("/api/games/{id}/events?after={}", at as i64 - 1);
+    let (_, seen) = call(&app, "GET", &feed, Some(AXIS), None).await;
+    assert_eq!(seen, json!([]), "the Axis counts the dummies");
+    let (_, own) = call(&app, "GET", &feed, Some(CW), None).await;
+    let own = own.as_array().unwrap();
+    assert_eq!(own.len(), 2, "{own:?}");
+    for row in own {
+        assert!(row["events"][0].get("dummy-tank-placed").is_some(), "{row}");
+    }
 }
 
 #[sqlx::test(migrator = "cna_server::MIGRATOR")]
