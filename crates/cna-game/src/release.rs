@@ -521,6 +521,26 @@ mod tests {
     }
 
     #[test]
+    fn the_moves_offered_keep_held_units_inside_the_cities_61_38() {
+        use crate::reach::Purpose;
+        let data = data();
+        let s = at(&data, Modules::ALL, 26, 3);
+        let zone = GameState::release_hexes(&data, Side::Cw).unwrap();
+        let held = vec![pid("unit:cw:7-hus")];
+        let reaches = s.reachable(&data, Side::Cw, &held, Purpose::Move).unwrap();
+        assert!(!reaches.is_empty(), "moves within the cities stay offered");
+        for r in &reaches {
+            assert!(r.path.iter().all(|h| zone.contains(h)), "{r:?}");
+        }
+        let hq = vec![pid("unit:cw:70th-infantry-div-hq")];
+        let reaches = s.reachable(&data, Side::Cw, &hq, Purpose::Move).unwrap();
+        assert!(
+            reaches.iter().any(|r| !zone.contains(&r.hex)),
+            "an HQ is never held"
+        );
+    }
+
+    #[test]
     fn nothing_leaves_in_the_opening_stage_but_hqs_do_61_38() {
         let data = data();
         let mut s = at(&data, Modules::ALL, 26, 3);

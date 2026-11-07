@@ -392,6 +392,48 @@ mod tests {
     }
 
     #[test]
+    fn no_move_is_offered_whose_fuel_cannot_be_paid_r120() {
+        let data = graziani();
+        let mut state = game(&data);
+        let (tank, _) = tank_and_move(&data, &mut state);
+        let here = state.pieces[&tank].hex().unwrap().clone();
+        let reach = |state: &GameState| {
+            state
+                .reachable(
+                    &data,
+                    Side::Axis,
+                    std::slice::from_ref(&tank),
+                    Purpose::Move,
+                )
+                .unwrap()
+        };
+        // 3 fuel pays the stage's first 2 but not the 4 past the CPA.
+        supply_at(&mut state, &here, 3);
+        let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
+        let reaches = reach(&state);
+        assert!(!reaches.is_empty());
+        assert!(
+            reaches.iter().all(|r| r.cp <= cpa && r.fuel == 2),
+            "{reaches:?}"
+        );
+        for r in &reaches {
+            let order = Order::Move {
+                pieces: vec![tank.clone()],
+                path: r.path.clone(),
+                assault: false,
+                fuel_from: None,
+            };
+            state.clone().apply(&data, Side::Axis, order).unwrap();
+        }
+        // Too little for the first: nothing is offered.
+        let mut dry = game(&data);
+        let (tank2, _) = tank_and_move(&data, &mut dry);
+        assert_eq!(tank2, tank);
+        supply_at(&mut dry, &here, 1);
+        assert!(reach(&dry).is_empty());
+    }
+
+    #[test]
     fn fuel_sources_are_the_supply_units_in_range_with_fuel() {
         let data = graziani();
         let mut state = game(&data);

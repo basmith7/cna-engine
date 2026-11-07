@@ -1,5 +1,5 @@
 //! A soak of every scenario cna ships: each sets up with every module on
-//! and plays a few OpStages of random moves taken from `reachable`, so
+//! and plays two OpStages of random moves taken from `reachable`, so
 //! the move list the browser shows and `apply` are held to agree
 //! everywhere, not only in Graziani's Offensive. Along the way the state
 //! must survive a save and a replay unchanged.
@@ -20,7 +20,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     /// OpStages each scenario plays.
-    const STAGES: usize = 3;
+    const STAGES: usize = 2;
     /// Moves tried per movement segment.
     const TRIES: usize = 12;
 
@@ -168,7 +168,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "slow: every scenario, several OpStages; run with --ignored"]
     fn every_scenario_takes_random_offered_moves_and_replays() {
         let mut failed = Vec::new();
         for slug in slugs() {
