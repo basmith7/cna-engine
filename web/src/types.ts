@@ -99,6 +99,8 @@ export interface Piece {
   shell?: true;
   toe?: number;
   weapons?: { weapon: string; points: number }[];
+  /** The owner's standing loss order: weapon entries, first lost first (12.45, 14.4x, 15.83). */
+  loss_order?: string[];
   /** The characteristics cell as printed, e.g. "10" or "8*". */
   cpa: string | null;
   morale?: number | null;
@@ -214,6 +216,8 @@ export type Order =
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
   | { "try-spot": { piece: PieceId } }
+  /** The owner's standing loss order for `piece`: weapon entries, first lost first; empty clears it (12.45, 14.4x, 15.83). */
+  | { "set-loss-order": { piece: PieceId; weapons: string[] } }
   | { "release-anti-armour": { piece: PieceId; target: HexId; points: number } }
   /** Phase L: a patrol of each source's points against `target` (16.x). */
   | { patrol: { sources: [PieceId, number][]; target: HexId; exclude?: PieceId[] } }
@@ -453,6 +457,7 @@ export type Event =
   | { "prisoners-escaped": { side: Side; hex: HexId; rejoined: number; escapees: number } }
   | { "prisoners-freed": { side: Side; hex: HexId; points: number } }
   | { absorbed: { piece: PieceId; weapon: string; points: number; cp: number } }
+  | { "loss-order-set": { piece: PieceId; weapons: string[] } }
   | { "broke-down": { piece: PieceId; weapon: string; reading: number; percent: number; points: number } }
   | { eliminated: { piece: PieceId } }
   | { withdrawn: { pieces: PieceId[]; motorisation: number } }

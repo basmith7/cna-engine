@@ -239,6 +239,7 @@ pub(crate) fn supply_piece(
         hidden: false,
         toe: 0,
         weapons: Vec::new(),
+        loss_order: Vec::new(),
         cpa: None,
         morale: None,
         status: None,
@@ -517,6 +518,7 @@ fn piece(
         hidden: unit.raider.is_some(),
         toe,
         weapons,
+        loss_order: Vec::new(),
         cpa: match unit
             .commander
             .as_ref()

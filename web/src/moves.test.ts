@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOFILIA } from "./map";
-import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, shiftOrders, swapOrders, tickable, toggle, toggleOffMap } from "./moves";
+import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, lossOrderDraft, OFF_MAP_PLACES, raise, offMapCapable, reassignOrder, shiftOrders, swapOrders, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -234,5 +234,28 @@ describe("swapping Commonwealth battalions between brigades in phase C (19.2x)",
     expect(swapOrders(moving, moving.pieces.a)).toEqual([]);
     const pending = at(pieces, { pending: { "retreat-before-assault": {} } });
     expect(swapOrders(pending, pending.pieces.a)).toEqual([]);
+  });
+});
+
+describe("the standing loss order a unit's owner sets (12.45, 14.4x, 15.83)", () => {
+  const unit = (extra: Partial<Piece> = {}) =>
+    ({ id: "rtr", side: "cw", kind: "combat", location: { hex: "C4021" }, weapons: [{ weapon: "A9", points: 4 }, { weapon: "A10", points: 2 }, { weapon: "A13", points: 1 }], ...extra }) as Piece;
+  const v = { pending: null, to_act: "cw", pieces: {} } as unknown as View;
+
+  it("puts the order set first, then the other entries as listed", () => {
+    expect(lossOrderDraft(v, unit())).toEqual(["A9", "A10", "A13"]);
+    expect(lossOrderDraft(v, unit({ loss_order: ["A13"] }))).toEqual(["A13", "A9", "A10"]);
+  });
+
+  it("offers nothing for an enemy unit, while something is pending, or with fewer than two entries with points", () => {
+    expect(lossOrderDraft({ ...v, to_act: "axis" } as View, unit())).toBeNull();
+    expect(lossOrderDraft({ ...v, pending: { "forced-retreat": {} } } as unknown as View, unit())).toBeNull();
+    expect(lossOrderDraft(v, unit({ weapons: [{ weapon: "A9", points: 4 }, { weapon: "A10", points: 0 }] }))).toBeNull();
+    expect(lossOrderDraft(v, unit({ weapons: undefined }))).toBeNull();
+  });
+
+  it("raises an entry one place, and leaves the first where it is", () => {
+    expect(raise(["a", "b", "c"], 2)).toEqual(["a", "c", "b"]);
+    expect(raise(["a", "b", "c"], 0)).toEqual(["a", "b", "c"]);
   });
 });

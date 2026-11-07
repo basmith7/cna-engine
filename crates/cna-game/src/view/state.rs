@@ -86,6 +86,7 @@ pub const ENEMY_PIECE_REMOVES: &[&str] = &[
     "attached_to",
     "toe",
     "weapons",
+    "loss_order",
     "morale",
     "status",
     "group",
@@ -724,6 +725,12 @@ mod tests {
         // Fill the optional fields so they serialise.
         s.rail_supply_way.get_or_insert(crate::rail::RailWay::East);
         s.rail_runs.insert(crate::rail::RailWay::East);
+        let p = s
+            .pieces
+            .values_mut()
+            .find(|p| !p.weapons.is_empty())
+            .unwrap();
+        p.loss_order = vec![p.weapons[0].weapon.clone()];
         let v = serde_json::to_value(&s).unwrap();
         let classified: BTreeSet<String> = STATE_KEEPS
             .iter()

@@ -666,6 +666,12 @@ pub enum Event {
         hex: HexId,
         minefield: bool,
     },
+    /// `piece`'s owner set the order its weapon entries lose points in
+    /// (`Order::SetLossOrder`); empty when cleared.
+    LossOrderSet {
+        piece: PieceId,
+        weapons: Vec<String>,
+    },
     /// `piece` turned `points` infantry TOE points into guards in `hex`
     /// (28.21).
     GuardsDetailed {

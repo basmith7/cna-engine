@@ -4,7 +4,7 @@
   // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, nested, shipsAtSea, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import { attachElsewhereOrders, attachmentOrder, reassignOrder, shiftOrders, swapOrders, tickable } from "./moves";
+  import { attachElsewhereOrders, attachmentOrder, lossOrderDraft, raise, reassignOrder, shiftOrders, swapOrders, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
@@ -43,6 +43,8 @@
   let absorbing: Record<string, { piece: PieceId | null; points: number }> = $state({});
   /** Raiders the side to act may form here, from a unit in this hex (27.13). */
   const formings = $derived((view.raider_formings ?? []).filter((f) => pieces.some((p) => p.id === f.from)));
+  /** Loss orders being rearranged, by unit, before Set sends them. */
+  let lossDrafts: Record<string, string[]> = $state({});
   const sideName = (s: string) => (s === "axis" ? "Axis" : "Commonwealth");
 </script>
 
@@ -180,6 +182,20 @@
                 {@const to = s["shift-parent"].to}
                 <button type="button" class="attach" data-order="shift-parent" data-to={to ?? ""} title="The change of parent its O/A notes date to this month, now or never; attached to the new parent, with a free slot (19.24)" onclick={() => onorder(s)}>{to ? `Shift to ${view.pieces[to] ? label(view.pieces[to]).short : to}` : "Shift to independent"}</button>
               {/each}
+              {@const lossOrder = lossOrderDraft(view, p)}
+              {#if lossOrder}
+                {@const draft = lossDrafts[p.id] ?? lossOrder}
+                <span class="loss-order" data-testid="loss-order" title="Which weapon points go first when the unit loses TOE points; past the list the engine picks (12.45, 14.4x, 15.83)">
+                  Losses first:
+                  {#each draft as w, i (w)}
+                    {#if i > 0}<button type="button" class="raise" aria-label="Lose {w} before {draft[i - 1]}" onclick={() => (lossDrafts[p.id] = raise(draft, i))}>‹</button>{/if}<span class="entry" data-weapon={w}>{w}</span>
+                  {/each}
+                  <button type="button" data-order="set-loss-order" onclick={() => onorder({ "set-loss-order": { piece: p.id, weapons: draft } })}>Set</button>
+                  {#if (p.loss_order ?? []).length > 0}
+                    <button type="button" data-order="clear-loss-order" title="Leave the choice to the engine: the largest entry first" onclick={() => { delete lossDrafts[p.id]; onorder({ "set-loss-order": { piece: p.id, weapons: [] } }); }}>Clear</button>
+                  {/if}
+                </span>
+              {/if}
               {@const swaps = swapOrders(view, p)}
               {#if swaps.length > 0}
                 <select class="attach" data-order="swap-battalions" aria-label="Swap brigades with" title="Trade brigades with a battalion standing alone; each brigade must keep its slots (19.2x)" value="" onchange={(e) => { const i = Number((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ""; if (swaps[i]) onorder(swaps[i]); }}>
@@ -237,6 +253,16 @@
   .guarding {
     margin: 0 0 0.3rem;
     font-size: 12px;
+  }
+  .loss-order {
+    display: block;
+    font-size: 12px;
+  }
+  .loss-order .entry {
+    padding: 0 0.2rem;
+  }
+  .loss-order .raise {
+    padding: 0 0.25rem;
   }
   .prisoners {
     margin: 0 0 0.3rem;

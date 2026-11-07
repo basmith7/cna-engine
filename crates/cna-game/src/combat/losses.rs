@@ -1,11 +1,12 @@
-//! TOE losses (SPI 12.45, 14.4x, 15.8x): the engine chooses which points
-//! go, standing in for the owner — the entry that absorbs most per point
-//! first — until a pending choice is worth its weight. A piece at zero
-//! leaves the map.
+//! TOE losses (SPI 12.45, 14.4x, 15.8x). A count of points lost goes by
+//! the owner's standing loss order (`Order::SetLossOrder`), then, past
+//! it, the engine chooses for the owner: the largest entry first. Damage
+//! absorbed by rate (`absorb`) is still the engine's choice, the fewest
+//! points lost. A piece at zero leaves the map.
 
 use super::strength::Part;
 use crate::data::Data;
-use crate::event::Event;
+use crate::event::{Event, Illegal};
 use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::map::HexId;
@@ -19,21 +20,65 @@ pub(crate) struct Share {
 }
 
 impl GameState {
-    /// Destroys up to `points` TOE points of `id`, largest entry first;
+    /// `Order::SetLossOrder`: `player`'s `piece` loses its points from
+    /// `weapons`, in that order, before the engine picks (12.45, 14.4x,
+    /// 15.83); an empty list clears it.
+    pub(crate) fn set_loss_order(
+        &mut self,
+        player: Side,
+        piece: &PieceId,
+        weapons: &[String],
+    ) -> Result<Vec<Event>, Illegal> {
+        let bad = |why: String| Illegal::new("12.45", why);
+        let p = self
+            .pieces
+            .get_mut(piece)
+            .filter(|p| p.side == player)
+            .ok_or_else(|| bad(format!("{piece} is not one of {player}'s pieces")))?;
+        for (i, w) in weapons.iter().enumerate() {
+            if !p.weapons.iter().any(|e| e.weapon == *w) {
+                return Err(bad(format!("{piece} has no {w} entry")));
+            }
+            if weapons[..i].contains(w) {
+                return Err(bad(format!("{w} is named twice")));
+            }
+        }
+        p.loss_order = weapons.to_vec();
+        Ok(vec![Event::LossOrderSet {
+            piece: piece.clone(),
+            weapons: weapons.to_vec(),
+        }])
+    }
+
+    /// Destroys up to `points` TOE points of `id`: from the first entry
+    /// of its loss order with points left, else the largest entry;
     /// returns what went.
     pub(crate) fn take_loss(&mut self, id: &PieceId, points: u32, events: &mut Vec<Event>) -> u32 {
         let mut taken = 0;
         while taken < points {
             let piece = &self.pieces[id];
+            let has = |name: &str| {
+                piece
+                    .weapons
+                    .iter()
+                    .any(|w| w.weapon == name && w.points > 0)
+            };
             let listed: u32 = piece.weapons.iter().map(|w| w.points).sum();
             let unlisted = piece.toe.saturating_sub(listed);
-            let biggest = piece
-                .weapons
+            let chosen = piece
+                .loss_order
                 .iter()
-                .max_by_key(|w| w.points)
-                .filter(|w| w.points > unlisted)
-                .map(|w| w.weapon.clone());
-            if !self.take_loss_entry(id, biggest.as_deref()) {
+                .find(|w| has(w))
+                .cloned()
+                .or_else(|| {
+                    piece
+                        .weapons
+                        .iter()
+                        .max_by_key(|w| w.points)
+                        .filter(|w| w.points > unlisted)
+                        .map(|w| w.weapon.clone())
+                });
+            if !self.take_loss_entry(id, chosen.as_deref()) {
                 break;
             }
             taken += 1;
@@ -236,6 +281,7 @@ impl GameState {
 mod tests {
     use super::*;
     use crate::movement::test_support::{hex, pid};
+    use crate::order::Order;
     use crate::piece::Location;
     use crate::state::Modules;
 
@@ -283,5 +329,151 @@ mod tests {
                 .iter()
                 .any(|e| matches!(e, Event::TanksDestroyed { .. }))
         );
+    }
+
+    /// 1 RTR made up as 4 A9, 2 A10 and 1 A13 listed, 2 points unlisted,
+    /// in the Commonwealth's movement segment with nothing pending.
+    fn mixed_1_rtr() -> (Data, GameState, PieceId) {
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = crate::movement::test_support::moving(&data, 3, Side::Cw);
+        let rtr = pid("unit:cw:1-rtr");
+        let p = state.pieces.get_mut(&rtr).unwrap();
+        p.weapons = [("A9", 4), ("A10", 2), ("A13", 1)]
+            .into_iter()
+            .map(|(weapon, points)| cna_data::oa::ToeEntry {
+                weapon: weapon.into(),
+                points,
+            })
+            .collect();
+        p.toe = 9;
+        (data, state, rtr)
+    }
+
+    fn entries(state: &GameState, id: &PieceId) -> Vec<(String, u32)> {
+        state.pieces[id]
+            .weapons
+            .iter()
+            .map(|w| (w.weapon.clone(), w.points))
+            .collect()
+    }
+
+    fn set(piece: &PieceId, weapons: &[&str]) -> Order {
+        Order::SetLossOrder {
+            piece: piece.clone(),
+            weapons: weapons.iter().map(|w| w.to_string()).collect(),
+        }
+    }
+
+    fn e(list: &[(&str, u32)]) -> Vec<(String, u32)> {
+        list.iter().map(|(w, n)| (w.to_string(), *n)).collect()
+    }
+
+    #[test]
+    fn with_no_loss_order_the_largest_entry_goes_first_then_the_unlisted() {
+        let (_, mut state, rtr) = mixed_1_rtr();
+        assert_eq!(state.take_loss(&rtr, 3, &mut Vec::new()), 3);
+        // A9 4 -> 2 while it outnumbers the 2 unlisted; then an unlisted point.
+        assert_eq!(
+            entries(&state, &rtr),
+            e(&[("A9", 2), ("A10", 2), ("A13", 1)])
+        );
+        assert_eq!(state.pieces[&rtr].toe, 6);
+    }
+
+    #[test]
+    fn losses_follow_the_owner_s_order_then_the_engine_s_12_45() {
+        let (data, mut state, rtr) = mixed_1_rtr();
+        let events = state
+            .apply(&data, Side::Cw, set(&rtr, &["A13", "A10"]))
+            .unwrap();
+        assert_eq!(
+            events,
+            vec![Event::LossOrderSet {
+                piece: rtr.clone(),
+                weapons: vec!["A13".into(), "A10".into()],
+            }]
+        );
+        assert_eq!(state.pieces[&rtr].loss_order, ["A13", "A10"]);
+        let mut events = Vec::new();
+        assert_eq!(state.take_loss(&rtr, 2, &mut events), 2);
+        assert_eq!(
+            entries(&state, &rtr),
+            e(&[("A9", 4), ("A10", 1), ("A13", 0)])
+        );
+        // The list runs out: the largest entry, as with none.
+        assert_eq!(state.take_loss(&rtr, 2, &mut events), 2);
+        assert_eq!(
+            entries(&state, &rtr),
+            e(&[("A9", 3), ("A10", 0), ("A13", 0)])
+        );
+        assert_eq!(state.pieces[&rtr].toe, 5);
+    }
+
+    #[test]
+    fn an_empty_list_clears_the_loss_order() {
+        let (data, mut state, rtr) = mixed_1_rtr();
+        state.apply(&data, Side::Cw, set(&rtr, &["A13"])).unwrap();
+        state.apply(&data, Side::Cw, set(&rtr, &[])).unwrap();
+        assert!(state.pieces[&rtr].loss_order.is_empty());
+        let json = serde_json::to_value(&state.pieces[&rtr]).unwrap();
+        assert!(
+            json.get("loss_order").is_none(),
+            "an unset order is not saved"
+        );
+        state.take_loss(&rtr, 1, &mut Vec::new());
+        assert_eq!(
+            entries(&state, &rtr),
+            e(&[("A9", 3), ("A10", 2), ("A13", 1)])
+        );
+    }
+
+    #[test]
+    fn a_loss_order_names_the_player_s_own_entries_once() {
+        let (data, mut state, rtr) = mixed_1_rtr();
+        let axis = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && !p.weapons.is_empty())
+            .map(|p| (p.id.clone(), p.weapons[0].weapon.clone()))
+            .unwrap();
+        let refused = |state: &mut GameState, player, order| {
+            let before = state.clone();
+            let err = state.apply(&data, player, order).unwrap_err();
+            assert_eq!(*state, before);
+            err.to_string()
+        };
+        let why = refused(&mut state, Side::Cw, set(&axis.0, &[axis.1.as_str()]));
+        assert!(why.contains("not one of"), "{why}");
+        let why = refused(&mut state, Side::Cw, set(&rtr, &["A9", "Matilda"]));
+        assert!(why.contains("no Matilda entry"), "{why}");
+        let why = refused(&mut state, Side::Cw, set(&rtr, &["A9", "A10", "A9"]));
+        assert!(why.contains("named twice"), "{why}");
+        // Only the player to act gives it (5.2).
+        let why = refused(&mut state, Side::Axis, set(&axis.0, &[axis.1.as_str()]));
+        assert!(why.contains("may not act"), "{why}");
+    }
+
+    #[test]
+    fn the_enemy_never_sees_a_loss_order_3_61() {
+        let (data, mut state, rtr) = mixed_1_rtr();
+        state.apply(&data, Side::Cw, set(&rtr, &["A13"])).unwrap();
+        let aliases = crate::view::Aliases::new([7; 32]);
+        let id = rtr.as_str();
+        let own = crate::view::view_for(&state, &data, &aliases, Some(Side::Cw), false).unwrap();
+        assert_eq!(own["pieces"][id]["loss_order"], serde_json::json!(["A13"]));
+        for viewer in [Some(Side::Axis), None] {
+            let v = crate::view::view_for(&state, &data, &aliases, viewer, false).unwrap();
+            assert!(v["pieces"][id].get("loss_order").is_none(), "{viewer:?}");
+        }
+        let set = Event::LossOrderSet {
+            piece: rtr.clone(),
+            weapons: vec!["A13".into()],
+        };
+        let seen = |viewer| {
+            crate::view::events_for(&state, &aliases, std::slice::from_ref(&set), viewer, false)
+        };
+        assert_eq!(seen(Some(Side::Cw)).len(), 1);
+        assert!(seen(Some(Side::Axis)).is_empty());
+        assert!(seen(None).is_empty());
     }
 }

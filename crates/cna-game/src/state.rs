@@ -1000,6 +1000,9 @@ impl GameState {
                 self.raid_dump(data, player, piece, target)
             }
             (None, Order::TrySpot { piece }) => self.try_spot(player, piece),
+            (None, Order::SetLossOrder { piece, weapons }) => {
+                self.set_loss_order(player, piece, weapons)
+            }
             (None, Order::EndSegment) => self.end_segment(data),
             (None, Order::Pass) => self.pass(data),
         }
