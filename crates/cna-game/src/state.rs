@@ -182,6 +182,11 @@ pub struct Modules {
     /// brigades.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub reassignment: bool,
+    /// The Commonwealth armour's chart limits tighten in play (19.2x):
+    /// at turns 19, 71 and 92 the units a parent's new row excludes
+    /// become independent.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub armour_limits: bool,
 }
 
 impl Modules {
@@ -209,6 +214,7 @@ impl Modules {
         zero_toe: true,
         capture_on_move: true,
         reassignment: true,
+        armour_limits: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -647,10 +653,12 @@ impl GameState {
             Some(_) => {}
         }
         let released = self.release_check(data, player, &order)?;
+        let turn = self.clock.game_turn;
         let mut events = self.apply_checked(data, player, &order)?;
         self.release_commit(released);
         self.part_from_rommel(&mut events);
         self.unassign_orphans(&mut events);
+        self.tighten_limits(data, turn, &mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)
     }

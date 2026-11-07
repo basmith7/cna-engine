@@ -3,8 +3,9 @@
 //! survivors become independent, an independent unit attached to a
 //! parent with a free Formation Organisation Chart slot may be assigned
 //! to it in phase C, and the Commonwealth may swap battalions between
-//! brigades. Historical shifts and the Commonwealth armour limits'
-//! changes are not built (`NOT_SIMULATED.md`).
+//! brigades. With `armour_limits` on, a Commonwealth parent whose
+//! chart row tightens at a new Game-Turn loses the units it no longer
+//! has a slot for. Historical shifts are not built (`NOT_SIMULATED.md`).
 
 use crate::clock::Phase;
 use crate::data::Data;
@@ -63,6 +64,89 @@ impl GameState {
             .filter(|p| p.side == player && matches!(p.kind, PieceKind::Combat | PieceKind::Hq))
             .filter(|p| p.location != Location::Eliminated)
             .ok_or_else(|| Illegal::new("19.2x", format!("{piece} is not one of {player}'s units")))
+    }
+
+    /// After an order that moved the clock from Game-Turn `before` on:
+    /// for every Commonwealth parent in play whose Formation
+    /// Organisation Chart row changed at a turn passed, as many of its
+    /// assigned units in play as the new row has fewer slots filled than
+    /// the old become independent (19.2x, the Commonwealth armour). Only
+    /// units the new row can spare go, those the old row needed first,
+    /// each pass highest id first, so a unit beyond the old row as well
+    /// stays where it was. Substitutes, withdrawn units and units yet to
+    /// arrive neither count nor go.
+    pub(crate) fn tighten_limits(&mut self, data: &Data, before: u8, events: &mut Vec<Event>) {
+        if !self.modules.armour_limits
+            || !self.modules.reassignment
+            || self.clock.game_turn <= before
+        {
+            return;
+        }
+        let parents: Vec<UnitId> = self
+            .pieces
+            .values()
+            .filter(|p| p.side == Side::Cw && p.kind == PieceKind::Hq)
+            .filter(|p| p.location != Location::Eliminated)
+            .filter_map(|p| p.id.unit())
+            .collect();
+        for turn in before + 1..=self.clock.game_turn {
+            for parent in &parents {
+                for id in self.spared(data, parent, turn) {
+                    let p = self.pieces.get_mut(&id).expect("listed");
+                    let from = PieceId::from(&p.parent.take().expect("listed"));
+                    events.push(Event::Reassigned {
+                        piece: id,
+                        to: None,
+                        from: Some(from),
+                    });
+                }
+            }
+        }
+    }
+
+    /// The units `tighten_limits` frees from `parent` as `turn` opens.
+    fn spared(&self, data: &Data, parent: &UnitId, turn: u8) -> Vec<PieceId> {
+        let Some(key) = data.oa.unit(parent).and_then(|u| u.organisation.as_deref()) else {
+            return Vec::new();
+        };
+        let row = |t: u8| data.organisation.row(parent.nation(), key, u32::from(t));
+        let (Some(old), Some(new)) = (row(turn - 1), row(turn)) else {
+            return Vec::new();
+        };
+        if std::ptr::eq(old, new) {
+            return Vec::new();
+        }
+        let fill = |row, h: &[&Unit]| slots_filled_of(&data.organisation, row, h, false);
+        let mut held: Vec<(PieceId, &Unit)> = self
+            .pieces
+            .values()
+            .filter(|p| p.location != Location::Eliminated && p.parent.as_ref() == Some(parent))
+            .filter_map(|p| Some((p.id.clone(), data.oa.unit(&p.id.unit()?)?)))
+            .collect();
+        held.sort_by(|a, b| b.0.cmp(&a.0));
+        fn sheets<'d>(h: &[(PieceId, &'d Unit)]) -> Vec<&'d Unit> {
+            h.iter().map(|(_, u)| *u).collect()
+        }
+        let mut owed = fill(old, &sheets(&held)).saturating_sub(fill(new, &sheets(&held)));
+        let mut freed = Vec::new();
+        for old_needs in [true, false] {
+            let mut k = 0;
+            while owed > 0 && k < held.len() {
+                let all = sheets(&held);
+                let mut rest = held.clone();
+                rest.remove(k);
+                let without = sheets(&rest);
+                let spare = fill(new, &without) == fill(new, &all);
+                let needed = fill(old, &without) < fill(old, &all);
+                if spare && needed == old_needs {
+                    freed.push(held.remove(k).0);
+                    owed -= 1;
+                } else {
+                    k += 1;
+                }
+            }
+        }
+        freed
     }
 
     /// The sheets of the units holding a slot of `parent`: its assigned
@@ -272,7 +356,7 @@ mod tests {
     use crate::event::Event;
     use crate::movement::test_support::{moving, pid};
     use crate::order::Order;
-    use crate::piece::Location;
+    use crate::piece::{Location, PieceId};
     use crate::state::GameState;
     use cna_data::cp::Cp;
     use cna_data::scenario::Side;
@@ -543,6 +627,134 @@ mod tests {
             err.reason.contains("only the Commonwealth"),
             "{}",
             err.reason
+        );
+    }
+
+    /// Graziani's 7th Support Group, its parent row read at Game-Turn 18
+    /// and then 19, when the chart cuts it to one infantry battalion and
+    /// no armoured car (19.2x).
+    fn support_group_at_19(on: bool) -> (GameState, Vec<Event>) {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.reassignment = true;
+        state.modules.armour_limits = on;
+        state.clock.game_turn = 19;
+        let mut events = Vec::new();
+        state.tighten_limits(&data, 18, &mut events);
+        (state, events)
+    }
+
+    #[test]
+    fn a_tighter_support_group_row_frees_what_it_no_longer_holds() {
+        let (state, events) = support_group_at_19(true);
+        let spt = pid("unit:cw:7-spt-hq");
+        let freed: Vec<&PieceId> = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::Reassigned {
+                    piece,
+                    to: None,
+                    from: Some(f),
+                } if *f == spt => Some(piece),
+                _ => None,
+            })
+            .collect();
+        // Of the 1 KRRC and 2 Rifle Brigade one stays; the 11th Hussars'
+        // armoured-car slot is gone. The 3rd and 4th RHA, one more than
+        // the old row's one artillery slot, both stay.
+        assert_eq!(
+            freed,
+            [&pid("unit:cw:2-rflbde"), &pid("unit:cw:11-hus")],
+            "{events:?}"
+        );
+        assert_eq!(events.len(), 2);
+        for id in ["unit:cw:1-krrc", "unit:cw:3-rha", "unit:cw:4-rha"] {
+            assert_eq!(
+                state.pieces[&pid(id)].parent.as_ref().map(PieceId::from),
+                Some(spt.clone()),
+                "{id}"
+            );
+        }
+        assert!(state.pieces[&pid("unit:cw:11-hus")].parent.is_none());
+    }
+
+    #[test]
+    fn without_the_module_or_a_new_turn_nothing_changes() {
+        let (_, events) = support_group_at_19(false);
+        assert!(events.is_empty());
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.armour_limits = true;
+        let mut events = Vec::new();
+        let turn = state.clock.game_turn;
+        state.tighten_limits(&data, turn, &mut events);
+        assert!(events.is_empty());
+    }
+
+    /// Three battalions under a support group whose row goes from two
+    /// infantry slots to one: the slot that goes takes one battalion with
+    /// it, and the third, beyond the old row already, stays (19.2x).
+    #[test]
+    fn units_over_the_old_row_still_give_up_the_slots_that_go() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.reassignment = true;
+        state.modules.armour_limits = true;
+        let spt = pid("unit:cw:7-spt-hq");
+        // A third infantry battalion assigned to the 7th Support Group.
+        let third = pid("unit:cw:2-cmrn");
+        state.pieces.get_mut(&third).unwrap().parent = spt.unit();
+        state.clock.game_turn = 19;
+        let mut events = Vec::new();
+        state.tighten_limits(&data, 18, &mut events);
+        let infantry_left = ["unit:cw:1-krrc", "unit:cw:2-rflbde", "unit:cw:2-cmrn"]
+            .iter()
+            .filter(|id| state.pieces[&pid(id)].parent == spt.unit())
+            .count();
+        assert_eq!(infantry_left, 2, "{events:?}");
+        assert_eq!(events.len(), 2, "one battalion and the armoured car");
+        assert!(state.pieces[&pid("unit:cw:11-hus")].parent.is_none());
+    }
+
+    #[test]
+    fn without_reassignment_no_slot_is_taken_away() {
+        let data = graziani();
+        let mut state = moving(&data, 3, Side::Cw);
+        state.modules.armour_limits = true;
+        state.clock.game_turn = 19;
+        let mut events = Vec::new();
+        state.tighten_limits(&data, 18, &mut events);
+        assert!(events.is_empty());
+    }
+
+    /// Operation Crusader read at Game-Turn 70 and then 71: an armoured
+    /// division's row drops to one armoured brigade, so one of the 7th
+    /// Armoured's two goes; its support group's new row fills more than
+    /// the old, so nothing leaves it (19.2x).
+    #[test]
+    fn at_turn_71_an_armoured_division_keeps_one_brigade() {
+        let data = Data::load("operation-crusader").unwrap();
+        let mut state = crate::state::test_support::set_up(&data, 3);
+        state.modules.reassignment = true;
+        state.modules.armour_limits = true;
+        let div = pid("unit:cw:7th-armored-div-hq").unit();
+        let brigades = |state: &GameState| {
+            ["unit:cw:4th-armored-bde-hq", "unit:cw:7th-armored-bde-hq"]
+                .iter()
+                .filter(|id| state.pieces[&pid(id)].parent == div)
+                .count()
+        };
+        assert_eq!(brigades(&state), 2, "Crusader sets up both");
+        state.clock.game_turn = 71;
+        let mut events = Vec::new();
+        state.tighten_limits(&data, 70, &mut events);
+        assert_eq!(brigades(&state), 1, "{events:?}");
+        let spt = pid("unit:cw:7-spt-hq");
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, Event::Reassigned { from: Some(f), .. } if *f == spt)),
+            "{events:?}"
         );
     }
 }

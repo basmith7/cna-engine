@@ -31,7 +31,8 @@
     "unattached_motorisation": true,
     "zero_toe": true,
     "capture_on_move": true,
-    "reassignment": true
+    "reassignment": true,
+    "armour_limits": true
   },
   "clock": {
     "game_turn": 1,
