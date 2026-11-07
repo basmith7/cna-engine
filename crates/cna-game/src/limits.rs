@@ -62,7 +62,8 @@ impl GameState {
         }
         let mut parent = to.clone();
         loop {
-            if let Some(why) = self.one_cap_refusal(data, piece, &parent, substitute) {
+            let first = &parent == to;
+            if let Some(why) = self.one_cap_refusal(data, piece, &parent, substitute, first) {
                 return Some(why);
             }
             let up = self.pieces[&parent].attached_to.clone()?;
@@ -76,6 +77,7 @@ impl GameState {
         piece: &PieceId,
         to: &PieceId,
         substitute: bool,
+        first: bool,
     ) -> Option<String> {
         let parent = &self.pieces[to];
         let unit = to.unit()?;
@@ -97,15 +99,28 @@ impl GameState {
         // The extra (non-assigned) attachments under the parent, nested
         // ones included, and the new one with its own; a substitute
         // stands in an assigned slot and is no extra (19.4x).
+        // A unit of the parent's own structure nested under one of its
+        // sub-formations counts as attached to the parent too, where it
+        // is no extra (19.4x nesting).
         let extra_of = |head: &UnitId| -> Vec<&Piece> {
             self.attached_under(head)
                 .into_iter()
-                .filter(|q| q.parent != q.attached_to && !Self::is_substitute(q))
+                .filter(|q| {
+                    q.parent != q.attached_to
+                        && !Self::is_substitute(q)
+                        && !self.assigned_within(data, q, &unit)
+                })
                 .collect()
         };
         let mut extra = extra_of(&unit);
         let new = &self.pieces[piece];
-        if !substitute {
+        // Judged against `to` itself, a unit assigned to it is weighed as
+        // the non-assigned unit it is about to become (a shift to no
+        // parent, 19.24); only an ancestor or a deeper assignment makes
+        // it the parent's own.
+        let own = self.assigned_within(data, new, &unit)
+            && !(first && new.parent.as_ref() == Some(&unit));
+        if !substitute && !own {
             extra.push(new);
         }
         if let Some(u) = piece.unit() {
@@ -176,6 +191,27 @@ impl GameState {
                 over.join(", ")
             )
         })
+    }
+
+    /// Whether `q` belongs to `head`'s structure: assigned to it, or to
+    /// a formation that is, however deep. A parent not in play is read
+    /// from its OA sheet.
+    fn assigned_within(&self, data: &Data, q: &Piece, head: &UnitId) -> bool {
+        let mut up = q.parent.clone();
+        // OA trees are a few levels deep; the bound guards a bad sheet.
+        for _ in 0..16 {
+            let Some(p) = up else {
+                return false;
+            };
+            if &p == head {
+                return true;
+            }
+            up = match self.pieces.get(&PieceId::from(&p)) {
+                Some(piece) => piece.parent.clone(),
+                None => data.oa.unit(&p).and_then(|u| u.parent.clone()),
+            };
+        }
+        false
     }
 
     /// Whether attached `q` stands in for a missing assigned unit of
