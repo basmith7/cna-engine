@@ -873,6 +873,6 @@ Blocked: Missions 6 and 7 on Brian's review (#148, #161); 18th Australian landin
 
 ## 2026-11-07 04:45 MST — main (hand-off)
 Done: #170 (vendor/cna → 215864b), #171 (Withdrawal pick panel, R-154), #172 (`infantry_types` R-179, `substitute_arrival` R-180) merged. #173 (`dummy_tanks`, 16.4/R-178) ready, main merged in, pins regenerated, review fix 3 in; CI was running at hand-off.
-In flight: #173 — merge it if CI is green (else fix on autopilot/dummy-tanks, worktree /tmp/cna-dummy-tanks).
+In flight: none (#173 merged 12:05 UTC after CI green).
 Next: #173's two review follow-ups: (1) cna-server /events feed returns an empty row per enemy order (counts dummies and chariot plans) — skip rows filtered to empty for the caller; (2) 16.45 exposure on the defender's return fire (combat/assault.rs, `a.side == other`). Then cna's answer on the 18th Australian landing when it lands.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).

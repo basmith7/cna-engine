@@ -47,7 +47,7 @@ built. #170 (merged) bumps `vendor/cna` to 215864b. #172 (merged) builds R-179
 parent's 19.5 total but not its infantry limit) and R-180
 (`substitute_arrival`: once the unit a substitute stands for is back, the
 substitute is an ordinary attachment, detached free as phase C opens if
-the parent's row no longer takes it). #173 (ready, CI running at hand-off) builds dummy tank formations
+the parent's row no longer takes it). #173 (merged) builds dummy tank formations
 (16.4, R-178) as `dummy_tanks`: in phase C a side notes up to three
 dummies, free under §32, one a hex and none with Italians (*Dummy tanks
 at …* in the phase controls); they are secret, die to a close assault or
