@@ -953,4 +953,8 @@ Blocked: Missions 6 and 7 on Brian's review (#148, #161).
 Done: review fix e7382cc (interruptible moves held only to first fuel at 0 CP; soak checks the ceiling where a move stopped). React/RBA overlays left quoting unpayable fuel (pinned by a_reaction_quotes_the_fuel_it_owes + e2e fixtures). Deep local soak (6 stages × seeds 3/11/29) clean.
 In flight: gates + CI on #188 (head e7382cc).
 Next: merge #188 when CI is green. Then extend the soak to combat (barrage fires, assault assignments, Order::Assault) — needs allocation building from the view.
+## 2026-11-07 13:25 MST — main (hand-off)
+Done: #187 merged (vendor/cna → 7947d00). #188 (ready, autopilot/soak-every-scenario, head 9ba9dc7): soak of every scenario via reachable; reach(Move) drops unpayable-fuel (interruptible moves: first fuel only) and 61.38-held moves; MovePanel shows fuel-none on an empty overlay; supply.spec.ts updated. Local gates green (clippy, cargo test, probe check).
+In flight: CI run 42409898293 on #188 (web = Playwright, first run of the new supply.spec test).
+Next: if #188's CI is green, merge it (`gh pr merge 188 --merge --delete-branch`) and remove worktree /tmp/wt-soak; if web fails, fix supply.spec/MovePanel. Then extend the soak to combat (barrage fires, assignments, Order::Assault).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
