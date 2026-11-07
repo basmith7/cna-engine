@@ -50,10 +50,11 @@ mod tests {
         let side = state.to_act().unwrap();
         let mut by_hex: BTreeMap<HexId, Vec<PieceId>> = BTreeMap::new();
         for p in state.pieces.values() {
-            if p.side == side && p.kind == PieceKind::Combat {
-                if let Some(hex) = p.hex() {
-                    by_hex.entry(hex.clone()).or_default().push(p.id.clone());
-                }
+            if p.side == side
+                && p.kind == PieceKind::Combat
+                && let Some(hex) = p.hex()
+            {
+                by_hex.entry(hex.clone()).or_default().push(p.id.clone());
             }
         }
         by_hex
