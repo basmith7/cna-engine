@@ -791,3 +791,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-07 07:56 | 58 | 16→? | none→? | $9.72 | 8 | I merged three PRs this run, and `main` passes the local checks (clippy, `cargo test`, vitest, svelte-check) with all three merged together. - **#177, voluntary |
 | 2026-11-07 09:44 | 71 | 16→17 | none→none | $11.79 | 178 | Four PRs merged this run, all with CI green. Missions 6 and 7 still wait on your review of #148 and #161. **Merged:** - **#180, loss order now steers damage abs |
 | 2026-11-07 10:55 | 79 | 17→18 | none→none | $11.39 | 2 | I built R-182 (blind barrage) and merged it as #185. Two more PRs from this run: #186 (merged) and #187 (open, CI still running at the deadline). Missions 6 and |
+| 2026-11-07 12:15 | 77 | 18→20 | none→none | $7.12 | 131 | #188 is merged (e4736a4) with CI green, Playwright included. It fixes a bug where the browser offered moves the engine then refused. #187, which moves `vendor/c |
