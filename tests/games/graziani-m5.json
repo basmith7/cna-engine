@@ -34,6 +34,7 @@
     "reassignment": true,
     "armour_limits": true,
     "no_armour_release": true,
+    "parent_shifts": true,
     "halftracks": true
   },
   "seed": 7,

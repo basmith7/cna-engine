@@ -154,3 +154,26 @@ test("in the Commonwealth's phase C two battalions standing alone trade brigades
   expect(await parentOf(CMRN)).toBe(fifth);
   await expectDomMatchesView(page);
 });
+
+test("in May 1942 the 3/1 Punjab shifts from the 5th Indian Brigade to the 25th, attached to it (19.24)", async ({ page }) => {
+  await openFixture(page, "parent-shift");
+  const PUNJAB = "unit:cw:3-1-pjb";
+  const TWENTY_FIFTH = "unit:cw:25-in-hq";
+  const hex = await page.evaluate((id) => (window.__cna.view().pieces[id].location as { hex: string }).hex, PUNJAB);
+  await clickHex(page, hex);
+  const shift = row(page, PUNJAB).locator(`[data-order="shift-parent"][data-to="${TWENTY_FIFTH}"]`);
+  await expect(shift).toHaveText(/^Shift to /);
+  // Not yet attached to the 25th: the engine refuses.
+  await shift.click();
+  await expect(page.getByTestId("toast")).toContainText("Illegal (19.24)");
+  await expect(page.getByTestId("toast")).toContainText("must be attached");
+  await row(page, PUNJAB).locator(`[data-order="attach-elsewhere"][data-to="${TWENTY_FIFTH}"]`).click();
+  await expect(log(page).filter({ hasText: /attaches to/ })).toHaveCount(1);
+  expect(await attachedTo(page, PUNJAB)).toBe(TWENTY_FIFTH);
+  await shift.click();
+  await expect(log(page).filter({ hasText: /is assigned to/ })).toHaveCount(1);
+  expect(await page.evaluate((id) => window.__cna.view().pieces[id].parent ?? null, PUNJAB)).toBe(TWENTY_FIFTH);
+  // Made once: no shift is offered again.
+  await expect(row(page, PUNJAB).locator('[data-order="shift-parent"]')).toHaveCount(0);
+  await expectDomMatchesView(page);
+});

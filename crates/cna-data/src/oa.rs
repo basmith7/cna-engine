@@ -238,8 +238,22 @@ pub struct Unit {
     /// whose values stand in for a characteristics row.
     #[serde(default)]
     pub blockship: Option<Blockship>,
+    /// The historical changes of parent its O/A notes describe (19.24,
+    /// R-176), each made in its month or never.
+    #[serde(default)]
+    pub shifts: Vec<Shift>,
     #[serde(default)]
     pub notes: Vec<String>,
+}
+
+/// A historical change of parent (19.24, R-176): from `from` (none:
+/// independent) to `to` (none: independent) in `month`, `YYYY-MM`, the
+/// month the note prints or dates (none: it may not be made).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Shift {
+    pub from: Option<UnitId>,
+    pub to: Option<UnitId>,
+    pub month: Option<String>,
 }
 
 /// 30.17's values for the *San Giorgio* (R-151).

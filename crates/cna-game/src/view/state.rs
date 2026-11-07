@@ -206,6 +206,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
 /// units), `shell: true` on a formation that is a shell (9.26), and in
 /// phase C `raider_formings`, the viewer's raiders it may form (27.13),
+/// and `parent_shifts`, its units' historical shifts of parent dated
+/// this month (19.24),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -257,6 +259,17 @@ pub fn view_for(
         .collect();
     if !formings.is_empty() {
         obj.insert("raider_formings".into(), json!(formings));
+    }
+    // Phase C: the viewer's historical shifts of parent dated this
+    // month (19.24).
+    let shifts: Vec<Value> = viewer
+        .map(|side| state.parent_shifts(data, side))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(piece, to)| json!({"piece": piece, "to": to}))
+        .collect();
+    if !shifts.is_empty() {
+        obj.insert("parent_shifts".into(), json!(shifts));
     }
     let patrols = viewer
         .map(|side| state.patrol_options(data, side))

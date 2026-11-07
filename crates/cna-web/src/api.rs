@@ -1417,6 +1417,49 @@ mod tests {
             )
             .expect("an offered patrol goes out");
 
+        // The Commonwealth's phase C moved by hand to Game-Turn 82 (May
+        // 1942), the 25th Indian Brigade beside the 3/1 Punjab, which
+        // stands alone and may shift to it this month (19.24, R-176).
+        let mut parent_shift = golden_prefix(56);
+        parent_shift
+            .apply(
+                graziani(),
+                Side::Axis,
+                Order::DeclareInitiative { player_a: Side::Cw },
+            )
+            .unwrap();
+        assert_eq!(
+            parent_shift.clock.phase,
+            cna_game::clock::Phase::Organisation
+        );
+        assert_eq!(parent_shift.to_act(), Some(Side::Cw));
+        parent_shift.clock.game_turn = 82;
+        parent_shift.modules.reassignment = true;
+        parent_shift.modules.parent_shifts = true;
+        let punjab = PieceId::from(&cna_data::oa::UnitId::parse("unit:cw:3-1-pjb").unwrap());
+        let brigade = cna_data::oa::UnitId::parse("unit:cw:25-in-hq").unwrap();
+        let at = parent_shift.pieces[&punjab].location.clone();
+        let hq = cna_game::setup::reinforcement(
+            Side::Cw,
+            &brigade,
+            &graziani().oa,
+            &graziani().chars,
+            cna_data::time::GameTime::new(82, 1),
+            at,
+        )
+        .unwrap()
+        .into_iter()
+        .find(|p| p.id == PieceId::from(&brigade))
+        .unwrap();
+        parent_shift.pieces.insert(hq.id.clone(), hq);
+        // The 3/1 Punjab starts attached to the 5th: detached by hand, it
+        // stands alone, as the browser test's first refusal needs.
+        parent_shift.pieces.get_mut(&punjab).unwrap().attached_to = None;
+        assert_eq!(
+            parent_shift.parent_shifts(graziani(), Side::Cw),
+            vec![(punjab.clone(), Some(PieceId::from(&brigade)))]
+        );
+
         // The golden set-up, then its orders up to the first phase E,
         // GT2/1 (Graziani's `first_sail`), with the ships in Alexandria
         // (30.1x, 30.59).
@@ -1501,6 +1544,7 @@ mod tests {
             ("repair", repair),
             ("tow", tow),
             ("destroyed-repair", destroyed_repair),
+            ("parent-shift", parent_shift),
             ("game-over", game_over),
         ]
     }

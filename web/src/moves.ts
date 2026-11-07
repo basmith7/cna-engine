@@ -99,6 +99,13 @@ export function reassignOrder(view: View, p: Piece): Extract<Order, { reassign: 
   return { reassign: { piece: p.id } };
 }
 
+/** Phase C: the historical shifts of parent the engine offers `p` this
+ * month (19.24); it judges attachment and slots when one is sent. */
+export function shiftOrders(view: View, p: Piece): Extract<Order, { "shift-parent": unknown }>[] {
+  if (view.clock.phase !== "organisation" || view.pending || p.side !== view.to_act) return [];
+  return (view.parent_shifts ?? []).filter((s) => s.piece === p.id).map((s) => ({ "shift-parent": { piece: p.id, to: s.to } }));
+}
+
 /** Whether `p` is a battalion standing alone in 19.2x's sense: in play,
  * attached to nothing, carrying nothing. */
 function battalionAlone(view: View, p: Piece): boolean {

@@ -4,7 +4,7 @@
   // moves. The app owns the ticks; this only shows and toggles them.
   import { glyphFor, label, markers, nameParts, nested, shipsAtSea, shown, stacks } from "./counters";
   import { hexInfo } from "./map";
-  import { attachElsewhereOrders, attachmentOrder, reassignOrder, swapOrders, tickable } from "./moves";
+  import { attachElsewhereOrders, attachmentOrder, reassignOrder, shiftOrders, swapOrders, tickable } from "./moves";
   import { itemName, itemStages } from "./construction";
   import { escapeesAt, guardPhase, guardsAt, prisonersAt } from "./prisoners";
   import { repairedAt } from "./replacements";
@@ -176,6 +176,10 @@
               {#if reassign}
                 <button type="button" class="attach" data-order="reassign" title="Take a free slot of the parent it is attached to (19.2x)" onclick={() => onorder(reassign)}>Reassign</button>
               {/if}
+              {#each shiftOrders(view, p) as s (s["shift-parent"].to ?? "")}
+                {@const to = s["shift-parent"].to}
+                <button type="button" class="attach" data-order="shift-parent" data-to={to ?? ""} title="The change of parent its O/A notes date to this month, now or never; attached to the new parent, with a free slot (19.24)" onclick={() => onorder(s)}>{to ? `Shift to ${view.pieces[to] ? label(view.pieces[to]).short : to}` : "Shift to independent"}</button>
+              {/each}
               {@const swaps = swapOrders(view, p)}
               {#if swaps.length > 0}
                 <select class="attach" data-order="swap-battalions" aria-label="Swap brigades with" title="Trade brigades with a battalion standing alone; each brigade must keep its slots (19.2x)" value="" onchange={(e) => { const i = Number((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ""; if (swaps[i]) onorder(swaps[i]); }}>
