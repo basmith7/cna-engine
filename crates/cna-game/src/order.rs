@@ -275,8 +275,9 @@ pub enum Order {
     TrySpot { piece: PieceId },
     /// Whenever its player is to act with nothing pending: the owner of
     /// `piece` names entries of its `weapons` in the order their points
-    /// go when it loses a count of TOE points (12.45, 14.4x, 15.83); an
-    /// empty list clears it.
+    /// go when it loses a count of TOE points (12.45) and, with
+    /// `absorb_by_loss_order` on, when its points absorb damage by rating
+    /// (14.4x, 15.83, 15.84); an empty list clears it.
     SetLossOrder {
         piece: PieceId,
         weapons: Vec<String>,

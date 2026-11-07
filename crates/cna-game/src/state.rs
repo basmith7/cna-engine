@@ -246,6 +246,12 @@ pub struct Modules {
     /// games, for withdrawal points (20.9, 64.75, R-109).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub voluntary_withdrawals: bool,
+    /// A unit's standing loss order (`Order::SetLossOrder`) also picks
+    /// the points that absorb damage by rating: anti-armour damage
+    /// (14.4x), close assault and retreat losses (15.83) and gun
+    /// vulnerability (15.84).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub absorb_by_loss_order: bool,
 }
 
 impl Modules {
@@ -284,6 +290,7 @@ impl Modules {
         scenario_arrivals: true,
         returning_transport: true,
         voluntary_withdrawals: true,
+        absorb_by_loss_order: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
