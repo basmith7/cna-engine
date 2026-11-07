@@ -321,8 +321,10 @@ impl GameState {
                 }
             }
             // 14.23: a hex that turns out to hold no armour frees half
-            // the points aimed at it, rounded down, for close assault.
+            // the points aimed at it, rounded down, for close assault;
+            // not where the only armour was a dummy (16.45).
             if self.modules.no_armour_release
+                && !self.has_dummy_tank(other, &target)
                 && !self.pieces.values().any(|p| {
                     p.side == other
                         && p.hex() == Some(&target)
@@ -446,6 +448,11 @@ impl GameState {
             if a.side == phasing {
                 for h in &a.from {
                     self.charge_combat_hex(h, PHASING_CEILING, events);
+                }
+                // 16.45: a dummy dies under anti-armour fire once its hex
+                // holds no real armour.
+                if !self.holds_real_armour(data, other, &a.target) {
+                    self.expose_dummy_tank(other, &a.target, events);
                 }
             }
             self.charge_combat_hex(&a.target, NON_PHASING_CEILING, events);
@@ -910,6 +917,8 @@ impl GameState {
         let plan = self.plan_ammo(data, &payers, Role::Assault, true);
         plan.refuse()?;
         self.spend_ammo(plan.payments, &mut events);
+        // 16.44: a dummy dies as soon as its formation is close-assaulted.
+        self.expose_dummy_tank(other, target, &mut events);
         let probe = attacker_ids
             .iter()
             .all(|id| self.combat.probing.contains(id));
@@ -3697,6 +3706,85 @@ mod tests {
             assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
         }
         state
+    }
+
+    /// C4020's Libyans with an Axis dummy tank formation among them
+    /// (16.4), the Commonwealth's `assignments` made against them: the
+    /// state, and the events of the step that resolves its fire.
+    fn fight_a_dummy(data: &Data, assignments: Vec<Assignment>) -> (GameState, Vec<Event>) {
+        let mut state = with_tanks(data);
+        state.modules.no_armour_release = true;
+        state
+            .dummy_tanks
+            .insert(Side::Axis, BTreeSet::from([hex("C4020")]));
+        let mut events = Vec::new();
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (Side::Cw, Order::AssignForces { assignments }),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+        ] {
+            events = state.apply(data, side, order).unwrap();
+        }
+        (state, events)
+    }
+
+    fn exposed(events: &[Event]) -> bool {
+        events.iter().any(|e| {
+            matches!(e, Event::DummyTankExposed { side: Side::Axis, hex } if *hex == hex_c4020())
+        })
+    }
+
+    fn hex_c4020() -> HexId {
+        hex("C4020")
+    }
+
+    #[test]
+    fn anti_armour_fire_at_a_dummy_with_no_real_armour_kills_it_and_frees_nothing_16_45() {
+        let data = graziani();
+        let c4020 = Some("C4020");
+        let (state, events) = fight_a_dummy(
+            &data,
+            vec![
+                assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)]),
+                assign("unit:cw:1-rtr", vec![alloc(c4020, 7)], vec![]),
+            ],
+        );
+        assert!(exposed(&events), "{events:?}");
+        assert!(state.dummy_tanks.is_empty());
+        // The only armour was the dummy: no points go to the assault.
+        assert!(state.anti_armour_releases(&data).is_empty());
+    }
+
+    #[test]
+    fn a_close_assault_kills_a_dummy_16_44() {
+        let data = graziani();
+        let c4020 = Some("C4020");
+        let (mut state, events) = fight_a_dummy(
+            &data,
+            vec![assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)])],
+        );
+        assert!(!exposed(&events), "no anti-armour fire: {events:?}");
+        assert!(state.has_dummy_tank(Side::Axis, &hex_c4020()));
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex_c4020(),
+                },
+            )
+            .unwrap();
+        assert!(exposed(&events), "{events:?}");
+        assert!(state.dummy_tanks.is_empty());
     }
 
     fn release(piece: &str, at: &str, points: u32) -> Order {

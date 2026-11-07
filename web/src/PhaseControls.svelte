@@ -30,6 +30,7 @@
         | "end-segment"
         | "pass"
         | "plan-chariot-raid"
+        | { "place-dummy-tank": { hex: HexId } }
         | { "declare-initiative": { player_a: Side } }
         | { "designate-reserve": { pieces: PieceId[] } }
         | { "release-reserve": { pieces: PieceId[] } }
@@ -137,6 +138,13 @@
       {#if view.chariot_raid_plannable}
         <!-- 30.41: the engine offers it only when the Axis may plan it now; the plan stays secret until made. -->
         <button type="button" data-order="plan-chariot-raid" title="Strikes the ships in Alexandria in the seventh OpStage from now (30.4x)" onclick={() => onorder("plan-chariot-raid")}>Plan chariot raid</button>
+      {/if}
+      {#if hex && view.dummy_tank_options?.includes(hex)}
+        <!-- 16.4x: the engine lists the hexes the viewer may note one in; it stays the viewer's secret. -->
+        <button type="button" data-order="place-dummy-tank" title="A dummy tank battalion with this hex's formation: CPA 0, worth nothing in combat, gone when close-assaulted or caught by anti-armour fire with no real armour (16.4, R-178)" onclick={() => onorder({ "place-dummy-tank": { hex } })}>Dummy tanks at {hex}</button>
+      {/if}
+      {#if view.to_act && (view.dummy_tanks?.[view.to_act] ?? []).length > 0}
+        <span class="hint" data-testid="dummy-tanks">Dummy tanks: {(view.dummy_tanks?.[view.to_act] ?? []).join(", ")}</span>
       {/if}
       {#if loaded.length >= 2}
         <span class="transfer" data-testid="transfer">

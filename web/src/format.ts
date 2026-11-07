@@ -333,6 +333,9 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const sunk = (d.sunk ?? []).length > 0 ? ` ${list(d.sunk!, name)} ${d.sunk!.length === 1 ? "is" : "are"} sunk.` : "";
     return `Axis strike on Alexandria: column ${d.column}, dice ${d.reading}, ${d.damage} gun ${d.damage === 1 ? "point" : "points"} of damage${hits.length > 0 ? ` (${hits.join(", ")})` : ""}.${sunk}`;
   }
+  if ("dummy-tank-placed" in e) return `${sideName(e["dummy-tank-placed"].side)} notes a dummy tank formation at ${e["dummy-tank-placed"].hex} (16.42).`;
+  if ("dummy-tank-lost" in e) return `${sideName(e["dummy-tank-lost"].side)}'s dummy tank formation at ${e["dummy-tank-lost"].hex} has no formation left and is gone (16.4).`;
+  if ("dummy-tank-exposed" in e) return `${sideName(e["dummy-tank-exposed"].side)}'s tanks at ${e["dummy-tank-exposed"].hex} were a dummy, and are gone (16.44).`;
   if ("chariot-raid-planned" in e) return `The Axis plans a chariot raid on Alexandria, seven OpStages from GT${e["chariot-raid-planned"].game_turn}/${e["chariot-raid-planned"].stage} (30.41).`;
   if ("chariot-raid" in e) {
     const d = e["chariot-raid"];

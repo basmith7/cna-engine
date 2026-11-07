@@ -357,6 +357,9 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         E::FleetStrikesRolled { .. } => Own(Some(Side::Axis)),
         // 30.41: the raid is noted secretly; made, it is public.
         E::ChariotRaidPlanned { .. } => Own(Some(Side::Axis)),
+        // 16.4: a dummy has no counter; only a fight shows it up.
+        E::DummyTankPlaced { side, .. } | E::DummyTankLost { side, .. } => Own(Some(*side)),
+        E::DummyTankExposed { .. } => Public,
         E::Towed { side, .. } => Own(Some(*side)),
         E::FieldRepaired { hex, weapon, .. } | E::FacilityRepaired { hex, weapon, .. } => {
             let mut rolled = [Side::Axis, Side::Cw].into_iter().filter(|s| {

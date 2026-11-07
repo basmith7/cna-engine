@@ -19,6 +19,7 @@ mod cycle;
 pub mod data;
 mod destroyed;
 mod determinism;
+pub mod dummy_tanks;
 pub mod event;
 mod facility;
 pub mod fleet;

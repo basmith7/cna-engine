@@ -162,6 +162,7 @@ const STATE_FILTERS: &[&str] = &[
     "escaped",
     "fleet_strikes",
     "chariot_raid",
+    "dummy_tanks",
     "prisoners",
     "prisoners_out",
     "prisoners_off_map",
@@ -209,7 +210,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// phase C `raider_formings`, the viewer's raiders it may form (27.13),
 /// and `parent_shifts`, its units' historical shifts of parent dated
 /// this month (19.24), and `chariot_raid_plannable` when the viewer may
-/// plan the chariot raid (30.41),
+/// plan the chariot raid (30.41), and `dummy_tank_options`, the hexes
+/// it may note a dummy tank formation in (16.4x),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -276,6 +278,14 @@ pub fn view_for(
     // Phase C: the Axis viewer may plan its chariot raid (30.41).
     if viewer.is_some_and(|side| state.chariot_raid_plannable(data, side)) {
         obj.insert("chariot_raid_plannable".into(), json!(true));
+    }
+    // Phase C: the hexes the viewer may note a dummy tank formation in
+    // (16.4x): its own units' hexes, which it knows.
+    let dummies = viewer
+        .map(|side| state.dummy_tank_hexes_placeable(data, side))
+        .unwrap_or_default();
+    if !dummies.is_empty() {
+        obj.insert("dummy_tank_options".into(), json!(dummies));
     }
     let patrols = viewer
         .map(|side| state.patrol_options(data, side))
@@ -463,6 +473,7 @@ pub fn view_for(
         "escaped",
         "fleet_strikes",
         "chariot_raid",
+        "dummy_tanks",
     ] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {
@@ -470,12 +481,15 @@ pub fn view_for(
             });
         }
     }
-    // An empty map would itself tell that a raid is planned (30.41).
-    if let Some(o) = v.as_object_mut()
-        && o.get("chariot_raid")
-            .is_some_and(|m| m.as_object().is_some_and(Map::is_empty))
-    {
-        o.remove("chariot_raid");
+    // An empty map would itself tell that a raid is planned (30.41), or
+    // that the enemy has dummy tank formations (16.4).
+    for key in ["chariot_raid", "dummy_tanks"] {
+        if let Some(o) = v.as_object_mut()
+            && o.get(key)
+                .is_some_and(|m| m.as_object().is_some_and(Map::is_empty))
+        {
+            o.remove(key);
+        }
     }
     if names.iter().any(|n| n == "axis")
         && let Some(o) = v.as_object_mut()
@@ -544,6 +558,8 @@ pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
     if viewer != Side::Axis {
         s.chariot_raid.remove(&Side::Axis);
     }
+    // And the enemy's dummy tank formations (16.4).
+    s.dummy_tanks.remove(&viewer.other());
     s
 }
 

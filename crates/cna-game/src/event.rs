@@ -413,6 +413,23 @@ pub enum Event {
         game_turn: u8,
         stage: u8,
     },
+    /// `side` noted a dummy tank formation in `hex` (16.42): its secret.
+    DummyTankPlaced {
+        side: Side,
+        hex: HexId,
+    },
+    /// `side`'s dummy in `hex` lost its formation and is gone: its
+    /// secret still.
+    DummyTankLost {
+        side: Side,
+        hex: HexId,
+    },
+    /// `side`'s dummy in `hex` was close-assaulted or left with no real
+    /// armour under anti-armour fire, and dies in the open (16.44).
+    DummyTankExposed {
+        side: Side,
+        hex: HexId,
+    },
     /// The chariot raid on Alexandria (30.4x): `roll` on the Chariot
     /// Raid Table gave `dice` dice of damage, totalling `damage` gun
     /// points, laid on the ships in harbour in `hits`; those in `sunk`
