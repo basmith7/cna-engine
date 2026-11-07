@@ -42,7 +42,7 @@ armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
 **2026-11-07 evening (19:15–20:45 UTC):** #187 (merged) bumps
-`vendor/cna` to 7947d00 and homes R-188. #188 adds a soak test that plays
+`vendor/cna` to 7947d00 and homes R-188. #188 (merged) adds a soak test that plays
 two OpStages of every scenario with random moves taken from the browser's
 move overlay (`reachable`), reactions and forced retreats included, and
 checks `apply` accepts each, the save round-trips and the log replays. It

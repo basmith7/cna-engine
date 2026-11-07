@@ -960,3 +960,9 @@ Done: #187 merged (vendor/cna → 7947d00). #188 (ready, autopilot/soak-every-sc
 In flight: CI run 42409898293 on #188 (web = Playwright, first run of the new supply.spec test).
 Next: if #188's CI is green, merge it (`gh pr merge 188 --merge --delete-branch`) and remove worktree /tmp/wt-soak; if web fails, fix supply.spec/MovePanel. Then extend the soak to combat (barrage fires, assignments, Order::Assault).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 13:35 MST — main (hand-off)
+Done: #188 merged (e4736a4) with CI green (Playwright included); worktrees removed.
+In flight: none.
+Next: extend `cna-game::soak` to combat (barrage fires, assault assignments, Order::Assault) to hunt more overlay/apply disagreements; or anything Brian's Feedback asks.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
