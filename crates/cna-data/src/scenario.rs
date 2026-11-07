@@ -1075,11 +1075,11 @@ mod tests {
         assert!(cw_tactical.supply.is_some());
         assert!(VictoryLevel::Strategic > VictoryLevel::Decisive);
         assert!(VictoryLevel::Decisive > VictoryLevel::Tactical);
-        // Rommel's Arrival: a hold the grammar cannot check carries its sentence.
+        // Rommel's Arrival: the Egyptian hold is a region (its count,
+        // R-187, is not read yet).
         let r = Scenario::load("rommels-arrival").unwrap().victory.unwrap();
         let region = &r.levels[2].all_of[3].hold;
         assert_eq!(region.locators[0], Locator::Region(Country::Egypt));
-        assert!(region.constraint.is_some());
         assert_eq!(r.levels[2].supply_trace, None);
     }
 

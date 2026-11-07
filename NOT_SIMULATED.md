@@ -66,6 +66,12 @@ Every ruling in `vendor/cna/rulings/` either has a switch in
 | R-115 | Air Game: not in the engine yet |
 | R-116 | Air Game: not in the engine yet |
 | R-120 | abstract supply, a unit that cannot pay: the land move and the attack are refused as decided (`cna-game::fuel`, `cna-game::ammo`); a committed defender out of ammunition does not defend, and when every committed defender that owes ammunition is out the hex surrenders, HQs included (`cna-game::combat::assault`) |
+| R-182 | not yet: blind barrage targets numbered by class (12.22); the firer names any counter in the hex (*Combat systems* below) |
+| R-183 | not yet: The Last Chance's `toe_on_sheet` tactical count is not read, so failing the strategic hold neither side wins |
+| R-184 | not yet: a `margins` row's `side` is not read, so The Long Retreat's 0 points gives no one a win |
+| R-185 | not yet: the Italian Campaign's `margins` give its plain (tactical) win; the `cut_off` strategic win is not read |
+| R-186 | not yet: `points_supply` is not read, so Crusader's, The Long Retreat's and the Italian Campaign's places score with no supply test |
+| R-187 | not yet: the hold's `count`, `place_kinds` and `counted_once` are not read, so Rommel's Arrival's Egyptian hold asks for every Egyptian hex and is never met |
 
 # Rulings implemented as decided
 
