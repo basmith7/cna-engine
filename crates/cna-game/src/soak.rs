@@ -12,7 +12,7 @@ mod tests {
     use crate::order::Order;
     use crate::piece::{PieceId, PieceKind};
     use crate::reach::Purpose;
-    use crate::state::test_support::{auto_place, drain_combat};
+    use crate::state::test_support::auto_place;
     use crate::state::{GameState, Modules, Pending};
     use cna_data::map::HexId;
     use rand_chacha::ChaCha8Rng;
@@ -70,8 +70,15 @@ mod tests {
     }
 
     /// Answers what the non-phasing player owes mid-move: ZOC at random
-    /// (10.16), reactions declined.
-    fn answer_pending(data: &Data, state: &mut GameState, rng: &mut ChaCha8Rng) {
+    /// (10.16); a reaction (8.5x), half the time, by one eligible unit
+    /// to a hex `reachable` offers it, else declined. A reaction `apply`
+    /// refuses is a disagreement, kept in `faults`.
+    fn answer_pending(
+        data: &Data,
+        state: &mut GameState,
+        rng: &mut ChaCha8Rng,
+        faults: &mut Vec<String>,
+    ) {
         while let Some(p) = state.pending.clone() {
             let side = p.side();
             let order = match p {
@@ -81,11 +88,104 @@ mod tests {
                         .filter(|_| rng.next_u32() & 1 == 0)
                         .collect(),
                 },
-                Pending::Reaction { .. } => Order::Pass,
+                Pending::Reaction { eligible, .. } => {
+                    let reactor = pick(rng, &eligible).filter(|_| rng.next_u32() & 1 == 0);
+                    let reach = reactor.as_ref().and_then(|id| {
+                        let reaches = state
+                            .reachable(data, side, std::slice::from_ref(id), Purpose::React)
+                            .ok()?;
+                        pick(rng, &reaches)
+                    });
+                    match (reactor, reach) {
+                        (Some(id), Some(r)) => {
+                            let order = Order::React {
+                                pieces: vec![id.clone()],
+                                path: r.path.clone(),
+                            };
+                            let mut trial = state.clone();
+                            match trial.apply(data, side, order) {
+                                Ok(_) => {
+                                    *state = trial;
+                                    continue;
+                                }
+                                Err(e) => {
+                                    faults.push(format!(
+                                        "{} {side}: reachable offers {id} a reaction to {} by {:?}, apply says {e:?}",
+                                        state.clock, r.hex, r.path
+                                    ));
+                                    Order::Pass
+                                }
+                            }
+                        }
+                        _ => Order::Pass,
+                    }
+                }
                 _ => return,
             };
             state.apply(data, side, order).unwrap();
         }
+    }
+
+    /// Answers every combat step with nothing until reserve release
+    /// opens, as `drain_combat` does, but a forced retreat goes to a hex
+    /// `reachable` offers it (15.82, 10.36), checked against `apply`.
+    fn through_combat(
+        data: &Data,
+        state: &mut GameState,
+        rng: &mut ChaCha8Rng,
+        faults: &mut Vec<String>,
+    ) {
+        loop {
+            if let Some(Pending::ForcedRetreat { side, pieces, .. }) = state.pending.clone() {
+                let reaches = state
+                    .reachable(data, side, &pieces, Purpose::ForcedRetreat)
+                    .unwrap_or_default();
+                if let Some(r) = pick(rng, &reaches) {
+                    let order = Order::Retreat {
+                        path: r.path.clone(),
+                    };
+                    let mut trial = state.clone();
+                    match trial.apply(data, side, order) {
+                        Ok(_) => {
+                            *state = trial;
+                            continue;
+                        }
+                        Err(e) => faults.push(format!(
+                            "{} {side}: reachable offers a retreat to {} by {:?}, apply says {e:?}",
+                            state.clock, r.hex, r.path
+                        )),
+                    }
+                }
+            }
+            let before = state.log.len();
+            drain_one(data, state);
+            if state.log.len() == before {
+                return;
+            }
+        }
+    }
+
+    /// One answer of `drain_combat`'s, if a combat step is pending.
+    fn drain_one(data: &Data, state: &mut GameState) {
+        use crate::combat::SealedStep;
+        let player = state.to_act().unwrap();
+        let order = match &state.pending {
+            Some(Pending::Sealed { step, .. }) => match step {
+                SealedStep::GunPositions => Order::GunPositions { forward: vec![] },
+                SealedStep::Barrage => Order::Barrage { fires: vec![] },
+                SealedStep::AssignForces => Order::AssignForces {
+                    assignments: vec![],
+                },
+            },
+            Some(Pending::RetreatBeforeAssault { .. }) | Some(Pending::ForcedRetreat { .. }) => {
+                Order::Pass
+            }
+            None if state.clock.segment == Some(Segment::CloseAssault) => Order::Pass,
+            _ => return,
+        };
+        state
+            .apply(data, player, order.clone())
+            .unwrap_or_else(|e| panic!("{} {order:?}: {e:?}", state.clock));
     }
 
     /// One random move offered by `reachable`; a refusal by `apply` of a
@@ -103,7 +203,19 @@ mod tests {
         let Ok(reaches) = state.reachable(data, side, &pieces, Purpose::Move) else {
             return Ok(false);
         };
-        let Some(reach) = pick(rng, &reaches) else {
+        // Half the time toward the enemy: a move that may be stopped by
+        // a ZOC declaration or a reaction, where the rules are busiest.
+        let contested: Vec<_> = reaches
+            .iter()
+            .filter(|r| r.may_be_interrupted || r.ends_in_zoc)
+            .cloned()
+            .collect();
+        let pool = if !contested.is_empty() && rng.next_u32() & 1 == 0 {
+            &contested
+        } else {
+            &reaches
+        };
+        let Some(reach) = pick(rng, pool) else {
             return Ok(false);
         };
         let order = Order::Move {
@@ -147,10 +259,10 @@ mod tests {
                         if let Err(f) = random_move(data, &mut state, &mut rng) {
                             faults.push(f);
                         }
-                        answer_pending(data, &mut state, &mut rng);
+                        answer_pending(data, &mut state, &mut rng, &mut faults);
                     }
                     state.apply(data, player, Order::EndSegment).unwrap();
-                    drain_combat(data, &mut state);
+                    through_combat(data, &mut state, &mut rng, &mut faults);
                     continue;
                 }
                 let order = match &state.pending {
@@ -180,15 +292,23 @@ mod tests {
                     .iter()
                     .filter(|o| matches!(o.order, Order::Move { .. }))
                     .count();
+                let reactions = live
+                    .log
+                    .iter()
+                    .filter(|o| matches!(o.order, Order::React { .. }))
+                    .count();
                 let saved = GameState::from_json(&live.to_json().unwrap(), &data).unwrap();
                 assert_eq!(saved, live, "{slug}: the save does not round-trip");
                 let replayed = replay(&data, &live.to_log()).unwrap();
                 assert_eq!(replayed, live, "{slug}: the log does not replay");
-                (moves, faults)
+                (moves, reactions, faults)
             });
             match run {
-                Ok((moves, faults)) => {
-                    eprintln!("{slug}: {moves} moves, {} faults", faults.len());
+                Ok((moves, reactions, faults)) => {
+                    eprintln!(
+                        "{slug}: {moves} moves, {reactions} reactions, {} faults",
+                        faults.len()
+                    );
                     for f in faults.iter().take(5) {
                         eprintln!("  {f}");
                     }

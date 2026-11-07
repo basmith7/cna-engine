@@ -678,5 +678,14 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.case, "32.22", "{}", err.reason);
         assert_eq!(snapshot(&state), before);
+        let reach = state
+            .reachable(
+                &data,
+                Side::Cw,
+                &[pid("unit:cw:7-med")],
+                crate::reach::Purpose::React,
+            )
+            .unwrap();
+        assert!(reach.is_empty(), "no reaction is offered: {reach:?}");
     }
 }

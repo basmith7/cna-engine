@@ -404,7 +404,10 @@ impl GameState {
                 r.short == 0 || buy_out
             });
         }
-        if purpose == Purpose::Move {
+        if matches!(
+            purpose,
+            Purpose::Move | Purpose::React | Purpose::RetreatBeforeAssault
+        ) {
             // Two refusals that hang on the path, as `apply` makes them:
             // fuel no supply unit in range can pay (32.22, R-120), and
             // leaving Cairo or Alexandria before or past the release
@@ -425,11 +428,18 @@ impl GameState {
                     .or_insert_with(|| self.plan_fuel(data, &owned, r.cp, None).is_ok());
                 let inside = r.path.iter().all(|h| cities.contains(h));
                 pays && *released.entry(inside).or_insert_with(|| {
-                    let order = Order::Move {
-                        pieces: pieces.to_vec(),
-                        path: r.path.clone(),
-                        assault: false,
-                        fuel_from: None,
+                    let (pieces, path) = (pieces.to_vec(), r.path.clone());
+                    let order = match purpose {
+                        Purpose::React => Order::React { pieces, path },
+                        Purpose::RetreatBeforeAssault => {
+                            Order::RetreatBeforeAssault { pieces, path }
+                        }
+                        _ => Order::Move {
+                            pieces,
+                            path,
+                            assault: false,
+                            fuel_from: None,
+                        },
                     };
                     self.release_check(data, side, &order).is_ok()
                 })
