@@ -733,6 +733,20 @@
               <p>The engine takes no more orders (60.22). <button type="button" data-testid="show-report" onclick={() => (reportOpen = true)}>Show the victory report</button></p>
             </section>
           {/if}
+          {#if myTurn && (view.anti_armour_releases ?? []).length > 0}
+            <section class="panel assault" data-testid="release-panel">
+              <h2>No armour found</h2>
+              <p>Anti-armour fire found no armour: up to half the points aimed at the hex may join an assault on it (14.23).</p>
+              <ul class="releases">
+                {#each view.anti_armour_releases ?? [] as r (r.piece + r.target)}
+                  <li data-testid="release-anti-armour">
+                    {view.pieces[r.piece] ? label(view.pieces[r.piece]).long : r.piece} at {r.target}:
+                    <button type="button" onclick={() => send({ "release-anti-armour": { piece: r.piece, target: r.target, points: r.points } })}>Release {r.points} to assault</button>
+                  </li>
+                {/each}
+              </ul>
+            </section>
+          {/if}
           {#if toAssault.length > 0}
             <section class="panel assault" data-testid="assault-panel">
               <h2>Close assault · {toAssault.length} to resolve</h2>

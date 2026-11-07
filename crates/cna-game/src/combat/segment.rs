@@ -57,7 +57,8 @@ impl GameState {
             .any(|p| self.raw_of(data, p, Kind::Barrage) > 0)
     }
 
-    /// Whether the phasing player assigned any close assault (15.2x).
+    /// Whether the phasing player assigned any close assault (15.2x), or
+    /// may still make one with released anti-armour points (14.23).
     fn close_assault_needed(&self) -> bool {
         let Some(phasing) = self.phasing() else {
             return false;
@@ -66,6 +67,9 @@ impl GameState {
             .assignments
             .get(&phasing)
             .is_some_and(|a| a.iter().any(|x| !x.close_assault.is_empty()))
+            // Anti-armour points aimed at no armour may still join an
+            // assault there (14.23).
+            || !self.combat.no_armour.is_empty()
     }
 
     /// The order the sealed steps are answered in: the phasing player,

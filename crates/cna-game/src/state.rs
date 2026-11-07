@@ -187,6 +187,11 @@ pub struct Modules {
     /// become independent.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub armour_limits: bool,
+    /// A hex fired on with anti-armour that turns out to hold no armour
+    /// frees up to half (rounded down) of the points aimed at it for a
+    /// close assault on it this segment (14.23).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub no_armour_release: bool,
 }
 
 impl Modules {
@@ -215,6 +220,7 @@ impl Modules {
         capture_on_move: true,
         reassignment: true,
         armour_limits: true,
+        no_armour_release: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -773,6 +779,14 @@ impl GameState {
             }
             (None, Order::Retreat { .. }) => Err(Illegal::new("15.82", "no retreat is pending")),
             (None, Order::Assault { target }) => self.assault(data, player, target),
+            (
+                None,
+                Order::ReleaseAntiArmour {
+                    piece,
+                    target,
+                    points,
+                },
+            ) => self.release_anti_armour(data, player, piece, target, *points),
             (None, Order::DeclareInitiative { player_a }) => {
                 self.declare_initiative(data, *player_a)
             }

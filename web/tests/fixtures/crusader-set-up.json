@@ -32,7 +32,8 @@
     "zero_toe": true,
     "capture_on_move": true,
     "reassignment": true,
-    "armour_limits": true
+    "armour_limits": true,
+    "no_armour_release": true
   },
   "clock": {
     "game_turn": 57,

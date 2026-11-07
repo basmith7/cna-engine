@@ -10,6 +10,7 @@ use super::{AssaultRecord, RetreatReason};
 use crate::clock::Segment;
 use crate::data::Data;
 use crate::event::{AssaultRoll, Event, Illegal};
+use crate::order::Allocation;
 use crate::piece::{Piece, PieceId, PieceKind};
 use crate::state::{GameState, Pending};
 use cna_data::characteristics::Equivalent;
@@ -315,6 +316,21 @@ impl GameState {
                     });
                 }
             }
+            // 14.23: a hex that turns out to hold no armour frees half
+            // the points aimed at it, rounded down, for close assault.
+            if self.modules.no_armour_release
+                && !self.pieces.values().any(|p| {
+                    p.side == other
+                        && p.hex() == Some(&target)
+                        && p.toe > 0
+                        && self.parts(data, p).iter().any(Part::armoured)
+                })
+            {
+                let aimed: u32 = firers.iter().map(|c| c.points).sum();
+                if aimed / 2 > 0 {
+                    self.combat.no_armour.insert(target.clone(), aimed / 2);
+                }
+            }
             attacks.push(AntiArmourAttack {
                 side: phasing,
                 from: firers.iter().map(|c| c.hex.clone()).collect(),
@@ -534,6 +550,243 @@ impl GameState {
             }
         }
         self.combat.probing = probing;
+    }
+
+    /// What the phasing player may still release under 14.23, as
+    /// (piece, hex, most points): each unit's anti-armour points aimed
+    /// at a hex that held no armour and is not yet assaulted, capped by
+    /// what that hex has left to free. Empty outside the close assault
+    /// step. What a client offers.
+    pub fn anti_armour_releases(&self, data: &Data) -> Vec<(PieceId, HexId, u32)> {
+        if self.clock.segment != Some(Segment::CloseAssault) || self.pending.is_some() {
+            return Vec::new();
+        }
+        let Some(phasing) = self.phasing() else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for (c, t) in self.phasing_commits(phasing, false) {
+            let Some(&left) = self.combat.no_armour.get(&t) else {
+                continue;
+            };
+            if self.combat.assaults.contains_key(&t) {
+                continue;
+            }
+            let Ok(p) = self.may_commit_release(data, &c.piece, &t) else {
+                continue;
+            };
+            if self
+                .assault_target(data, &self.pieces[&c.piece], &c.hex, &t)
+                .is_err()
+                || self.release_unpaid(data, phasing, &c.piece, &t).is_err()
+            {
+                continue;
+            }
+            let n = c.points.min(left).min(p);
+            if n > 0 {
+                out.push((c.piece, t, n));
+            }
+        }
+        out
+    }
+
+    /// The most points `id` may still move to assault `target` (14.23),
+    /// or why it may not, judged on the rules an assignment of them
+    /// would meet (15.21, 15.36, 18.2x).
+    fn may_commit_release(
+        &self,
+        data: &Data,
+        id: &PieceId,
+        target: &HexId,
+    ) -> Result<u32, Illegal> {
+        let p = &self.pieces[id];
+        if p.hex().is_none() {
+            return Err(Illegal::new("14.23", format!("{id} is not on the map")));
+        }
+        let a = self
+            .combat
+            .assignments
+            .get(&p.side)
+            .into_iter()
+            .flatten()
+            .find(|a| a.piece == *id)
+            .ok_or_else(|| Illegal::new("14.23", format!("{id} fired no anti-armour")))?;
+        let aimed: u32 = a
+            .anti_armour
+            .iter()
+            .filter(|al| al.target.as_ref() == Some(target))
+            .map(|al| al.points)
+            .sum();
+        if aimed == 0 {
+            return Err(Illegal::new(
+                "14.23",
+                format!("{id} fired no anti-armour at {target}"),
+            ));
+        }
+        if p.cohesion.collapsed(&self.ruleset) || p.toe == 0 {
+            return Err(Illegal::new("6.26", format!("{id} cannot attack now")));
+        }
+        let mut targets: BTreeSet<&HexId> = a
+            .close_assault
+            .iter()
+            .filter_map(|al| al.target.as_ref())
+            .collect();
+        targets.insert(target);
+        let already = a
+            .close_assault
+            .iter()
+            .any(|al| al.target.as_ref() == Some(target));
+        if let Some(released) = p.released
+            && (targets.len() > 1 || (p.released_assaulted && !already))
+        {
+            return Err(Illegal::new(
+                "18.2x",
+                format!("{id} was released from Reserve {released}: one close assault at most"),
+            ));
+        }
+        if let Some(other) = targets
+            .iter()
+            .find(|h| **h != target && !data.map.adjacent(h, target))
+        {
+            return Err(Illegal::new(
+                "15.21",
+                format!("{id} assaults {other}, which is not adjacent to {target}"),
+            ));
+        }
+        Ok(aimed.min(p.toe))
+    }
+
+    /// As at assignment, the attackers must be able to pay for the
+    /// assault (32.21): a release may not leave one they cannot.
+    fn release_unpaid(
+        &self,
+        data: &Data,
+        player: Side,
+        piece: &PieceId,
+        target: &HexId,
+    ) -> Result<(), Illegal> {
+        let mut attackers: BTreeSet<PieceId> = self
+            .phasing_commits(player, true)
+            .into_iter()
+            .filter(|(_, t)| t == target)
+            .map(|(c, _)| c.piece)
+            .collect();
+        attackers.insert(piece.clone());
+        self.plan_ammo(
+            data,
+            &attackers.into_iter().collect::<Vec<_>>(),
+            Role::Assault,
+            true,
+        )
+        .refuse()
+    }
+
+    /// `Order::ReleaseAntiArmour` (14.23): `points` of `piece`'s
+    /// anti-armour points aimed at `target`, which held no armour, move
+    /// to the close assault on it, from what the hex has left to free.
+    pub(crate) fn release_anti_armour(
+        &mut self,
+        data: &Data,
+        player: Side,
+        piece: &PieceId,
+        target: &HexId,
+        points: u32,
+    ) -> Result<Vec<Event>, Illegal> {
+        if self.clock.segment != Some(Segment::CloseAssault) || self.phasing() != Some(player) {
+            return Err(Illegal::new(
+                "14.23",
+                format!(
+                    "{player} releases anti-armour points in its close assault step, not at {}",
+                    self.clock
+                ),
+            ));
+        }
+        if self.pieces.get(piece).map(|p| p.side) != Some(player) {
+            return Err(Illegal::new("14.23", format!("{piece} is not {player}'s")));
+        }
+        let Some(&left) = self.combat.no_armour.get(target) else {
+            return Err(Illegal::new(
+                "14.23",
+                format!("{target} held armour or drew no anti-armour fire: nothing to release"),
+            ));
+        };
+        if self.combat.assaults.contains_key(target) {
+            return Err(Illegal::new(
+                "15.21",
+                format!("{target} has been assaulted this segment"),
+            ));
+        }
+        let most = self.may_commit_release(data, piece, target)?;
+        if points == 0 || points > most.min(left) {
+            return Err(Illegal::new(
+                "14.23",
+                format!(
+                    "{piece} may release 1 to {} points against {target}, not {points}",
+                    most.min(left)
+                ),
+            ));
+        }
+        let from = self.pieces[piece].hex().cloned().expect("checked");
+        self.assault_target(data, &self.pieces[piece], &from, target)?;
+        self.release_unpaid(data, player, piece, target)?;
+        let a = self
+            .combat
+            .assignments
+            .get_mut(&player)
+            .and_then(|v| v.iter_mut().find(|a| a.piece == *piece))
+            .expect("checked");
+        let mut owed = points;
+        for al in a
+            .anti_armour
+            .iter_mut()
+            .filter(|al| al.target.as_ref() == Some(target))
+        {
+            let n = al.points.min(owed);
+            al.points -= n;
+            owed -= n;
+        }
+        // An allocation released in full stays at 0: the unit fired
+        // anti-armour this segment all the same (14.14's vulnerability).
+        match a
+            .close_assault
+            .iter_mut()
+            .find(|al| al.target.as_ref() == Some(target))
+        {
+            Some(al) => al.points += points,
+            None => a.close_assault.push(Allocation {
+                target: Some(target.clone()),
+                points,
+            }),
+        }
+        if left == points {
+            self.combat.no_armour.remove(target);
+        } else {
+            self.combat.no_armour.insert(target.clone(), left - points);
+        }
+        // The 50 % rule (15.9x) on the unit's assault as it now stands,
+        // judged on its TOE now (its assignment's TOE is not kept).
+        let most = a
+            .close_assault
+            .iter()
+            .map(|al| al.points)
+            .max()
+            .unwrap_or(0);
+        let p = self.pieces.get_mut(piece).expect("checked");
+        if most * 2 < p.toe {
+            self.combat.probing.insert(piece.clone());
+        } else {
+            self.combat.probing.remove(piece);
+        }
+        let p = self.pieces.get_mut(piece).expect("checked");
+        if p.released.is_some() {
+            p.released_assaulted = true;
+        }
+        Ok(vec![Event::AntiArmourReleased {
+            side: player,
+            piece: piece.clone(),
+            target: target.clone(),
+            points,
+        }])
     }
 
     /// `Order::Assault`: the assault assigned against `target` (15.2x),
@@ -3151,6 +3404,229 @@ mod tests {
         let (state, bare, _) = assault_a_hex_of_bare_units(false);
         for id in &bare {
             assert_eq!(state.pieces[id].hex(), Some(&hex("C4020")), "{id}");
+        }
+    }
+
+    /// 1 RTR fires `aa` anti-armour points at C4020, where the Libyans
+    /// have no armour, and 1 KRRC assaults it; the defenders commit
+    /// nothing. With `release` on, as new games play.
+    fn rtr_fires_at_nothing(data: &Data, aa: u32, release: bool) -> GameState {
+        rtr_fires_at_nothing_with(data, aa, release, true)
+    }
+
+    fn rtr_fires_at_nothing_with(
+        data: &Data,
+        aa: u32,
+        release: bool,
+        krrc_assaults: bool,
+    ) -> GameState {
+        let mut state = with_tanks(data);
+        state.modules.no_armour_release = release;
+        let c4020 = Some("C4020");
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: if krrc_assaults {
+                        vec![
+                            assign("unit:cw:1-krrc", vec![], vec![alloc(c4020, 6)]),
+                            assign("unit:cw:1-rtr", vec![alloc(c4020, aa)], vec![]),
+                        ]
+                    } else {
+                        vec![assign("unit:cw:1-rtr", vec![alloc(c4020, aa)], vec![])]
+                    },
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+        ] {
+            state.apply(data, side, order).unwrap();
+        }
+        if krrc_assaults || release {
+            assert_eq!(state.clock.segment, Some(Segment::CloseAssault));
+        }
+        state
+    }
+
+    fn release(piece: &str, at: &str, points: u32) -> Order {
+        Order::ReleaseAntiArmour {
+            piece: pid(piece),
+            target: hex(at),
+            points,
+        }
+    }
+
+    #[test]
+    fn half_the_anti_armour_points_aimed_at_a_hex_with_no_armour_may_join_its_assault_14_23() {
+        let data = graziani();
+        let mut state = rtr_fires_at_nothing(&data, 7, true);
+        // Seven aimed: three may move, rounded down.
+        assert_eq!(
+            state.anti_armour_releases(&data),
+            [(pid("unit:cw:1-rtr"), hex("C4020"), 3)]
+        );
+        let err = state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 4))
+            .unwrap_err();
+        assert_eq!(err.case, "14.23");
+        let events = state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 2))
+            .unwrap();
+        assert!(matches!(
+            events.as_slice(),
+            [Event::AntiArmourReleased { points: 2, .. }]
+        ));
+        assert_eq!(
+            state.anti_armour_releases(&data),
+            [(pid("unit:cw:1-rtr"), hex("C4020"), 1)]
+        );
+        state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 1))
+            .unwrap();
+        assert!(state.anti_armour_releases(&data).is_empty());
+        // The released points assault with the riflemen.
+        let events = state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::Assault {
+                    target: hex("C4020"),
+                },
+            )
+            .unwrap();
+        let attackers = events
+            .iter()
+            .find_map(|e| match e {
+                Event::Assault { attackers, .. } => Some(attackers.clone()),
+                _ => None,
+            })
+            .expect("the assault");
+        assert!(attackers.contains(&pid("unit:cw:1-rtr")));
+        let a = &state.combat.assignments[&Side::Cw]
+            .iter()
+            .find(|a| a.piece == pid("unit:cw:1-rtr"))
+            .unwrap()
+            .clone();
+        assert_eq!(
+            (a.anti_armour.clone(), a.close_assault.clone()),
+            (vec![alloc(Some("C4020"), 4)], vec![alloc(Some("C4020"), 3)])
+        );
+    }
+
+    #[test]
+    fn a_single_point_aimed_at_nothing_frees_none_14_23() {
+        let data = graziani();
+        let mut state = rtr_fires_at_nothing(&data, 1, true);
+        assert!(state.anti_armour_releases(&data).is_empty());
+        let err = state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 1))
+            .unwrap_err();
+        assert_eq!(err.case, "14.23");
+    }
+
+    #[test]
+    fn without_the_module_nothing_is_released() {
+        let data = graziani();
+        let mut state = rtr_fires_at_nothing(&data, 6, false);
+        assert!(state.anti_armour_releases(&data).is_empty());
+        assert!(
+            state
+                .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 3))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn a_hex_that_holds_armour_frees_nothing_14_23() {
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        state.modules.no_armour_release = true;
+        // Libyan tanks, if any, would stop it: give the hex an Italian
+        // armoured unit by moving one there.
+        let tank = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.toe > 0
+                    && state.parts(&data, p).iter().any(Part::armoured)
+            })
+            .map(|p| p.id.clone())
+            .expect("an Italian armoured unit");
+        state.pieces.get_mut(&tank).unwrap().location = Location::Hex(hex("C4020"));
+        for (side, order) in [
+            (Side::Cw, Order::GunPositions { forward: vec![] }),
+            (Side::Axis, Order::GunPositions { forward: vec![] }),
+            (Side::Cw, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Barrage { fires: vec![] }),
+            (Side::Axis, Order::Pass),
+            (
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![
+                        assign("unit:cw:1-krrc", vec![], vec![alloc(Some("C4020"), 6)]),
+                        assign("unit:cw:1-rtr", vec![alloc(Some("C4020"), 6)], vec![]),
+                    ],
+                },
+            ),
+            (
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![],
+                },
+            ),
+        ] {
+            state.apply(&data, side, order).unwrap();
+        }
+        assert!(state.anti_armour_releases(&data).is_empty());
+    }
+
+    #[test]
+    fn the_close_assault_step_opens_for_a_release_with_no_assault_assigned_14_23() {
+        let data = graziani();
+        let mut state = rtr_fires_at_nothing_with(&data, 7, true, false);
+        assert!(state.assaults_to_resolve().is_empty());
+        state
+            .apply(&data, Side::Cw, release("unit:cw:1-rtr", "C4020", 3))
+            .unwrap();
+        assert_eq!(state.assaults_to_resolve(), [hex("C4020")]);
+        // Three of seven is under half: a probe (15.9x).
+        assert!(state.combat.probing.contains(&pid("unit:cw:1-rtr")));
+    }
+
+    #[test]
+    fn a_step_with_nothing_to_release_or_assault_is_skipped_as_before() {
+        let data = graziani();
+        let state = rtr_fires_at_nothing_with(&data, 7, false, false);
+        assert_ne!(state.clock.segment, Some(Segment::CloseAssault));
+    }
+
+    #[test]
+    fn only_the_phasing_side_sees_what_it_may_release_14_23() {
+        use crate::view::{Aliases, view_for};
+        let data = graziani();
+        let state = rtr_fires_at_nothing(&data, 7, true);
+        let a = Aliases::new([9; 32]);
+        let cw = view_for(&state, &data, &a, Some(Side::Cw), false).unwrap();
+        assert_eq!(cw["combat"]["no_armour"]["C4020"], 3);
+        assert_eq!(cw["anti_armour_releases"].as_array().unwrap().len(), 1);
+        for viewer in [Some(Side::Axis), None] {
+            let v = view_for(&state, &data, &a, viewer, false).unwrap();
+            assert!(v["combat"].get("no_armour").is_none(), "{viewer:?}");
+            assert_eq!(
+                v["anti_armour_releases"],
+                serde_json::json!([]),
+                "{viewer:?}"
+            );
         }
     }
 }

@@ -108,4 +108,9 @@ pub struct CombatSegment {
     /// Close assaults assigned, by target hex, once resolved.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub assaults: BTreeMap<HexId, AssaultRecord>,
+    /// Hexes the phasing player fired anti-armour at that held no
+    /// armour, with the points still free to join the close assault on
+    /// them (14.23, the `no_armour_release` module).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub no_armour: BTreeMap<HexId, u32>,
 }

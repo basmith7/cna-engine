@@ -80,6 +80,14 @@ pub enum Order {
     /// Combat step 6: resolve the close assault assigned against this
     /// hex (15.2x); `Pass` ends the step once every assault is resolved.
     Assault { target: HexId },
+    /// Combat step 6, before `target` is assaulted: `points` of the
+    /// anti-armour points `piece` aimed at `target`, which held no
+    /// armour, join the close assault on it (14.23).
+    ReleaseAntiArmour {
+        piece: PieceId,
+        target: HexId,
+        points: u32,
+    },
     /// A forced retreat (15.82, 10.36): the stack's path; `Pass` stands
     /// and pays per hex not retreated where the ruleset allows (R-012).
     Retreat { path: Vec<HexId> },

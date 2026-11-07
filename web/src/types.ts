@@ -213,6 +213,7 @@ export type Order =
   | { "form-raider": { raider: PieceId; from: PieceId } }
   | { "raid-dump": { piece: PieceId; target: PieceId } }
   | { "try-spot": { piece: PieceId } }
+  | { "release-anti-armour": { piece: PieceId; target: HexId; points: number } }
   /** Phase L: a patrol of each source's points against `target` (16.x). */
   | { patrol: { sources: [PieceId, number][]; target: HexId; exclude?: PieceId[] } }
   | { station: { ship: PieceId; hex: HexId } }
@@ -374,6 +375,7 @@ export type Event =
     }
   | { "retreated-before-assault": { pieces: PieceId[]; to: HexId } }
   | { "anti-armour": { side: Side; target: HexId; points?: number; shift?: number; reading: number; damage: number } }
+  | { "anti-armour-released": { side: Side; piece: PieceId; target: HexId; points: number } }
   | {
       assault: {
         target: HexId;
@@ -590,6 +592,8 @@ export interface View {
   to_act: Side | null;
   /** The hexes the phasing player still has to assault in the close assault step; empty at any other moment. */
   assaults_to_resolve: HexId[];
+  /** Close assault step: anti-armour points the phasing viewer aimed at a hex that held no armour and may move to the assault on it, at most `points` each (14.23). */
+  anti_armour_releases?: { piece: PieceId; target: HexId; points: number }[];
   /** Phase C: the viewer's raider counters it may form now, each with a unit that may give the TOE point (27.13). */
   raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */

@@ -42,7 +42,7 @@
 //! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
 //! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
 //! | `pending` | as is, aliased; `forced-retreat.raw` (a function of TOE) only for the side retreating |
-//! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
+//! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `no_armour` the phasing side's only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
 //! | `rng`, `log` | never (layer 1) |
 //! | `pieces.*.unit_type`, `name`, `abbreviation` (added) | as is: the counter face |
 //! | `pieces.*.shell` (added) | own only: a shell is a judgment on composition |
@@ -189,6 +189,7 @@ const STATE_FILTERS: &[&str] = &[
 const COMBAT_KEEPS: &[&str] = &["forward", "pinned", "retreated", "barraged", "assaults"];
 #[cfg(test)]
 const COMBAT_FILTERS: &[&str] = &[
+    "no_armour",
     "plots",
     "assignments",
     "charged",
@@ -199,7 +200,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// What `viewer` may see of `state` (`None`: a spectator, to whom both
 /// sides are the enemy). `open`: the game is played with open
 /// information, so layers 2 and 3 are skipped. Adds `to_act`,
-/// `assaults_to_resolve` and, per piece, `unit_type` from the
+/// `assaults_to_resolve`, `anti_armour_releases` (the phasing viewer's
+/// anti-armour points it may move to a close assault, 14.23) and, per piece, `unit_type` from the
 /// characteristics chart (null for supply units and ID codes the chart
 /// lacks), the OA unit's `name` and `abbreviation` (null for supply
 /// units), `shell: true` on a formation that is a shell (9.26), and in
@@ -229,6 +231,17 @@ pub fn view_for(
         "assaults_to_resolve".into(),
         json!(state.assaults_to_resolve()),
     );
+    // 14.23: anti-armour points the phasing viewer may move to assault.
+    let releases: Vec<Value> = if open || (viewer.is_some() && viewer == state.phasing()) {
+        state
+            .anti_armour_releases(data)
+            .into_iter()
+            .map(|(piece, target, points)| json!({"piece": piece, "target": target, "points": points}))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    obj.insert("anti_armour_releases".into(), json!(releases));
     // The viewer's raiders it may form now, and from which units (27.13).
     let formings: Vec<Value> = viewer
         .map(|side| state.raider_formings(data, side))
@@ -469,6 +482,11 @@ pub fn view_for(
             if let Some(a) = combat.get_mut(key).and_then(Value::as_array_mut) {
                 a.retain(|id| !id.as_str().is_some_and(enemy_piece));
             }
+        }
+        // 14.23's allowances tell how many points were aimed (3.61):
+        // the phasing side's own.
+        if state.phasing().is_none_or(is_enemy) {
+            combat.remove("no_armour");
         }
     }
 

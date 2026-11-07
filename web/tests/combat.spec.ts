@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import type { Condition, Gun, View } from "../src/types.ts";
-import { clickHex, expectDomMatchesView, here, openFixture, shoot as shootInto, shotsDir, throughCurtain } from "./helpers.ts";
+import type { Assignment, Condition, Gun, View } from "../src/types.ts";
+import { clickHex, expectDomMatchesView, here, openFixture, openStart, shoot as shootInto, shotsDir, throughCurtain } from "./helpers.ts";
 
 // Slice 5's proving screenshots.
 const shots = shotsDir("slice-5");
@@ -332,4 +332,55 @@ test("stays usable at a phone width with the barrage panel open", async ({ page 
   await sealed(page).scrollIntoViewIfNeeded();
   await expect(sealed(page).locator('[data-order="barrage"]')).toBeInViewport();
   await shoot(page, "barrage-390.png");
+});
+
+test("anti-armour fire at Halfaya, which holds no armour, frees half its points for the assault (14.23)", async ({ page }) => {
+  test.setTimeout(120_000);
+  // The golden position, with the Fort Maddalenna garrison (2 points,
+  // anti-armour rated) brought beside Halfaya: no unit there has a rating.
+  const gar = "unit:it:fort-maddalenna-garrison-bn";
+  const state = JSON.parse(readFileSync(here("fixtures/combat-start.json"), "utf8"));
+  state.pieces[gar].location = { hex: "C4021" };
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(state));
+  await page.locator("[data-stack]").first().waitFor();
+  // Gun positions: the Libyan artillery forward, the Commonwealth none.
+  await sealed(page).locator(`[data-gun="${AXIS_GUN}"]`).check();
+  await sealed(page).locator('[data-order="gun-positions"]').click();
+  await throughCurtain(page, "cw");
+  await sealed(page).locator('[data-order="gun-positions"]').click();
+  await throughCurtain(page, "axis");
+  // No barrage either side; no retreat before assault.
+  await sealed(page).locator('[data-order="barrage"]').click();
+  await throughCurtain(page, "cw");
+  await sealed(page).locator('[data-order="barrage"]').click();
+  await pending(page).locator('[data-order="pass"]').click();
+  await throughCurtain(page, "axis");
+  // The garrison aims both its anti-armour points at Halfaya and a
+  // Libyan battalion assaults it.
+  await sealed(page).locator(`[data-add-role="${gar}:anti-armour"]`).click();
+  await sealed(page).locator(`[data-unit="${gar}"] [data-role] [data-points]`).fill("2");
+  await expect(sealed(page).locator(`[data-unit="${gar}"] [data-role] [data-target]`)).toHaveValue("C3922");
+  const bn = "unit:it:viii-libyan-bn";
+  await sealed(page).locator(`[data-add-role="${bn}:close-assault"]`).click();
+  await sealed(page).locator(`[data-unit="${bn}"] [data-role] [data-points]`).fill("5");
+  await sealed(page).locator('[data-order="assign-forces"]').click();
+  await throughCurtain(page, "cw");
+  await sealed(page).locator('[data-order="assign-forces"]').click();
+  await throughCurtain(page, "axis");
+  // Halfaya held no armour: one of the two points may join the assault.
+  const release = page.getByTestId("release-anti-armour");
+  await expect(release).toHaveCount(1);
+  await expect(release).toContainText("C3922");
+  await release.getByRole("button").click();
+  await expect(log(page).filter({ hasText: "moves 1 anti-armour point to the assault on C3922, which held no armour (14.23)." })).toHaveCount(1);
+  await expect(release).toHaveCount(0);
+  // The point has changed role: one left aimed, one in the assault.
+  const mine = (await page.evaluate(() => window.__cna.view())).combat.assignments?.axis?.find((a: Assignment) => a.piece === gar);
+  expect(mine?.anti_armour).toEqual([{ target: "C3922", points: 1 }]);
+  expect(mine?.close_assault).toEqual([{ target: "C3922", points: 1 }]);
+  // Halfaya's defenders have no ammunition in range and surrender (R-120).
+  await clickHex(page, "C3922");
+  await expect(log(page).filter({ hasText: /^1st KRRC, 3rd Coldstream Guards, .* surrender\./ })).toHaveCount(1);
+  await expectDomMatchesView(page);
 });
