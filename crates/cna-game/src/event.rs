@@ -409,7 +409,10 @@ pub enum Event {
     },
     /// The Axis noted a chariot raid on Alexandria for the seventh
     /// OpStage after this one (30.41): its secret.
-    ChariotRaidPlanned { game_turn: u8, stage: u8 },
+    ChariotRaidPlanned {
+        game_turn: u8,
+        stage: u8,
+    },
     /// The chariot raid on Alexandria (30.4x): `roll` on the Chariot
     /// Raid Table gave `dice` dice of damage, totalling `damage` gun
     /// points, laid on the ships in harbour in `hits`; those in `sunk`

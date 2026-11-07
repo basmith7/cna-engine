@@ -123,7 +123,8 @@ impl GameState {
         let n = data.chariot_raid.damage_dice(roll);
         let damage: u32 = (0..n).map(|_| u32::from(dice.d6())).sum();
         let (hits, sunk) = self.lay_harbour_damage(data, damage);
-        self.chariot_raid.insert(Side::Axis, Raid { made: true, ..raid });
+        self.chariot_raid
+            .insert(Side::Axis, Raid { made: true, ..raid });
         events.push(Event::ChariotRaid {
             roll,
             dice: n,
@@ -178,7 +179,9 @@ mod tests {
             }
             let p = state.to_act().unwrap();
             let order = if state.clock.phase == Phase::InitiativeDeclaration {
-                Order::DeclareInitiative { player_a: Side::Axis }
+                Order::DeclareInitiative {
+                    player_a: Side::Axis,
+                }
             } else {
                 Order::Pass
             };
@@ -235,7 +238,9 @@ mod tests {
         let data = campaign(true);
         let mut state = at_phase_c(&data, on(), Side::Axis);
         assert!(state.chariot_raid_plannable(&data, Side::Axis));
-        let events = state.apply(&data, Side::Axis, Order::PlanChariotRaid).unwrap();
+        let events = state
+            .apply(&data, Side::Axis, Order::PlanChariotRaid)
+            .unwrap();
         assert_eq!(
             events,
             [Event::ChariotRaidPlanned {
@@ -254,7 +259,9 @@ mod tests {
     /// on, passing, until the raid is made: the events of each stage.
     fn planned_and_played(data: &Data) -> (GameState, Vec<Stage>) {
         let mut state = at_phase_c(data, on(), Side::Axis);
-        state.apply(data, Side::Axis, Order::PlanChariotRaid).unwrap();
+        state
+            .apply(data, Side::Axis, Order::PlanChariotRaid)
+            .unwrap();
         // No strike to muddle the harbour's damage.
         state.fleet_strikes.insert(Side::Axis, 0);
         let mut stages = Vec::new();
@@ -267,7 +274,9 @@ mod tests {
     }
 
     fn raid(events: &[Event]) -> Option<&Event> {
-        events.iter().find(|e| matches!(e, Event::ChariotRaid { .. }))
+        events
+            .iter()
+            .find(|e| matches!(e, Event::ChariotRaid { .. }))
     }
 
     #[test]
@@ -324,7 +333,9 @@ mod tests {
             (v.to_string(), serde_json::to_string(&e).unwrap())
         };
         let before = state.clone();
-        let planned = state.apply(&data, Side::Axis, Order::PlanChariotRaid).unwrap();
+        let planned = state
+            .apply(&data, Side::Axis, Order::PlanChariotRaid)
+            .unwrap();
         for viewer in [Some(Side::Cw), None] {
             let (v, e) = shown(&state, &planned, viewer);
             assert_eq!(v, shown(&before, &[], viewer).0, "{viewer:?} sees the plan");

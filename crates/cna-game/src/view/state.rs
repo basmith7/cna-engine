@@ -472,7 +472,8 @@ pub fn view_for(
     }
     // An empty map would itself tell that a raid is planned (30.41).
     if let Some(o) = v.as_object_mut()
-        && o.get("chariot_raid").is_some_and(|m| m.as_object().is_some_and(Map::is_empty))
+        && o.get("chariot_raid")
+            .is_some_and(|m| m.as_object().is_some_and(Map::is_empty))
     {
         o.remove("chariot_raid");
     }
