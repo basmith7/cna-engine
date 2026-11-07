@@ -426,7 +426,10 @@ struct EventsQuery {
 }
 
 /// The orders after `?after=seq` (all without it), each `{"seq",
-/// "side", "events"}` with the events the caller may see.
+/// "side", "events"}` with the events the caller may see. The other
+/// side's orders that leave the caller nothing to see are left out, so
+/// that a secret order (a dummy tank placed, a raid's plan) is not
+/// counted by an empty row.
 async fn events(
     State(games): State<Games>,
     account: CurrentAccount,
@@ -442,11 +445,16 @@ async fn events(
     Ok(Json(json!(
         applied
             .iter()
-            .map(|a| json!({
-                "seq": a.seq,
-                "side": a.side,
-                "events": events_json(&live, side, &a.events),
-            }))
+            .filter_map(|a| {
+                let events = events_json(&live, side, &a.events);
+                (a.side == side || !events.is_empty()).then(|| {
+                    json!({
+                        "seq": a.seq,
+                        "side": a.side,
+                        "events": events,
+                    })
+                })
+            })
             .collect::<Vec<_>>()
     )))
 }
