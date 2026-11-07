@@ -60,5 +60,6 @@ mod supply;
 pub mod unattached;
 pub mod victory;
 pub mod view;
+pub mod voluntary;
 pub mod withdraw;
 pub mod zoc;
