@@ -118,5 +118,5 @@ pub struct CombatSegment {
     /// `None` a dummy tank formation. Drawn as step 2 opens with the
     /// `blind_barrage` module on; each side sees only its own.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub numbering: BTreeMap<Side, BTreeMap<HexId, BTreeMap<String, Vec<Option<PieceId>>>>>,
+    pub numbering: BTreeMap<Side, crate::blind::Numbering>,
 }

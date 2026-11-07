@@ -1017,6 +1017,38 @@ mod tests {
     }
 
     #[test]
+    fn described_units_are_identified_to_the_patroller_for_its_barrages_r182() {
+        let data = graziani();
+        let mut base = hussars(&data);
+        base.modules.blind_barrage = true;
+        let mut seen = false;
+        for seed in 0..20 {
+            let mut state = base.clone();
+            state.rng = crate::rng::GameRng::new(seed);
+            let events = state
+                .apply(
+                    &data,
+                    Side::Cw,
+                    Order::Patrol {
+                        sources: vec![(pid(HUS), 2)],
+                        target: hex("C4020"),
+                        exclude: vec![],
+                    },
+                )
+                .unwrap();
+            let described: BTreeSet<PieceId> = report(&events)
+                .described
+                .iter()
+                .map(|d| d.piece.clone())
+                .collect();
+            let known = state.identified.get(&Side::Cw).cloned().unwrap_or_default();
+            assert_eq!(known, described, "seed {seed}");
+            seen |= !described.is_empty();
+        }
+        assert!(seen, "some seed describes a unit");
+    }
+
+    #[test]
     fn the_enemy_sees_the_descriptions_and_nothing_more_3_61_16_5x() {
         let data = graziani();
         let base = hussars(&data);

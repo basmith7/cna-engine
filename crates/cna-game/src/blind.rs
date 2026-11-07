@@ -15,6 +15,10 @@ use cna_data::map::HexId;
 use cna_data::scenario::Side;
 use std::collections::BTreeMap;
 
+/// One side's numbering for a barrage step: by hex and class key, entry
+/// `n - 1` is target `n`, `None` a dummy tank formation.
+pub type Numbering = BTreeMap<HexId, BTreeMap<String, Vec<Option<PieceId>>>>;
+
 /// What a fire's `target` names.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Named {
@@ -56,8 +60,7 @@ impl GameState {
         if !self.modules.blind_barrage {
             return;
         }
-        type Hexes = BTreeMap<HexId, BTreeMap<String, Vec<Option<PieceId>>>>;
-        let mut numbering: BTreeMap<Side, Hexes> = BTreeMap::new();
+        let mut numbering: BTreeMap<Side, Numbering> = BTreeMap::new();
         for p in self.pieces.values() {
             let Some(hex) = p.hex() else { continue };
             if p.kind.is_vessel() || !self.is_target(data, p) {
