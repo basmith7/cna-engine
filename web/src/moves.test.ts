@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOFILIA } from "./map";
-import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, swapOrders, tickable, toggle, toggleOffMap } from "./moves";
+import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, shiftOrders, swapOrders, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -179,6 +179,15 @@ describe("reassignment and attaching elsewhere in phase C", () => {
     expect(reassignOrder(v, v.pieces.bn)).toBeNull();
     const moving = at(pieces, { phase: "movement-combat", segment: "movement" });
     expect(reassignOrder(moving, moving.pieces.loose)).toBeNull();
+  });
+
+  it("offers the shifts of parent the engine dates to this month (19.24)", () => {
+    const v = { ...at(pieces), parent_shifts: [{ piece: "bn", to: "other" }, { piece: "kept", to: null }] } as View;
+    expect(shiftOrders(v, v.pieces.bn)).toEqual([{ "shift-parent": { piece: "bn", to: "other" } }]);
+    expect(shiftOrders(v, v.pieces.kept)).toEqual([{ "shift-parent": { piece: "kept", to: null } }]);
+    expect(shiftOrders(v, v.pieces.loose)).toEqual([]);
+    const moving = { ...at(pieces, { phase: "movement-combat", segment: "movement" }), parent_shifts: v.parent_shifts } as View;
+    expect(shiftOrders(moving, moving.pieces.bn)).toEqual([]);
   });
 });
 

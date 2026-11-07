@@ -254,6 +254,38 @@ impl GameState {
         }])
     }
 
+    /// The shifts of parent `player` may ask for now, for the browser's
+    /// phase C control: each unit of its in play whose O/A notes date a
+    /// shift from its parent to this month, and the parent it joins
+    /// (none: independent). `shift_parent` judges the rest (19.24).
+    pub fn parent_shifts(&self, data: &Data, player: Side) -> Vec<(PieceId, Option<PieceId>)> {
+        if !self.modules.parent_shifts
+            || !self.modules.reassignment
+            || self.clock.phase != Phase::Organisation
+        {
+            return Vec::new();
+        }
+        let Some(now) = data.calendar.week(u32::from(self.clock.game_turn)) else {
+            return Vec::new();
+        };
+        let now = now.month_key();
+        let mut out = Vec::new();
+        for p in self.pieces.values() {
+            if p.side != player || p.location == Location::Eliminated || p.parent.is_none() {
+                continue;
+            }
+            let Some(sheet) = p.id.unit().and_then(|u| data.oa.unit(&u)) else {
+                continue;
+            };
+            for s in &sheet.shifts {
+                if s.from == p.parent && s.month.as_deref() == Some(now.as_str()) {
+                    out.push((p.id.clone(), s.to.as_ref().map(PieceId::from)));
+                }
+            }
+        }
+        out
+    }
+
     /// `Order::ShiftParent`: `piece` leaves its parent for `to` (none:
     /// independent), a change its O/A notes date to this month (19.24,
     /// R-176). The shift is made within 19.21: the unit must be attached
@@ -919,6 +951,10 @@ mod tests {
         // Game-Turn 82, the fourth week of May 1942.
         let mut state = shifting(&data, 82);
         assert_eq!(state.pieces[&pid(PUNJAB)].parent, pid(FIFTH).unit());
+        assert_eq!(
+            state.parent_shifts(&data, Side::Cw),
+            vec![(pid(PUNJAB), Some(pid(TWENTY_FIFTH)))]
+        );
         let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
         assert!(why.contains("must be attached"), "{why}");
         state.pieces.get_mut(&pid(PUNJAB)).unwrap().attached_to = pid(TWENTY_FIFTH).unit();
@@ -938,6 +974,7 @@ mod tests {
         assert_eq!(p.parent, pid(TWENTY_FIFTH).unit());
         assert_eq!(p.cp_spent, cp, "a shift costs no CP");
         // Made once: the shift from the 5th no longer applies.
+        assert!(state.parent_shifts(&data, Side::Cw).is_empty());
         let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
         assert!(why.contains("list no shift"), "{why}");
     }
@@ -948,6 +985,11 @@ mod tests {
         for turn in [78, 83] {
             // April and June 1942.
             let mut state = shifting(&data, turn);
+            let offered = state.parent_shifts(&data, Side::Cw);
+            assert!(
+                !offered.iter().any(|(p, _)| *p == pid(PUNJAB)),
+                "{offered:?}"
+            );
             state.pieces.get_mut(&pid(PUNJAB)).unwrap().attached_to = pid(TWENTY_FIFTH).unit();
             let why = refused(&mut state, &data, shift(PUNJAB, Some(TWENTY_FIFTH)));
             assert!(why.contains("1942-05 or never"), "{turn}: {why}");

@@ -193,6 +193,7 @@ export type Order =
   | { detach: { piece: PieceId } }
   | { reassign: { piece: PieceId } }
   | { "swap-battalions": { piece: PieceId; with: PieceId } }
+  | { "shift-parent": { piece: PieceId; to: PieceId | null } }
   | { "attach-motorisation": { piece: PieceId } }
   | { "detach-motorisation": { piece: PieceId } }
   | { "transfer-load": { from: PieceId; to: PieceId; ammo: number; fuel: number } }
@@ -596,6 +597,8 @@ export interface View {
   anti_armour_releases?: { piece: PieceId; target: HexId; points: number }[];
   /** Phase C: the viewer's raider counters it may form now, each with a unit that may give the TOE point (27.13). */
   raider_formings?: { raider: PieceId; name: string | null; from: PieceId }[];
+  /** Phase C: the viewer's units whose O/A notes date a shift of parent to this month, and the parent each joins (null: independent); the engine judges attachment and slots (19.24). */
+  parent_shifts?: { piece: PieceId; to: PieceId | null }[];
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
