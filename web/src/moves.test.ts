@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOFILIA } from "./map";
-import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, tickable, toggle, toggleOffMap } from "./moves";
+import { allOffMapCapable, allOnMap, attachElsewhereOrders, attachmentOrder, byHex, cpLabel, defaultTicked, extendPath, OFF_MAP_PLACES, offMapCapable, reassignOrder, swapOrders, tickable, toggle, toggleOffMap } from "./moves";
 import type { Piece, View } from "./types";
 
 function piece(id: string, side: "axis" | "cw", kind: Piece["kind"], hex: string): Piece {
@@ -179,5 +179,51 @@ describe("reassignment and attaching elsewhere in phase C", () => {
     expect(reassignOrder(v, v.pieces.bn)).toBeNull();
     const moving = at(pieces, { phase: "movement-combat", segment: "movement" });
     expect(reassignOrder(moving, moving.pieces.loose)).toBeNull();
+  });
+});
+
+describe("swapping Commonwealth battalions between brigades in phase C (19.2x)", () => {
+  const at = (pieces: Record<string, Partial<Piece>>, extra: object = {}) =>
+    ({
+      clock: { phase: "organisation" },
+      pending: null,
+      to_act: "cw",
+      ...extra,
+      pieces: Object.fromEntries(
+        Object.entries(pieces).map(([id, p]) => [id, { id, side: "cw", kind: "combat", equivalent: "battalion", location: { hex: "E1830" }, parent: null, ...p }]),
+      ),
+    }) as unknown as View;
+  const pieces = {
+    a: { parent: "5-in" },
+    b: { parent: "11-in", location: { hex: "E2132" } },
+    same: { parent: "5-in" },
+    loose: {},
+    attached: { parent: "11-in", attached_to: "hq" },
+    carrier: { parent: "16-bde" },
+    rider: { parent: "16-bde", attached_to: "carrier" },
+    brigade: { parent: "4-div", equivalent: "brigade" as const },
+    gone: { parent: "11-in", location: "eliminated" as const },
+    axis: { parent: "x", side: "axis" as const },
+  };
+
+  it("offers every other battalion standing alone outside its brigade, anywhere on the map, independents included", () => {
+    const v = at(pieces);
+    expect(swapOrders(v, v.pieces.a).map((o) => o["swap-battalions"].with)).toEqual(["b", "loose"]);
+  });
+
+  it("offers nothing for a battalion not standing alone, with no parent, or not a battalion", () => {
+    const v = at(pieces);
+    expect(swapOrders(v, v.pieces.attached)).toEqual([]);
+    expect(swapOrders(v, v.pieces.carrier)).toEqual([]);
+    expect(swapOrders(v, v.pieces.loose)).toEqual([]);
+    expect(swapOrders(v, v.pieces.brigade)).toEqual([]);
+  });
+
+  it("offers nothing outside the Commonwealth's phase C or with a step pending", () => {
+    expect(swapOrders(at(pieces, { to_act: "axis" }), at(pieces).pieces.a)).toEqual([]);
+    const moving = at(pieces, { clock: { phase: "movement-combat", segment: "movement" } });
+    expect(swapOrders(moving, moving.pieces.a)).toEqual([]);
+    const pending = at(pieces, { pending: { "retreat-before-assault": {} } });
+    expect(swapOrders(pending, pending.pieces.a)).toEqual([]);
   });
 });

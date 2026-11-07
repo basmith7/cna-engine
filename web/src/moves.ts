@@ -99,6 +99,26 @@ export function reassignOrder(view: View, p: Piece): Extract<Order, { reassign: 
   return { reassign: { piece: p.id } };
 }
 
+/** Whether `p` is a battalion standing alone in 19.2x's sense: in play,
+ * attached to nothing, carrying nothing. */
+function battalionAlone(view: View, p: Piece): boolean {
+  if (p.kind !== "combat" || p.equivalent !== "battalion" || p.attached_to || p.location === "eliminated") return false;
+  return !Object.values(view.pieces).some((q) => q.attached_to === p.id);
+}
+
+/** Phase C: a Commonwealth battalion assigned to a brigade may trade
+ * brigades with another standing alone, wherever it is (19.2x). The
+ * engine judges whether each brigade keeps its slots; this offers every
+ * battalion it could, sorted by name. */
+export function swapOrders(view: View, p: Piece): Extract<Order, { "swap-battalions": unknown }>[] {
+  if (view.clock.phase !== "organisation" || view.pending || view.to_act !== "cw" || p.side !== "cw") return [];
+  if (!p.parent || !battalionAlone(view, p)) return [];
+  return Object.values(view.pieces)
+    .filter((q) => q.side === "cw" && q.id !== p.id && q.parent !== p.parent && battalionAlone(view, q))
+    .sort((x, y) => x.id.localeCompare(y.id))
+    .map((q) => ({ "swap-battalions": { piece: p.id, with: q.id } }));
+}
+
 /** Phase C: a unit standing alone may attach to another HQ of its side in
  * its place than its own parent, for 2 CP each within the chart's limits,
  * which the engine judges (19.4x, 19.5). */
