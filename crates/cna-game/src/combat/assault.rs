@@ -444,6 +444,16 @@ impl GameState {
         }
         let mut halftracks_lost = BTreeMap::new();
         for (mut a, damage) in rolled {
+            // The hexes of the armour return fire shoots at, before any
+            // of it is eliminated.
+            let shot_at: BTreeSet<HexId> = if a.side == phasing {
+                BTreeSet::new()
+            } else {
+                a.shares
+                    .iter()
+                    .filter_map(|s| self.pieces[&s.piece].hex().cloned())
+                    .collect()
+            };
             self.anti_armour_losses(data, &mut a.shares, damage, &mut halftracks_lost, events);
             if a.side == phasing {
                 for h in &a.from {
@@ -453,6 +463,14 @@ impl GameState {
                 // holds no real armour.
                 if !self.holds_real_armour(data, other, &a.target) {
                     self.expose_dummy_tank(other, &a.target, events);
+                }
+            } else {
+                // 16.45 for the phasing player's dummies: return fire
+                // that leaves a formation's hex with no real armour.
+                for h in &shot_at {
+                    if !self.holds_real_armour(data, phasing, h) {
+                        self.expose_dummy_tank(phasing, h, events);
+                    }
                 }
             }
             self.charge_combat_hex(&a.target, NON_PHASING_CEILING, events);
@@ -3785,6 +3803,69 @@ mod tests {
             .unwrap();
         assert!(exposed(&events), "{events:?}");
         assert!(state.dummy_tanks.is_empty());
+    }
+
+    /// 1 RTR (`rtr_points` cruisers) and a Commonwealth dummy in C4021
+    /// fire anti-armour at C4020, whose anti-tank company (`coy_points`
+    /// 47/32s) returns fire: the state and the step's events.
+    fn return_fire_at_a_dummy(rtr_points: u32, coy_points: u32) -> (GameState, Vec<Event>) {
+        let data = graziani();
+        let mut state = with_tanks(&data);
+        state
+            .dummy_tanks
+            .insert(Side::Cw, BTreeSet::from([hex("C4021")]));
+        set_points(&mut state, "unit:cw:1-rtr", rtr_points);
+        set_points(&mut state, "unit:it:1st-libyan-anti-tank-coy", coy_points);
+        assigning_against_the_anti_tank_coy(&data, &mut state);
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:cw:1-rtr",
+                        vec![alloc(Some("C4020"), rtr_points)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        let events = state
+            .apply(
+                &data,
+                Side::Axis,
+                Order::AssignForces {
+                    assignments: vec![assign(
+                        "unit:it:1st-libyan-anti-tank-coy",
+                        vec![alloc(None, coy_points)],
+                        vec![],
+                    )],
+                },
+            )
+            .unwrap();
+        (state, events)
+    }
+
+    fn cw_dummy_exposed(events: &[Event]) -> bool {
+        events.iter().any(|e| {
+            matches!(e, Event::DummyTankExposed { side: Side::Cw, hex: h } if *h == hex("C4021"))
+        })
+    }
+
+    #[test]
+    fn return_fire_that_destroys_a_formations_real_armour_kills_its_dummy_16_45() {
+        let (state, events) = return_fire_at_a_dummy(1, 40);
+        assert_eq!(state.pieces[&pid("unit:cw:1-rtr")].toe, 0, "{events:?}");
+        assert!(cw_dummy_exposed(&events), "{events:?}");
+        assert!(!state.has_dummy_tank(Side::Cw, &hex("C4021")));
+    }
+
+    #[test]
+    fn return_fire_that_leaves_real_armour_spares_the_dummy_16_45() {
+        let (state, events) = return_fire_at_a_dummy(30, 2);
+        assert!(state.pieces[&pid("unit:cw:1-rtr")].toe > 0, "{events:?}");
+        assert!(!cw_dummy_exposed(&events), "{events:?}");
+        assert!(state.has_dummy_tank(Side::Cw, &hex("C4021")));
     }
 
     fn release(piece: &str, at: &str, points: u32) -> Order {
