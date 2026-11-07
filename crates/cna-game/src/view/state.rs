@@ -32,7 +32,7 @@
 //! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open`, `blockship_fired` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
-//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes`, `chariot_raid` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, 32.72 the Axis's strikes on the fleet, and 30.41 its chariot raid's plan |
+//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes`, `chariot_raid`, `identified` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, 32.72 the Axis's strikes on the fleet, 30.41 its chariot raid's plan, and R-182 which enemy units a side has identified |
 //! | `motorisation`, `repaired`, `pending_motorisation`, `motorisation_to_place` | own only (layer 1) |
 //! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
@@ -44,7 +44,7 @@
 //! | `scuttled`, `raided`, `spot_chances`, `spot_tried`, `railed`, `moved`, `continuing`, `shifted`, `escorts` | as is, aliased: what moved where is on the board (a raid puts its raider on the map, 27.5x) |
 //! | `pieces` | `ENEMY_PIECE_KEEPS` only (the face, and the board's markers: `contact`, `engaged`, `reserve`, `garrison_of`); a dummy supply unit's `kind` is `supply-unit`; a piece still to be placed is `location: "pending"` without its placement |
 //! | `pending` | as is, aliased; `forced-retreat.raw` (a function of TOE) only for the side retreating |
-//! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments` own only; `no_armour` the phasing side's only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
+//! | `combat` | `forward`, `pinned`, `retreated`, `barraged`, `assaults` as is (on the board, or totals; an assault's `probe` shows in how it is resolved, 15.9x); `plots`, `assignments`, `numbering` own only (R-182: which unit carries which blind number is the owner's); `no_armour` the phasing side's only; `charged`, `probing`, `barrage_involved` own entries only (CP spent, judgments on TOE, and which units fired: "never the units behind them") |
 //! | `rng`, `log` | never (layer 1) |
 //! | `pieces.*.unit_type`, `name`, `abbreviation` (added) | as is: the counter face |
 //! | `pieces.*.shell` (added) | own only: a shell is a judgment on composition |
@@ -168,6 +168,7 @@ const STATE_FILTERS: &[&str] = &[
     "fleet_strikes",
     "chariot_raid",
     "dummy_tanks",
+    "identified",
     "prisoners",
     "prisoners_out",
     "prisoners_off_map",
@@ -199,6 +200,7 @@ const COMBAT_FILTERS: &[&str] = &[
     "no_armour",
     "plots",
     "assignments",
+    "numbering",
     "charged",
     "probing",
     "barrage_involved",
@@ -500,6 +502,7 @@ pub fn view_for(
         "fleet_strikes",
         "chariot_raid",
         "dummy_tanks",
+        "identified",
     ] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {
@@ -535,7 +538,7 @@ pub fn view_for(
         o.remove("raw");
     }
     if let Some(combat) = v.get_mut("combat").and_then(Value::as_object_mut) {
-        for key in ["plots", "assignments"] {
+        for key in ["plots", "assignments", "numbering"] {
             if let Some(m) = combat.get_mut(key).and_then(Value::as_object_mut) {
                 names.iter().for_each(|s| {
                     m.remove(s);

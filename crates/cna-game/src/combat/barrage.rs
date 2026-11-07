@@ -3,6 +3,7 @@
 
 use super::cp::{NON_PHASING_CEILING, PHASING_CEILING};
 use super::strength::{Class, Kind};
+use crate::blind::Named;
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::PieceId;
@@ -80,11 +81,26 @@ impl GameState {
             let mut firing_hexes = BTreeSet::new();
             let mut target_hexes = BTreeSet::new();
             for ((target, ..), pool) in pools {
-                let Some(hex) = self.pieces[&target].hex().cloned() else {
+                // R-182: a number stands for the unit behind it, or for a
+                // dummy tank formation, which is rolled for and loses
+                // nothing; the event keeps the name fired at.
+                let (unit, hex) = match self.named(side, &target) {
+                    Named::Unit(id) => (Some(id), None),
+                    Named::Blind { unit: Some(u), .. } => (Some(u), None),
+                    Named::Blind {
+                        hex, dummy: true, ..
+                    } => (None, Some(hex)),
+                    Named::Blind { .. } => continue,
+                };
+                let Some(hex) =
+                    hex.or_else(|| unit.as_ref().and_then(|u| self.pieces[u].hex().cloned()))
+                else {
                     continue;
                 };
                 let points = actual(pool.raw) + pool.ship;
-                let class = self.class_of(data, &self.pieces[&target]);
+                let class = unit
+                    .as_ref()
+                    .map_or(Class::Armour, |u| self.class_of(data, &self.pieces[u]));
                 let shift = terrain_shift(
                     &self.ruleset,
                     self.in_hex_shift(data, &hex, Kind::Barrage, class == Class::Armour)
@@ -97,14 +113,14 @@ impl GameState {
                     value: reading,
                 });
                 let result = resolve(&data.barrage, class.key(), points, shift, reading);
-                match result {
-                    BarrageResult::Pinned
-                        if !self.is_gun_unit(data, &self.pieces[&target])
+                match (result, &unit) {
+                    (BarrageResult::Pinned, Some(u))
+                        if !self.is_gun_unit(data, &self.pieces[u])
                             && !self.ignores_pins(data, &hex) =>
                     {
-                        self.combat.pinned.insert(target.clone());
+                        self.combat.pinned.insert(u.clone());
                     }
-                    BarrageResult::Lose(n) => losses.push((target.clone(), n)),
+                    (BarrageResult::Lose(n), Some(u)) => losses.push((u.clone(), n)),
                     _ => {}
                 }
                 *self.combat.barraged.entry(hex.clone()).or_default() += points;

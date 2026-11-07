@@ -1,7 +1,7 @@
 <script lang="ts">
   import { clockLine, sideName } from "./clock";
   import Counters from "./Counters.svelte";
-  import { label, stacks } from "./counters";
+  import { label, stacks, unknownName } from "./counters";
   import Curtain from "./Curtain.svelte";
   import { curtainAfter } from "./curtain";
   import EndDialog from "./EndDialog.svelte";
@@ -347,7 +347,7 @@
     // A piece the order brought into play (a formed raider) is named from the view after it.
     const name = (id: PieceId) => {
       const p = before.pieces[id] ?? next.pieces[id];
-      return p ? label(p).long : id;
+      return p ? label(p).long : unknownName(id);
     };
     if (engine !== e) return false;
     view = next;
@@ -645,7 +645,7 @@
       if (before && fresh.length > 0) {
         const name = (id: PieceId) => {
           const p = before.pieces[id] ?? next.pieces[id];
-          return p ? label(p).long : id;
+          return p ? label(p).long : unknownName(id);
         };
         log = withEvents(log, clockLine(before), fresh.map((ev) => formatEvent(ev, name)));
       }

@@ -113,4 +113,10 @@ pub struct CombatSegment {
     /// them (14.23, the `no_armour_release` module).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub no_armour: BTreeMap<HexId, u32>,
+    /// The barrage step's numbering of targets (12.23, R-182), by owner,
+    /// hex and class key: entry `n - 1` is `blind:<hex>:<class>:<n>`,
+    /// `None` a dummy tank formation. Drawn as step 2 opens with the
+    /// `blind_barrage` module on; each side sees only its own.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub numbering: BTreeMap<Side, crate::blind::Numbering>,
 }

@@ -2,6 +2,7 @@
 //! 15.2x, 15.36): each is checked against the state as it stands when
 //! given, never against the other player's answer.
 
+use crate::blind::Named;
 use crate::combat::strength::Kind;
 use crate::combat::terrain::anti_armour_ban;
 use crate::data::Data;
@@ -151,6 +152,33 @@ impl GameState {
         let mut ships = BTreeSet::new();
         for f in fires {
             let p = self.own_piece(player, &f.piece, "12.2x")?;
+            // R-182: a numbered target is checked by its hex alone, and
+            // every refusal names the number, never the unit behind it.
+            let blind = match self.named(player, &f.target) {
+                Named::Unit(id) => {
+                    if self.pieces.get(&id).is_some_and(|t| t.side != player)
+                        && !self.may_name(player, &id)
+                    {
+                        return Err(Illegal::new(
+                            "12.24",
+                            format!("{id} is not identified: fire at a numbered target in its hex"),
+                        ));
+                    }
+                    false
+                }
+                Named::Blind {
+                    unit, dummy, hex, ..
+                } => {
+                    if unit.is_none() && !dummy {
+                        return Err(Illegal::new(
+                            "12.23",
+                            format!("{}: no such numbered target", f.target),
+                        ));
+                    }
+                    self.check_blind_target(data, p, &hex, f)?;
+                    true
+                }
+            };
             if p.kind.is_vessel() {
                 if !ships.insert(&f.piece) {
                     return Err(Illegal::new(
@@ -158,7 +186,9 @@ impl GameState {
                         format!("{}: a ship fires once a stage, at one target", f.piece),
                     ));
                 }
-                self.check_bombardment(data, player, p, f)?;
+                if !blind {
+                    self.check_bombardment(data, player, p, f)?;
+                }
                 continue;
             }
             if f.points == 0 {
@@ -176,7 +206,11 @@ impl GameState {
                     format!("{} fires {total} points but has {}", f.piece, p.toe),
                 ));
             }
-            self.barrage_target(data, player, p, &f.target)?;
+            if !blind {
+                self.barrage_target(data, player, p, &f.target)?;
+            }
+            // Keyed by the name fired at: a refusal must not tell the
+            // firer that two names are one unit (R-182).
             let from = p.hex().expect("checked");
             per_hex.entry((from, &f.target)).or_default().push(&f.piece);
         }
@@ -211,6 +245,44 @@ impl GameState {
                     format!("{id} is back: it may not split its fire across targets"),
                 ));
             }
+        }
+        Ok(())
+    }
+
+    /// A fire at a numbered target (R-182): the firer must reach its hex
+    /// as it would a unit there; a ship fires the count it has at that
+    /// hex.
+    fn check_blind_target(
+        &self,
+        data: &Data,
+        firer: &Piece,
+        hex: &HexId,
+        f: &Fire,
+    ) -> Result<(), Illegal> {
+        let from = firer.hex().expect("on the map");
+        if firer.kind.is_vessel() {
+            let points = if firer.kind == PieceKind::Blockship {
+                self.blockship_points(data, firer, hex)?
+            } else {
+                self.bombardment_points(data, firer, hex)?
+            };
+            if f.points != points {
+                return Err(Illegal::new(
+                    "30.2x",
+                    format!(
+                        "{} fires its {points} gun points at {hex}, not {}",
+                        firer.id, f.points
+                    ),
+                ));
+            }
+        } else if !data.map.adjacent(from, hex) {
+            return Err(Illegal::new(
+                "12.31",
+                format!(
+                    "{} at {hex} is not adjacent to {} at {from}",
+                    f.target, firer.id
+                ),
+            ));
         }
         Ok(())
     }

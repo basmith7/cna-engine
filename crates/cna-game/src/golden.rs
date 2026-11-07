@@ -105,6 +105,7 @@ mod tests {
                 events.extend(state.apply(data, Side::Cw, Order::Pass).unwrap());
             }
             assert_eq!(state.to_act(), Some(side), "at {}: {order:?}", state.clock);
+            let order = state.blindfold(side, order);
             let ev = state
                 .apply(data, side, order.clone())
                 .unwrap_or_else(|e| panic!("at {}: {order:?}: {e}", state.clock));

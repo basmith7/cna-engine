@@ -44,7 +44,8 @@
     "returning_transport": true,
     "voluntary_withdrawals": true,
     "absorb_by_loss_order": true,
-    "captured_wrecks": true
+    "captured_wrecks": true,
+    "blind_barrage": true
   },
   "clock": {
     "game_turn": 1,
@@ -9347,6 +9348,453 @@
     ],
     "plots": {
       "axis": []
+    },
+    "numbering": {
+      "axis": {
+        "A0101": {
+          "gun": [
+            "unit:it:22nd-gaf-s-di-c-arty-regt",
+            "unit:it:2nd-bn-1-arty-rgppmnto",
+            "unit:it:16th-gaf-s-di-c-arty-regt",
+            "unit:it:147th-artiglieri-bn",
+            "unit:it:131st-artiglieri-bn",
+            "unit:it:1st-bn-1-arty-rgppmnto"
+          ]
+        },
+        "A0102": {
+          "gun": [
+            "unit:it:4th-bn-1-arty-rgppmnto",
+            "unit:it:42nd-gaf-s-di-c-arty-regt",
+            "unit:it:350th-gaf-s-di-c-arty-regt",
+            "unit:it:3rd-bn-1-arty-rgppmnto",
+            "unit:it:5th-bn-1st-artiglieri",
+            "unit:it:2nd-bn-24th-artiglieri"
+          ]
+        },
+        "A0103": {
+          "gun": [
+            "unit:it:6th-gaf-s-di-c-arty-regt",
+            "unit:it:xxvi-corps-artillery-regt",
+            "unit:it:xxi-corps-artillery-regt"
+          ],
+          "infantry": [
+            "unit:it:xviii-libyan-bn",
+            "unit:it:xxxii-libyan-bn"
+          ]
+        },
+        "A4130": {
+          "gun": [
+            "unit:it:soluch-garrison-arty-regt",
+            "unit:it:soluch-garrison-at-coy",
+            "unit:it:x-corps-artillery-regt"
+          ]
+        },
+        "A4827": {
+          "gun": [
+            "unit:it:xx-corps-artillery-regt"
+          ],
+          "infantry": [
+            "unit:it:ii-libyan-coastal-defense-bn",
+            "unit:it:viii-ii-engineer-bn"
+          ]
+        },
+        "B4921": {
+          "infantry": [
+            "unit:it:mechili-garrison-bn"
+          ]
+        },
+        "B5504": {
+          "infantry": [
+            "unit:it:1st-carabinieri-ccrr-bn",
+            "unit:it:1st-libyan-parachute-bn"
+          ]
+        },
+        "B5925": {
+          "gun": [
+            "unit:it:vi-coastal-def-arty-group",
+            "unit:it:iv-coastal-def-arty-group"
+          ],
+          "infantry": [
+            "unit:it:54th-territorial-inf-regt"
+          ]
+        },
+        "C0414": {
+          "gun": [
+            "unit:it:saharan-artillery-battery"
+          ],
+          "infantry": [
+            "unit:it:meharisiti-camel-cavalry",
+            "unit:it:sahara-machinegun-bn",
+            "unit:it:1-saharan-libyan-bn",
+            "unit:it:sahara-mtr-machinegun-coy",
+            "unit:it:2-saharan-libyan-bn"
+          ]
+        },
+        "C1014": {
+          "gun": [
+            "unit:it:giariabub-oasis-artillery-bty",
+            "unit:it:giariabub-oasis-anti-tank-coy"
+          ],
+          "infantry": [
+            "unit:it:giariabub-oasis-mg-bn",
+            "unit:it:giariabub-oasis-mtr-mg-bn",
+            "unit:it:giariabub-oasis-infantry-bn"
+          ]
+        },
+        "C1715": {
+          "infantry": [
+            "unit:it:egug-garrison-bn"
+          ]
+        },
+        "C3019": {
+          "infantry": [
+            "unit:it:fort-maddalenna-garrison-bn"
+          ]
+        },
+        "C3419": {
+          "infantry": [
+            "unit:it:sceferzen-oasis-garrison-bn"
+          ]
+        },
+        "C3617": {
+          "armor": [
+            "unit:it:iim-tank-bn"
+          ],
+          "gun": [
+            "unit:it:2nd-maletti-artillery-bn",
+            "unit:it:1st-maletti-artillery-bn"
+          ],
+          "infantry": [
+            "unit:it:xix-libyan-bn",
+            "unit:it:2-sahariano-camel-bn",
+            "unit:it:3-sahariano-camel-bn",
+            "unit:it:i-libyan-mtr-bn",
+            "unit:it:iii-libyan-mtr-bn",
+            "unit:it:1-sahariano-camel-bn",
+            "unit:it:v-libyan-mtr-bn",
+            "unit:it:xvii-libyan-bn"
+          ]
+        },
+        "C3918": {
+          "armor": [
+            "unit:it:lxiil-tank-bn"
+          ],
+          "gun": [
+            "unit:it:44th-artillery-regt",
+            "unit:it:115th-infantry-regt-hq",
+            "unit:it:62-anti-tank-coy",
+            "unit:it:116th-infantry-regt-hq"
+          ],
+          "infantry": [
+            "unit:it:iii-115-infantry-bn",
+            "unit:it:62-engineer-bn",
+            "unit:it:i-116-infantry-bn",
+            "unit:it:ii-115-infantry-bn",
+            "unit:it:ii-116-infantry-bn",
+            "unit:it:iii-116-infantry-bn",
+            "unit:it:i-115-infantry-bn",
+            "unit:it:62-machinegun-bn"
+          ]
+        },
+        "C3919": {
+          "armor": [
+            "unit:it:xxil-tank-bn",
+            "unit:it:aresca-1st-regt-hq"
+          ]
+        },
+        "C4020": {
+          "armor": [
+            "unit:it:ixl-tank-bn"
+          ],
+          "gun": [
+            "unit:it:2nd-libyan-artillery-regt",
+            "unit:it:3rd-libyan-regt-hq",
+            "unit:it:4th-libyan-regt-hq"
+          ],
+          "infantry": [
+            "unit:it:ii-libyan-bn",
+            "unit:it:vii-libyan-bn",
+            "unit:it:vi-libyan-bn",
+            "unit:it:xvi-libyan-bn",
+            "unit:it:xiv-libyan-bn",
+            "unit:it:xv-libyan-bn"
+          ]
+        },
+        "C4021": {
+          "gun": [
+            "unit:it:1st-libyan-artillery-regt",
+            "unit:it:2nd-libyan-regt-hq",
+            "unit:it:1st-libyan-anti-tank-coy",
+            "unit:it:1st-libyan-regt-hq"
+          ],
+          "infantry": [
+            "unit:it:ix-libyan-bn",
+            "unit:it:xi-libyan-bn",
+            "unit:it:xiii-libyan-bn",
+            "unit:it:x-libyan-bn",
+            "unit:it:xii-libyan-bn",
+            "unit:it:viii-libyan-bn"
+          ]
+        },
+        "C4120": {
+          "armor": [
+            "unit:it:lxiiil-tank-bn"
+          ],
+          "gun": [
+            "unit:it:158th-infantry-regt-hq",
+            "unit:it:63-anti-tank-coy",
+            "unit:it:157th-infantry-regt-hq",
+            "unit:it:45th-artillery-regt"
+          ],
+          "infantry": [
+            "unit:it:i-158-infantry-bn",
+            "unit:it:iii-157-infantry-bn",
+            "unit:it:i-157-infantry-bn",
+            "unit:it:63-bersaglieri-mitrg-coy",
+            "unit:it:ii-157-infantry-bn",
+            "unit:it:iii-158-infantry-bn",
+            "unit:it:ii-158-infantry-bn",
+            "unit:it:63-engineer-bn",
+            "unit:it:63-machinegun-bn"
+          ]
+        },
+        "C4218": {
+          "armor": [
+            "unit:it:im-tank-bn"
+          ],
+          "gun": [
+            "unit:it:201st-artillery-regt",
+            "unit:it:219th-legion-hq",
+            "unit:it:233rd-legion-hq"
+          ],
+          "infantry": [
+            "unit:it:116th-infantry-bn",
+            "unit:it:129th-infantry-bn",
+            "unit:it:201st-engineer-bn",
+            "unit:it:146th-infantry-bn",
+            "unit:it:133rd-infantry-bn",
+            "unit:it:118th-infantry-bn",
+            "unit:it:201st-machinegun-bn",
+            "unit:it:114th-infantry-bn",
+            "unit:it:201st-bersaglieri-mitrg-coy"
+          ]
+        },
+        "C4321": {
+          "armor": [
+            "unit:it:xxl-tank-bn",
+            "unit:it:lxil-tank-bn",
+            "unit:it:lxl-tank-bn",
+            "unit:it:trivioli-2nd-regt-hq"
+          ],
+          "gun": [
+            "unit:it:30-gaf-antitank-bn",
+            "unit:it:10th-gaf-s-di-c-arty-regt",
+            "unit:it:9th-gaf-s-di-c-arty-regt",
+            "unit:it:v-coastal-defense-arty-group",
+            "unit:it:8th-gaf-s-di-c-arty-regt"
+          ],
+          "infantry": [
+            "unit:it:i-30-gaf-s-di-c-bn",
+            "unit:it:iii-30-gaf-s-di-c-bn",
+            "unit:it:ii-30-gaf-s-di-c-bn",
+            "unit:it:vec-machinegun-bn"
+          ]
+        },
+        "C4507": {
+          "gun": [
+            "unit:it:204th-artillery-regt",
+            "unit:it:240th-legion-hq",
+            "unit:it:270th-legion-hq"
+          ],
+          "infantry": [
+            "unit:it:176th-infantry-bn",
+            "unit:it:119th-infantry-bn",
+            "unit:it:204th-engineer-bn",
+            "unit:it:17th-infantry-bn",
+            "unit:it:3rd-infantry-bn",
+            "unit:it:70th-infantry-bn",
+            "unit:it:170th-infantry-bn",
+            "unit:it:204th-machinegun-bn"
+          ]
+        },
+        "C4707": {
+          "gun": [
+            "unit:it:203rd-artillery-regt",
+            "unit:it:142nd-infantry-regt-hq",
+            "unit:it:141st-infantry-regt-hq",
+            "unit:it:64th-anti-tank-coy"
+          ],
+          "infantry": [
+            "unit:it:ii-142-infantry-bn",
+            "unit:it:ii-141-infantry-bn",
+            "unit:it:iii-142-infantry-bn",
+            "unit:it:64th-engineer-bn",
+            "unit:it:64th-machinegun-bn",
+            "unit:it:iii-141-infantry-bn",
+            "unit:it:i-142-infantry-bn",
+            "unit:it:i-141-infantry-bn"
+          ]
+        },
+        "C4807": {
+          "armor": [
+            "unit:it:libyan-tank-command-hq"
+          ],
+          "gun": [
+            "unit:it:3rd-tobruk-cd-arty-group",
+            "unit:it:2nd-tobruk-cd-arty-group",
+            "unit:it:5th-artiglieri-regt",
+            "unit:it:7th-artiglieri-regt",
+            "unit:it:1st-tobruk-cd-arty-group",
+            "unit:it:6th-artiglieri-regt",
+            "unit:it:5th-tobruk-cd-arty-group",
+            "unit:it:4th-tobruk-cd-arty-group"
+          ],
+          "infantry": [
+            "unit:it:ii-31-gaf-s-di-c-bn",
+            "unit:it:i-32-gaf-s-di-c-bn",
+            "unit:it:xxxi-libyan-coast-def-bn",
+            "unit:it:1st-marine-bn",
+            "unit:it:ii-32-gaf-s-di-c-bn",
+            "unit:it:3rd-marine-bn",
+            "unit:it:i-31-gaf-s-di-c-bn",
+            "unit:it:iii-31-gaf-s-di-c-bn",
+            "unit:it:iii-32-gaf-s-di-c-bn",
+            "unit:it:2nd-marine-bn"
+          ]
+        }
+      },
+      "cw": {
+        "C3020": {
+          "armor": [
+            "unit:cw:11-hus"
+          ]
+        },
+        "C3320": {
+          "infantry": [
+            "unit:cw:2-rflbde"
+          ]
+        },
+        "C3520": {
+          "armor": [
+            "unit:cw:1-rtr"
+          ]
+        },
+        "C3721": {
+          "gun": [
+            "unit:cw:3-rha"
+          ],
+          "infantry": [
+            "unit:cw:1-rnf"
+          ]
+        },
+        "C3922": {
+          "gun": [
+            "unit:cw:7-med",
+            "unit:cw:4-rha"
+          ],
+          "infantry": [
+            "unit:cw:3-cldgds",
+            "unit:cw:1-krrc"
+          ]
+        },
+        "C3926": {
+          "infantry": [
+            "unit:cw:1-fr-mtr-marine"
+          ]
+        },
+        "C4131": {
+          "gun": [
+            "unit:cw:31-fld"
+          ],
+          "infantry": [
+            "unit:cw:2-sctgds"
+          ]
+        },
+        "D0101": {
+          "gun": [
+            "unit:cw:65th-anti-tank-regt",
+            "unit:cw:149th-anti-tank-regt",
+            "unit:cw:8-med"
+          ]
+        },
+        "D3612": {
+          "armor": [
+            "unit:cw:4th-armored-bde-hq",
+            "unit:cw:8-hus",
+            "unit:cw:7-hus",
+            "unit:cw:7th-armored-div-hq",
+            "unit:cw:7th-armored-bde-hq",
+            "unit:cw:6-rtr"
+          ]
+        },
+        "D3615": {
+          "armor": [
+            "unit:cw:1-cih"
+          ],
+          "gun": [
+            "unit:cw:25-fld"
+          ],
+          "infantry": [
+            "unit:cw:4-6-rajrf",
+            "unit:cw:1-rfslr",
+            "unit:cw:1-6-rajrf",
+            "unit:cw:2-cmrn",
+            "unit:cw:4-7-rajpt",
+            "unit:cw:3-1-pjb"
+          ]
+        },
+        "D3714": {
+          "infantry": [
+            "unit:cw:1-essex",
+            "unit:cw:1-buffs",
+            "unit:cw:1-dur-lt",
+            "unit:cw:1-hamp",
+            "unit:cw:1-sostff"
+          ]
+        },
+        "E1730": {
+          "armor": [
+            "unit:cw:6-auscav"
+          ],
+          "gun": [
+            "unit:cw:8-fld"
+          ],
+          "infantry": [
+            "unit:cw:17-aus-hq",
+            "unit:cw:2-3-aus",
+            "unit:cw:1-ches",
+            "unit:cw:2-kor",
+            "unit:cw:2-6-aus",
+            "unit:cw:2-5-aus",
+            "unit:cw:2-7-aus",
+            "unit:cw:2-2-aus",
+            "unit:cw:1-wlch",
+            "unit:cw:16-aus-hq",
+            "unit:cw:2-1-aus"
+          ]
+        },
+        "E1829": {
+          "infantry": [
+            "unit:cw:2-leicst",
+            "unit:cw:1-a-s",
+            "unit:cw:2-qns"
+          ]
+        },
+        "E3613": {
+          "armor": [
+            "unit:cw:2-nz-cv"
+          ],
+          "gun": [
+            "unit:cw:4-nz-fld"
+          ],
+          "infantry": [
+            "unit:cw:18-nz",
+            "unit:cw:20-nz",
+            "unit:cw:27-nz",
+            "unit:cw:19-nz"
+          ]
+        }
+      }
     }
   },
   "over": null,

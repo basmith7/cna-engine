@@ -17,6 +17,8 @@ const pending = (page: Page) => page.getByTestId("pending");
 const sealed = (page: Page) => page.getByTestId("sealed-panel");
 
 const AXIS_GUN = "unit:it:1st-libyan-artillery-regt";
+/** 1 KRRC's blind barrage number in the golden game (order 66 of `tests/games/graziani-m5.json`, R-182). */
+const KRRC_NUMBER = "blind:C3922:infantry:2";
 
 /** Nothing the Axis sealed is on the page: no typed row, no ticked gun, no revealed line in the log, nothing of it in the view. */
 async function expectNoAxisAnswer(page: Page, step: "gun-positions" | "barrage" | "assign-forces") {
@@ -62,13 +64,15 @@ test("golden orders 65–78 by clicks: gun positions, the barrage on 1 KRRC, ass
   await clickHex(page, "C4021");
   await expect(page.getByTestId("stack-panel").locator(`[data-unit="${AXIS_GUN}"] .marker.forward`)).toHaveCount(1);
 
-  // 67: the Axis barrage: 6 points from the artillery at 1 KRRC. The
-  // proving screenshot, mid-entry.
+  // 67: the Axis barrage: 6 points from the artillery at 1 KRRC, which
+  // no patrol has identified, so it is fired at blind by its number in
+  // Halfaya Pass (R-182). The proving screenshot, mid-entry.
   await expect(pending(page)).toContainText("Sealed barrage · Axis");
   await sealed(page).locator(`[data-add-fire="${AXIS_GUN}"]`).click();
   const fire = sealed(page).locator('[data-fire="0"]');
   await fire.locator("[data-points]").fill("6");
-  await fire.locator("[data-target]").selectOption("unit:cw:1-krrc");
+  await expect(fire.locator('[data-target] option[value="unit:cw:1-krrc"]')).toHaveCount(0);
+  await fire.locator("[data-target]").selectOption(KRRC_NUMBER);
   await expect(sealed(page).locator('[data-order="barrage"]')).toHaveText("Seal barrage (1 fire)");
   await clickHex(page, "C3922");
   await shoot(page, "barrage-entry.png");
@@ -90,8 +94,8 @@ test("golden orders 65–78 by clicks: gun positions, the barrage on 1 KRRC, ass
 
   // 68: the Commonwealth fires nothing; the barrage is revealed and rolled.
   await sealed(page).locator('[data-order="barrage"]').click();
-  await expect(log(page).filter({ hasText: "Axis barrage plotted: 1st Libyan Artillery Regt 6 at 1st KRRC." })).toHaveCount(1);
-  await expect(log(page).filter({ hasText: /^Axis barrage on 1st KRRC by 1st Libyan Artillery Regt: \d+ points/ })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: "Axis barrage plotted: 1st Libyan Artillery Regt 6 at Infantry no. 2 in C3922." })).toHaveCount(1);
+  await expect(log(page).filter({ hasText: /^Axis barrage on Infantry no. 2 in C3922 by 1st Libyan Artillery Regt: \d+ points/ })).toHaveCount(1);
   // 69: retreat before assault is the Commonwealth's; it passes.
   await expect(page.getByTestId("curtain")).toHaveCount(0);
   await expect(pending(page)).toHaveAttribute("data-kind", "retreat-before-assault");

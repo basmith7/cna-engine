@@ -167,7 +167,11 @@ mod tests {
     /// supply unit spent but the first, which stands at `at` with `ammo`.
     fn sollum(data: &Data, at: &str, ammo: u32) -> (GameState, PieceId) {
         let mut state = at_sollum(data);
-        state.modules = Modules::ALL;
+        // Named fire at an enemy unit: blind barrage (R-182) has tests of its own.
+        state.modules = Modules {
+            blind_barrage: false,
+            ..Modules::ALL
+        };
         let ids: Vec<PieceId> = state
             .pieces
             .values()

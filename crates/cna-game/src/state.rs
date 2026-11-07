@@ -258,6 +258,12 @@ pub struct Modules {
     /// points of a model none of its units has.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub captured_wrecks: bool,
+    /// Blind barrage (12.22–12.24, R-182): a barrage names an enemy
+    /// unit only once patrol or close assault has identified it;
+    /// otherwise it fires at a class and a number the owner's side
+    /// assigned for the step (`blind:<hex>:<class>:<n>`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub blind_barrage: bool,
 }
 
 impl Modules {
@@ -298,6 +304,7 @@ impl Modules {
         voluntary_withdrawals: true,
         absorb_by_loss_order: true,
         captured_wrecks: true,
+        blind_barrage: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -521,6 +528,10 @@ pub struct GameState {
     /// Each side's dummy tank formations by hex (16.4): its secret.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub dummy_tanks: BTreeMap<Side, BTreeSet<HexId>>,
+    /// The enemy units each side has identified, by patrol (16.51) or
+    /// close assault, so its barrages may name them (12.24, R-182).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub identified: BTreeMap<Side, BTreeSet<PieceId>>,
     /// The *San Giorgio* has fired this OpStage (R-151).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub blockship_fired: bool,
@@ -672,6 +683,7 @@ impl GameState {
             fleet_strikes: BTreeMap::new(),
             chariot_raid: BTreeMap::new(),
             dummy_tanks: BTreeMap::new(),
+            identified: BTreeMap::new(),
             blockship_fired: false,
             stage_record: Default::default(),
             air_lifted: BTreeMap::new(),

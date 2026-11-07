@@ -44,7 +44,8 @@
     "returning_transport": true,
     "voluntary_withdrawals": true,
     "absorb_by_loss_order": true,
-    "captured_wrecks": true
+    "captured_wrecks": true,
+    "blind_barrage": true
   },
   "clock": {
     "game_turn": 1,
@@ -9348,7 +9349,7 @@
         {
           "piece": "unit:it:1st-libyan-artillery-regt",
           "points": 6,
-          "target": "unit:cw:1-krrc"
+          "target": "blind:C3922:infantry:2"
         }
       ],
       "cw": []
@@ -9993,7 +9994,7 @@
             {
               "piece": "unit:it:1st-libyan-artillery-regt",
               "points": 6,
-              "target": "unit:cw:1-krrc"
+              "target": "blind:C3922:infantry:2"
             }
           ]
         }

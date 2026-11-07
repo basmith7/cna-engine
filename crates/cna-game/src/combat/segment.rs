@@ -111,6 +111,7 @@ impl GameState {
             Segment::Barrage => {
                 // A ship may bombard a coast no land unit fights on (30.2x).
                 if (fighting && self.barrage_needed(data)) || self.ships_may_fire(data) {
+                    self.number_targets(data);
                     sealed(self, SealedStep::Barrage, events);
                     return;
                 }
@@ -272,6 +273,7 @@ impl GameState {
                     self.reserve_ii_dp(&firers, events);
                 }
                 self.resolve_barrages(data, events);
+                self.combat.numbering.clear();
                 Segment::RetreatBeforeAssault
             }
             SealedStep::AssignForces => {

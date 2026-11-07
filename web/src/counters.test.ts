@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import charsFile from "../../vendor/cna/data/tables/unit-characteristics.json";
-import { glyphFor, label, markers, nameParts, nested, offMap, shipsAtSea, shipsInPort, sizeMark, stacks, topFirst } from "./counters";
+import { glyphFor, label, markers, nameParts, nested, offMap, shipsAtSea, shipsInPort, sizeMark, stacks, topFirst, unknownName } from "./counters";
 import type { Piece, View } from "./types";
 
 function piece(over: Partial<Piece> & { id: string }): Piece {
@@ -206,5 +206,16 @@ describe("raiders", () => {
     expect(glyphFor("raider", null)).toBe("recce");
     expect(label(raider())).toEqual({ short: "Raider", long: "Raider" });
     expect(label(raider({ name: "Long Range Desert Group", abbreviation: "LRDG" }))).toEqual({ short: "LRDG", long: "Long Range Desert Group" });
+  });
+});
+
+describe("unknownName", () => {
+  it("reads a blind barrage target as its class, number and hex (R-182)", () => {
+    expect(unknownName("blind:C4020:infantry:2")).toBe("Infantry no. 2 in C4020");
+    expect(unknownName("blind:C4020:armor:1")).toBe("Armour no. 1 in C4020");
+    expect(unknownName("blind:C4020:gun:10")).toBe("Gun no. 10 in C4020");
+  });
+  it("leaves any other id as it is", () => {
+    for (const id of ["unit:it:viii-libyan-bn", "blind:C4020:gun", "blind:C4020:gun:x", ""]) expect(unknownName(id)).toBe(id);
   });
 });
