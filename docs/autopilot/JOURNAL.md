@@ -858,3 +858,9 @@ Done: #168 merged (2b70cfb): 19.4x nesting fix. #169 (this branch): chariot raid
 In flight: CI on #169.
 Next: merge #169 when CI green (pins already regenerated with the new module). Then: build cna's answers as they land; voluntary withdrawals (20.9/64.75) need a spec-level call (when, where they return, "six months").
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 02:52 MST — main (hand-off)
+Done: #168 (2b70cfb) 19.4x nesting fix; #169 (522a941) `chariot_raid` module (30.4x), fresh review clean. Requests for cna posted: MG/HW typing (19.5), substitutes on arrival (19.4x), 18th Australian Brigade's landing in Rommel's Arrival (it never enters).
+In flight: none.
+Next: if Feedback approves #148 or #161, that mission's slice 1. Else bump vendor/cna as cna answers and build the answers (the 18th Aus landing, then its GT27/2 hold under 61.38 `free`, which needs a new module). Voluntary withdrawals (20.9/64.75) need calls on timing, return place and "six months".
+Blocked: Missions 6 and 7 on Brian's review.

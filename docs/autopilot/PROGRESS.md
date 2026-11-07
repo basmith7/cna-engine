@@ -45,7 +45,7 @@ independent) merged after a fresh review's fixes.
 unit of a parent's own structure attached under one of its
 sub-formations (Maletti's artillery under its 5th Libyan Regiment) no
 longer counts against the parent's Maximum Attachment Chart row. #169
-builds the chariot raid (30.4x) as the `chariot_raid` module: in a
+(merged) builds the chariot raid (30.4x) as the `chariot_raid` module: in a
 campaign game, from July 1941, once, the Axis secretly plans it in phase
 C (*Plan chariot raid*), and seven OpStages later the human torpedoes
 roll on the Chariot Raid Table against the ships in Alexandria. A fresh
