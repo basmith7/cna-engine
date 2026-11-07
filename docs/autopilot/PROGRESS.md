@@ -39,7 +39,7 @@ match). Also merged this run: #162, a browser control for the
 Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 #163 (`armour_limits`: when turn 19, 71 or 92 tightens a Commonwealth
 armoured formation's chart row, the units it no longer has room for go
-independent) is ready, merging once CI is green.
+independent) merged after a fresh review's fixes.
 
 **2026-11-06 night:** #159 (merged) builds reassignment (19.2x) as
 the `reassignment` module. An eliminated parent's surviving units become
