@@ -473,20 +473,33 @@ impl GameState {
         let Some(side) = shares.first().map(|s| self.pieces[&s.piece].side) else {
             return (0, 0);
         };
-        let armoured: Vec<Part> = shares
+        // 14.48 judges each hex the fire touches: the target hex, or for
+        // return fire each hex the armour attacks from.
+        let mut only_halftracks: BTreeMap<HexId, bool> = BTreeMap::new();
+        for s in shares.iter().filter(|s| s.points > 0) {
+            let piece = &self.pieces[&s.piece];
+            let Some(hex) = piece.hex() else { continue };
+            for part in self.parts(data, piece).iter().filter(|p| p.armoured()) {
+                let all = only_halftracks.entry(hex.clone()).or_insert(true);
+                *all &= part.halftrack;
+            }
+        }
+        let doubled: BTreeSet<PieceId> = shares
             .iter()
-            .filter(|s| s.points > 0)
-            .flat_map(|s| self.parts(data, &self.pieces[&s.piece]))
-            .filter(Part::armoured)
+            .filter(|s| {
+                self.pieces[&s.piece]
+                    .hex()
+                    .is_some_and(|h| only_halftracks.get(h) == Some(&true))
+            })
+            .map(|s| s.piece.clone())
             .collect();
-        let doubled = !armoured.is_empty() && armoured.iter().all(|p| p.halftrack);
         let mut left = HALFTRACK_CAP.saturating_sub(lost.get(&side).copied().unwrap_or(0));
         let before = left;
         let out = self.absorb_capped(
             data,
             shares,
-            |_, p| {
-                if doubled && p.halftrack {
+            |id, p| {
+                if p.halftrack && doubled.contains(id) {
                     2 * p.protection
                 } else {
                     p.protection
@@ -3138,12 +3151,42 @@ mod tests {
         let (mut state, ht) = halftrack_state(&data, true, true);
         let mut shares = shares_of(&[&ht], &state);
         let mut lost = BTreeMap::new();
+        let mut events = Vec::new();
+        let (absorbed, removed) =
+            state.anti_armour_losses(&data, &mut shares, 2, &mut lost, &mut events);
+        assert_eq!((absorbed, removed), (2, 1));
+        assert_eq!(state.pieces[&ht].toe, 4);
+        // The motorisation point that carried it went with it (§32),
+        // and the loss says so.
+        assert_eq!(state.pieces[&ht].motorised, 4);
+        assert!(
+            events.contains(&Event::Losses {
+                piece: ht.clone(),
+                points: 1,
+                toe: 4,
+                motorisation: 1,
+            }),
+            "{events:?}"
+        );
+    }
+
+    #[test]
+    fn return_fire_doubles_halftracks_by_the_hex_they_attack_from() {
+        // Riding halftracks attack from C4020 and the LXII(L) tanks
+        // (CV33, protection 1) from C4021: C4020's halftracks are alone
+        // there, so 2 damage is one doubled halftrack point.
+        let data = graziani();
+        let (mut state, ht) = halftrack_state(&data, true, true);
+        let tanks = pid("unit:it:lxiil-tank-bn");
+        state.put(&tanks, Location::Hex(hex("C4021")));
+        let mut shares = shares_of(&[&ht, &tanks], &state);
+        let mut lost = BTreeMap::new();
+        let tanks_toe = state.pieces[&tanks].toe;
         let (absorbed, removed) =
             state.anti_armour_losses(&data, &mut shares, 2, &mut lost, &mut Vec::new());
         assert_eq!((absorbed, removed), (2, 1));
         assert_eq!(state.pieces[&ht].toe, 4);
-        // The motorisation point that carried it went with it (§32).
-        assert_eq!(state.pieces[&ht].motorised, 4);
+        assert_eq!(state.pieces[&tanks].toe, tanks_toe);
     }
 
     #[test]

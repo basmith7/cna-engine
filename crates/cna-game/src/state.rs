@@ -196,7 +196,9 @@ pub struct Modules {
     /// infantry class, armoured only while wholly carried by motorisation
     /// points; alone under anti-armour fire its protection doubles, at
     /// most two of its points are lost to that fire a segment, and each
-    /// takes a motorisation point with it.
+    /// takes a motorisation point with it. Units ride motorisation
+    /// points only with `abstract_supply` on (§32), so without it a
+    /// halftrack is never armoured.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub halftracks: bool,
 }

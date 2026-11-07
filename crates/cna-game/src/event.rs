@@ -266,11 +266,15 @@ pub enum Event {
         pieces: Vec<PieceId>,
         short: u32,
     },
-    /// TOE points destroyed; `toe` is what is left.
+    /// TOE points destroyed; `toe` is what is left. `motorisation`:
+    /// the motorisation points that carried lost halftrack points, gone
+    /// with them (14.48, R-177).
     Losses {
         piece: PieceId,
         points: u32,
         toe: u32,
+        #[serde(default, skip_serializing_if = "crate::raiders::is_zero")]
+        motorisation: u32,
     },
     /// A supply unit paid fuel for a piece's land move (32.22).
     FuelSpent {

@@ -73,6 +73,17 @@ impl GameState {
 
     /// Records `points` lost by `id`, and its elimination at zero.
     pub(crate) fn note_losses(&mut self, id: &PieceId, points: u32, events: &mut Vec<Event>) {
+        self.note_losses_with(id, points, 0, events);
+    }
+
+    /// `note_losses`, with the motorisation points that went with them.
+    fn note_losses_with(
+        &mut self,
+        id: &PieceId,
+        points: u32,
+        motorisation: u32,
+        events: &mut Vec<Event>,
+    ) {
         if points == 0 {
             return;
         }
@@ -81,6 +92,7 @@ impl GameState {
             piece: id.clone(),
             points,
             toe: piece.toe,
+            motorisation,
         });
         if piece.toe == 0 {
             piece.location = Location::Eliminated;
@@ -163,7 +175,8 @@ impl GameState {
     ) -> (u32, u32) {
         let mut absorbed = 0;
         let mut removed = 0;
-        let mut per_piece: Vec<(PieceId, u32)> = Vec::new();
+        // Per piece: TOE points and motorisation points lost.
+        let mut per_piece: Vec<(PieceId, u32, u32)> = Vec::new();
         let mut destroyed = Vec::new();
         while absorbed < needed {
             let mut best: Option<(usize, Option<String>, u32, bool, bool)> = None;
@@ -190,10 +203,12 @@ impl GameState {
             if !self.take_loss_entry(&id, weapon.as_deref()) {
                 break;
             }
+            let mut carried = 0;
             if capped && let Some(left) = halftracks.as_deref_mut() {
                 *left -= 1;
                 let p = self.pieces.get_mut(&id).expect("a piece");
-                p.motorised = p.motorised.saturating_sub(1);
+                carried = p.motorised.min(1);
+                p.motorised -= carried;
             }
             if tank {
                 self.mark_destroyed_tank(&id, weapon.as_deref(), &mut destroyed);
@@ -201,14 +216,17 @@ impl GameState {
             shares[i].points -= 1;
             absorbed += r;
             removed += 1;
-            match per_piece.iter_mut().find(|(p, _)| *p == id) {
-                Some((_, n)) => *n += 1,
-                None => per_piece.push((id, 1)),
+            match per_piece.iter_mut().find(|(p, ..)| *p == id) {
+                Some((_, n, m)) => {
+                    *n += 1;
+                    *m += carried;
+                }
+                None => per_piece.push((id, 1, carried)),
             }
         }
         events.extend(destroyed);
-        for (id, n) in per_piece {
-            self.note_losses(&id, n, events);
+        for (id, n, m) in per_piece {
+            self.note_losses_with(&id, n, m, events);
         }
         (absorbed, removed)
     }

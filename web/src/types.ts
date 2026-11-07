@@ -395,7 +395,7 @@ export type Event =
   | { engaged: { pieces: PieceId[] } }
   | { "retreat-ordered": { pieces: PieceId[]; hexes: number; reason: RetreatReason } }
   | { "retreat-bought-out": { pieces: PieceId[]; short: number } }
-  | { losses: { piece: PieceId; points: number; toe: number } }
+  | { losses: { piece: PieceId; points: number; toe: number; motorisation?: number } }
   | { "fuel-spent": { piece: PieceId; from: PieceId; fuel: number } }
   | { "ammunition-spent": { piece: PieceId; from: PieceId; ammo: number } }
   | { "ammunition-short": { piece: PieceId } }
