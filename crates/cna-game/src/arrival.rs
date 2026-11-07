@@ -8,7 +8,9 @@
 //! `scenario_arrivals` module on, a scenario's own `arrivals` rows land
 //! their units at their OpStage and place, with motorisation points for
 //! their trucks, and a unit named there does not arrive by the schedule
-//! (R-181).
+//! (R-181). With `returning_transport` on, a return printed "Tpt: See
+//! ..." brings back the motorisation points that left on the withdrawals
+//! it names (R-157).
 
 use crate::data::Data;
 use crate::event::Event;
@@ -17,6 +19,7 @@ use crate::setup;
 use crate::state::GameState;
 use cna_data::oa::{Arrival, UnitId};
 use cna_data::scenario::{OffMapBox, Side};
+use cna_data::schedule::Row;
 use cna_data::time::GameTime;
 
 impl GameState {
@@ -63,9 +66,13 @@ impl GameState {
             // the scenario's own row)
             let mut landings: Vec<(&UnitId, Location, u32, GameTime, bool)> = Vec::new();
             for row in data.schedule.arrivals(side, now) {
+                // A return brings back the transport that left on the
+                // withdrawals it names (R-157), with its first unit.
+                let mut points = self.transport_back(row);
                 for head in &row.units {
                     if !named(head) {
-                        landings.push((head, at.clone(), 0, now, false));
+                        landings.push((head, at.clone(), points, now, false));
+                        points = 0;
                     }
                 }
             }
@@ -139,6 +146,26 @@ impl GameState {
             any = true;
         }
         any
+    }
+}
+
+impl GameState {
+    /// The motorisation points that left on the withdrawals `row` names
+    /// in `transport_from` and have not come back yet, taken off the
+    /// record (R-157); none without `returning_transport` and §32.
+    fn transport_back(&mut self, row: &Row) -> u32 {
+        if !self.modules.returning_transport || !self.modules.abstract_supply {
+            return 0;
+        }
+        let mut points = 0;
+        self.transport_out.retain(|t| {
+            let back = row.transport_from.contains(&t.at);
+            if back {
+                points += t.points;
+            }
+            !back
+        });
+        points
     }
 }
 

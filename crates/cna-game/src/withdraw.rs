@@ -9,7 +9,9 @@
 //! (R-156), and, under §32, the row's motorisation points in Cairo or
 //! Alexandria go with it (R-157). Otherwise every unit in it is
 //! eliminated. A schedule row that brings a withdrawn unit back brings
-//! it as it left (`arrival.rs`).
+//! it as it left (`arrival.rs`), and with `returning_transport` on, a
+//! return printed "Tpt: See ..." brings back the motorisation points
+//! that left on the withdrawals it names (R-157).
 
 use crate::data::Data;
 use crate::event::{Event, Illegal};
@@ -19,7 +21,7 @@ use cna_data::oa::{Oa, UnitId};
 use cna_data::scenario::Side;
 use cna_data::schedule::{Pick, Row};
 use cna_data::time::GameTime;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 /// A withdrawal pick the Commonwealth may make now (20.82, R-154): what
@@ -34,6 +36,14 @@ pub struct PickOption {
     pub candidates: Vec<PieceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picked: Option<Vec<PieceId>>,
+}
+
+/// Motorisation points that left with an OpStage's withdrawals (R-157),
+/// kept until a return that names that OpStage brings them back.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransportOut {
+    pub at: GameTime,
+    pub points: u32,
 }
 
 /// The places a withdrawal leaves from (20.81).
@@ -328,6 +338,12 @@ impl GameState {
                     if !taken {
                         self.take_motorisation(&keys, needed);
                         taken = true;
+                        if self.modules.returning_transport && needed > 0 {
+                            self.transport_out.push(TransportOut {
+                                at: row.at,
+                                points: needed,
+                            });
+                        }
                     }
                     for id in &ids {
                         let p = self.pieces.remove(id).expect("a piece");
@@ -780,5 +796,45 @@ mod tests {
         state.arrive(&data, &mut events);
         assert_eq!(state.pieces[&hq].toe, 1);
         assert!(!state.withdrawn.contains_key(&hq));
+    }
+
+    /// The 1st Armoured Brigade leaves at GT23/3 with 30 motorisation
+    /// points, and comes back at GT31/1 "Tpt: See 23/3".
+    fn armoured_round_trip(modules: Modules) -> (u32, u32, u32) {
+        let data = Data::load("campaign-game").unwrap();
+        let mut state = game(&data);
+        state.modules = modules;
+        let r = row(&data, 23, 3);
+        let ids = put(&mut state, &data, "unit:cw:1-armd-bde-hq", cairo(&data));
+        motorise(&mut state, &data, 35);
+        let key = cairo(&data).key().unwrap();
+        let held = |s: &GameState| s.motorisation[&Side::Cw].get(&key).copied().unwrap_or(0);
+        let events = check(&mut state, &data, &r, None);
+        assert!(matches!(&events[0], Event::Withdrawn { .. }), "{events:?}");
+        assert!(!state.pieces.contains_key(&ids[0]));
+        let out = held(&state);
+        state.clock.game_turn = 31;
+        state.clock.stage = 1;
+        let mut events = Vec::new();
+        state.arrive(&data, &mut events);
+        assert!(state.pieces.contains_key(&ids[0]), "the brigade is back");
+        let back = held(&state);
+        // A second return naming 23/3 would find nothing left.
+        assert!(state.transport_out.is_empty());
+        (35, out, back)
+    }
+
+    #[test]
+    fn a_return_brings_back_the_transport_that_left_r_157() {
+        assert_eq!(armoured_round_trip(Modules::ALL), (35, 5, 35));
+    }
+
+    #[test]
+    fn without_returning_transport_the_points_stay_gone_r_157() {
+        let modules = Modules {
+            returning_transport: false,
+            ..Modules::ALL
+        };
+        assert_eq!(armoured_round_trip(modules), (35, 5, 5));
     }
 }
