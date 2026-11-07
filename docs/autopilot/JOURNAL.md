@@ -827,3 +827,9 @@ Done: #161 (Mission 7 spec, Air Game on §32+§47; ready, `needs-brian`; fresh r
 In flight: full Playwright on #162 (/tmp/cna-swap); fresh review of #163; CI on both.
 Next: ready+merge #162, then merge main into #163 (NOT_SIMULATED line 180 conflicts) and merge it. Mission 6 (#148) and 7 (#161) wait on Brian; bump vendor/cna when cna answers the air requests.
 Blocked: Missions 6 and 7 on Brian's review.
+
+## 2026-11-06 19:50 MST — autopilot/m7-spec (hand-off)
+Done: #162 (Swap brigade with…, 56197e9) and #163 (`armour_limits`, 19.2x; review fixes 1715f4b) merged. #161 ready, `needs-brian`. PROGRESS hand-off on main; seven cna requests posted (six air, one historical shifts).
+In flight: none (worktrees removed).
+Next: if Feedback approves #148 or #161, that mission's slice 1. Else bump vendor/cna as cna answers the air requests and fold the answers into #161; or an owner's pick for #163's freed units (an order like the withdrawal pick).
+Blocked: Missions 6 and 7 on Brian's review.
