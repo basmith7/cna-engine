@@ -480,6 +480,8 @@ blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
 - **Dummy tank formations under §32** (16.4; Mission 5 follow-up, blocks building 16.4). 16.41 makes one in the construction segment from 10 stores in the hex, but abstract supply (§32) has no stores, only ammunition and fuel loads. Needed: what a dummy costs and where it is paid from with abstract supply, or a ruling that it is left out without the Logistics Game.
+- **Type machine-gun and heavy-weapons infantry units in `data/oa/`** (19.5; Mission 5 follow-up, blocks the chart's infantry limit exception). `max-attachments.json`'s note says the chart's "infantry" limit excludes machine-gun and heavy-weapons units, but nothing in the data marks them: the characteristics chart's `unit_type` is just "Infantry Bn-Eq", and `fills` is the chart slot, not the unit's type (the German 2nd and 8th Machinegewehr Bns fill `infantry-battalion`; the 6th Rajputana Rifles fills `machinegun-battalion`, the Kopanski MG Coy only `unit`). Needed: a per-unit field (say `infantry_type: "machine-gun" | "heavy-weapons"`) or a list of id codes per nation.
+- **A substitute when the unit it stands for arrives** (19.4x substitution; Mission 5 follow-up). An independent unit attached in place of a missing assigned unit stands in its slot; the rules do not say what happens when the missing unit later arrives or is rebuilt and attaches. The engine keeps the substitute as a substitute, so the parent can then carry more than its 19.5 row. Needed: a ruling (the substitute becomes an extra and must fit the row or detach; the arriving unit may not attach while its slot is filled; or it stands).
 
 ## Runs and quota
 
