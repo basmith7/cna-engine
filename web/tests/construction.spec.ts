@@ -55,3 +55,24 @@ test("phase C: the 201st Engineers lay a dummy minefield at C4218, shown as such
   await expect(log(page).filter({ hasText: "Axis begins a dummy minefield in C4218." })).toHaveCount(1);
   await expect(page.getByTestId("project")).toHaveText("Axis dummy minefield under way: 0 of 1 stage");
 });
+
+test("phase C: the Axis notes a dummy tank formation with a German formation at C4218, its secret (16.4, R-178)", async ({ page }) => {
+  // The set-up, with C4218's Axis units made German: never in an
+  // Italian formation (16.43).
+  const save = JSON.parse(readFileSync(here("fixtures/set-up-done.json"), "utf8"));
+  for (const p of Object.values(save.pieces) as { side: string; location: { hex?: string }; nation?: string }[]) {
+    if (p.side === "axis" && p.location.hex === "C4218") p.nation = "de";
+  }
+  await openStart(page);
+  await page.evaluate((json) => window.__cna.load(json), JSON.stringify(save));
+  await page.locator("[data-stack]").first().waitFor();
+  const controls = page.getByTestId("phase-controls");
+  await controls.locator('[data-order="declare-initiative"][data-side="axis"]').click();
+  await expect(page.getByTestId("clock")).toContainText("C · organisation");
+  await clickHex(page, "C4218");
+  await controls.locator('[data-order="place-dummy-tank"]').click();
+  await expect(log(page).filter({ hasText: "Axis notes a dummy tank formation at C4218 (16.42)." })).toHaveCount(1);
+  await expect(controls.getByTestId("dummy-tanks")).toHaveText("Dummy tanks: C4218");
+  // One a hex (16.43): the engine no longer offers C4218.
+  await expect(controls.locator('[data-order="place-dummy-tank"]')).toHaveCount(0);
+});

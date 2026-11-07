@@ -220,6 +220,8 @@ export type Order =
   | { station: { ship: PieceId; hex: HexId } }
   /** Phase C, the Axis: note the chariot raid on Alexandria for the seventh OpStage after (30.41). */
   | "plan-chariot-raid"
+  /** Phase C: note a dummy tank formation, secretly, in `hex` (16.4x). */
+  | { "place-dummy-tank": { hex: HexId } }
   | "pass";
 
 /** What a construction project builds (24.1x). */
@@ -347,6 +349,11 @@ export type Event =
   | { "fleet-struck": { column: number; reading: number; damage: number; hits?: Record<PieceId, number>; sunk?: PieceId[] } }
   /** The Axis noted its chariot raid (30.41): its secret, sent to the Axis alone. */
   | { "chariot-raid-planned": { game_turn: number; stage: number } }
+  /** A dummy tank formation noted (16.42), or gone with its formation: the owner's secret, sent to it alone. */
+  | { "dummy-tank-placed": { side: Side; hex: HexId } }
+  | { "dummy-tank-lost": { side: Side; hex: HexId } }
+  /** A dummy tank formation close-assaulted, or left with no real armour under anti-armour fire, dies in the open (16.44, 16.45). */
+  | { "dummy-tank-exposed": { side: Side; hex: HexId } }
   /** The chariot raid on Alexandria (30.4x): the table's die, the dice of damage it gave, and the gun points laid per ship. */
   | { "chariot-raid": { roll: number; dice: number; damage: number; hits?: Record<PieceId, number>; sunk?: PieceId[] } }
   /** A damaged ship got a gun point back after six OpStages in Alexandria (30.37). */
@@ -607,6 +614,10 @@ export interface View {
   parent_shifts?: { piece: PieceId; to: PieceId | null }[];
   /** Phase C: the Axis viewer may plan its chariot raid now (30.41). */
   chariot_raid_plannable?: boolean;
+  /** Phase C: the hexes the viewer may note a dummy tank formation in now (16.4x). */
+  dummy_tank_options?: HexId[];
+  /** The viewer's own dummy tank formations by side, its secret (16.4): the enemy's never reach it. */
+  dummy_tanks?: Partial<Record<Side, HexId[]>>;
   /** The Commonwealth viewer, to act: the withdrawal picks it may make this OpStage (20.82, `cna_game::withdraw::PickOption`). */
   withdrawal_pick_options?: WithdrawalPick[];
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */

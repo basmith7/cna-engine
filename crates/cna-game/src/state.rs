@@ -216,6 +216,12 @@ pub struct Modules {
     /// as that would tell the Commonwealth whether one is still to come.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub chariot_raid: bool,
+    /// Dummy tank formations (16.4, R-178): each player notes up to
+    /// three, one a hex and none in an Italian formation, in phase C's
+    /// construction segment, at no cost under §32; secret until a close
+    /// assault or anti-armour fire shows one up.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub dummy_tanks: bool,
     /// Machine-gun and heavy-weapons units (`infantry_type`, R-179) count
     /// toward a parent's Maximum Attachment Chart total but not against
     /// its infantry limit (19.5).
@@ -259,6 +265,7 @@ impl Modules {
         parent_shifts: true,
         halftracks: true,
         chariot_raid: true,
+        dummy_tanks: true,
         infantry_types: true,
         substitute_arrival: true,
     };
@@ -473,6 +480,9 @@ pub struct GameState {
     /// (30.41) until the raid is made.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub chariot_raid: BTreeMap<Side, crate::chariot_raid::Raid>,
+    /// Each side's dummy tank formations by hex (16.4): its secret.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dummy_tanks: BTreeMap<Side, BTreeSet<HexId>>,
     /// The *San Giorgio* has fired this OpStage (R-151).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub blockship_fired: bool,
@@ -621,6 +631,7 @@ impl GameState {
             fleet: BTreeMap::new(),
             fleet_strikes: BTreeMap::new(),
             chariot_raid: BTreeMap::new(),
+            dummy_tanks: BTreeMap::new(),
             blockship_fired: false,
             stage_record: Default::default(),
             air_lifted: BTreeMap::new(),
@@ -709,6 +720,7 @@ impl GameState {
         self.release_commit(released);
         self.part_from_rommel(&mut events);
         self.unassign_orphans(&mut events);
+        self.drop_orphan_dummy_tanks(&mut events);
         self.tighten_limits(data, turn, &mut events);
         self.log.push(LoggedOrder { player, order });
         Ok(events)
@@ -927,6 +939,7 @@ impl GameState {
             ) => self.tow(data, player, hex, weapon, *points, path),
             (None, Order::Station { ship, hex }) => self.station(data, player, ship, hex),
             (None, Order::PlanChariotRaid) => self.plan_chariot_raid(data, player),
+            (None, Order::PlaceDummyTank { hex }) => self.place_dummy_tank(data, player, hex),
             (
                 None,
                 Order::Patrol {

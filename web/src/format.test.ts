@@ -36,6 +36,9 @@ const cases: [Event, string][] = [
   [{ arrived: { pieces: ["u:a", "u:b"], at: { port: "alexandria" } } }, "A, B arrive at Alexandria."],
   [{ stationed: { ship: "u:a", hex: "C4131" } }, "A puts to sea at C4131 (30.1x)."],
   [{ "in-port": { ships: ["u:a"] } }, "A is back in Alexandria (30.1x)."],
+  [{ "dummy-tank-placed": { side: "cw", hex: "C4020" } }, "Commonwealth notes a dummy tank formation at C4020 (16.42)."],
+  [{ "dummy-tank-lost": { side: "axis", hex: "C4020" } }, "Axis's dummy tank formation at C4020 has no formation left and is gone (16.4)."],
+  [{ "dummy-tank-exposed": { side: "axis", hex: "C4020" } }, "Axis's tanks at C4020 were a dummy, and are gone (16.44)."],
   [{ "chariot-raid-planned": { game_turn: 44, stage: 2 } }, "The Axis plans a chariot raid on Alexandria, seven OpStages from GT44/2 (30.41)."],
   [{ "chariot-raid": { roll: 1, dice: 3, damage: 8, hits: { "u:a": 5, "u:b": 3 }, sunk: ["u:b"] } }, "Chariot raid on Alexandria: die 1, 3 dice, 8 gun points of damage (A 5, B 3). B is sunk."],
   [{ "chariot-raid": { roll: 6, dice: 0, damage: 0 } }, "Chariot raid on Alexandria: die 6, 0 dice, 0 gun points of damage."],
@@ -141,9 +144,9 @@ const names: Record<string, string> = { "u:a": "A", "u:b": "B", "u:s": "S" };
 const name = (id: string) => names[id] ?? id;
 
 describe("the log line of every event variant", () => {
-  it("covers all 98 variants", () => {
+  it("covers all 101 variants", () => {
     const tags = new Set(cases.map(([e]) => (typeof e === "string" ? e : Object.keys(e)[0])));
-    expect(tags.size).toBe(98);
+    expect(tags.size).toBe(101);
   });
 
   it.each(cases)("%j", (event, line) => {

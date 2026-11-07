@@ -209,6 +209,9 @@ pub enum Order {
     /// it notes secretly a chariot raid on Alexandria, made in the
     /// seventh OpStage after (30.4x).
     PlanChariotRaid,
+    /// Phase C's construction segment: a dummy tank formation noted
+    /// secretly in `hex`, with a friendly non-Italian formation (16.4x).
+    PlaceDummyTank { hex: HexId },
     /// Phase L: a patrol of `sources`' points against `target`, the
     /// defender describing none of `exclude` (16.x).
     Patrol {
