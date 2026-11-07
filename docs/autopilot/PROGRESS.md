@@ -41,6 +41,16 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 evening (late):** cna answered all four requests within the
+hour (R-182–R-187). #182 (merged) bumps `vendor/cna` to 8e35bab and
+homes each ruling; #184 (merged) builds R-183–R-187 (folding in #183): The Last Chance's
+tactical win by TOE points on the enemy's sheet, The Long Retreat's
+0-point Commonwealth win, the Italian Campaign's plain tactical win and
+cut-off strategic win, points places' supply test under §32 (Crusader,
+The Long Retreat, the Italian Campaign) and Rommel's Arrival's two
+Egyptian towns. R-182 (blind barrage targets numbered by class) is not
+built yet.
+
 **2026-11-07 evening:** #180 (merged) builds the standing loss order into
 losses absorbed by rating (`absorb_by_loss_order`): anti-armour damage
 (14.4x), close-assault and retreat losses (15.83) and gun vulnerability
@@ -456,6 +466,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #184: R-186's `draw` reuses 64.73's end-of-game
+  supply test; R-185's cut-off counts any Axis combat unit (all Italian
+  in that scenario).
 - Calls to glance at in #180 and #181: a listed entry absorbs before a
   better-rated unlisted one even when more points go (the owner's
   stated choice, which 14.4x allows); among several units every unit's
@@ -505,7 +518,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 4988be0 (#174). Four requests for cna are open below (victory data for The Last Chance, The Long Retreat and the Italian Campaign; points-place supply under §32; 12.22's blind targets).
+- `vendor/cna` is at cna 8e35bab (#182). Next to build: R-182, blind barrage targets numbered by class (12.22), which needs identification tracked (patrols, earlier combat) and a browser control.
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
@@ -579,10 +592,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **The Last Chance's tactical victory as typed data.** Its `victory.notes` say the higher total of TOE points on the enemy's sheet wins (Axis on sheet E, Commonwealth on sheet D, Layforce and SAS not counted) and that "the schema cannot express this". Needed: a typed block the engine can count (which sheet per side, the excluded units by id, whether HQs, guns and broken-down points count, and the level it gives). Without it the scenario ends with no result short of the Axis taking Alexandria. Its strategic level's "at least a brigade-equivalent in one Alexandria hex" is in the notes too; the engine accepts any combat unit there. A typed minimum size on the hold would close it. Blocks: The Last Chance being playable to a result (post-Mission 5 polish).
-- **The Long Retreat's and the Italian Campaign's levels.** The Long Retreat: "0 points is a Commonwealth win", which `margins` cannot say, so the engine gives no one a win (which level?). The Italian Campaign has no `margins` or `levels`: which `VictoryLevel` is its "plain Victory", and the Commonwealth's strategic win "if no Italian combat unit on the map can trace a supply line" as a typed condition with a §32 reading of "trace" (R-110's route, or 64.73's test?). Blocks: both scenarios ending with a level.
-- **Points places' supply conditions under §32.** Crusader ("supply to exist for a month and ammunition for a week"), The Long Retreat (a Game-Turn of stores, ammunition to fire twice, fuel for 20 CP) and the Italian Campaign (a trace of at most one Game-Turn to a dump or city leading back to Cairo or Tripoli) state them for the Logistics Game, in prose; the engine plays §32 and checks none. Needed: a ruling on what each means with abstract supply (e.g. a `supply_trace` as Graziani's levels have, or 64.73's end-of-game test as the campaigns use), as data. Also Rommel's Arrival's Axis strategic "any two villages or cities in Egypt" as a typed hold (count and place kinds). Blocks: honest results in four scenarios.
-- **12.22's blind barrage targets against 3.61's examinable stacks.** 12.22 has the owner answer only with each target's class and the firer shoot at "infantry no. 2"; 3.61's table says any stack may be examined on the map. If the counters (not their contents) are known, naming a specific counter is fine and 12.22's numbering adds nothing; if not, the engine should number targets by class. A ruling, please. Blocks: nothing now (the engine lets the firer name any counter; `NOT_SIMULATED.md`).
+(none open)
 
 ## Runs and quota
 

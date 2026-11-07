@@ -912,3 +912,9 @@ Done: #180 (autopilot/absorb-loss-order): `absorb_by_loss_order` module, the sta
 In flight: CI on #180/#181.
 Next: merge #180, retarget #181 to main, merge it. Then: build cna's answers to the four requests when they land (bump vendor/cna).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 10:55 MST — main (hand-off)
+Done: #180 (absorb_by_loss_order), #181 (captured_wrecks: R-152 repaired wrecks, 21.51 passable capture), #182 (vendor/cna → 8e35bab, R-182–R-187 homed), #184 (victory R-183–R-187; #183 folded in, closed) all merged with CI green. cna answered the four requests in-run.
+In flight: none.
+Next: R-182 (blind barrage targets numbered by class, 12.22): track identification (patrol, earlier combat), number targets per class per step, browser control. Also a test for R-185 with Italians on the map but cut off by ZOC.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
