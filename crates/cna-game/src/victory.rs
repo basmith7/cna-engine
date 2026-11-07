@@ -1161,6 +1161,41 @@ mod tests {
     }
 
     #[test]
+    fn italians_on_the_map_but_ringed_by_zoc_are_cut_off_r_185() {
+        let data = Data::load("italian-campaign").unwrap();
+        let mut state = set_up(&data, 5);
+        // One Italian combat unit left, at Fort Maddalena (C3019).
+        let garrison = "unit:it:fort-maddalenna-garrison-bn";
+        for p in state.pieces.values_mut() {
+            if p.side == Side::Cw || (p.side == Side::Axis && p.id != pid(garrison)) {
+                p.location = Location::Eliminated;
+            }
+        }
+        put(&mut state, garrison, "C3019");
+        let r = evaluate(&data, &state);
+        assert_ne!(r.cw, Some(VictoryLevel::Strategic), "it traces: {r:?}");
+        // Two Commonwealth stacks north and south: their ZOCs cover
+        // every other neighbour, so the garrison cannot reach Nofilia
+        // though it is on the map.
+        for (id, h) in [
+            ("unit:cw:1-krrc", "C3018"),
+            ("unit:cw:3-cldgds", "C3018"),
+            ("unit:cw:1-buffs", "C3020"),
+            ("unit:cw:1-essex", "C3020"),
+        ] {
+            put(&mut state, id, h);
+        }
+        assert!(state.could_exert(&data, &hex("C3018")));
+        assert!(state.could_exert(&data, &hex("C3020")));
+        let r = evaluate(&data, &state);
+        assert_eq!((r.axis, r.cw), (None, Some(VictoryLevel::Strategic)), "{r:?}");
+        // A friend in C2919 lifts the ZOC there (R-110): a way opens.
+        put(&mut state, "unit:it:sceferzen-oasis-garrison-bn", "C2919");
+        let r = evaluate(&data, &state);
+        assert_ne!(r.cw, Some(VictoryLevel::Strategic), "{r:?}");
+    }
+
+    #[test]
     fn crusader_s_places_score_only_for_holders_that_can_draw_supply_r_186() {
         let data = Data::load("operation-crusader").unwrap();
         let mut state =
