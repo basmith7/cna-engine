@@ -2,7 +2,7 @@
   "id": "chart-vs-text",
   "kind": "line",
   "question": "Chart against text: how much the printed disagreements matter",
-  "rules_commit": "4565419a6af0b0c440cce43f43b5ed42127f5d52",
+  "rules_commit": "215864bc16b9ba8f26ac3a59637bdc8e9da078fa",
   "engine_commit": "see git log",
   "x": {
     "label": "Guards' raw close-assault defence",
