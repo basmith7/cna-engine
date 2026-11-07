@@ -895,11 +895,11 @@ mod tests {
         data.scenario = cna_data::scenario::Scenario::load("rommels-arrival").unwrap();
         let state = set_up(&graziani(), 5);
         let r = evaluate(&data, &state);
-        assert_eq!(r.unchecked.len(), 1);
-        assert!(r.unchecked[0].starts_with("axis strategic: "));
-        assert!(r.unchecked[0].contains("Egypt"));
+        // R-187 types the Egyptian towns, so no prose is left; until the
+        // count is read the region hold asks for all of Egypt.
+        assert!(r.unchecked.is_empty(), "{:?}", r.unchecked);
         // The Axis holds Tobruk and Bardia at set-up: decisive there; the
-        // strategic rung needs Benghazi and the unchecked Egyptian towns.
+        // strategic rung needs Benghazi and the Egyptian towns.
         assert_eq!(r.axis, Some(VictoryLevel::Decisive));
         assert_eq!(r.cw, None);
     }
