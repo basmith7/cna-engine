@@ -60,6 +60,8 @@ pub struct Part {
     pub protection: u32,
     /// Per point; 0 where the row prints none.
     pub vulnerability: u32,
+    /// A halftrack row (14.48, R-177).
+    pub halftrack: bool,
 }
 
 impl Part {
@@ -136,6 +138,7 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
             defence: r.close_assault_defence.clone(),
             protection,
             vulnerability: per_point(r.vulnerability.as_ref()),
+            halftrack: r.halftrack,
         }
     };
     if unlisted > 0
@@ -167,6 +170,7 @@ pub fn parts(data: &Data, piece: &Piece, game_turn: u8) -> Result<Vec<Part>> {
                 defence: r.close_assault_defence.clone(),
                 protection: per_point(r.armour_protection.as_ref()),
                 vulnerability: per_point(r.vulnerability.as_ref()),
+                halftrack: false,
             }),
             None => match data.chars.row(nation, &w.weapon) {
                 Some(r) => out.push(listed_row(w.points, &w.weapon, r)),
@@ -199,9 +203,21 @@ pub fn raw(parts: &[Part], kind: Kind, points: u32, paren_ok: bool) -> u32 {
 
 impl GameState {
     /// A piece's rated parts; a piece whose weapons were checked at
-    /// set-up never fails.
+    /// set-up never fails. With `halftracks` on, a halftrack row is
+    /// infantry class, its protection counting only while the whole unit
+    /// rides its motorisation points (R-177).
     pub fn parts(&self, data: &Data, piece: &Piece) -> Vec<Part> {
-        parts(data, piece, self.clock.game_turn).unwrap_or_default()
+        let mut out = parts(data, piece, self.clock.game_turn).unwrap_or_default();
+        if self.modules.halftracks {
+            let riding = crate::organisation::riding(piece).is_some();
+            for p in out.iter_mut().filter(|p| p.halftrack) {
+                p.class = Class::Infantry;
+                if !riding {
+                    p.protection = 0;
+                }
+            }
+        }
+        out
     }
 
     /// Whether a combat unit in the hex has a plain rating of this kind,
@@ -256,6 +272,43 @@ impl GameState {
     }
 }
 
+/// A halftrack battalion for tests: an Axis infantry battalion at C4020
+/// (Graziani's 1st Libyan Division) retyped as Italian `t`.
+#[cfg(test)]
+pub(crate) mod test_support {
+    use crate::data::Data;
+    use crate::movement::test_support::hex;
+    use crate::piece::{PieceId, PieceKind};
+    use crate::state::GameState;
+    use cna_data::oa::Nation;
+
+    /// Makes an Axis foot battalion at C4020 a `t` of `toe` points,
+    /// carried by motorisation points when `riding`; returns its id.
+    pub(crate) fn halftrack(data: &Data, state: &mut GameState, toe: u32, riding: bool) -> PieceId {
+        let row = data.chars.row(Nation::It, "t").expect("the t row");
+        assert!(row.halftrack);
+        let id = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.hex() == Some(&hex("C4020"))
+                    && p.kind == PieceKind::Combat
+                    && p.nation == Some(Nation::It)
+                    && p.weapons.is_empty()
+                    && p.id.to_string().contains("bn")
+            })
+            .expect("an Italian battalion at C4020")
+            .id
+            .clone();
+        let p = state.pieces.get_mut(&id).unwrap();
+        p.id_code = Some("t".into());
+        p.cpa = row.cpa.clone();
+        p.toe = toe;
+        p.motorised = if riding { toe } else { 0 };
+        id
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -304,6 +357,47 @@ mod tests {
         assert_eq!(state.class_of(&data, tanks), Class::Armour);
         // Points are drawn from the parts in order.
         assert_eq!(raw(&parts, Kind::Defence, 4, false), 8);
+    }
+
+    #[test]
+    fn a_halftrack_on_foot_is_unarmoured_infantry_r177() {
+        let data = graziani();
+        let mut state = set_up(&data, 3);
+        state.modules.halftracks = true;
+        let id = test_support::halftrack(&data, &mut state, 5, false);
+        let p = &state.pieces[&id];
+        assert_eq!(state.class_of(&data, p), Class::Infantry);
+        assert!(!state.parts(&data, p).iter().any(Part::armoured));
+    }
+
+    #[test]
+    fn a_riding_halftrack_is_infantry_with_its_printed_protection_r177() {
+        let data = graziani();
+        let mut state = set_up(&data, 3);
+        state.modules.halftracks = true;
+        let id = test_support::halftrack(&data, &mut state, 5, true);
+        let p = &state.pieces[&id];
+        assert_eq!(state.class_of(&data, p), Class::Infantry);
+        let parts = state.parts(&data, p);
+        assert_eq!(parts.len(), 1);
+        assert!(parts[0].halftrack);
+        assert_eq!(parts[0].protection, 1);
+        // One point short of carrying the whole unit: on foot (21.43).
+        state.pieces.get_mut(&id).unwrap().motorised = 4;
+        assert_eq!(state.parts(&data, &state.pieces[&id])[0].protection, 0);
+    }
+
+    #[test]
+    fn without_the_module_a_halftrack_is_armour_on_foot_or_riding() {
+        let data = graziani();
+        let mut state = set_up(&data, 3);
+        assert!(!state.modules.halftracks);
+        for riding in [false, true] {
+            let id = test_support::halftrack(&data, &mut state, 5, riding);
+            let p = &state.pieces[&id];
+            assert_eq!(state.class_of(&data, p), Class::Armour);
+            assert_eq!(state.parts(&data, p)[0].protection, 1);
+        }
     }
 
     #[test]

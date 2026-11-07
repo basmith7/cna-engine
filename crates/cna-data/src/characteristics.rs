@@ -126,6 +126,10 @@ pub struct Row {
     pub close_assault_defence: Option<Rating>,
     pub max_toe: Option<Rating>,
     pub assign_note: Option<String>,
+    /// The chart's halftrack note (German `j`, Italian `t`; R-177): its
+    /// armour protection counts only while the whole unit is carried.
+    #[serde(default)]
+    pub halftrack: bool,
 }
 
 #[derive(Deserialize)]

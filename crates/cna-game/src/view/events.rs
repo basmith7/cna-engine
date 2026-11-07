@@ -570,6 +570,7 @@ mod tests {
                 piece: unit.clone(),
                 points: 2,
                 toe: 4,
+                motorisation: 1,
             },
             Event::FuelSpent {
                 piece: unit.clone(),
