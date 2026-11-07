@@ -73,10 +73,9 @@ impl GameState {
                 "a dummy tank formation joins a formation: {hex} holds no {player} combat unit"
             ));
         }
-        if friends
-            .iter()
-            .any(|p| p.kind.holds_ground() && p.nation == Some(Nation::It))
-        {
+        if friends.iter().any(|p| {
+            matches!(p.kind, PieceKind::Combat | PieceKind::Hq) && p.nation == Some(Nation::It)
+        }) {
             return bad(format!(
                 "no dummy tank formation in an Italian formation, even a mixed one ({hex})"
             ));
@@ -327,6 +326,18 @@ mod tests {
             .unwrap();
         mixed.pieces.get_mut(italian).unwrap().nation = Some(Nation::It);
         assert!(refusal(&mut mixed, &data, Side::Axis, &hex).contains("Italian"));
+        // An Italian supply unit beside German units is no Italian
+        // formation: placed.
+        let mut supplied = german.clone();
+        supplied.dummy_tanks.clear();
+        let piece = supplied.pieces.get_mut(italian).unwrap();
+        piece.kind = PieceKind::SupplyUnit;
+        piece.nation = Some(Nation::It);
+        assert!(
+            axis.iter()
+                .any(|id| *id != *italian && state.pieces[id].kind == PieceKind::Combat)
+        );
+        place(&mut supplied, &data, Side::Axis, &hex).unwrap();
     }
 
     #[test]
