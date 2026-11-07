@@ -68,7 +68,7 @@ impl GameState {
     /// any set-up block the scenario places "within" so many hexes of one
     /// (Rommel's Arrival's Alexandria group, set up within one hex of
     /// Alexandria, is the Alexandria of 61.38).
-    fn release_hexes(data: &Data, side: Side) -> Option<BTreeSet<HexId>> {
+    pub(crate) fn release_hexes(data: &Data, side: Side) -> Option<BTreeSet<HexId>> {
         let setup = data.scenario.side(side);
         let r = setup.release.as_ref()?;
         let mut hexes = BTreeSet::new();

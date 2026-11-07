@@ -54,7 +54,7 @@ impl GameState {
     /// `total` CP: once for the stage's first move, and once more for the
     /// first spending past its CPA (32.22). Returns the sum and whether
     /// each kind falls due now.
-    fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
+    pub(crate) fn fuel_due(&self, data: &Data, piece: &Piece, total: Cp) -> (u32, bool, bool) {
         // A brigade counter pays by its battalion components.
         let (eq, parts) = components(piece.equivalent.unwrap_or(Equivalent::Hq));
         let mut each = parts * fuel_owed(self.fuel_class(data, piece), eq, Carrying::Nothing);
