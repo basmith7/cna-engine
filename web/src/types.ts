@@ -607,6 +607,8 @@ export interface View {
   parent_shifts?: { piece: PieceId; to: PieceId | null }[];
   /** Phase C: the Axis viewer may plan its chariot raid now (30.41). */
   chariot_raid_plannable?: boolean;
+  /** The Commonwealth viewer, to act: the withdrawal picks it may make this OpStage (20.82, `cna_game::withdraw::PickOption`). */
+  withdrawal_pick_options?: WithdrawalPick[];
   /** Phase L: the viewer's units that may patrol now, the points each may send and the hexes it may send them against (16.x). */
   patrol_options?: PatrolSource[];
   /** Phase E: the Commonwealth's ships that may be placed at sea and the hexes open to them (30.1x, `cna_game::fleet::StationOptions`). */
@@ -622,6 +624,9 @@ export interface View {
   /** Each warship's port record (30.1x), with the fleet module on. */
   fleet?: Record<PieceId, { at_sea?: number; owed?: number; stationed?: true; fired?: true }>;
 }
+
+/** A withdrawal's pick of `count` units of a slot kind (`cna_game::withdraw::PickOption`): `candidates` in the order the engine would take them, `picked` the pick made. */
+export type WithdrawalPick = { fills: string; count: number; candidates: PieceId[]; picked?: PieceId[] };
 
 /** One unit the phasing player may patrol with (`cna_game::patrol::PatrolSource`). */
 export type PatrolSource = { piece: PieceId; hex: HexId; points: number; targets: HexId[] };
