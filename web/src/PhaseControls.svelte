@@ -29,6 +29,7 @@
       o:
         | "end-segment"
         | "pass"
+        | "plan-chariot-raid"
         | { "declare-initiative": { player_a: Side } }
         | { "designate-reserve": { pieces: PieceId[] } }
         | { "release-reserve": { pieces: PieceId[] } }
@@ -132,6 +133,10 @@
             <button type="button" data-order="convoy-lanes" data-lane={lane} aria-pressed={lanes.includes(lane)} onclick={() => onorder({ "convoy-lanes": { lanes: toggleLane(lanes, lane) } })}>{lane} {LANE_PORTS[lane]}</button>
           {/each}
         </span>
+      {/if}
+      {#if view.chariot_raid_plannable}
+        <!-- 30.41: the engine offers it only when the Axis may plan it now; the plan stays secret until made. -->
+        <button type="button" data-order="plan-chariot-raid" title="Strikes the ships in Alexandria in the seventh OpStage from now (30.4x)" onclick={() => onorder("plan-chariot-raid")}>Plan chariot raid</button>
       {/if}
       {#if loaded.length >= 2}
         <span class="transfer" data-testid="transfer">

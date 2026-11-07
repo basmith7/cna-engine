@@ -65,6 +65,7 @@ pub struct Data {
     pub convoy_bombardment: cna_data::convoy::BombardmentGroup,
     pub fleet_bombardment: cna_data::convoy::BombardmentGroup,
     pub raid_on_rommel: cna_data::raid::RaidOnRommel,
+    pub chariot_raid: cna_data::chariot::ChariotRaid,
     pub fleet: cna_data::fleet::FleetSchedule,
     /// The scenario's roads and railroads built at set-up.
     pub built: crate::built::Built,
@@ -114,6 +115,7 @@ impl Data {
             convoy_bombardment: cna_data::convoy::BombardmentGroup::load_convoy(src)?,
             fleet_bombardment: cna_data::convoy::BombardmentGroup::load_fleet(src)?,
             raid_on_rommel: cna_data::raid::RaidOnRommel::load_from(src)?,
+            chariot_raid: cna_data::chariot::ChariotRaid::load_from(src)?,
             fleet: cna_data::fleet::FleetSchedule::load_from(src)?,
         };
         data.built = crate::built::Built::load(&data.scenario, &data.map)?;

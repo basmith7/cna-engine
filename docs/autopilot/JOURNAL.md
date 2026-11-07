@@ -852,3 +852,9 @@ Done: #168 (this branch, 2c… see log): 19.4x nesting fix in limits.rs (`assign
 In flight: gates for #168; subagent building the chariot raid (30.4x, `chariot_raid` module) on autopilot/chariot-raid.
 Next: merge #168 once CI green; review + merge the chariot-raid PR.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 02:30 MST — autopilot/chariot-raid
+Done: #168 merged (2b70cfb): 19.4x nesting fix. #169 (this branch): chariot raid (30.4x) as `chariot_raid` module, built by a subagent (95f523d), main merged in (1734d8f); fresh review found no bugs, one doc edge (no phase C without abstract_supply/construction) documented. Requests for cna on main: MG/HW typing, substitutes on arrival, 18th Australian Brigade's landing (it never enters Rommel's Arrival).
+In flight: CI on #169.
+Next: merge #169 when CI green (pins already regenerated with the new module). Then: build cna's answers as they land; voluntary withdrawals (20.9/64.75) need a spec-level call (when, where they return, "six months").
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

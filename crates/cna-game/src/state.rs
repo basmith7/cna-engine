@@ -207,6 +207,15 @@ pub struct Modules {
     /// halftrack is never armoured.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub halftracks: bool,
+    /// The chariot raid (30.4x): once in a campaign game, from July 1941,
+    /// the Axis secretly plans a raid on Alexandria in phase C, which
+    /// strikes the ships in harbour as phase E closes seven OpStages
+    /// later. Needs `fleet` on too, and a phase C to plan in, which
+    /// opens only with `abstract_supply` or `construction` on (or
+    /// replacements waiting): phase C is not opened for the raid alone,
+    /// as that would tell the Commonwealth whether one is still to come.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub chariot_raid: bool,
 }
 
 impl Modules {
@@ -238,6 +247,7 @@ impl Modules {
         no_armour_release: true,
         parent_shifts: true,
         halftracks: true,
+        chariot_raid: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -446,6 +456,10 @@ pub struct GameState {
     /// secret (3.61).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fleet_strikes: BTreeMap<Side, u8>,
+    /// Each side's chariot raid (30.4x), once planned: the Axis's secret
+    /// (30.41) until the raid is made.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub chariot_raid: BTreeMap<Side, crate::chariot_raid::Raid>,
     /// The *San Giorgio* has fired this OpStage (R-151).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub blockship_fired: bool,
@@ -593,6 +607,7 @@ impl GameState {
             marched: BTreeSet::new(),
             fleet: BTreeMap::new(),
             fleet_strikes: BTreeMap::new(),
+            chariot_raid: BTreeMap::new(),
             blockship_fired: false,
             stage_record: Default::default(),
             air_lifted: BTreeMap::new(),
@@ -898,6 +913,7 @@ impl GameState {
                 },
             ) => self.tow(data, player, hex, weapon, *points, path),
             (None, Order::Station { ship, hex }) => self.station(data, player, ship, hex),
+            (None, Order::PlanChariotRaid) => self.plan_chariot_raid(data, player),
             (
                 None,
                 Order::Patrol {

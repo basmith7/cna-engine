@@ -6,6 +6,7 @@ pub mod barrage;
 pub mod breakdown;
 pub mod calendar;
 pub mod characteristics;
+pub mod chariot;
 pub mod close_assault;
 pub mod construction;
 pub mod convoy;

@@ -35,7 +35,8 @@
     "armour_limits": true,
     "no_armour_release": true,
     "parent_shifts": true,
-    "halftracks": true
+    "halftracks": true,
+    "chariot_raid": true
   },
   "clock": {
     "game_turn": 26,

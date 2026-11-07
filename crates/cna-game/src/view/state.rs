@@ -32,7 +32,7 @@
 //! | `scenario`, `rules_commit`, `ruleset`, `modules`, `clock`, `initiative`, `rommel_recalled`, `raiders_lost`, `player_a`, `weather`, `cycle`, `over`, `organised`, `attachment_tracked`, `rail_runs`, `rail_supply_way`, `bizerta_open`, `blockship_fired` | as is |
 //! | `convoy_lanes` | the Axis only: R-144 shows the Commonwealth only the lanes it bombs |
 //! | `fortifications`, `projects` (bar `item`, layer 1), `minefields` (bar `real`, layer 1), `escapees`, `marched`, `zoc`, `air_lifted`, `fleet`, `stage_record` | as is: on the board, or known to both (30.1x: the ships and their port time are open; who fought and what was barraged this stage) |
-//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, and 32.72 the Axis's strikes on the fleet |
+//! | `prisoners`, `prisoners_out`, `prisoners_off_map`, `guards`, `escaped`, `fleet_strikes`, `chariot_raid` | own only: 3.61 keeps POW and guard numbers secret, R-145 the count of escapees back with their own side, 32.72 the Axis's strikes on the fleet, and 30.41 its chariot raid's plan |
 //! | `motorisation`, `repaired`, `pending_motorisation`, `motorisation_to_place` | own only (layer 1) |
 //! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
@@ -161,6 +161,7 @@ const STATE_FILTERS: &[&str] = &[
     "convoy_lanes",
     "escaped",
     "fleet_strikes",
+    "chariot_raid",
     "prisoners",
     "prisoners_out",
     "prisoners_off_map",
@@ -207,7 +208,8 @@ const COMBAT_FILTERS: &[&str] = &[
 /// units), `shell: true` on a formation that is a shell (9.26), and in
 /// phase C `raider_formings`, the viewer's raiders it may form (27.13),
 /// and `parent_shifts`, its units' historical shifts of parent dated
-/// this month (19.24),
+/// this month (19.24), and `chariot_raid_plannable` when the viewer may
+/// plan the chariot raid (30.41),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -270,6 +272,10 @@ pub fn view_for(
         .collect();
     if !shifts.is_empty() {
         obj.insert("parent_shifts".into(), json!(shifts));
+    }
+    // Phase C: the Axis viewer may plan its chariot raid (30.41).
+    if viewer.is_some_and(|side| state.chariot_raid_plannable(data, side)) {
+        obj.insert("chariot_raid_plannable".into(), json!(true));
     }
     let patrols = viewer
         .map(|side| state.patrol_options(data, side))
@@ -456,12 +462,20 @@ pub fn view_for(
         "guards",
         "escaped",
         "fleet_strikes",
+        "chariot_raid",
     ] {
         if let Some(m) = v.get_mut(key).and_then(Value::as_object_mut) {
             names.iter().for_each(|s| {
                 m.remove(s);
             });
         }
+    }
+    // An empty map would itself tell that a raid is planned (30.41).
+    if let Some(o) = v.as_object_mut()
+        && o.get("chariot_raid")
+            .is_some_and(|m| m.as_object().is_some_and(Map::is_empty))
+    {
+        o.remove("chariot_raid");
     }
     if names.iter().any(|n| n == "axis")
         && let Some(o) = v.as_object_mut()
@@ -525,6 +539,10 @@ pub fn as_known_to(state: &GameState, viewer: Side) -> GameState {
     // none, rolled already, so a preview never shows a strike to come.
     if s.modules.fleet && viewer != Side::Axis {
         s.fleet_strikes.insert(Side::Axis, 0);
+    }
+    // Its chariot raid's plan too (30.41).
+    if viewer != Side::Axis {
+        s.chariot_raid.remove(&Side::Axis);
     }
     s
 }

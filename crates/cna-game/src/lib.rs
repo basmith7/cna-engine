@@ -10,6 +10,7 @@ pub mod breakdown;
 mod built;
 mod campaign;
 mod captured;
+pub mod chariot_raid;
 pub mod clock;
 pub mod combat;
 pub mod construction;

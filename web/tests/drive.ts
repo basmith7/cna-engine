@@ -87,8 +87,8 @@ export async function perform(page: Page, i: number, { order }: Logged, hexOf: (
     else await controls.locator('[data-order="pass"]').click();
     return;
   }
-  if (order === "end-segment") {
-    await controls.locator('[data-order="end-segment"]').click();
+  if (order === "end-segment" || order === "plan-chariot-raid") {
+    await controls.locator(`[data-order="${order}"]`).click();
     return;
   }
   if ("place" in order) {

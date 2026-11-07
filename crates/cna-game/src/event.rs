@@ -407,6 +407,25 @@ pub enum Event {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         sunk: Vec<PieceId>,
     },
+    /// The Axis noted a chariot raid on Alexandria for the seventh
+    /// OpStage after this one (30.41): its secret.
+    ChariotRaidPlanned {
+        game_turn: u8,
+        stage: u8,
+    },
+    /// The chariot raid on Alexandria (30.4x): `roll` on the Chariot
+    /// Raid Table gave `dice` dice of damage, totalling `damage` gun
+    /// points, laid on the ships in harbour in `hits`; those in `sunk`
+    /// went to the bottom.
+    ChariotRaid {
+        roll: u8,
+        dice: u8,
+        damage: u32,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        hits: BTreeMap<PieceId, u32>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        sunk: Vec<PieceId>,
+    },
     /// A damaged ship got a gun point back after six OpStages in
     /// Alexandria (30.37).
     ShipRepaired {
