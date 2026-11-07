@@ -696,6 +696,22 @@ impl GameState {
         }
         let from = self.pieces[piece].hex().cloned().expect("checked");
         self.assault_target(data, &self.pieces[piece], &from, target)?;
+        // As at assignment, the attackers must be able to pay for the
+        // assault (32.21): a release may not leave one they cannot.
+        let mut attackers: BTreeSet<PieceId> = self
+            .phasing_commits(player, true)
+            .into_iter()
+            .filter(|(_, t)| t == target)
+            .map(|(c, _)| c.piece)
+            .collect();
+        attackers.insert(piece.clone());
+        self.plan_ammo(
+            data,
+            &attackers.into_iter().collect::<Vec<_>>(),
+            Role::Assault,
+            true,
+        )
+        .refuse()?;
         let a = self
             .combat
             .assignments

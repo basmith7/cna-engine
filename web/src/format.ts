@@ -163,6 +163,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const how = d.points === undefined || d.shift === undefined ? "" : `${d.points} points, shift ${d.shift > 0 ? `+${d.shift}` : d.shift}, `;
     return `${sideName(d.side)} anti-armour fire at ${d.target}: ${how}reading ${d.reading}: ${d.damage} point${d.damage === 1 ? "" : "s"} of damage.`;
   }
+  if ("anti-armour-released" in e) {
+    const d = e["anti-armour-released"];
+    return `${name(d.piece)} moves ${d.points} anti-armour point${d.points === 1 ? "" : "s"} to the assault on ${d.target}, which held no armour (14.23).`;
+  }
   if ("assault" in e) {
     const d = e.assault;
     const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);

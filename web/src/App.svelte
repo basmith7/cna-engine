@@ -737,6 +737,17 @@
             <section class="panel assault" data-testid="assault-panel">
               <h2>Close assault · {toAssault.length} to resolve</h2>
               <p>Click an outlined hex to resolve the assault assigned against it: {toAssault.join(", ")}. Pass ends the step once every one is resolved (15.2x).</p>
+              {#if myTurn && (view.anti_armour_releases ?? []).length > 0}
+                <p>Anti-armour fire found no armour: up to half the points aimed at the hex may join its assault (14.23).</p>
+                <ul class="releases">
+                  {#each view.anti_armour_releases ?? [] as r (r.piece + r.target)}
+                    <li data-testid="release-anti-armour">
+                      {view.pieces[r.piece] ? label(view.pieces[r.piece]).long : r.piece} at {r.target}:
+                      <button type="button" onclick={() => send({ "release-anti-armour": { piece: r.piece, target: r.target, points: r.points } })}>Release {r.points} to assault</button>
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
             </section>
           {/if}
           {#if myTurn}
