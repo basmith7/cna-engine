@@ -594,7 +594,7 @@ mod tests {
         allowed(&data, &mut s, &["unit:cw:11-czech"]);
         refused(&data, &mut s, &["unit:cw:2-kor"]);
         // The 7th Armoured's tank battalion and other battalion.
-        while repair_one(&mut s) {}
+        while repair_one(&data, &mut s) {}
         allowed(&data, &mut s, &["unit:cw:7-hus"]);
         allowed(&data, &mut s, &["unit:cw:2-rflbde"]);
         refused(&data, &mut s, &["unit:cw:3-rha"]);
@@ -608,7 +608,7 @@ mod tests {
 
     /// Repairs one of the 7th Armoured's broken-down tank points, back
     /// into its unit; false once none is left.
-    fn repair_one(s: &mut GameState) -> bool {
+    fn repair_one(data: &Data, s: &mut GameState) -> bool {
         let Some((hex, weapon)) = s
             .broken_down
             .iter()
@@ -619,12 +619,12 @@ mod tests {
             return false;
         };
         let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false, None);
-        s.credit_repaired(Side::Cw, &hex, &weapon, taken);
+        s.credit_repaired(data, Side::Cw, &hex, &weapon, taken);
         true
     }
 
     /// Repairs `n` of the points held for `unit`, back into it.
-    fn repair_for(s: &mut GameState, unit: &str, n: u32) {
+    fn repair_for(data: &Data, s: &mut GameState, unit: &str, n: u32) {
         let unit = UnitId::parse(unit).unwrap();
         for _ in 0..n {
             let (hex, weapon) = s
@@ -636,11 +636,14 @@ mod tests {
                 .expect("a point held for the unit");
             let taken = s.take_wrecks(&hex, Side::Cw, &weapon, 1, false, None);
             assert_eq!(
-                taken,
+                taken
+                    .iter()
+                    .map(|t| (t.unit.clone(), t.points))
+                    .collect::<Vec<_>>(),
                 vec![(Some(unit.clone()), 1)],
                 "took the unit's own point"
             );
-            s.credit_repaired(Side::Cw, &hex, &weapon, taken);
+            s.credit_repaired(data, Side::Cw, &hex, &weapon, taken);
         }
     }
 
@@ -652,10 +655,10 @@ mod tests {
         assert_eq!(s.tanks_repaired_pct(&data, &hus7), 0);
         refused(&data, &mut s, &["unit:cw:7-hus"]);
         // The 7th Hussars' 10 Mark VI: 7 is 70 %, 8 is 80 %.
-        repair_for(&mut s, "unit:cw:7-hus", 7);
+        repair_for(&data, &mut s, "unit:cw:7-hus", 7);
         assert_eq!(s.tanks_repaired_pct(&data, &hus7), 70);
         refused(&data, &mut s, &["unit:cw:7-hus"]);
-        repair_for(&mut s, "unit:cw:7-hus", 1);
+        repair_for(&data, &mut s, "unit:cw:7-hus", 1);
         assert_eq!(s.tanks_repaired_pct(&data, &hus7), 80);
         allowed(&data, &mut s, &["unit:cw:7-hus"]);
         // Without the module the tanks start whole and the test passes.
@@ -681,9 +684,9 @@ mod tests {
         }
         assert_eq!(owed.remove("unit:cw:8-hus"), Some(7));
         for (unit, n) in owed {
-            repair_for(&mut s, &unit, n);
+            repair_for(&data, &mut s, &unit, n);
         }
-        repair_for(&mut s, "unit:cw:8-hus", 1);
+        repair_for(&data, &mut s, "unit:cw:8-hus", 1);
         assert_eq!(s.tanks_repaired_pct(&data, &pid("unit:cw:8-hus")), 14);
         // A whole battalion is not held back by the 8th's.
         assert_eq!(s.tanks_repaired_pct(&data, &pid("unit:cw:7-hus")), 100);

@@ -254,7 +254,7 @@ impl GameState {
             (attempted * percent).div_ceil(100)
         };
         let taken = self.take_wrecks(hex, player, weapon, repaired, true, unit);
-        self.credit_repaired(player, hex, weapon, taken);
+        self.credit_repaired(data, player, hex, weapon, taken);
         Ok(vec![Event::FacilityRepaired {
             hex: hex.clone(),
             weapon: weapon.to_string(),

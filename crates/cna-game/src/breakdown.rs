@@ -146,25 +146,62 @@ impl GameState {
     /// with its side: what may capture broken-down vehicles (21.52) and
     /// destroyed tanks (14.52, R-014).
     pub(crate) fn captor(&self, pieces: &[PieceId]) -> Option<(Side, PieceId)> {
-        use cna_data::characteristics::Equivalent;
         pieces
             .iter()
             .map(|id| &self.pieces[id])
-            .find(|p| {
-                self.is_combatant(p)
-                    && matches!(
-                        p.equivalent,
-                        Some(Equivalent::Battalion | Equivalent::Brigade)
-                    )
-            })
+            .find(|p| self.may_capture(p))
             .map(|p| (p.side, p.id.clone()))
+    }
+
+    /// A combat unit of battalion size or larger (21.52, 14.52).
+    fn may_capture(&self, p: &crate::piece::Piece) -> bool {
+        use cna_data::characteristics::Equivalent;
+        self.is_combatant(p)
+            && matches!(
+                p.equivalent,
+                Some(Equivalent::Battalion | Equivalent::Brigade)
+            )
+    }
+
+    /// The first of `pieces` that may capture (`captor`) and could step
+    /// from `at` into `to` (21.51: the hexes must join through terrain
+    /// the captor can pass, so tanks below an escarpment take nothing
+    /// above it).
+    fn captor_across(
+        &self,
+        data: &Data,
+        pieces: &[PieceId],
+        at: &HexId,
+        to: &HexId,
+    ) -> Option<PieceId> {
+        let (Some(from), Some(into)) = (data.map.hex(at), data.map.hex(to)) else {
+            return None;
+        };
+        let built = self.hexside(data, at, to);
+        let hexside = built.as_deref();
+        let step = Step {
+            from,
+            to: into,
+            hexside,
+            climbs: hexside.is_some_and(|hs| hs.climbs(at, to)),
+            weather: self.weather_at(to),
+        };
+        pieces
+            .iter()
+            .map(|id| &self.pieces[id])
+            .filter(|p| self.may_capture(p))
+            .find(|p| {
+                cna_rules::movement::step_cost(&data.terrain, self.mobility(data, p), &step).is_ok()
+            })
+            .map(|p| p.id.clone())
     }
 
     /// A battalion or bigger of `pieces` now at `at` captures the enemy's
     /// broken-down vehicles in `at` and the hexes next to it (21.5x),
     /// unless enemy combat units or HQs stand with them or an enemy ZOC
-    /// covers them. They become the captor's where they stand (the
-    /// three-hex placement and the passable-terrain test are not
+    /// covers them. With `captured_wrecks` on, a next hex's are taken
+    /// only by a unit that could step into it (21.51). They become the
+    /// captor's where they stand (the three-hex placement is not
     /// simulated).
     pub(crate) fn capture_wrecks(
         &mut self,
@@ -177,7 +214,7 @@ impl GameState {
         let Some(captor) = self.captor(pieces) else {
             return;
         };
-        let (side, by) = captor;
+        let (side, first) = captor;
         let mut hexes = data.map.neighbours(at);
         hexes.push(at.clone());
         for hex in hexes {
@@ -187,6 +224,14 @@ impl GameState {
             if !wrecks.iter().any(|w| w.side != side) {
                 continue;
             }
+            let by = if hex == *at || !self.modules.captured_wrecks {
+                first.clone()
+            } else {
+                match self.captor_across(data, pieces, at, &hex) {
+                    Some(by) => by,
+                    None => continue,
+                }
+            };
             let guarded = self.pieces.values().any(|p| {
                 p.side != side
                     && p.hex() == Some(&hex)
@@ -203,7 +248,7 @@ impl GameState {
                 taken += w.points;
             }
             events.push(Event::WrecksCaptured {
-                by: by.clone(),
+                by,
                 hex: hex.clone(),
                 points: taken,
             });
@@ -916,6 +961,63 @@ mod tests {
             return;
         }
         panic!("no step with wrecks beyond it");
+    }
+
+    #[test]
+    fn tanks_below_an_escarpment_take_no_wrecks_above_it_21_51() {
+        use crate::breakdown::Wreck;
+        use crate::event::Event;
+        use crate::piece::{Location, PieceId};
+        use cna_data::map::{HexId, HexsideFeature};
+        let data = Data::load("grazianis-offensive").unwrap();
+        let state = movement(&data, Modules::ALL);
+        let tanks = PieceId::from(cna_data::oa::UnitId::parse("unit:it:lxl-tank-bn").unwrap());
+        // An escarpment with no road or track over it, both hexes empty
+        // and out of any Commonwealth ZOC.
+        let clear = |h: &HexId| {
+            state.holder(h).is_none()
+                && state.zoc_at(&data, h, Side::Axis) == crate::zoc::Zoc::Clear
+        };
+        let (below, above) = data
+            .map
+            .hexsides()
+            .filter(|(_, _, hs)| hs.has(HexsideFeature::Escarpment) && !hs.road() && !hs.track())
+            .map(|(a, b, hs)| {
+                if hs.climbs(a, b) {
+                    (a.clone(), b.clone())
+                } else {
+                    (b.clone(), a.clone())
+                }
+            })
+            .find(|(lo, hi)| clear(lo) && clear(hi) && data.map.hex(lo).is_some())
+            .expect("an escarpment between two empty hexes");
+        let capture = |modules: Modules| {
+            let mut s = state.clone();
+            s.modules = modules;
+            s.stand_alone(&tanks);
+            s.put(&tanks, Location::Hex(below.clone()));
+            s.broken_down.insert(
+                above.clone(),
+                vec![Wreck {
+                    side: Side::Cw,
+                    nation: Some(cna_data::oa::Nation::Cw),
+                    weapon: "Mark VI Light".into(),
+                    points: 2,
+                    this_stage: 0,
+                    towed: 0,
+                    unit: None,
+                }],
+            );
+            let mut events = Vec::new();
+            s.capture_wrecks(&data, std::slice::from_ref(&tanks), &below, &mut events);
+            events
+                .iter()
+                .any(|e| matches!(e, Event::WrecksCaptured { hex, .. } if *hex == above))
+        };
+        assert!(!capture(Modules::ALL), "{below} up to {above}");
+        let mut old = Modules::ALL;
+        old.captured_wrecks = false;
+        assert!(capture(old), "without the module the old reading stands");
     }
 
     #[test]

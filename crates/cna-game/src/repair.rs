@@ -13,9 +13,18 @@ use crate::piece::{Location, PieceId, PieceKind};
 use crate::state::GameState;
 use crate::zoc::Zoc;
 use cna_data::map::HexId;
-use cna_data::oa::{ToeEntry, UnitId};
+use cna_data::oa::{Nation, ToeEntry, UnitId};
 use cna_data::scenario::Side;
 use cna_rules::movement::Weather;
+
+/// Points `take_wrecks` took from one wreck.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Taken {
+    /// The unit the wreck belongs to (61.38), if any.
+    pub unit: Option<UnitId>,
+    pub nation: Option<Nation>,
+    pub points: u32,
+}
 
 impl GameState {
     /// Why no repair may touch `hex`'s vehicles yet: a set-up hold that
@@ -200,7 +209,7 @@ impl GameState {
             _ => cna_rules::breakdown::losses(attempted, field(row.field_tank_percent)),
         };
         let taken = self.take_wrecks(hex, player, weapon, repaired, false, unit);
-        self.credit_repaired(player, hex, weapon, taken);
+        self.credit_repaired(data, player, hex, weapon, taken);
         Ok(vec![Event::FieldRepaired {
             hex: hex.clone(),
             weapon: weapon.to_string(),
@@ -265,16 +274,40 @@ impl GameState {
 
     /// Puts repaired points where they go: those that broke down with a
     /// unit back into it, if it is still in play (61.38's `all_tanks`);
-    /// the rest wait in `hex` as replacement points (22.5).
+    /// with `captured_wrecks` and `captured_equipment` on, an enemy's
+    /// captured ones as the
+    /// captor's captured-equipment points of their class (R-152); the
+    /// rest wait in `hex` as replacement points (22.5).
     pub(crate) fn credit_repaired(
         &mut self,
+        data: &Data,
         side: Side,
         hex: &HexId,
         weapon: &str,
-        taken: Vec<(Option<UnitId>, u32)>,
+        taken: Vec<Taken>,
     ) {
         let mut loose = 0;
-        for (unit, k) in taken {
+        for Taken {
+            unit,
+            nation,
+            points: k,
+        } in taken
+        {
+            if self.modules.captured_wrecks
+                && self.modules.captured_equipment
+                && let Some(nation) = nation.filter(|n| crate::captured::side_of(*n) != side)
+                && let Some((key, each)) = crate::captured::wreck_spoil(data, nation, weapon)
+            {
+                *self
+                    .repaired
+                    .entry(side)
+                    .or_default()
+                    .entry(hex.clone())
+                    .or_default()
+                    .entry(key.to_string())
+                    .or_default() += k * each;
+                continue;
+            }
             let piece = unit.and_then(|u| {
                 self.pieces.values_mut().find(|p| {
                     p.id.unit().as_ref() == Some(&u) && p.location != Location::Eliminated
@@ -344,7 +377,7 @@ impl GameState {
     /// (only those that began the OpStage there if `settled_only`),
     /// `first`'s wrecks before the rest, which go in the order held;
     /// drops emptied entries and an emptied hex. Returns how many it
-    /// took from each wreck, by the unit the wreck belongs to.
+    /// took from each wreck, with the wreck's unit and nation.
     pub(crate) fn take_wrecks(
         &mut self,
         hex: &HexId,
@@ -353,7 +386,7 @@ impl GameState {
         mut n: u32,
         settled_only: bool,
         first: Option<&UnitId>,
-    ) -> Vec<(Option<UnitId>, u32)> {
+    ) -> Vec<Taken> {
         let mut taken = Vec::new();
         let Some(wrecks) = self.broken_down.get_mut(hex) else {
             return taken;
@@ -374,7 +407,11 @@ impl GameState {
             w.towed = w.towed.min(w.points);
             n -= k;
             if k > 0 {
-                taken.push((w.unit.clone(), k));
+                taken.push(Taken {
+                    unit: w.unit.clone(),
+                    nation: w.nation,
+                    points: k,
+                });
             }
         }
         wrecks.retain(|w| w.points > 0);
@@ -639,6 +676,71 @@ mod tests {
             let row = data.vehicle_repair.row(die).unwrap();
             assert_eq!(repaired, column(row).unwrap().min(attempted), "{class}");
         }
+    }
+
+    /// `at_repair`'s wreck made a captured Commonwealth one of `weapon`,
+    /// rolled for until some is repaired; returns the state, the hex and
+    /// the points repaired.
+    fn repair_captured(data: &Data, modules: Modules, weapon: &str) -> (GameState, HexId, u32) {
+        let (mut state, hex) = at_repair(data, modules);
+        let w = &mut state.broken_down.get_mut(&hex).unwrap()[0];
+        w.nation = Some(Nation::Cw);
+        w.weapon = weapon.into();
+        let mut repaired = 0;
+        for _ in 0..50 {
+            state.field_rolled.clear();
+            let order = Order::Repair {
+                hex: hex.clone(),
+                weapon: weapon.into(),
+                fuel_from: None,
+                unit: None,
+            };
+            let events = state.apply(data, Side::Axis, order).unwrap();
+            let Event::FieldRepaired { repaired: n, .. } = events[0] else {
+                panic!("{events:?}");
+            };
+            repaired += n;
+            if repaired > 0 {
+                break;
+            }
+        }
+        assert!(repaired > 0, "fifty rolls repaired nothing");
+        (state, hex, repaired)
+    }
+
+    fn waiting(state: &GameState, hex: &HexId) -> Vec<(String, u32)> {
+        state.repaired[&Side::Axis][hex]
+            .iter()
+            .map(|(k, n)| (k.clone(), *n))
+            .collect()
+    }
+
+    #[test]
+    fn a_captured_wreck_repaired_is_a_captured_equipment_point_r_152() {
+        let data = Data::load("grazianis-offensive").unwrap();
+        // A Commonwealth tank model, by its OA name.
+        let tank = data
+            .weapons
+            .rows()
+            .filter(|r| r.nation == Nation::Cw && r.class == cna_data::weapons::WeaponClass::Tank)
+            .find_map(|r| data.weapons.oa_name(&r.id))
+            .expect("a Commonwealth tank")
+            .to_string();
+        let (state, hex, n) = repair_captured(&data, Modules::ALL, &tank);
+        // Under its own model's name no Axis unit could absorb it.
+        assert_eq!(waiting(&state, &hex), [("captured tank".to_string(), n)]);
+        // An armoured car's point gives two armoured-recce points, as a
+        // surrendering one's does.
+        let (state, hex, n) = repair_captured(&data, Modules::ALL, "armoured-car");
+        assert_eq!(
+            waiting(&state, &hex),
+            [("captured armoured recce".to_string(), 2 * n)]
+        );
+        // The side's own wrecks keep their model's name.
+        let mut own = Modules::ALL;
+        own.captured_wrecks = false;
+        let (state, hex, n) = repair_captured(&data, own, &tank);
+        assert_eq!(waiting(&state, &hex), [(tank, n)]);
     }
 
     #[test]

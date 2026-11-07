@@ -252,6 +252,12 @@ pub struct Modules {
     /// vulnerability (15.84).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub absorb_by_loss_order: bool,
+    /// Captured broken-down vehicles: taken from a next hex only by a
+    /// unit that could step into it (21.51), and once repaired the
+    /// captor's captured-equipment points of their class (R-152), not
+    /// points of a model none of its units has.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub captured_wrecks: bool,
 }
 
 impl Modules {
@@ -291,6 +297,7 @@ impl Modules {
         returning_transport: true,
         voluntary_withdrawals: true,
         absorb_by_loss_order: true,
+        captured_wrecks: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
