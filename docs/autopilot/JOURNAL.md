@@ -936,3 +936,9 @@ Done: #185 (R-182 blind barrage, `blind_barrage` module; hash-of-seed numbering,
 In flight: none.
 Next: when cna answers the dummy-tank request, bump vendor/cna (regenerate per AGENTS.md) and build its option. Otherwise nothing unblocked is queued.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 12:10 MST — autopilot/bump-r188
+Done: #187 bumps vendor/cna to 7947d00 (R-188, option 3 = what #185 built), homed in NOT_SIMULATED; probes/pins/fixtures regenerated; workspace tests, clippy, probe check green locally. PROGRESS on main updated (a04a53a), request bullet removed.
+In flight: CI on #187.
+Next: merge #187 once CI is green. Nothing else unblocked.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

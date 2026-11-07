@@ -1,6 +1,6 @@
 {
   "scenario": "operation-crusader",
-  "rules_commit": "8e35bab2544d1abbaccfb34cb02864162e4acf36",
+  "rules_commit": "7947d004c738c5793398a3c0a8c3ba149ebf3b6b",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
