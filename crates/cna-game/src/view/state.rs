@@ -37,6 +37,7 @@
 //! | `axis_held_since` | the Axis only (layer 1): it starts only while the holders trace to loaded supply units (64.71) |
 //! | `works_to_place` | own entries only (layer 1): its counts of real fields placed would tell which are dummies |
 //! | `withdrawn`, `withdrawal_picks` | the Commonwealth only (layer 1): a withdrawn unit's TOE, and the pick before its check (20.8x) |
+//! | `voluntary` | as is: which units left or came back voluntarily, and when, is on the board, and its points follow from those dates (64.75) |
 //! | `transport_out` | as is: the printed motorisation that left with a withdrawal, as the public `withdrawn` event shows it |
 //! | `planned`, `broken_down`, `field_rolled`, `destroyed_tanks`, `destroyed_rolled` | own entries only: the enemy's plans, wrecks' and destroyed tanks' contents and repair rolls are its own |
 //! | `split` | own entries only: who detached from whom is composition |
@@ -154,6 +155,7 @@ const STATE_KEEPS: &[&str] = &[
     "shifted",
     "escorts",
     "transport_out",
+    "voluntary",
 ];
 
 /// Top-level fields with an enemy's part removed (by this module's code).
@@ -216,6 +218,9 @@ const COMBAT_FILTERS: &[&str] = &[
 /// it may note a dummy tank formation in (16.4x), and, whenever the Commonwealth viewer
 /// is to act in an OpStage whose withdrawal has a `pick`,
 /// `withdrawal_pick_options`, the picks it may make (20.82),
+/// and, whenever the Commonwealth viewer is to act in a campaign game,
+/// `voluntary_options`, the units it may withdraw voluntarily or bring
+/// back and its net withdrawal half-points (20.9, 64.75),
 /// and in phase L `patrol_options`, the viewer's units that may patrol
 /// and where (16.x): built from who holds each hex, which both sides see;
 /// and in phase E `station_options`, the ships the Commonwealth may
@@ -290,6 +295,14 @@ pub fn view_for(
         .unwrap_or_default();
     if !dummies.is_empty() {
         obj.insert("dummy_tank_options".into(), json!(dummies));
+    }
+    // The Commonwealth viewer's voluntary withdrawals and returns open
+    // now (20.9, 64.75).
+    let voluntary = viewer
+        .map(|side| state.voluntary_options(data, side))
+        .unwrap_or_default();
+    if !voluntary.is_empty() {
+        obj.insert("voluntary_options".into(), json!(voluntary));
     }
     // The Commonwealth viewer's withdrawal picks it may make now, among
     // its own units (20.82, R-154).

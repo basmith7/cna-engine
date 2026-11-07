@@ -41,7 +41,8 @@
     "infantry_types": true,
     "substitute_arrival": true,
     "scenario_arrivals": true,
-    "returning_transport": true
+    "returning_transport": true,
+    "voluntary_withdrawals": true
   },
   "clock": {
     "game_turn": 26,

@@ -223,7 +223,16 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             unsupplied,
         });
     }
-    let (winner, margin) = if totals.axis >= totals.cw {
+    // Voluntary withdrawals' points, kept in halves (64.75): the ratio
+    // is judged on doubled totals so a half point counts; the reported
+    // total rounds it down.
+    let halves = state.withdrawal_halves();
+    let doubled = Points {
+        axis: totals.axis * 2,
+        cw: totals.cw * 2 + halves,
+    };
+    totals.cw += halves.div_euclid(2);
+    let (winner, margin) = if doubled.axis >= doubled.cw {
         (Side::Axis, totals.axis - totals.cw)
     } else {
         (Side::Cw, totals.cw - totals.axis)
@@ -236,9 +245,10 @@ fn points(data: &Data, state: &GameState, victory: &Victory, report: &mut Victor
             .max_by_key(|m| m.min)
             .and_then(|m| named(&m.level))
     } else {
-        ratio_level(&victory.ratios, &totals)
+        ratio_level(&victory.ratios, &doubled)
     };
-    if margin > 0 {
+    // Anyone ahead, by half a point or more, wins at the level found.
+    if doubled.axis != doubled.cw {
         match winner {
             Side::Axis => report.axis = level,
             Side::Cw => report.cw = level,
