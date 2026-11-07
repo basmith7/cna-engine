@@ -4,13 +4,18 @@
 //! to land or for its first hex. Stacking does not bind an arrival
 //! (only returning withdrawn units, out of scope). A unit withdrawn
 //! under the `withdrawals` module returns as it left. The Benghazi
-//! diversion (55.1) waits for the Logistics Game.
+//! diversion (55.1) waits for the Logistics Game. With the
+//! `scenario_arrivals` module on, a scenario's own `arrivals` rows land
+//! their units at their OpStage and place, with motorisation points for
+//! their trucks, and a unit named there does not arrive by the schedule
+//! (R-181).
 
 use crate::data::Data;
 use crate::event::Event;
 use crate::piece::Location;
 use crate::setup;
 use crate::state::GameState;
+use cna_data::oa::UnitId;
 use cna_data::scenario::{OffMapBox, Side};
 use cna_data::time::GameTime;
 
@@ -31,33 +36,69 @@ impl GameState {
                 ),
                 Side::Axis => Location::Box(OffMapBox::Tripoli),
             };
+            let own = &data.scenario.side(side).arrivals;
+            let own = if self.modules.scenario_arrivals {
+                own.as_slice()
+            } else {
+                &[]
+            };
+            let mut landings: Vec<(&UnitId, Location, u32)> = Vec::new();
             for row in data.schedule.arrivals(side, now) {
                 for head in &row.units {
-                    let pieces =
-                        setup::reinforcement(side, head, &data.oa, &data.chars, now, at.clone())
-                            .expect("the schedule names units of the OA sheets");
-                    let mut ids = Vec::new();
-                    for mut p in pieces {
-                        if self.pieces.contains_key(&p.id) {
-                            continue;
-                        }
-                        // A withdrawn unit comes back as it left (R-157).
-                        if let Some(back) = self.withdrawn.remove(&p.id) {
-                            p = back;
-                            p.location = at.clone();
-                        }
-                        p.landed = true;
-                        ids.push(p.id.clone());
-                        self.pieces.insert(p.id.clone(), p);
+                    if !own.iter().any(|a| a.units.contains(head)) {
+                        landings.push((head, at.clone(), 0));
                     }
-                    self.attach_where_stacked(Some(&ids));
-                    if !ids.is_empty() {
-                        any = true;
-                        events.push(Event::Arrived {
-                            pieces: ids,
-                            at: at.clone(),
-                        });
+                }
+            }
+            for a in own.iter().filter(|a| a.at == now) {
+                let place = setup::resolve(&a.placement, &data.map)
+                    .expect("cna's arrival placements are on the map");
+                // The motorisation points come once, with the first unit.
+                let mut points = if self.modules.abstract_supply {
+                    setup::motorising_points(&data.scenario, a.trucks)
+                } else {
+                    0
+                };
+                for head in &a.units {
+                    landings.push((head, place.clone(), points));
+                    points = 0;
+                }
+            }
+            for (head, at, points) in landings {
+                let pieces =
+                    setup::reinforcement(side, head, &data.oa, &data.chars, now, at.clone())
+                        .expect("the schedule names units of the OA sheets");
+                if points > 0
+                    && let Some(key) = at.key()
+                {
+                    *self
+                        .motorisation
+                        .entry(side)
+                        .or_default()
+                        .entry(key)
+                        .or_default() += points;
+                }
+                let mut ids = Vec::new();
+                for mut p in pieces {
+                    if self.pieces.contains_key(&p.id) {
+                        continue;
                     }
+                    // A withdrawn unit comes back as it left (R-157).
+                    if let Some(back) = self.withdrawn.remove(&p.id) {
+                        p = back;
+                        p.location = at.clone();
+                    }
+                    p.landed = true;
+                    ids.push(p.id.clone());
+                    self.pieces.insert(p.id.clone(), p);
+                }
+                self.attach_where_stacked(Some(&ids));
+                if !ids.is_empty() {
+                    any = true;
+                    events.push(Event::Arrived {
+                        pieces: ids,
+                        at: at.clone(),
+                    });
                 }
             }
         }

@@ -20,7 +20,7 @@ use cna_data::cp::Cp;
 use cna_data::map::Map;
 use cna_data::oa::{Arrival, Nation, Oa, ToeMark, Unit, UnitId};
 use cna_data::scenario::{
-    Locator, Placement, Scenario, Side, Subject, SupplyKind, TruckClass, UnitEntry,
+    Locator, Placement, Scenario, Side, Subject, SupplyKind, TruckClass, Trucks, UnitEntry,
 };
 use cna_data::time::GameTime;
 use cna_data::weapons::{WeaponClass, WeaponSystems};
@@ -72,13 +72,6 @@ pub fn expand(
     let scenario = scenario.land_only();
     // 32.5, 59.63: which truck classes give motorisation points, as the
     // scenario's abstraction types them; none named, none given.
-    let motorising: Vec<TruckClass> = scenario
-        .abstractions
-        .as_ref()
-        .and_then(|a| a.air_and_logistics.as_ref())
-        .and_then(|a| a.motorisation.as_ref())
-        .map(|m| m.from.clone())
-        .unwrap_or_default();
     let mut setup = Setup {
         pieces: Vec::new(),
         unchecked: Vec::new(),
@@ -135,16 +128,7 @@ pub fn expand(
                 }
             }
             // Each truck point of a motorising class is one point.
-            let points: u32 = d.trucks.map_or(0, |t| {
-                motorising
-                    .iter()
-                    .map(|c| match c {
-                        TruckClass::Light => t.light,
-                        TruckClass::Medium => t.medium,
-                        TruckClass::Heavy => t.heavy,
-                    })
-                    .sum()
-            });
+            let points = motorising_points(&scenario, d.trucks);
             if modules.abstract_supply && points > 0 {
                 setup.motorisation.push(Motorisation {
                     side,
@@ -581,6 +565,30 @@ pub(crate) fn piece_for(side: Side, unit: &Unit, chars: &Characteristics, oa: &O
     piece(side, unit, None, &entry, chars, oa, Location::Eliminated)
 }
 
+/// Motorisation points from `trucks` (32.5, 59.63): one per truck point
+/// of a class the scenario's abstraction types as motorising; none
+/// named, none given.
+pub(crate) fn motorising_points(scenario: &Scenario, trucks: Option<Trucks>) -> u32 {
+    let Some(t) = trucks else {
+        return 0;
+    };
+    scenario
+        .abstractions
+        .as_ref()
+        .and_then(|a| a.air_and_logistics.as_ref())
+        .and_then(|a| a.motorisation.as_ref())
+        .map_or(0, |m| {
+            m.from
+                .iter()
+                .map(|c| match c {
+                    TruckClass::Light => t.light,
+                    TruckClass::Medium => t.medium,
+                    TruckClass::Heavy => t.heavy,
+                })
+                .sum()
+        })
+}
+
 /// The pieces a scheduled arrival brings (20.1x, 4.42): the named unit
 /// and its sheet subtree, less members with a later arrival of their own.
 pub fn reinforcement(
@@ -651,7 +659,7 @@ pub(crate) fn toe_points(unit: &Unit, row: Option<&Row>) -> u32 {
 
 /// A single hex or a place is a location; a box is a box; anything the
 /// owner must choose among is pending.
-fn resolve(p: &Placement, map: &Map) -> Result<Location> {
+pub(crate) fn resolve(p: &Placement, map: &Map) -> Result<Location> {
     for l in &p.locators {
         match l {
             Locator::Hexes(h) => {

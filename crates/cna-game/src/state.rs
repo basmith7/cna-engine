@@ -233,6 +233,11 @@ pub struct Modules {
     /// longer fits is detached, free, as the owner's next phase C opens.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub substitute_arrival: bool,
+    /// A scenario's own arrivals (R-181): units it names in
+    /// `sides.<side>.arrivals` land at its OpStage and place, with
+    /// motorisation points for their trucks, instead of by the schedule.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub scenario_arrivals: bool,
 }
 
 impl Modules {
@@ -268,6 +273,7 @@ impl Modules {
         dummy_tanks: true,
         infantry_types: true,
         substitute_arrival: true,
+        scenario_arrivals: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
