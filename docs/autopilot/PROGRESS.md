@@ -41,6 +41,20 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 midday:** cna answered three requests, and all three are
+built. #170 (merged) bumps `vendor/cna` to 215864b. #172 (merged) builds R-179
+(`infantry_types`: machine-gun and heavy-weapons units count toward a
+parent's 19.5 total but not its infantry limit) and R-180
+(`substitute_arrival`: once the unit a substitute stands for is back, the
+substitute is an ordinary attachment, detached free as phase C opens if
+the parent's row no longer takes it). #173 (ready, CI running at hand-off) builds dummy tank formations
+(16.4, R-178) as `dummy_tanks`: in phase C a side notes up to three
+dummies, free under §32, one a hex and none with Italians (*Dummy tanks
+at …* in the phase controls); they are secret, die to a close assault or
+to anti-armour fire that leaves no real armour, and stop 14.23 freeing
+points. #171 (merged) gives the Commonwealth a *Withdrawal* panel to make
+R-154's pick (until now the engine always picked).
+
 **2026-11-07 late morning:** #168 (merged) fixes 19.5's nesting: a
 unit of a parent's own structure attached under one of its
 sub-formations (Maletti's artillery under its 5th Libyan Regiment) no
@@ -396,6 +410,16 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #173 (dummy tanks): a dummy is a secret note on
+  a hex, not a counter, so the enemy sees nothing of it (no fake tank
+  battalion in its view; 16.41's borrowed identity is not built); it
+  goes silently when its hex has no friendly combat unit left. In #172:
+  substitutes that no longer fit are dropped in id order (the rule lets
+  the owner choose). #173's review left two follow-ups (in its body): the
+  server's event feed shows the enemy an empty row per order, so it can
+  count dummies placed (the chariot raid's plan leaks the same way), and a
+  phasing player's dummy is not exposed when return fire wipes out its
+  formation's real armour.
 - One call in #169 to glance at: the chariot raid strikes as phase E
   closes (there is no land support air phase under §32), before that
   stage's strike, and the engine lays its damage as it lays a strike's.
@@ -420,7 +444,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 4565419 (#165).
+- `vendor/cna` is at cna 215864b (#170).
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
@@ -494,9 +518,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Dummy tank formations under §32** (16.4; Mission 5 follow-up, blocks building 16.4). 16.41 makes one in the construction segment from 10 stores in the hex, but abstract supply (§32) has no stores, only ammunition and fuel loads. Needed: what a dummy costs and where it is paid from with abstract supply, or a ruling that it is left out without the Logistics Game.
-- **Type machine-gun and heavy-weapons infantry units in `data/oa/`** (19.5; Mission 5 follow-up, blocks the chart's infantry limit exception). `max-attachments.json`'s note says the chart's "infantry" limit excludes machine-gun and heavy-weapons units, but nothing in the data marks them: the characteristics chart's `unit_type` is just "Infantry Bn-Eq", and `fills` is the chart slot, not the unit's type (the German 2nd and 8th Machinegewehr Bns fill `infantry-battalion`; the 6th Rajputana Rifles fills `machinegun-battalion`, the Kopanski MG Coy only `unit`). Needed: a per-unit field (say `infantry_type: "machine-gun" | "heavy-weapons"`) or a list of id codes per nation.
-- **A substitute when the unit it stands for arrives** (19.4x substitution; Mission 5 follow-up). An independent unit attached in place of a missing assigned unit stands in its slot; the rules do not say what happens when the missing unit later arrives or is rebuilt and attaches. The engine keeps the substitute as a substitute, so the parent can then carry more than its 19.5 row. Needed: a ruling (the substitute becomes an extra and must fit the row or detach; the arriving unit may not attach while its slot is filled; or it stands).
 - **Rommel's Arrival: the 18th Australian Brigade's landing as data** (61.38; Mission 5 follow-up, a missing reinforcement). The scenario says the brigade lands in Alexandria on Game-Turn 27 OpStage 1 and moves from the next stage, but only in prose (`sides.cw.reinforcements[2]`); its row in `reinforcement-schedule.json` is Game-Turn 14 OpStage 3, before the scenario starts, and no set-up block places it, so the engine never brings it on. Needed: a structured per-scenario arrival (unit, Game-Turn and OpStage, place `alexandria`), which the engine would also need for any other scenario whose landings differ from the schedule.
 
 ## Runs and quota

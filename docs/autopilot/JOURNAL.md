@@ -870,3 +870,9 @@ Done: #170 (77a4c34) bumps vendor/cna to 215864b (R-178 dummy tanks free under �
 In flight: gates on #170; subagents building R-179+R-180 (/tmp/cna-org-r179, autopilot/org-r179-r180) and R-178 dummy tanks (/tmp/cna-dummy-tanks, autopilot/dummy-tanks), both stacked on #170; PickWithdrawal browser control (/tmp/cna-pick-withdrawal, off main).
 Next: merge #170 when green; retarget the stacked PRs to main (memory: stacked-pr-merge-order), regenerate pins on the second.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161); 18th Australian landing still unanswered by cna.
+
+## 2026-11-07 04:45 MST — main (hand-off)
+Done: #170 (vendor/cna → 215864b), #171 (Withdrawal pick panel, R-154), #172 (`infantry_types` R-179, `substitute_arrival` R-180) merged. #173 (`dummy_tanks`, 16.4/R-178) ready, main merged in, pins regenerated, review fix 3 in; CI was running at hand-off.
+In flight: #173 — merge it if CI is green (else fix on autopilot/dummy-tanks, worktree /tmp/cna-dummy-tanks).
+Next: #173's two review follow-ups: (1) cna-server /events feed returns an empty row per enemy order (counts dummies and chariot plans) — skip rows filtered to empty for the caller; (2) 16.45 exposure on the defender's return fire (combat/assault.rs, `a.side == other`). Then cna's answer on the 18th Australian landing when it lands.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
