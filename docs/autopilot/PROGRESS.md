@@ -41,6 +41,18 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 morning:** cna answered nine requests (seven for the Air
+Game, halftracks R-177, historical shifts of parent R-176). #165 (merged)
+bumps `vendor/cna` to 4565419; the air rulings (R-165, R-167–R-174) wait
+in `NOT_SIMULATED.md` for Mission 7. #166 builds halftracks (14.48,
+E-004) as the `halftracks` module (merged): German `j` and Italian `t` battalions
+are infantry class, armoured only while their motorisation points carry
+the whole unit, doubled when alone under anti-armour fire, at most two
+points lost to it a segment, each taking a motorisation point. #167
+builds historical shifts of parent (19.24) as `parent_shifts` (merged): in the
+month its OA note names, or never (*Shift to ⟨parent⟩* in the stack
+panel). Fresh reviews ran on both; their fixes are in.
+
 **2026-11-07 early morning:** #164 (merged) builds 14.23, the "no
 armour" rule, as the `no_armour_release` module (on in new games): when
 anti-armour fire hits a hex that holds no armour, up to half the points
@@ -372,6 +384,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Calls to glance at in #166 and #167: the halftrack two-point cap
+  counts per side across a whole anti-armour segment (not per hex), and
+  the engine picks the points lost; a shift to no parent keeps the unit
+  attached only where the old parent's 19.5 row still takes it.
 - One call in #164 to glance at: a hex whose only armour is withheld
   from combat counts as holding armour, so it frees no anti-armour
   points (the reading closest to "the hex holds none").
@@ -389,7 +405,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 111220a (#156).
+- `vendor/cna` is at cna 4565419 (#165).
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
@@ -463,14 +479,6 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Air facilities each scenario starts with, typed throughout** (Mission 7, PR #161; blocks its slice 1). Rommel's Arrival, Crusader and The Last Chance list facilities in `sides.*.air`, but Graziani's lists none (its Axis supply says "spread over any Axis airfields"); some entries are free text ("three, anywhere on sheets A to C", "the four off-map airfields"); Malta's capacity comes in mixed units (`facility_capacity_sgsu: 5` in Graziani, `facility_capacity_total` 8 and 14 elsewhere) against 44.14's levels of 18 aircraft with no SGSUs, while Graziani's Malta planes still carry `sgsu` counts. Needed per scenario: each facility's kind, hex or box and capacity, or a typed placement rule where players choose; the off-map facilities' printed capacities (36.5); Malta's facilities with their standard levels.
-- **Air distances off the map** (Mission 7, PR #161; blocks slice 1's off-map transfers). Range from Malta, the Tripoli and Tunisia boxes, Italy, Sicily, Crete and the Commonwealth's off-map bases to map hexes: the Malta inset's distance box and 37.4's off-map entries as data (the convoy lanes' distances are already in `convoy-lanes.json`).
-- **Scenario aircraft keyed to the characteristics chart** (Mission 7, PR #161; blocks slice 1). Every `sides.*.air` plane entry names its type as the set-up page prints it (`CR 42`, `Hurricane Mk I`, `Potez 63/11`, `Me Bf109F`); of the four small scenarios' 82 distinct names only 9 match an `aircraft` in `aircraft-characteristics.json` exactly (Graziani: 15 of 23 unmatched; the chart reads `C.R. 42 Falco`, `Hurricane Mk. I`, `63.11`, `Bf. 109F`). Some have no row at all: The Last Chance's `Hurricane IIE`, `Wellington II`, `Wellington V`, `Baltimore II` and `III`; Crusader's `Blenheim IV F (second line)`. Needed: each entry's characteristics row id, and for types with no row, a row or a ruling.
-- **Bombing and strafing targets under §47** (Mission 7, PR #161; blocks slice 2). Which of 41.3x's and 40.6x's targets exist when the Air Game is played with abstract logistics: supply dumps (do supply units stand in, and what does a percentage take from one?), ports (efficiency is a Logistics Game number), the water pipeline, trucks in convoy versus attached motorisation points.
-- **SGSU upkeep and stores under §47** (Mission 7, PR #161; blocks slice 1's maintenance). 35.14 charges each SGSU 1 fuel and 1 water a stage and 1 stores a turn, 38.36 a stores point per refit roll, 45.62 and 45.64's repairs stores and fuel; 47.0 keeps §32 for anything not mentioned and 47.2 replaces only maintenance costs, but §32 has no water or stores. Needed: how each reads with the Air Game and abstract logistics.
-- **Printed flak on the map and in the boxes, as data** (Mission 7, PR #161; blocks R-111 in slice 3). 41.85 and R-111 speak of flak printed on the map and in the Tripoli-type boxes, but no file types it. Needed: each printed flak value and where it stands.
-- **Historical shifts of parent as typed data** (19.2x; Mission 5 follow-up, blocks nothing else). The rule lets the owner make a historical change of parent "in the month named, or never", but the OA sheets carry these only as prose notes (e.g. de.json's "showed up with the 5th Light and later the 21st Panzer", the 22nd Armoured Brigade note in cw.json). Needed: per shift, the unit, the parent it leaves, the parent it joins and the month (as `replaces`/`assigns` already type the compulsory replacement counters).
-- **Halftracks (14.48, E-004) as typed data and a class ruling** (Mission 5 follow-up; blocks building 14.48). The characteristics chart's notes say German `j` and Italian `t` battalions count as halftracks only when carried by truck or motorisation points (the `‡` on de j's CPA; the Italian note on `t`), and have no armour protection otherwise; the rows give both `armour_protection: 1` unconditionally, and the condition lives only in prose notes. Needed: a typed field (e.g. `halftrack: true` on those rows), and a ruling on what a halftrack unit is for the rest of combat: armour or infantry on the barrage table's class columns, whether it may be withheld from close assault (15.1x lets only armour and guns be withheld), and under §32 which motorisation points a halftrack loss takes with it (14.48's "carrying truck points").
 - **Dummy tank formations under §32** (16.4; Mission 5 follow-up, blocks building 16.4). 16.41 makes one in the construction segment from 10 stores in the hex, but abstract supply (§32) has no stores, only ammunition and fuel loads. Needed: what a dummy costs and where it is paid from with abstract supply, or a ruling that it is left out without the Logistics Game.
 
 ## Runs and quota

@@ -840,3 +840,9 @@ Done: #165 (94a223b) bumps vendor/cna to 4565419 (cna's answers: 7 air requests,
 In flight: subagents building R-177 (`/tmp/cna-halftracks`, branch autopilot/halftracks) and R-176 (`/tmp/cna-parent-shifts`, autopilot/parent-shifts), both stacked on #165.
 Next: merge #165 when CI green; open PRs for the two branches (retarget to main after #165 merges), regenerate pins on the second after the first merges.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 01:45 MST — main (hand-off)
+Done: #165 (28f5b93) vendor/cna → 4565419, air rulings parked in NOT_SIMULATED; #166 (1b9a7ef) `halftracks` module (R-177, 14.48/E-004); #167 (560b40d) `parent_shifts` module (R-176, Order::ShiftParent, stack-panel button). Fresh reviews on both, fixes folded in. Answered request bullets removed from PROGRESS.
+In flight: none.
+Next: if Feedback approves #148 or #161, that mission's slice 1 (cna's air data is now typed for #161). Else: only the dummy-tank request is open; small NOT_SIMULATED "Not yet" items (Organisation row: non-SP / MG exceptions, nested assigned units).
+Blocked: Missions 6 and 7 on Brian's review.
