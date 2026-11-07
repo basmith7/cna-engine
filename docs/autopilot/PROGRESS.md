@@ -338,6 +338,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
+- **Review the Mission 7 spec: PR #161** (the Air Game, §33–47, as one module on §32 as §47 changes it; independent of #148). Three questions, each with a default: Air Game the default for new games (no: a tick-box); build it before the Logistics Game (yes); the engine forms squadrons at set-up, changeable (yes).
 - **Review the Mission 6 spec: PR #148** (the Logistics Game, §48–58, as
   one module). It asks you three questions, each with a default: whether
   the Logistics Game becomes the default for new games (no: a tick-box);
@@ -427,6 +428,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
+
+- **Air facilities each scenario starts with, as typed data** (Mission 7, PR #161; blocks its slice 1). 36.0 says the facilities that exist at the start are listed in the set-up, but no scenario's `construction` block or `data/map/` lists airfields, landing strips, flying-boat basins or alighting areas (Graziani's Axis supply even says "spread over any Axis airfields"). Needed per scenario: kind, hex or box, starting capacity; the off-map facilities' printed capacities (36.5); Malta's facilities with their standard levels (44.13–44.14).
+- **Air distances off the map** (Mission 7, PR #161; blocks slice 1's off-map transfers). Range from Malta, the Tripoli and Tunisia boxes, Italy, Sicily, Crete and the Commonwealth's off-map bases to map hexes: the Malta inset's distance box and 37.4's off-map entries as data (the convoy lanes' distances are already in `convoy-lanes.json`).
+- **Scenario aircraft keyed to the characteristics chart** (Mission 7, PR #161; blocks slice 1). Every `sides.*.air` plane entry names its type as the set-up page prints it (`CR 42`, `Hurricane Mk I`, `Potez 63/11`, `Me Bf109F`); none of the four small scenarios' 82 distinct names matches an `aircraft` in `aircraft-characteristics.json` exactly (`C.R. 42 Falco`, `Hurricane Mk. I`, `63.11`, `Bf. 109F`). Some have no row at all: The Last Chance's `Hurricane IIE`, `Wellington II`, `Wellington V`, `Baltimore II` and `III`; Crusader's `Blenheim IV F (second line)`. Needed: each entry's characteristics row id, and for types with no row, a row or a ruling.
+- **Bombing and strafing targets under §47** (Mission 7, PR #161; blocks slice 2). Which of 41.3x's and 40.6x's targets exist when the Air Game is played with abstract logistics: supply dumps (do supply units stand in, and what does a percentage take from one?), ports (efficiency is a Logistics Game number), the water pipeline, trucks in convoy versus attached motorisation points.
 
 ## Runs and quota
 
