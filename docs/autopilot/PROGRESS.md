@@ -26,6 +26,21 @@ scenario builds at set-up as finished; #146 closes the mission's docs
 spec and plan in PR #148, labelled `needs-brian`, waiting on your review;
 cna has since answered both of its requests (R-163, R-166).
 
+**Mission 7, the Air Game, Part 0 (2026-11-06, late night):** spec and
+plan in PR #161, labelled `needs-brian`, waiting on your review beside
+#148. It builds the Air Game (§33–47) on §32 as §47 changes it, so it does
+not wait for the Logistics Game; Air with full logistics is its last
+slice. A fresh review's 15 findings are in (the abstract air is switched
+off where it actually runs, 32.37's air lift kept, the turn's opening
+reordered for strategic planning). Seven requests for cna are posted
+below, the biggest being typed starting air facilities and scenario
+aircraft keyed to the characteristics chart (only 9 of 82 printed names
+match). Also merged this run: #162, a browser control for the
+Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
+#163 (`armour_limits`: when turn 19, 71 or 92 tightens a Commonwealth
+armoured formation's chart row, the units it no longer has room for go
+independent) is ready, merging once CI is green.
+
 **2026-11-06 night:** #159 (merged) builds reassignment (19.2x) as
 the `reassignment` module. An eliminated parent's surviving units become
 independent. In phase C an independent unit attached to a parent takes a
@@ -345,6 +360,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whether the browser picks fuel and ammunition sources (yes, shown and
   changeable); whether to build variants V-002 and V-004 (no). Nothing is
   built for it until your **Feedback** approves it.
+- Two calls in #163 to glance at: reinforcements and set-ups that bring
+  an armoured formation more than its current row are not trimmed (the
+  OA stands, so The Last Chance's armoured divisions keep two brigades),
+  and the engine, not the Commonwealth player, picks which unit leaves.
 - Mission 5 follow-ups, this run (2026-11-06 afternoon): #150 (merged)
   an assault eliminates a 0-TOE battalion left alone in its hex (19.62,
   3.5, 15.55; asked of cna below); #149 (merged) a repair can name which
@@ -364,9 +383,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 - Reassignment (#159), two calls to glance at: the battalion swap needs
   both battalions standing alone in phase C (my reading of "at will");
   an orphaned unit may take a slot under another nation's parent (19.2x
-  does not forbid it). Still not built: historical shifts of parent and
-  the Commonwealth armour limits' changes, and a browser control for the
-  swap.
+  does not forbid it). The swap has a browser control since #162 and the
+  armour limits' changes are #163; historical shifts of parent wait on
+  cna (requested below).
 
 - **Ship Mission 4: Brian's checklist in the Mission 4 spec**
   (`docs/designs/2026-10-13-multiplayer-server-design.md`, *Brian's
