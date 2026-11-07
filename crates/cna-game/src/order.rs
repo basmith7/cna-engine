@@ -273,6 +273,14 @@ pub enum Order {
     /// of an enemy raider in the hex it entered and still there, spends
     /// 1 CP to try to spot it (27.42–27.44).
     TrySpot { piece: PieceId },
+    /// Whenever its player is to act with nothing pending: the owner of
+    /// `piece` names entries of its `weapons` in the order their points
+    /// go when it loses a count of TOE points (12.45, 14.4x, 15.83); an
+    /// empty list clears it.
+    SetLossOrder {
+        piece: PieceId,
+        weapons: Vec<String>,
+    },
     /// Nothing more this phase: ends F or G for the phasing player, or
     /// C for one player.
     Pass,

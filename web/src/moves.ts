@@ -99,6 +99,26 @@ export function reassignOrder(view: View, p: Piece): Extract<Order, { reassign: 
   return { reassign: { piece: p.id } };
 }
 
+/** The weapon entries of the side to act's `p`, in the order the owner
+ * would have them lost: its standing loss order first, then the rest as
+ * listed; null when it has fewer than two entries with points or the
+ * side may not give orders now (12.45, 14.4x, 15.83). */
+export function lossOrderDraft(view: View, p: Piece): string[] | null {
+  if (view.pending || p.side !== view.to_act || p.location === "eliminated") return null;
+  const entries = (p.weapons ?? []).filter((w) => w.points > 0).map((w) => w.weapon);
+  if (entries.length < 2) return null;
+  const set = (p.loss_order ?? []).filter((w) => entries.includes(w));
+  return [...set, ...entries.filter((w) => !set.includes(w))];
+}
+
+/** `list` with its `i`th entry one place earlier. */
+export function raise<T>(list: T[], i: number): T[] {
+  if (i <= 0 || i >= list.length) return list;
+  const out = [...list];
+  [out[i - 1], out[i]] = [out[i], out[i - 1]];
+  return out;
+}
+
 /** Phase C: the historical shifts of parent the engine offers `p` this
  * month (19.24); it judges attachment and slots when one is sent. */
 export function shiftOrders(view: View, p: Piece): Extract<Order, { "shift-parent": unknown }>[] {

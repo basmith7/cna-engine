@@ -221,6 +221,12 @@ pub struct Piece {
     /// come from the weapon's row; the rest of `toe` from the ID code's.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub weapons: Vec<ToeEntry>,
+    /// The owner's standing loss priority (`Order::SetLossOrder`; 12.45,
+    /// 14.4x, 15.83): `weapons` entries in the order their points go to
+    /// a count of TOE points lost; past the list the engine picks.
+    /// Composition, so the enemy never sees it (3.61).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub loss_order: Vec<String>,
     /// The characteristics row's CPA, with its mark.
     pub cpa: Option<Rating>,
     /// Basic morale: the unit's own, else its sheet's.

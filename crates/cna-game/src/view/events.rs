@@ -98,6 +98,7 @@
 //! | `attached` | own | `piece` | `parent` is removed from the enemy's view of a piece |
 //! | `detached` | own | `piece` | as above |
 //! | `motorisation-attached` | own | `piece` | motorisation is the owner's |
+//! | `loss-order-set` | own | `piece` | names the unit's weapon entries: composition (3.61) |
 //! | `convoy-bombed` | reduced | Axis | `units`, `sunk`: how many real supply units sailed (truck and supply numbers secret; it gives the dummies away) |
 //! | `supply-planned` | own | `side` | the real units to come |
 //! | `motorisation-lost` | own | `side` | motorisation is the owner's |
@@ -349,7 +350,8 @@ fn seen(state: &GameState, event: &Event) -> Seen {
         | E::MotorisationDetached { piece, .. }
         | E::CombatCp { piece, .. }
         | E::CombatCpRefunded { piece, .. }
-        | E::Absorbed { piece, .. } => Own(of(piece)),
+        | E::Absorbed { piece, .. }
+        | E::LossOrderSet { piece, .. } => Own(of(piece)),
         E::FuelSpent { from, .. }
         | E::AmmunitionSpent { from, .. }
         | E::LoadTransferred { from, .. } => Own(of(from)),

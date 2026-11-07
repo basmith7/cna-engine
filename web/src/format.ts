@@ -179,6 +179,10 @@ export function formatEvent(e: Event, name: Namer = plain): string {
     const d = e["prisoners-marched"];
     return `${sideName(d.side)} marches ${count(d.points, "prisoner points", "prisoners")} ${d.path[0]} → ${d.path[d.path.length - 1]}${d.cp === undefined ? "" : ` (${d.cp} CP)`}.`;
   }
+  if ("loss-order-set" in e) {
+    const d = e["loss-order-set"];
+    return d.weapons.length === 0 ? `${name(d.piece)} leaves its losses to the engine.` : `${name(d.piece)} will lose ${d.weapons.join(", then ")} first.`;
+  }
   if ("absorbed" in e) return `${name(e.absorbed.piece)} absorbs ${e.absorbed.points} ${replacementName(e.absorbed.weapon)} points for ${e.absorbed.cp} CP.`;
   if ("equipment-captured" in e) {
     const d = e["equipment-captured"];
