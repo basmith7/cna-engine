@@ -41,6 +41,16 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-07 evening (19:15–20:45 UTC):** #187 (merged) bumps
+`vendor/cna` to 7947d00 and homes R-188. #188 adds a soak test that plays
+two OpStages of every scenario with random moves taken from the browser's
+move overlay (`reachable`), reactions and forced retreats included, and
+checks `apply` accepts each, the save round-trips and the log replays. It
+found the overlay offering moves the engine then refused, in every
+scenario: moves whose fuel no supply unit in range could pay (32.22), and
+Rommel's Arrival's held units leaving Cairo or Alexandria early (61.38).
+The overlay now leaves those out, at no cost in speed.
+
 **2026-11-07 night:** #185 (merged) builds R-182, blind barrage, as the
 `blind_barrage` module (on in new games): as the barrage step opens, the
 engine numbers each side's targets by hex and class (shuffled by a keyed
@@ -473,6 +483,11 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
+- One call to glance at in #188: the move overlay now hides moves the
+  engine would refuse for fuel, but the reaction and retreat-before-assault
+  overlays still show such hexes with their fuel quoted (as an earlier
+  test pins), so a click there is refused with 32.22. Say if you want
+  those hidden too.
 - **Review the Mission 7 spec: PR #161** (the Air Game, §33–47, as one module on §32 as §47 changes it; independent of #148). Three questions, each with a default: Air Game the default for new games (no: a tick-box); build it before the Logistics Game (yes); the engine forms squadrons at set-up, changeable (yes).
 - **Review the Mission 6 spec: PR #148** (the Logistics Game, §48–58, as
   one module). It asks you three questions, each with a default: whether
@@ -532,7 +547,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   critique's fixes are in. #153 (merged): `cargo fmt` over the
   workspace and `cargo fmt --all --check` in CI. Bardia's forts and
   set-up works vs enemy ZOC: answered by cna and built in #154.
-- `vendor/cna` is at cna 8e35bab (#182). R-182 is built (#185). Calls to glance at there: the engine, not the owner, picks the numbering; 12.32's one-barrage-per-target check goes by the name fired at, so a refusal never tells the firer two names are one unit; identified units get no number. cna's R-188 (dummy tanks under blind barrage) is homed by #187, no code change. Nothing unblocked is queued.
+- `vendor/cna` is at cna 8e35bab (#182). R-182 is built (#185). Calls to glance at there: the engine, not the owner, picks the numbering; 12.32's one-barrage-per-target check goes by the name fired at, so a refusal never tells the firer two names are one unit; identified units get no number. cna's R-188 (dummy tanks under blind barrage) is homed by #187 (merged), no code change; `vendor/cna` is now at 7947d00.
 - 10.29 under `capture_on_move`: "alone" means with no friendly combat
   unit, so Rommel or an HQ with TOE does not shield a supply unit (as at
   a segment's start before). Its call sites are tested since #160.
