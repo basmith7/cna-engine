@@ -33,6 +33,7 @@
   import TowPanel, { type Tow, towable } from "./TowPanel.svelte";
   import PatrolPanel from "./PatrolPanel.svelte";
   import FleetPanel from "./FleetPanel.svelte";
+  import WithdrawalPanel from "./WithdrawalPanel.svelte";
   import Ships from "./Ships.svelte";
   import { marchable } from "./prisoners";
   import StackPanel from "./StackPanel.svelte";
@@ -785,6 +786,7 @@
             }}
           />
           <FleetPanel {view} bind:picked={shipPick} />
+          <WithdrawalPanel {view} onsend={send} />
           <SetupPanel
             {view}
             picked={pickedPiece}

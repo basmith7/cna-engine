@@ -19,7 +19,22 @@ use cna_data::oa::{Oa, UnitId};
 use cna_data::scenario::Side;
 use cna_data::schedule::{Pick, Row};
 use cna_data::time::GameTime;
+use serde::Serialize;
 use std::collections::BTreeSet;
+
+/// A withdrawal pick the Commonwealth may make now (20.82, R-154): what
+/// `Order::PickWithdrawal` accepts. `candidates` are in the order the
+/// engine would take them if no pick is made (in Cairo or Alexandria
+/// first, then the strongest), so their first `count` are its choice as
+/// things stand; `picked` is the pick already made this OpStage.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PickOption {
+    pub fills: String,
+    pub count: u32,
+    pub candidates: Vec<PieceId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picked: Option<Vec<PieceId>>,
+}
 
 /// The places a withdrawal leaves from (20.81).
 const PLACES: [&str; 3] = ["cairo", "alexandria-east", "alexandria-west"];
@@ -111,9 +126,49 @@ impl GameState {
         (p.toe * 1000).checked_div(max).unwrap_or(1000)
     }
 
+    /// The picks `player` may make now, for the browser: the
+    /// Commonwealth's alone, while it is to act with nothing pending in
+    /// an OpStage with a `pick` row, and only where it has a choice (more
+    /// units of the kind than the row takes).
+    pub fn withdrawal_pick_options(&self, data: &Data, player: Side) -> Vec<PickOption> {
+        if !self.modules.withdrawals
+            || player != Side::Cw
+            || self.to_act() != Some(player)
+            || self.pending_refusal().is_some()
+        {
+            return Vec::new();
+        }
+        let now = GameTime::new(self.clock.game_turn, self.clock.stage);
+        data.schedule
+            .withdrawals(Side::Cw, now)
+            .filter_map(|row| {
+                let pick = row.pick.as_ref()?;
+                let named = self.withdrawal_members(data, row);
+                let candidates = self.auto_pick_from(data, pick, &named, usize::MAX);
+                (candidates.len() > pick.count as usize).then(|| PickOption {
+                    fills: pick.fills.clone(),
+                    count: pick.count,
+                    candidates,
+                    picked: self.withdrawal_picks.get(&pick.fills).cloned(),
+                })
+            })
+            .collect()
+    }
+
     /// The units a `pick` sends when the player chose none: those in
     /// Cairo or Alexandria first, then the strongest, then by id.
     fn auto_pick(&self, data: &Data, pick: &Pick, named: &[PieceId]) -> Vec<PieceId> {
+        self.auto_pick_from(data, pick, named, pick.count as usize)
+    }
+
+    /// The first `n` candidates for `pick`, in `auto_pick`'s order.
+    fn auto_pick_from(
+        &self,
+        data: &Data,
+        pick: &Pick,
+        named: &[PieceId],
+        n: usize,
+    ) -> Vec<PieceId> {
         let places = Self::withdrawal_hexes(data);
         let mut c = self.pick_candidates(data, &pick.fills, named);
         c.sort_by_key(|p| {
@@ -123,10 +178,7 @@ impl GameState {
                 p.id.clone(),
             )
         });
-        c.into_iter()
-            .take(pick.count as usize)
-            .map(|p| p.id.clone())
-            .collect()
+        c.into_iter().take(n).map(|p| p.id.clone()).collect()
     }
 
     /// `Order::PickWithdrawal` (20.82, R-154).
@@ -534,6 +586,93 @@ mod tests {
             .collect()
     }
 
+    /// Plays on until the Commonwealth is to act, still in GT97/2.
+    fn to_cw(state: &mut GameState, data: &Data) {
+        while state.to_act() != Some(Side::Cw) {
+            let who = state.to_act().unwrap();
+            let order = if state.clock.phase == crate::clock::Phase::InitiativeDeclaration {
+                Order::DeclareInitiative { player_a: Side::Cw }
+            } else {
+                Order::Pass
+            };
+            state.apply(data, who, order).unwrap();
+        }
+        assert_eq!((state.clock.game_turn, state.clock.stage), (97, 2));
+    }
+
+    #[test]
+    fn the_pick_is_offered_to_the_commonwealth_alone_while_it_acts() {
+        let (data, mut state, r) = guards();
+        let view = |state: &GameState, side| {
+            crate::view::view_for(
+                state,
+                &data,
+                &crate::view::Aliases::new([0; 32]),
+                Some(side),
+                false,
+            )
+            .unwrap()
+        };
+        to_cw(&mut state, &data);
+        let offered = state.withdrawal_pick_options(&data, Side::Cw);
+        assert_eq!(offered.len(), 1, "{offered:?}");
+        let o = &offered[0];
+        assert_eq!(
+            (o.fills.as_str(), o.count, o.picked.as_ref()),
+            ("infantry-battalion", 3, None)
+        );
+        // Every battalion outside the row, the engine's own choice first.
+        let mut all = battalions(&state, &data, &r);
+        all.sort();
+        let mut listed = o.candidates.clone();
+        listed.sort();
+        assert_eq!(listed, all);
+        let named = state.withdrawal_members(&data, &r);
+        let pick = data
+            .schedule
+            .withdrawals(Side::Cw, GameTime::new(97, 2))
+            .next()
+            .unwrap()
+            .pick
+            .clone()
+            .unwrap();
+        assert_eq!(o.candidates[..3], state.auto_pick(&data, &pick, &named)[..]);
+        // Never to the Axis, which sees neither the offer nor the pick.
+        assert!(state.withdrawal_pick_options(&data, Side::Axis).is_empty());
+        assert!(
+            view(&state, Side::Axis)
+                .get("withdrawal_pick_options")
+                .is_none()
+        );
+        let shown = view(&state, Side::Cw);
+        assert_eq!(shown["withdrawal_pick_options"][0]["count"], 3);
+        // A pick made is shown back to the Commonwealth.
+        let three = o.candidates[o.candidates.len() - 3..].to_vec();
+        state
+            .apply(
+                &data,
+                Side::Cw,
+                Order::PickWithdrawal {
+                    fills: "infantry-battalion".into(),
+                    pieces: three.clone(),
+                },
+            )
+            .unwrap();
+        let offered = state.withdrawal_pick_options(&data, Side::Cw);
+        assert_eq!(offered[0].picked.as_ref(), Some(&three));
+        assert!(view(&state, Side::Axis).get("withdrawal_picks").is_none());
+        // Not while the Axis acts, nor in another OpStage, nor off the module.
+        let (data, mut state, _) = guards();
+        assert_eq!(state.to_act(), Some(Side::Axis));
+        assert!(state.withdrawal_pick_options(&data, Side::Cw).is_empty());
+        to_cw(&mut state, &data);
+        state.clock.stage = 1;
+        assert!(state.withdrawal_pick_options(&data, Side::Cw).is_empty());
+        state.clock.stage = 2;
+        state.modules.withdrawals = false;
+        assert!(state.withdrawal_pick_options(&data, Side::Cw).is_empty());
+    }
+
     #[test]
     fn a_pick_names_battalions_of_the_kind_and_each_is_tested_alone() {
         let (data, mut state, r) = guards();
@@ -544,16 +683,7 @@ mod tests {
             fills: "infantry-battalion".into(),
             pieces,
         };
-        while state.to_act() != Some(Side::Cw) {
-            let who = state.to_act().unwrap();
-            let order = if state.clock.phase == crate::clock::Phase::InitiativeDeclaration {
-                Order::DeclareInitiative { player_a: Side::Cw }
-            } else {
-                Order::Pass
-            };
-            state.apply(&data, who, order).unwrap();
-        }
-        assert_eq!((state.clock.game_turn, state.clock.stage), (97, 2));
+        to_cw(&mut state, &data);
         // Illegal: two of them, one twice, the Axis, the HQ itself.
         assert!(
             state
