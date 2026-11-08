@@ -221,9 +221,13 @@ impl GameState {
         // retreats it can pay.
         // Asked only of a stack that stands: one given a path pays for
         // that path or is refused.
+        // and only where it decides something: a must-attack stack, or
+        // abstract supply under an R-012 that forbids standing.
+        let asks = reason == RetreatReason::MustAttack
+            || (self.modules.abstract_supply && !may_buy_out(&self.ruleset, true));
         let offered = match path {
-            None => Some(self.reachable(data, side, &pieces, Purpose::ForcedRetreat)),
-            Some(_) => None,
+            None if asks => Some(self.reachable(data, side, &pieces, Purpose::ForcedRetreat)),
+            _ => None,
         };
         let unfuelled = self.unfuelled(data, &pieces)
             || (self.modules.abstract_supply
