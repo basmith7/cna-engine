@@ -159,7 +159,7 @@ mod tests {
                         }
                     }
                 }
-                Some(Pending::RetreatBeforeAssault { side }) if rng.next_u32() % 3 == 0 => {
+                Some(Pending::RetreatBeforeAssault { side }) if rng.next_u32().is_multiple_of(3) => {
                     let bodies = bodies(state, rng);
                     if let Some(pieces) = pick(rng, &bodies)
                         && let Ok(reaches) =
