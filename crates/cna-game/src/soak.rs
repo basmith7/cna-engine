@@ -159,7 +159,9 @@ mod tests {
                         }
                     }
                 }
-                Some(Pending::RetreatBeforeAssault { side }) if rng.next_u32().is_multiple_of(3) => {
+                Some(Pending::RetreatBeforeAssault { side })
+                    if rng.next_u32().is_multiple_of(3) =>
+                {
                     let bodies = bodies(state, rng);
                     if let Some(pieces) = pick(rng, &bodies)
                         && let Ok(reaches) =
@@ -189,7 +191,23 @@ mod tests {
                 Some(Pending::Sealed { .. }) => {
                     let side = state.to_act().unwrap();
                     let options = state.sealed_options(data, side).unwrap();
-                    let (order, what) = sealed_answer(&options, rng);
+                    let (mut order, mut what) = sealed_answer(&options, rng);
+                    // Ammunition is quoted unit by unit (32.21): units
+                    // that each can pay may together drain the one supply
+                    // unit in range. Drop the one refused and ask again;
+                    // a unit refused alone is a disagreement.
+                    loop {
+                        match state.clone().apply(data, side, order.clone()) {
+                            Err(e) if e.case == "32.21" => match without_named(&order, &e.reason) {
+                                Some(fewer) => {
+                                    what = format!("{fewer:?}");
+                                    order = fewer;
+                                }
+                                None => break,
+                            },
+                            _ => break,
+                        }
+                    }
                     if try_order(data, state, side, order, &what, faults) {
                         continue;
                     }
@@ -236,6 +254,33 @@ mod tests {
                 ));
                 false
             }
+        }
+    }
+
+    /// `order` less the fire or assignment of the piece `reason` names,
+    /// if others are left.
+    fn without_named(order: &Order, reason: &str) -> Option<Order> {
+        let named = |id: &PieceId| reason.starts_with(&format!("{id} "));
+        match order {
+            Order::Barrage { fires }
+                if fires.len() > 1 && fires.iter().any(|f| named(&f.piece)) =>
+            {
+                Some(Order::Barrage {
+                    fires: fires.iter().filter(|f| !named(&f.piece)).cloned().collect(),
+                })
+            }
+            Order::AssignForces { assignments }
+                if assignments.len() > 1 && assignments.iter().any(|a| named(&a.piece)) =>
+            {
+                Some(Order::AssignForces {
+                    assignments: assignments
+                        .iter()
+                        .filter(|a| !named(&a.piece))
+                        .cloned()
+                        .collect(),
+                })
+            }
+            _ => None,
         }
     }
 

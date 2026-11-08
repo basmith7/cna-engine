@@ -541,6 +541,33 @@ mod tests {
     }
 
     #[test]
+    fn a_retreat_before_assault_offered_keeps_held_units_inside_too_61_38() {
+        // Retreat before assault is a move (13.2x): the overlay offers a
+        // held unit only what `apply` takes, as it does for a move.
+        use crate::reach::Purpose;
+        let data = data();
+        let mut s = at(&data, Modules::ALL, 26, 3);
+        s.pending = Some(crate::state::Pending::RetreatBeforeAssault { side: Side::Cw });
+        let zone = GameState::release_hexes(&data, Side::Cw).unwrap();
+        let held = vec![pid("unit:cw:7-hus")];
+        let reaches = s
+            .reachable(&data, Side::Cw, &held, Purpose::RetreatBeforeAssault)
+            .unwrap();
+        assert!(
+            !reaches.is_empty(),
+            "retreats within the cities stay offered"
+        );
+        for r in &reaches {
+            assert!(r.path.iter().all(|h| zone.contains(h)), "{r:?}");
+            let order = Order::RetreatBeforeAssault {
+                pieces: held.clone(),
+                path: r.path.clone(),
+            };
+            s.clone().apply(&data, Side::Cw, order).unwrap();
+        }
+    }
+
+    #[test]
     fn nothing_leaves_in_the_opening_stage_but_hqs_do_61_38() {
         let data = data();
         let mut s = at(&data, Modules::ALL, 26, 3);

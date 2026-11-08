@@ -65,7 +65,7 @@ pub struct Reach {
     #[serde(default)]
     pub short: u32,
     /// The fuel the move owes under abstract supply, the whole stack's
-    /// (32.22); 0 with the module off and for any purpose but `Move`.
+    /// (32.22); 0 with the module off.
     #[serde(default)]
     pub fuel: u32,
 }
@@ -404,14 +404,21 @@ impl GameState {
                 r.short == 0 || buy_out
             });
         }
-        if purpose == Purpose::Move {
-            // Two refusals that hang on the path, as `apply` makes them:
-            // fuel no supply unit in range can pay (32.22, R-120), and
-            // leaving Cairo or Alexandria before or past the release
-            // schedule (61.38). Each hangs on little of the path, so it
-            // is asked once per answer it can give, not once a hex: the
-            // fuel on what each piece owes, the release on whether the
-            // path stays inside the cities.
+        // Two refusals that hang on the path, as `apply` makes them: fuel
+        // no supply unit in range can pay, for a move or a forced retreat
+        // (32.22, R-120), and leaving Cairo or Alexandria before or past
+        // the release schedule, for any voluntary move (61.38). Each
+        // hangs on little of the path, so it is asked once per answer it
+        // can give, not once a hex: the fuel on what each piece owes, the
+        // release on whether the path stays inside the cities. A reaction
+        // and a retreat before assault keep quoting fuel nothing can pay
+        // (`a_reaction_quotes_the_fuel_it_owes`).
+        let fuel_bound = matches!(purpose, Purpose::Move | Purpose::ForcedRetreat);
+        let release_bound = matches!(
+            purpose,
+            Purpose::Move | Purpose::React | Purpose::RetreatBeforeAssault
+        );
+        if fuel_bound || release_bound {
             let cities = Self::release_hexes(data, side).unwrap_or_default();
             let mut payable: BTreeMap<Vec<u32>, bool> = BTreeMap::new();
             let mut released: BTreeMap<bool, bool> = BTreeMap::new();
@@ -425,19 +432,28 @@ impl GameState {
                     .iter()
                     .map(|id| self.fuel_due(data, &self.pieces[id], cost).0)
                     .collect();
-                let pays = *payable
-                    .entry(owed)
-                    .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok());
+                let pays = !fuel_bound
+                    || *payable
+                        .entry(owed)
+                        .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok());
                 let inside = r.path.iter().all(|h| cities.contains(h));
-                pays && *released.entry(inside).or_insert_with(|| {
-                    let order = Order::Move {
-                        pieces: pieces.to_vec(),
-                        path: r.path.clone(),
-                        assault: false,
-                        fuel_from: None,
-                    };
-                    self.release_check(data, side, &order).is_ok()
-                })
+                pays && (!release_bound
+                    || *released.entry(inside).or_insert_with(|| {
+                        let (pieces, path) = (pieces.to_vec(), r.path.clone());
+                        let order = match purpose {
+                            Purpose::React => Order::React { pieces, path },
+                            Purpose::RetreatBeforeAssault => {
+                                Order::RetreatBeforeAssault { pieces, path }
+                            }
+                            _ => Order::Move {
+                                pieces,
+                                path,
+                                assault: false,
+                                fuel_from: None,
+                            },
+                        };
+                        self.release_check(data, side, &order).is_ok()
+                    }))
             });
         }
         if purpose == Purpose::React {
