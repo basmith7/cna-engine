@@ -74,6 +74,8 @@ impl GameState {
             p.cp_spent = p.cp_spent.saturating_sub(back);
             p.cp_enemy_half = p.cp_enemy_half.saturating_sub(back);
             let dp = over - p.cp_spent.saturating_sub(cpa).floor();
+            // A supply unit earned no DP for the CP (32.1x, `charge`).
+            let dp = if p.kind.is_supply() { 0 } else { dp };
             if dp > 0 {
                 p.cohesion.refund_dp(dp);
             }
@@ -177,5 +179,36 @@ mod tests {
         state.charge(&bn, Cp::whole(2), true, &mut events);
         assert_eq!(state.pieces[&bn].cohesion.dp_tally, 3);
         assert_eq!(state.pieces[&bn].cohesion.level, -3);
+    }
+
+    #[test]
+    fn a_supply_unit_gets_back_no_dp_it_never_earned() {
+        // A supply unit has no cohesion (32.1x): combat CP over its CPA
+        // earn it no DP, so a bad attack's refund (6.3) gives none back.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let mut state = moving(&data, 3, Side::Cw);
+        let mut events = Vec::new();
+        let c4020 = hex("C4020");
+        let dump = state
+            .pieces
+            .values()
+            .find(|p| p.side == Side::Axis && p.kind.is_supply())
+            .expect("an Axis supply unit")
+            .id
+            .clone();
+        let cpa = Cp::whole(state.cpa(&state.pieces[&dump]).unwrap_or(0));
+        let p = state.pieces.get_mut(&dump).unwrap();
+        p.location = crate::piece::Location::Hex(c4020.clone());
+        p.cp_spent = cpa;
+        state.charge_combat_hex(&c4020, Cp::whole(2), &mut events);
+        state.refund_combat_hex(&c4020, BAD_ATTACK_REFUND, &mut events);
+        let p = &state.pieces[&dump];
+        assert_eq!(p.cp_spent, cpa);
+        assert_eq!((p.cohesion.dp_tally, p.cohesion.level), (0, 0));
+        assert!(events.contains(&Event::CombatCpRefunded {
+            piece: dump.clone(),
+            cp: BAD_ATTACK_REFUND,
+            dp: 0,
+        }));
     }
 }

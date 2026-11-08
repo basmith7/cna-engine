@@ -7,17 +7,19 @@
 #[cfg(test)]
 mod tests {
     use crate::clock::{Phase, Segment};
+    use crate::combat::options::SealedOptions;
     use crate::data::Data;
     use crate::log::replay;
-    use crate::order::Order;
+    use crate::order::{Allocation, Assignment, Fire, Order};
     use crate::piece::{PieceId, PieceKind};
     use crate::reach::Purpose;
     use crate::state::test_support::auto_place;
     use crate::state::{GameState, Modules, Pending};
     use cna_data::map::HexId;
+    use cna_data::scenario::Side;
     use rand_chacha::ChaCha8Rng;
     use rand_core::{RngCore, SeedableRng};
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     /// OpStages each scenario plays.
     const STAGES: usize = 2;
@@ -129,9 +131,12 @@ mod tests {
         }
     }
 
-    /// Answers every combat step with nothing until reserve release
-    /// opens, as `drain_combat` does, but a forced retreat goes to a hex
-    /// `reachable` offers it (15.82, 10.36), checked against `apply`.
+    /// Plays the combat steps until reserve release opens: gun
+    /// positions, barrages and force assignments at random from
+    /// `sealed_options`, retreats before assault and forced retreats to
+    /// hexes `reachable` offers (13.2x, 15.82, 10.36), and every assault
+    /// assigned resolved. Whatever is offered and refused by `apply` is
+    /// a disagreement, kept in `faults`.
     fn through_combat(
         data: &Data,
         state: &mut GameState,
@@ -139,26 +144,67 @@ mod tests {
         faults: &mut Vec<String>,
     ) {
         loop {
-            if let Some(Pending::ForcedRetreat { side, pieces, .. }) = state.pending.clone() {
-                let reaches = state
-                    .reachable(data, side, &pieces, Purpose::ForcedRetreat)
-                    .unwrap_or_default();
-                if let Some(r) = pick(rng, &reaches) {
-                    let order = Order::Retreat {
-                        path: r.path.clone(),
-                    };
-                    let mut trial = state.clone();
-                    match trial.apply(data, side, order) {
-                        Ok(_) => {
-                            *state = trial;
+            match state.pending.clone() {
+                Some(Pending::ForcedRetreat { side, pieces, .. }) => {
+                    let reaches = state
+                        .reachable(data, side, &pieces, Purpose::ForcedRetreat)
+                        .unwrap_or_default();
+                    if let Some(r) = pick(rng, &reaches) {
+                        let order = Order::Retreat {
+                            path: r.path.clone(),
+                        };
+                        let what = format!("a retreat to {} by {:?}", r.hex, r.path);
+                        if try_order(data, state, side, order, &what, faults) {
                             continue;
                         }
-                        Err(e) => faults.push(format!(
-                            "{} {side}: reachable offers a retreat to {} by {:?}, apply says {e:?}",
-                            state.clock, r.hex, r.path
-                        )),
                     }
                 }
+                Some(Pending::RetreatBeforeAssault { side }) if rng.next_u32() % 3 == 0 => {
+                    let bodies = bodies(state, rng);
+                    if let Some(pieces) = pick(rng, &bodies)
+                        && let Ok(reaches) =
+                            state.reachable(data, side, &pieces, Purpose::RetreatBeforeAssault)
+                        && let Some(r) = pick(rng, &reaches)
+                    {
+                        let order = Order::RetreatBeforeAssault {
+                            pieces: pieces.clone(),
+                            path: r.path.clone(),
+                        };
+                        // Like a reaction's, this overlay quotes fuel
+                        // nothing in range may pay (32.22), by design.
+                        let mut trial = state.clone();
+                        match trial.apply(data, side, order) {
+                            Ok(_) => {
+                                *state = trial;
+                                continue;
+                            }
+                            Err(e) if e.case == "32.22" => {}
+                            Err(e) => faults.push(format!(
+                                "{} {side}: offered {pieces:?} a retreat before assault to {} by {:?}, apply says {e:?}",
+                                state.clock, r.hex, r.path
+                            )),
+                        }
+                    }
+                }
+                Some(Pending::Sealed { .. }) => {
+                    let side = state.to_act().unwrap();
+                    let options = state.sealed_options(data, side).unwrap();
+                    let (order, what) = sealed_answer(&options, rng);
+                    if try_order(data, state, side, order, &what, faults) {
+                        continue;
+                    }
+                }
+                None => {
+                    if let Some(target) = state.assaults_to_resolve().first().cloned() {
+                        let side = state.to_act().unwrap();
+                        let what = format!("the assault on {target}");
+                        let order = Order::Assault { target };
+                        if try_order(data, state, side, order, &what, faults) {
+                            continue;
+                        }
+                    }
+                }
+                _ => {}
             }
             let before = state.log.len();
             drain_one(data, state);
@@ -166,6 +212,132 @@ mod tests {
                 return;
             }
         }
+    }
+
+    /// Applies `order` if `apply` takes it; a refusal is a fault.
+    fn try_order(
+        data: &Data,
+        state: &mut GameState,
+        side: Side,
+        order: Order,
+        what: &str,
+        faults: &mut Vec<String>,
+    ) -> bool {
+        let mut trial = state.clone();
+        match trial.apply(data, side, order) {
+            Ok(_) => {
+                *state = trial;
+                true
+            }
+            Err(e) => {
+                faults.push(format!(
+                    "{} {side}: offered {what}, apply says {e:?}",
+                    state.clock
+                ));
+                false
+            }
+        }
+    }
+
+    /// A random answer to a sealed step, built only from what
+    /// `sealed_options` offers: each firer or committer half the time,
+    /// at one random target with a random share of its points. Units
+    /// whose ammunition nothing can pay are left out (32.21), and a
+    /// back gun's target is never a hex-mate's (12.32).
+    fn sealed_answer(options: &SealedOptions, rng: &mut ChaCha8Rng) -> (Order, String) {
+        let coin = |rng: &mut ChaCha8Rng| rng.next_u32() & 1 == 0;
+        let share =
+            |rng: &mut ChaCha8Rng, points: u32| 1 + (rng.next_u64() % u64::from(points)) as u32;
+        let order = match options {
+            SealedOptions::GunPositions { guns } => Order::GunPositions {
+                forward: guns
+                    .iter()
+                    .filter(|_| coin(rng))
+                    .map(|g| g.piece.clone())
+                    .collect(),
+            },
+            SealedOptions::Barrage { firers } => {
+                let mut fires = Vec::new();
+                // Options carry no hex, so a back gun's target is kept
+                // from every other firer, not only its hex-mates.
+                let (mut fired_at, mut back) = (BTreeSet::new(), BTreeSet::new());
+                for f in firers {
+                    if f.ammo_short || f.points == 0 || !coin(rng) {
+                        continue;
+                    }
+                    let Some(target) = pick(rng, &f.targets) else {
+                        continue;
+                    };
+                    if back.contains(&target) || (!f.forward && fired_at.contains(&target)) {
+                        continue;
+                    }
+                    fired_at.insert(target.clone());
+                    if !f.forward {
+                        back.insert(target.clone());
+                    }
+                    let points = match f.ship_points.get(&target) {
+                        Some(&n) => n,
+                        None => share(rng, f.points),
+                    };
+                    fires.push(Fire {
+                        piece: f.piece.clone(),
+                        points,
+                        target,
+                    });
+                }
+                Order::Barrage { fires }
+            }
+            SealedOptions::AssignForces { phasing, units } => {
+                let mut assignments = Vec::new();
+                for u in units {
+                    if u.points == 0 || !coin(rng) {
+                        continue;
+                    }
+                    let mut a = Assignment {
+                        piece: u.piece.clone(),
+                        anti_armour: vec![],
+                        close_assault: vec![],
+                    };
+                    let assault = share(rng, u.points);
+                    let rest = u.points - assault;
+                    if *phasing {
+                        if !u.ammo_short
+                            && let Some(target) = pick(rng, &u.close_assault_targets)
+                        {
+                            a.close_assault.push(Allocation {
+                                target: Some(target),
+                                points: assault,
+                            });
+                        }
+                        if rest > 0
+                            && let Some(target) = pick(rng, &u.anti_armour_targets)
+                        {
+                            a.anti_armour.push(Allocation {
+                                target: Some(target),
+                                points: rest,
+                            });
+                        }
+                    } else {
+                        a.close_assault.push(Allocation {
+                            target: None,
+                            points: assault,
+                        });
+                        if rest > 0 && u.anti_armour {
+                            a.anti_armour.push(Allocation {
+                                target: None,
+                                points: rest,
+                            });
+                        }
+                    }
+                    if !a.close_assault.is_empty() || !a.anti_armour.is_empty() {
+                        assignments.push(a);
+                    }
+                }
+                Order::AssignForces { assignments }
+            }
+        };
+        let what = format!("{order:?}");
+        (order, what)
     }
 
     /// One answer of `drain_combat`'s, if a combat step is pending.
@@ -307,16 +479,30 @@ mod tests {
                     .iter()
                     .filter(|o| matches!(o.order, Order::React { .. }))
                     .count();
+                let fires: usize = live
+                    .log
+                    .iter()
+                    .map(|o| match &o.order {
+                        Order::Barrage { fires } => fires.len(),
+                        _ => 0,
+                    })
+                    .sum();
+                let assaults = live
+                    .log
+                    .iter()
+                    .filter(|o| matches!(o.order, Order::Assault { .. }))
+                    .count();
                 let saved = GameState::from_json(&live.to_json().unwrap(), &data).unwrap();
                 assert_eq!(saved, live, "{slug}: the save does not round-trip");
                 let replayed = replay(&data, &live.to_log()).unwrap();
                 assert_eq!(replayed, live, "{slug}: the log does not replay");
-                (moves, reactions, faults)
+                (moves, reactions, fires, assaults, faults)
             });
             match run {
-                Ok((moves, reactions, faults)) => {
+                Ok((moves, reactions, fires, assaults, faults)) => {
                     eprintln!(
-                        "{slug}: {moves} moves, {reactions} reactions, {} faults",
+                        "{slug}: {moves} moves, {reactions} reactions, {fires} fires, \
+                         {assaults} assaults, {} faults",
                         faults.len()
                     );
                     for f in faults.iter().take(5) {
