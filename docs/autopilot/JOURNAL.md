@@ -966,3 +966,9 @@ Done: #188 merged (e4736a4) with CI green (Playwright included); worktrees remov
 In flight: none.
 Next: extend `cna-game::soak` to combat (barrage fires, assault assignments, Order::Assault) to hunt more overlay/apply disagreements; or anything Brian's Feedback asks.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 19:55 MST — autopilot/soak-combat
+Done: #189 (draft): soak answers combat at random from sealed_options/reachable (gun positions, barrages, RBA, assignments, assaults). Found + fixed: refund_combat_hex refunded DP to supply units that never earned it → dp_tally underflow (cp.rs, regression test). Seed 7 clean, all scenarios.
+In flight: deep soak (5 stages, seeds 3/11/29/41/57/73, release+overflow checks, binary ../targets/soak-bin, logs ../targets/soaklogs/); cargo test --no-fail-fast.
+Next: read the soak logs for faults/panics; ready + merge #189 when gates and CI pass.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
