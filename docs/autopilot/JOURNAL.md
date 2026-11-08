@@ -972,3 +972,9 @@ Done: #189 (draft): soak answers combat at random from sealed_options/reachable 
 In flight: deep soak (5 stages, seeds 3/11/29/41/57/73, release+overflow checks, binary ../targets/soak-bin, logs ../targets/soaklogs/); cargo test --no-fail-fast.
 Next: read the soak logs for faults/panics; ready + merge #189 when gates and CI pass.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-07 20:58 MST — autopilot/soak-combat (hand-off)
+Done: #189 ready (head after 6d review fix): soak covers combat; fixes supply-unit DP refund underflow (cp.rs), forced-retreat overlay fuel + stand-and-pay when only first fuel payable (reach.rs, retreat.rs), 61.38 held units in RBA/React overlays. Local: clippy, cargo test --no-fail-fast (EXIT 0, before last small commit), probe check, soak; deep soak 5 stages × 8 seeds clean. Fresh review: nothing wrong; perf fix taken.
+In flight: CI on #189 (run 42444486246).
+Next: merge #189 when CI green (`gh pr merge 189 --merge --delete-branch`). Open review notes: forced_retreat's `unfuelled` proxy counts non-fuel blocks under R-012 opt 1 (unreproduced); soak doesn't assert combat coverage.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
