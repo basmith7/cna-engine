@@ -41,6 +41,23 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-08 (02:45–04:10 UTC):** #189 (ready, CI running at
+hand-off) extends the soak test into combat: every scenario's barrages,
+gun positions, force assignments, assaults and retreats are now picked
+at random from what the browser offers, and `apply` must accept each.
+It found three bugs, all fixed there:
+- A bad attack's CP refund gave supply units back cohesion they never
+  lost. That crashed debug builds and corrupted the unit in the server
+  and browser builds.
+- A forced retreat was offered along paths whose fuel no supply unit
+  could pay. A stack that could pay its first fuel but not the fuel for
+  going past its CPA had no legal answer under R-012 option 1, or in a
+  must-attack retreat; it now stands and pays (R-120).
+- The retreat-before-assault overlay offered units held in Cairo or
+  Alexandria a way out (61.38).
+
+A deeper local run (5 OpStages, 8 seeds, every scenario) is clean.
+
 **2026-11-07 evening (19:15–20:45 UTC):** #187 (merged) bumps
 `vendor/cna` to 7947d00 and homes R-188. #188 (merged) adds a soak test that plays
 two OpStages of every scenario with random moves taken from the browser's
@@ -487,6 +504,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
+- #189 merges itself next run once CI is green; nothing to do.
 - One call to glance at in #188: the move overlay now hides moves the
   engine would refuse for fuel, but the reaction and retreat-before-assault
   overlays still show such hexes with their fuel quoted (as an earlier
