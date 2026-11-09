@@ -161,9 +161,10 @@ impl GameState {
     /// stands in and that is over its ceiling (9.14). The ceiling never
     /// applies mid-move (9.31), so hexes only passed through are not
     /// looked at. A hex the set-up overfilled holds up to its allowance
-    /// with `setup_stacking` on (R-189); with it off, it binds only once
-    /// the pieces moved into it raise its stacking points. Either way
-    /// Rommel, an HQ alone or a raider stopping there is no violation.
+    /// with `setup_stacking` on (R-189); past that, or with it off, a hex
+    /// over its ceiling binds only once the pieces moved into it raise
+    /// its stacking points, so Rommel, an HQ alone or a raider stopping
+    /// there is no violation.
     pub(crate) fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
         let mut ends: std::collections::BTreeMap<&HexId, Vec<&PieceId>> = Default::default();
         for id in &self.moved {
@@ -173,9 +174,6 @@ impl GameState {
         }
         ends.into_iter().find_map(|(hex, movers)| {
             let over = self.over_ceiling_at(data, hex)?;
-            if self.modules.setup_stacking {
-                return Some(over);
-            }
             let mut without = self.clone();
             for id in movers {
                 without.pieces.get_mut(id).unwrap().location = Location::Eliminated;
@@ -204,10 +202,10 @@ impl GameState {
         }
     }
 
-    /// At a movement segment's close, each allowance falls to what its
+    /// As a movement segment opens and closes, each allowance falls to what its
     /// hex holds, and goes once the hex is within its ceiling: a stack
     /// over the ceiling never regains what it lost (R-189).
-    fn lower_allowances(&mut self, data: &Data) {
+    pub(crate) fn lower_allowances(&mut self, data: &Data) {
         let allowances = std::mem::take(&mut self.stack_allowance);
         for (hex, allowed) in allowances {
             let terrain = data.map.hex(&hex).expect("pieces stand on hexes").terrain;
@@ -902,6 +900,23 @@ mod tests {
         assert!(!state.stack_allowance.contains_key(&a1716));
         state.pieces.get_mut(&gone).unwrap().location = Location::Hex(a1716.clone());
         assert!(state.over_ceiling_at(&data, &a1716).is_some());
+    }
+
+    #[test]
+    fn an_allowance_falls_with_losses_outside_movement_r189() {
+        // Everything in Cairo is lost (combat, say): as the next movement
+        // segment opens the allowance is gone, and no one, the enemy
+        // least of all, may fill the hex past its ceiling.
+        let (data, mut state) = overfilled_desert_fox();
+        let cairo = hex("E1730");
+        for p in state.pieces.values_mut() {
+            if p.hex() == Some(&cairo) {
+                p.location = Location::Eliminated;
+            }
+        }
+        state.open_movement_segment(&data, &mut Vec::new());
+        assert!(!state.stack_allowance.contains_key(&cairo));
+        assert_eq!(state.stack_allowance.get(&hex("A1716")), Some(&7));
     }
 
     #[test]

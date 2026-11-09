@@ -230,7 +230,6 @@ impl GameState {
                 .any(|q| q.side == player && q.hex() == Some(hex))
         {
             let mut trial = self.clone();
-            trial.hex_index = Default::default();
             trial.pieces.get_mut(piece).expect("checked").location = Location::Hex(hex.clone());
             trial.attach_where_stacked(Some(std::slice::from_ref(piece)));
             let after = trial.stacked(data, hex);

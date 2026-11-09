@@ -177,6 +177,9 @@ impl GameState {
     /// owes for its hexes next to phasing units (10.16), else contact is
     /// fixed at once (R-003).
     pub(crate) fn open_movement_segment(&mut self, data: &Data, events: &mut Vec<Event>) {
+        // What combat, retreats or reactions took away is not regained
+        // (R-189).
+        self.lower_allowances(data);
         self.zoc.clear();
         self.moved.clear();
         self.escorts.clear();
