@@ -410,21 +410,37 @@ mod tests {
         // 3 fuel pays the stage's first 2 but not the 4 past the CPA.
         supply_at(&mut state, &here, 3);
         let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
-        // A move that may be interrupted pays only up to its stop, so
-        // the reach holds it to the first fuel alone; every other move
-        // offered stays within the CPA, and the engine takes each.
+        // A move a ZOC declaration may park pays only up to its stop;
+        // every other move offered stays within the CPA.
         let reaches = reach(&state);
         let sure: Vec<_> = reaches.iter().filter(|r| !r.may_be_interrupted).collect();
         assert!(!sure.is_empty());
         assert!(sure.iter().all(|r| r.cp <= cpa && r.fuel == 2), "{sure:?}");
-        for r in sure {
-            let order = Order::Move {
-                pieces: vec![tank.clone()],
-                path: r.path.clone(),
-                assault: false,
-                fuel_from: None,
-            };
-            state.clone().apply(&data, Side::Axis, order).unwrap();
+        assert!(reaches.iter().any(|r| r.may_be_interrupted));
+        // The engine takes every move offered and refuses every one held
+        // back that it would take with fuel to spare (a sample of each).
+        let mut rich = state.clone();
+        supply_at(&mut rich, &here, 60);
+        let held: Vec<_> = reach(&rich)
+            .into_iter()
+            .filter(|r| !reaches.iter().any(|x| x.hex == r.hex))
+            .collect();
+        assert!(held.iter().any(|r| r.may_be_interrupted));
+        let order = |r: &crate::reach::Reach| Order::Move {
+            pieces: vec![tank.clone()],
+            path: r.path.clone(),
+            assault: false,
+            fuel_from: None,
+        };
+        for r in reaches.iter().step_by(reaches.len().div_ceil(40)) {
+            state.clone().apply(&data, Side::Axis, order(r)).unwrap();
+        }
+        for r in held.iter().step_by(held.len().div_ceil(40)) {
+            let err = state
+                .clone()
+                .apply(&data, Side::Axis, order(r))
+                .unwrap_err();
+            assert_eq!(err.case, "32.22", "{r:?}");
         }
         // Too little for the first: nothing is offered.
         let mut dry = game(&data);

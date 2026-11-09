@@ -81,6 +81,11 @@ struct Node {
     /// may be cut off (8.5x).
     reaction: bool,
     zoc: bool,
+    /// Where a ZOC declaration parks a move along the path here (10.16):
+    /// `Some(None)` before its first step, `Some(Some(cp))` after steps
+    /// costing `cp`. What the move pays before it stops; `None` when
+    /// nothing parks it.
+    parked: Option<Option<Cp>>,
 }
 
 impl GameState {
@@ -278,6 +283,7 @@ impl GameState {
                 flagged: start_flagged,
                 reaction: false,
                 zoc: false,
+                parked: start_flagged.then_some(None),
             },
         );
         heap.push(Reverse((Cp::ZERO, 0usize, from.clone())));
@@ -297,6 +303,7 @@ impl GameState {
                     continue;
                 };
                 let mut flagged = node.flagged || node.reaction;
+                let mut parked = node.parked;
                 let mut in_zoc = false;
                 let step = match zoc {
                     Zoc::Clear => step,
@@ -312,6 +319,7 @@ impl GameState {
                             continue;
                         }
                         flagged = true;
+                        parked = parked.or(Some((len > 0).then_some(cost)));
                         step
                     }
                 };
@@ -339,6 +347,7 @@ impl GameState {
                             len: len + 1,
                             prev: Some(at.clone()),
                             flagged,
+                            parked,
                             reaction: purpose == Purpose::Move
                                 && mover.combat
                                 && !self
@@ -422,20 +431,26 @@ impl GameState {
             let cities = Self::release_hexes(data, side).unwrap_or_default();
             let mut payable: BTreeMap<Vec<u32>, bool> = BTreeMap::new();
             let mut released: BTreeMap<bool, bool> = BTreeMap::new();
-            // A move that may be interrupted pays only for the steps it
-            // takes before the stop, which the reach does not price: there
-            // it is held to the least any step owes (the stage's first
-            // fuel), priced at no CP.
             reaches.retain(|r| {
-                let cost = if r.may_be_interrupted { Cp::ZERO } else { r.cp };
-                let owed: Vec<u32> = owned
-                    .iter()
-                    .map(|id| self.fuel_due(data, &self.pieces[id], cost).0)
-                    .collect();
+                // A move a ZOC declaration parks pays, as `apply` charges
+                // it, for the steps before the stop and its break-off, or
+                // nothing when it parks before its first step; any other
+                // pays for the whole path, even one a reaction may cut
+                // short.
+                let cost = match nodes[&r.hex].parked {
+                    Some(steps) if purpose == Purpose::Move => steps.map(|cp| cp + break_off),
+                    _ => Some(r.cp),
+                };
                 let pays = !fuel_bound
-                    || *payable
-                        .entry(owed)
-                        .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok());
+                    || cost.is_none_or(|cost| {
+                        let owed: Vec<u32> = owned
+                            .iter()
+                            .map(|id| self.fuel_due(data, &self.pieces[id], cost).0)
+                            .collect();
+                        *payable
+                            .entry(owed)
+                            .or_insert_with(|| self.plan_fuel(data, &owned, cost, None).is_ok())
+                    });
                 let inside = r.path.iter().all(|h| cities.contains(h));
                 pays && (!release_bound
                     || *released.entry(inside).or_insert_with(|| {

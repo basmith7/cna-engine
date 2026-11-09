@@ -446,11 +446,6 @@ mod tests {
         };
         let mut trial = state.clone();
         if let Err(e) = trial.apply(data, side, order.clone()) {
-            // A move that may be interrupted is held only to the stage's
-            // first fuel, not what it owes up to the stop (see `reach`).
-            if reach.may_be_interrupted && e.case == "32.22" {
-                return Ok(false);
-            }
             return Err(format!(
                 "{} {side}: reachable offers {pieces:?} to {} by {:?}, apply says {e:?}",
                 state.clock, reach.hex, reach.path
@@ -507,13 +502,15 @@ mod tests {
         (state, faults)
     }
 
+    /// Seed 7; `CNA_SOAK_SEED` for another.
     #[test]
     fn every_scenario_takes_random_offered_moves_and_replays() {
         let mut failed = Vec::new();
         for slug in slugs() {
             let data = Data::load(&slug).unwrap();
             let run = std::panic::catch_unwind(|| {
-                let (live, faults) = soak(&data, 7);
+                let seed = std::env::var("CNA_SOAK_SEED").map_or(7, |s| s.parse().unwrap());
+                let (live, faults) = soak(&data, seed);
                 let moves = live
                     .log
                     .iter()
