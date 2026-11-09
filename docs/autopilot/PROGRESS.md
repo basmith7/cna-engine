@@ -849,3 +849,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-07 12:15 | 77 | 18→20 | none→none | $7.12 | 131 | #188 is merged (e4736a4) with CI green, Playwright included. It fixes a bug where the browser offered moves the engine then refused. #187, which moves `vendor/c |
 | 2026-11-07 19:44 | 71 | 27→30 | none→none | $6.60 | 80 | #189 is ready for review but not merged: CI takes about 23 minutes and would finish after this run's 04:14 deadline. The journal tells the next run to merge it  |
 | 2026-11-09 09:44 | 63 | 62→64 | none→none | $7.09 | 7 | I merged #189 (the combat soak test) and #190 (a fuzz test for `apply` that turned up one bug, now fixed). CI was green on the merged head. The handoff notes ar |
+| 2026-11-09 11:44 | 72 | 64→65 | none→none | $9.20 | 7 | I fixed two fuel bugs, one in the move overlay and one in how a move pays for fuel, and added a test that checks every offer the browser shows against what the  |
