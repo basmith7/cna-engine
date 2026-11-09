@@ -41,6 +41,23 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-09 (18:45–20:10 UTC):** two fuel bugs fixed, and a new test
+holds the engine's offer lists to `apply`.
+- #191: the move overlay offered moves a ZOC declaration might stop
+  short, priced at the stage's first fuel alone, so a click there could
+  be refused for fuel (32.22). In Graziani's opening an Italian tank
+  battalion with 3 fuel at hand was offered 631 such moves. The overlay
+  now prices the fuel owed up to where the move would stop, at no cost
+  in speed.
+- #192: a move paid all its fuel before it set out, so one a reaction
+  stopped short of its CPA still paid the fuel for exceeding the CPA.
+  32.22 charges that fuel only when the stack exceeds its CPA, so it is
+  now debited as the stack walks. The whole path must still be payable.
+- #193: a new test plays every scenario and sends `apply` each
+  offer the browser shows: patrols, works at set-up, voluntary
+  withdrawals and returns, fleet stations, rail runs and fuel sources.
+  It found no disagreements.
+
 **2026-11-09 (16:45–18:10 UTC):** #189 (the combat soak) merged. #190
 (merged) adds a fuzz of `apply`: every scenario
 plays under a quiet driver while the player to act also sends random
@@ -518,6 +535,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
+- One call to glance at in #192: a move must still be able to pay the
+  whole path's fuel before it is taken (the supply units are picked
+  from where it starts), though the fuel past the CPA is debited only
+  if the stack gets there.
 - One call to glance at in #190 (merged): a set-up stack over its ceiling is tolerated until
   pieces moved in raise its stacking points (cna asked for a ruling).
 - One call to glance at in #188: the move overlay now hides moves the
