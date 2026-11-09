@@ -42,7 +42,7 @@ armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
 **2026-11-09 (16:45–18:10 UTC):** #189 (the combat soak) merged. #190
-(ready, CI running at hand-off) adds a fuzz of `apply`: every scenario
+(merged) adds a fuzz of `apply`: every scenario
 plays under a quiet driver while the player to act also sends random
 orders of most kinds (organisation, supply, repair, construction,
 raids, prisoners, moves), and `apply` must never panic, must leave the
@@ -518,8 +518,7 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- #190 merges next run once CI is green; nothing to do. One call to
-  glance at there: a set-up stack over its ceiling is tolerated until
+- One call to glance at in #190 (merged): a set-up stack over its ceiling is tolerated until
   pieces moved in raise its stacking points (cna asked for a ruling).
 - One call to glance at in #188: the move overlay now hides moves the
   engine would refuse for fuel, but the reaction and retreat-before-assault

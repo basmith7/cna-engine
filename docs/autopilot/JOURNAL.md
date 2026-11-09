@@ -990,3 +990,9 @@ Done: fuzz found 9.14 blocking EndSegment when Rommel/an HQ alone stops in a set
 In flight: gates on head; deep run seeds 70–77 × 8 stages.
 Next: ready + merge #190 when CI is green.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 10:48 MST — main (hand-off)
+Done: #189 and #190 merged (f3d4e4b): `cna-game::fuzz` + 9.14 fix (overfilled hex binds only where movers raise `stacked`). Deep fuzz clean: release 72 scenario-seeds × 8 stages, debug seeds 100–107 × 4, modules-off 4 × 4. Worktree/branch removed; superseded CI runs cancelled.
+In flight: none. Request for cna open: ruling on set-up stacks over the 9.14 ceiling.
+Next: when cna answers, bump vendor/cna (AGENTS.md steps) and home the ruling; adjust `over_ceiling` if it differs. Else more hunting (fuzz with combat answers: guns forward, assignments; or a soak of organisation offers ported from web/src/moves.ts).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
