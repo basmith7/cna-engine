@@ -25,6 +25,7 @@ pub mod event;
 mod facility;
 pub mod fleet;
 mod fuel;
+mod fuzz;
 mod golden;
 mod guards;
 mod limits;
