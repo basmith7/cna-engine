@@ -645,7 +645,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-(none open)
+- **Set-up stacks over the 9.14 ceiling.** Some scenario set-ups put more stacking points in a hex than its terrain allows (Graziani's Offensive: Cairo E1730, 9 SP in a major city's 8; Desert Fox: A1716, 7 SP in clear terrain's 6). The rules do not say whether such a stack is legal, must be fixed at once, or binds only once something moves. The engine tolerates it until pieces moved into the hex in a movement segment raise its SP, so Rommel, an HQ alone or a raider stopping there is no violation, but a battalion is (PR #190). A ruling, please: is that the reading, or does 9.14 bind the set-up stack itself (and when)? Blocks nothing; Mission 5 polish.
 
 ## Runs and quota
 
