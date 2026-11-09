@@ -226,7 +226,6 @@ impl GameState {
     ) {
         let due: Vec<Payment> = payments
             .into_iter()
-            .filter(|pay| self.pieces[&pay.from].location != Location::Eliminated)
             .filter_map(|pay| {
                 let (fuel, _, _) = self.fuel_due(data, &self.pieces[&pay.piece], Cp::ZERO);
                 (fuel > 0).then_some(Payment { fuel, ..pay })
