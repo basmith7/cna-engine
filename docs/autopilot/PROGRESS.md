@@ -41,6 +41,24 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-09 (21:15–22:40 UTC):** #195 (merged, CI green) makes the
+move overlay faster. Clicking a large Operation Crusader stack took
+355 ms to work out its moves (native; the browser's wasm is likely
+slower, not measured), now about 85–134 ms. Two causes:
+- A distance used to rank supply units for fuel was cubic in its
+  search limit.
+- Every step of every search rebuilt and sorted a hex's neighbours;
+  they are now worked out once at load.
+
+The moves offered are unchanged, and a new test pins the distance. Long
+runs on top found nothing:
+- the fuzz, 3 seeds × 24 OpStages;
+- the soak, 27 OpStages;
+- the offers soak, 24 OpStages.
+
+Graziani's, Crusader's and The Last Chance's games now play to their
+end in these tests.
+
 **2026-11-09 (19:57–21:25 UTC):** cna answered our stacking
 request with R-189: a set-up stack over the ceiling may stay but may
 not grow. #194 bumps `vendor/cna` and builds it as the `setup_stacking`
