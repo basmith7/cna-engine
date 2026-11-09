@@ -311,8 +311,7 @@ mod tests {
     /// A move `reachable` offers, with each supply unit `fuel_sources`
     /// offers to pay for it. A source short of the fuel the move owes is
     /// not tried: the list is per stack, the fuel per path, and the
-    /// browser shows the reach's fuel beside it. A move that may be
-    /// interrupted is held only to the stage's first fuel (see `soak`).
+    /// browser shows the reach's fuel beside it.
     fn fuel(data: &Data, state: &GameState, side: Side, tally: &mut Tally) {
         let kinds = [PieceKind::Combat, PieceKind::Hq];
         let fuelled: Vec<_> = stacks(state, side, &kinds)
@@ -324,10 +323,7 @@ mod tests {
             let Ok(reaches) = state.reachable(data, side, &stack, Purpose::Move) else {
                 continue;
             };
-            let reaches: Vec<_> = reaches
-                .into_iter()
-                .filter(|r| r.fuel > 0 && !r.may_be_interrupted)
-                .collect();
+            let reaches: Vec<_> = reaches.into_iter().filter(|r| r.fuel > 0).collect();
             for r in sample(&reaches, 2) {
                 for src in sample(&sources, 1) {
                     let has = state.pieces[&src].load.map_or(0, |l| l.fuel);
