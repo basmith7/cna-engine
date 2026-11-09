@@ -1030,3 +1030,9 @@ Done: #195 (draft): Map::distance one-pass BFS (GameState::distance was O(limit�
 In flight: gates (../targets/gates-perf.log).
 Next: ready + merge #195 on green CI. More speed: step_into ~2 µs/edge (entry + zoc_at: pieces_at mutex + Vec per neighbour; zoc_at recomputed per edge, cacheable per hex in a search); plan_fuel called 2–3× per overlay with the same supply_in_range.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 15:02 MST — main (hand-off)
+Done: #195 merged (5688fd4): Map::distance one pass, adjacency cached at load; Crusader C3721 overlay 355→~85 ms warm native. Offers 24 stages seed 19, fuzz 301–303 × 24, soak 41 × 27: all clean. Branch deleted; superseded CI runs cancelled.
+In flight: debug fuzz seeds 401–402 × 6 on main (../targets/fuzz-debug-main.log); just verification.
+Next: more overlay speed if wanted: step_into ~2 µs/edge (zoc_at per edge, cacheable per hex per search; pieces_at locks a Mutex per call); reach's build loop ~18 ms on 4k hexes (fuel_owed/dp_for per hex); plan_fuel runs 2–3× per overlay with the same supply_in_range. Shared target dir: touch crates/*/src/lib.rs and build.rs after another worktree used it.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
