@@ -157,16 +157,24 @@ impl GameState {
     /// The first hex, in id order, that a piece moved this segment now
     /// stands in and that is over its ceiling (9.14). The ceiling never
     /// applies mid-move (9.31), so hexes only passed through are not
-    /// looked at, and a hex the set-up overfilled is not a violation
-    /// until something ends the segment there.
-    fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
-        let ends: BTreeSet<&HexId> = self
-            .moved
-            .iter()
-            .filter_map(|id| self.pieces.get(id).and_then(Piece::hex))
-            .collect();
-        ends.into_iter()
-            .find_map(|hex| self.over_ceiling_at(data, hex))
+    /// looked at; and a hex the set-up overfilled binds only once the
+    /// pieces moved into it raise its stacking points, so Rommel, an HQ
+    /// alone or a raider stopping there is no violation.
+    pub(crate) fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
+        let mut ends: std::collections::BTreeMap<&HexId, Vec<&PieceId>> = Default::default();
+        for id in &self.moved {
+            if let Some(hex) = self.pieces.get(id).and_then(Piece::hex) {
+                ends.entry(hex).or_default().push(id);
+            }
+        }
+        ends.into_iter().find_map(|(hex, movers)| {
+            let over = self.over_ceiling_at(data, hex)?;
+            let mut without = self.clone();
+            for id in movers {
+                without.pieces.get_mut(id).unwrap().location = crate::piece::Location::Eliminated;
+            }
+            (self.stacked(data, hex) > without.stacked(data, hex)).then_some(over)
+        })
     }
 
     /// Every hex over its ceiling, for tests.
@@ -379,6 +387,101 @@ mod tests {
             .unwrap();
         assert_eq!(state.stacked(&data, &hex("E1730")), 9);
         state.apply(&data, Side::Cw, Order::EndSegment).unwrap();
+    }
+
+    #[test]
+    fn a_stop_that_adds_no_stacking_points_to_an_overfilled_hex_is_no_violation() {
+        // Desert Fox's set-up overfills Axis hexes; Rommel stacks free
+        // (R-135), so his stop adds nothing and the segment ends, where a
+        // battalion's stop binds the ceiling (9.31).
+        let data = Data::load("desert-fox-campaign").unwrap();
+        let mut state = moving(&data, 3, Side::Axis);
+        let full = state
+            .overfilled(&data)
+            .into_iter()
+            .find(|h| {
+                state
+                    .pieces
+                    .values()
+                    .any(|p| p.side == Side::Axis && p.hex() == Some(h))
+            })
+            .expect("an overfilled Axis hex");
+        let next = data
+            .map
+            .neighbours(&full)
+            .into_iter()
+            .find(|h| {
+                !state.pieces.values().any(|p| p.hex() == Some(h))
+                    && data
+                        .map
+                        .hex(h)
+                        .is_some_and(|x| x.terrain != cna_data::map::Terrain::Sea)
+            })
+            .expect("an empty neighbour");
+        let rommel = pid("unit:de:rommel");
+        state.put(&rommel, Location::Hex(next.clone()));
+        let mut with_rommel = state.clone();
+        with_rommel
+            .apply(&data, Side::Axis, mv(&["unit:de:rommel"], &[full.as_str()]))
+            .unwrap();
+        assert!(with_rommel.over_ceiling_at(&data, &full).is_some());
+        with_rommel
+            .apply(&data, Side::Axis, Order::EndSegment)
+            .unwrap();
+
+        // An HQ arriving with nothing attached to it there stacks as
+        // nothing (9.25): the same.
+        let hq = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == crate::piece::PieceKind::Hq
+                    && p.attached_to.is_none()
+                    && p.hex().is_some_and(|h| h != &full)
+                    && !state.pieces.values().any(|q| {
+                        q.hex() == Some(&full)
+                            && q.attached_to.is_some()
+                            && q.attached_to == p.id.unit()
+                    })
+            })
+            .expect("a lone Axis HQ")
+            .id
+            .clone();
+        let mut with_hq = state.clone();
+        with_hq.put(&hq, Location::Hex(next.clone()));
+        with_hq
+            .apply(&data, Side::Axis, mv(&[hq.as_str()], &[full.as_str()]))
+            .unwrap();
+        assert_eq!(with_hq.stacked(&data, &full), state.stacked(&data, &full));
+        with_hq.apply(&data, Side::Axis, Order::EndSegment).unwrap();
+
+        let battalion = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == crate::piece::PieceKind::Combat
+                    && p.attached_to.is_none()
+                    && p.equivalent
+                        .is_some_and(|e| cna_rules::stacking::points(&data.stacking, Some(e)) > 0)
+                    && p.hex().is_some_and(|h| h != &full)
+            })
+            .unwrap()
+            .id
+            .clone();
+        state.put(&battalion, Location::Hex(next));
+        state
+            .apply(
+                &data,
+                Side::Axis,
+                mv(&[battalion.as_str()], &[full.as_str()]),
+            )
+            .unwrap();
+        let err = state
+            .apply(&data, Side::Axis, Order::EndSegment)
+            .unwrap_err();
+        assert_eq!(err.case, "9.14");
     }
 
     #[test]
