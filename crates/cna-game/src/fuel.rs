@@ -213,6 +213,27 @@ impl GameState {
         }
     }
 
+    /// Debits, once a stack has walked, what it owes by then from the
+    /// sources `plan_fuel` chose before it set out: fuel past the CPA
+    /// falls due only at the instant the stack exceeds it (32.22), so a
+    /// move a reaction or a raider cuts short before then pays only the
+    /// stage's first fuel.
+    pub(crate) fn settle_fuel(
+        &mut self,
+        data: &Data,
+        payments: Vec<Payment>,
+        events: &mut Vec<Event>,
+    ) {
+        let due: Vec<Payment> = payments
+            .into_iter()
+            .filter_map(|pay| {
+                let (fuel, _, _) = self.fuel_due(data, &self.pieces[&pay.piece], Cp::ZERO);
+                (fuel > 0).then_some(Payment { fuel, ..pay })
+            })
+            .collect();
+        self.spend_fuel(data, Cp::ZERO, due, events);
+    }
+
     /// A supply unit with neither ammunition nor fuel left is removed
     /// (32.1x).
     pub(crate) fn retire_if_empty(&mut self, id: &PieceId, events: &mut Vec<Event>) {
