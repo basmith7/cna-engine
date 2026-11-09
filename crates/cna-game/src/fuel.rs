@@ -410,8 +410,7 @@ mod tests {
         // 3 fuel pays the stage's first 2 but not the 4 past the CPA.
         supply_at(&mut state, &here, 3);
         let cpa = Cp::whole(state.cpa(&state.pieces[&tank]).unwrap());
-        // A move a ZOC declaration may park pays only up to its stop, so
-        // it may be offered past the CPA when the stop lies within it;
+        // A move a ZOC declaration may park pays only up to its stop;
         // every other move offered stays within the CPA.
         let reaches = reach(&state);
         let sure: Vec<_> = reaches.iter().filter(|r| !r.may_be_interrupted).collect();
