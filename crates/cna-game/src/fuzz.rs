@@ -355,6 +355,21 @@ mod tests {
         }
     }
 
+    /// Whether `after` has a hex over its stacking ceiling that `before`
+    /// had not.
+    fn newly_over(data: &Data, before: &GameState, after: &GameState) -> bool {
+        let over = |state: &GameState| -> std::collections::BTreeSet<HexId> {
+            state
+                .pieces
+                .values()
+                .filter_map(|p| p.hex())
+                .filter(|hex| state.over_ceiling_at(data, hex).is_some())
+                .cloned()
+                .collect()
+        };
+        !over(after).is_subset(&over(before))
+    }
+
     /// Plays `stages()` OpStages; returns the state and its faults: panics
     /// in `apply` or a view, and a quiet answer refused after a kept
     /// order (the game stuck, which ends the run).
@@ -395,7 +410,10 @@ mod tests {
                     Err(_) => {
                         faults.push(format!("{} {side}: apply panics on {order:?}", state.clock))
                     }
-                    Ok(true) if rng.next_u32() & 1 == 0 => {
+                    // A stack over its ceiling (9.14) is legal mid-segment
+                    // but holds up `EndSegment` until the player moves a
+                    // unit out, which the quiet driver never does.
+                    Ok(true) if rng.next_u32() & 1 == 0 && !newly_over(data, &state, &trial) => {
                         for viewer in [Some(Side::Axis), Some(Side::Cw), None] {
                             let v = catch_unwind(AssertUnwindSafe(|| {
                                 view_for(&trial, data, &aliases, viewer, false).is_ok()
