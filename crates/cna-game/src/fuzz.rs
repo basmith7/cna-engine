@@ -355,19 +355,10 @@ mod tests {
         }
     }
 
-    /// Whether `after` has a hex over its stacking ceiling that `before`
-    /// had not.
+    /// Whether `after` holds up the end of the movement segment for the
+    /// ceiling (9.14) where `before` did not.
     fn newly_over(data: &Data, before: &GameState, after: &GameState) -> bool {
-        let over = |state: &GameState| -> std::collections::BTreeSet<HexId> {
-            state
-                .pieces
-                .values()
-                .filter_map(|p| p.hex())
-                .filter(|hex| state.over_ceiling_at(data, hex).is_some())
-                .cloned()
-                .collect()
-        };
-        !over(after).is_subset(&over(before))
+        after.over_ceiling(data).is_some() && before.over_ceiling(data).is_none()
     }
 
     /// Plays `stages()` OpStages; returns the state and its faults: panics
@@ -425,6 +416,9 @@ mod tests {
                                 ));
                             }
                         }
+                        if std::env::var("CNA_FUZZ_TRACE").is_ok() {
+                            eprintln!("  kept at {}: {order:?}", state.clock);
+                        }
                         state = trial;
                         kept += 1;
                         last_kept = Some(order);
@@ -462,6 +456,9 @@ mod tests {
         (state, faults, kept)
     }
 
+    /// `CNA_FUZZ_SEEDS=1,2,…` and `CNA_FUZZ_STAGES` go deeper;
+    /// `CNA_FUZZ_SCENARIO=<slug>` plays one scenario, and
+    /// `CNA_FUZZ_TRACE` prints each order kept, to reproduce a fault.
     #[test]
     fn every_scenario_survives_random_orders_of_every_kind() {
         let seeds: Vec<u64> = std::env::var("CNA_FUZZ_SEEDS")
@@ -469,7 +466,11 @@ mod tests {
             .map(|s| s.split(',').map(|n| n.parse().unwrap()).collect())
             .unwrap_or_else(|| vec![5]);
         let mut failed = Vec::new();
+        let only = std::env::var("CNA_FUZZ_SCENARIO").ok();
         for slug in slugs() {
+            if only.as_ref().is_some_and(|o| *o != slug) {
+                continue;
+            }
             let data = Data::load(&slug).unwrap();
             for &seed in &seeds {
                 let (live, faults, kept) = fuzz(&data, seed);
