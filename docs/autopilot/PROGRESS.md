@@ -889,3 +889,4 @@ None open.
 | 2026-11-09 09:44 | 63 | 62→64 | none→none | $7.09 | 7 | I merged #189 (the combat soak test) and #190 (a fuzz test for `apply` that turned up one bug, now fixed). CI was green on the merged head. The handoff notes ar |
 | 2026-11-09 11:44 | 72 | 64→65 | none→none | $9.20 | 7 | I fixed two fuel bugs, one in the move overlay and one in how a move pays for fuel, and added a test that checks every offer the browser shows against what the  |
 | 2026-11-09 12:57 | 77 | 65→67 | none→none | $5.54 | 1 | My CI watcher for #194 hit its time limit and was stopped. Nothing is affected: it was waiting on a duplicate web job that I cancelled, and #194 had already mer |
+| 2026-11-09 14:14 | 53 | 67→79 | none→none | $4.47 | 103 | Clicking a big stack in Operation Crusader now works out its legal moves about 3–4× faster (355 ms → ~85–134 ms, measured natively). That shipped as PR #195, me |
