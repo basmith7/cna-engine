@@ -1,13 +1,19 @@
 //! A fuzz of `apply` in every scenario: at each step of a quiet game the
-//! player to act also sends random orders of every kind, built from the
-//! pieces, hexes and weapons on the board. `apply` must refuse or accept
-//! each without a panic; an accepted one is kept half the time, so the
-//! game wanders into states no scripted test sets up; and the end state
-//! must survive a save and a replay, with both sides' views drawn.
+//! player to act also sends random orders, built from the pieces, hexes
+//! and weapons on the board and weighted toward the kinds the phase
+//! takes. `apply` must refuse each without changing the state, or accept
+//! it, and never panic; an accepted one is kept half the time, so the
+//! game wanders into states no scripted test sets up. After every step
+//! both sides' views must draw, and at the end the save must round-trip
+//! and the log replay.
 //!
-//! `soak` holds the browser's overlays to `apply`; this holds `apply`
-//! to its own contract, for the orders no overlay offers in Rust
-//! (organisation, supply, repair, construction, raids, prisoners).
+//! `soak` holds the browser's move and combat overlays to `apply`; this
+//! holds `apply` to its own contract for the orders no Rust overlay
+//! offers (organisation, supply, repair, construction, raids,
+//! prisoners). Combat answers stay quiet here (no guns forward, nothing
+//! assigned, no ZOC), and set-up, off-map moves, reactions, retreats,
+//! assaults and withdrawal picks are left to `soak` and the scripted
+//! games.
 
 #[cfg(test)]
 mod tests {
@@ -28,7 +34,9 @@ mod tests {
 
     /// OpStages each scenario plays; `CNA_FUZZ_STAGES` for more.
     fn stages() -> u32 {
-        std::env::var("CNA_FUZZ_STAGES").map_or(2, |s| s.parse().unwrap())
+        let n = std::env::var("CNA_FUZZ_STAGES").map_or(2, |s| s.parse().unwrap());
+        assert!(n > 0, "CNA_FUZZ_STAGES must be at least 1");
+        n
     }
     /// Wild orders sent before each step of the game.
     const WILD: usize = 24;
@@ -355,6 +363,28 @@ mod tests {
         }
     }
 
+    /// Both sides' views and the open one draw without a panic or an
+    /// error.
+    fn views(
+        data: &Data,
+        state: &GameState,
+        aliases: &Aliases,
+        after: &str,
+        faults: &mut Vec<String>,
+    ) {
+        for viewer in [Some(Side::Axis), Some(Side::Cw), None] {
+            let v = catch_unwind(AssertUnwindSafe(|| {
+                view_for(state, data, aliases, viewer, false).is_ok()
+            }));
+            if !matches!(v, Ok(true)) {
+                faults.push(format!(
+                    "{}: view for {viewer:?} fails after {after}",
+                    state.clock
+                ));
+            }
+        }
+    }
+
     /// Whether `after` holds up the end of the movement segment for the
     /// ceiling (9.14) where `before` did not.
     fn newly_over(data: &Data, before: &GameState, after: &GameState) -> bool {
@@ -405,17 +435,7 @@ mod tests {
                     // but holds up `EndSegment` until the player moves a
                     // unit out, which the quiet driver never does.
                     Ok(true) if rng.next_u32() & 1 == 0 && !newly_over(data, &state, &trial) => {
-                        for viewer in [Some(Side::Axis), Some(Side::Cw), None] {
-                            let v = catch_unwind(AssertUnwindSafe(|| {
-                                view_for(&trial, data, &aliases, viewer, false).is_ok()
-                            }));
-                            if !matches!(v, Ok(true)) {
-                                faults.push(format!(
-                                    "{} {side}: view for {viewer:?} fails after {order:?}",
-                                    state.clock
-                                ));
-                            }
-                        }
+                        views(data, &trial, &aliases, &format!("{order:?}"), &mut faults);
                         if std::env::var("CNA_FUZZ_TRACE").is_ok() {
                             eprintln!("  kept at {}: {order:?}", state.clock);
                         }
@@ -426,6 +446,12 @@ mod tests {
                             break;
                         }
                     }
+                    // A refusal changes nothing: the browser and the
+                    // server apply to their live state.
+                    Ok(false) if trial != state => faults.push(format!(
+                        "{} {side}: refused {order:?} but changed the state",
+                        state.clock
+                    )),
                     Ok(_) => {}
                 }
             }
@@ -436,7 +462,16 @@ mod tests {
                 s.apply(data, side, order.clone()).map(|_| s)
             }));
             match run {
-                Ok(Ok(s)) => state = s,
+                Ok(Ok(s)) => {
+                    state = s;
+                    views(
+                        data,
+                        &state,
+                        &aliases,
+                        &format!("quiet {order:?}"),
+                        &mut faults,
+                    );
+                }
                 Ok(Err(e)) => {
                     faults.push(format!(
                         "{} {side}: quiet {order:?} refused ({e:?}) after {last_kept:?}",

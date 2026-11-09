@@ -96,15 +96,6 @@ impl GameState {
                 .is_some_and(|r| r.unit_type.contains("Anti-air"))
     }
 
-    /// Whether a piece counts toward its hex's stacking: anything in a
-    /// formation or an HQ (which may make one), else its own points.
-    fn takes_space(&self, data: &Data, piece: &Piece, hex: &HexId) -> bool {
-        !self.stacks_free(data, piece, hex)
-            && (piece.kind == PieceKind::Hq
-                || self.top_parent(piece, hex).is_some()
-                || cna_rules::stacking::points(&data.stacking, piece.equivalent) > 0)
-    }
-
     /// Stacking points in a hex (9.1x): a unit attached to an HQ in the
     /// hex counts as part of that HQ's formation, a division 5 SP and a
     /// brigade equivalent 2 (9.13, 9.21, 9.4); an HQ alone is 0 (9.25);
@@ -166,20 +157,24 @@ impl GameState {
     /// The first hex, in id order, that a piece moved this segment now
     /// stands in and that is over its ceiling (9.14). The ceiling never
     /// applies mid-move (9.31), so hexes only passed through are not
-    /// looked at, and a hex the set-up overfilled is not a violation
-    /// until something that takes stacking space ends the segment there:
-    /// Rommel, a raider or a 9.16 unit adds nothing to it.
+    /// looked at; and a hex the set-up overfilled binds only once the
+    /// pieces moved into it raise its stacking points, so Rommel, an HQ
+    /// alone or a raider stopping there is no violation.
     pub(crate) fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
-        let ends: BTreeSet<&HexId> = self
-            .moved
-            .iter()
-            .filter_map(|id| self.pieces.get(id))
-            .filter_map(|p| p.hex().map(|hex| (p, hex)))
-            .filter(|(p, hex)| self.takes_space(data, p, hex))
-            .map(|(_, hex)| hex)
-            .collect();
-        ends.into_iter()
-            .find_map(|hex| self.over_ceiling_at(data, hex))
+        let mut ends: std::collections::BTreeMap<&HexId, Vec<&PieceId>> = Default::default();
+        for id in &self.moved {
+            if let Some(hex) = self.pieces.get(id).and_then(Piece::hex) {
+                ends.entry(hex).or_default().push(id);
+            }
+        }
+        ends.into_iter().find_map(|(hex, movers)| {
+            let over = self.over_ceiling_at(data, hex)?;
+            let mut without = self.clone();
+            for id in movers {
+                without.pieces.get_mut(id).unwrap().location = crate::piece::Location::Eliminated;
+            }
+            (self.stacked(data, hex) > without.stacked(data, hex)).then_some(over)
+        })
     }
 
     /// Every hex over its ceiling, for tests.
