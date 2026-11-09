@@ -1012,3 +1012,9 @@ Done: #191 (overlay prices a ZOC-parked move's fuel at its stop; soak strict, CN
 In flight: none. Request for cna still open: set-up stacks over the 9.14 ceiling.
 Next: when cna answers, bump vendor/cna and home the ruling. Else more hunting: React/RBA overlays still quote unpayable fuel (pinned by design); offers soak at more stages (CNA_OFFERS_STAGES) to reach shifts/picks; a dearer path that parks earlier is never offered (reach keeps one cheapest path per hex).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 13:25 MST — autopilot/r189-setup-stacks
+Done: #194 (draft, a0d0e9d): vendor/cna → d4fae30; R-189 as `setup_stacking` module: check_place counts the formation a placement completes (trial clone), spread_places divides Cairo's group over its 5 hexes, stack_allowance for forced overfills (only Crusader's El Adem C4507, 7/6) lowered at each movement-segment close. Probes, scripted games, e2e fixtures, two-player pin regenerated.
+In flight: gates (../targets/gates-194.log), fresh review.
+Next: ready + merge #194 on green CI; delete the R-189 request bullet from PROGRESS on main.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

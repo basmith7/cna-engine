@@ -264,6 +264,12 @@ pub struct Modules {
     /// assigned for the step (`blind:<hex>:<class>:<n>`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub blind_barrage: bool,
+    /// Set-up stacking (R-189): a placement counts the formations it
+    /// completes (9.2x), a group set up in a place of several hexes
+    /// (Cairo) is spread over them, and a hex the set-up still leaves
+    /// over its ceiling may lose stacking points but never regain them.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub setup_stacking: bool,
 }
 
 impl Modules {
@@ -305,6 +311,7 @@ impl Modules {
         absorb_by_loss_order: true,
         captured_wrecks: true,
         blind_barrage: true,
+        setup_stacking: true,
     };
 
     pub(crate) fn is_default(&self) -> bool {
@@ -388,6 +395,12 @@ pub struct GameState {
     /// (27.91's general notes).
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub raided: BTreeSet<(PieceId, HexId)>,
+    /// With `setup_stacking` on, each hex the set-up left over its 9.14
+    /// ceiling and the stacking points it may still hold (R-189): lowered
+    /// to what the hex holds at each movement segment's close, dropped
+    /// once it is within the ceiling.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub stack_allowance: BTreeMap<HexId, u32>,
     /// Phasing combat units told of an enemy raider in the hex they
     /// entered, and that hex (27.42): each may try to spot it there
     /// (`Order::TrySpot`). Cleared as phase G ends.
@@ -647,6 +660,7 @@ impl GameState {
             rommel_recalled: false,
             rommel_raids: 0,
             raided: BTreeSet::new(),
+            stack_allowance: BTreeMap::new(),
             spot_chances: BTreeMap::new(),
             spot_tried: BTreeSet::new(),
             axis_initiative_pinned_through: None,
@@ -713,6 +727,7 @@ impl GameState {
         state.start_unattached_motorisation(data)?;
         state.place_broken_down_starts(data);
         state.attach_where_stacked(None);
+        state.spread_places(data);
         state.pending = state.next_set_up_with(data);
         if state.pending.is_none() {
             state.start_play(data);

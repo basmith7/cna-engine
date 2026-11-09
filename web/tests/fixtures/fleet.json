@@ -1,6 +1,6 @@
 {
   "scenario": "grazianis-offensive",
-  "rules_commit": "7947d004c738c5793398a3c0a8c3ba149ebf3b6b",
+  "rules_commit": "d4fae30aba400ea3a199aa20569b94c628dbb413",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -45,7 +45,8 @@
     "voluntary_withdrawals": true,
     "absorb_by_loss_order": true,
     "captured_wrecks": true,
-    "blind_barrage": true
+    "blind_barrage": true,
+    "setup_stacking": true
   },
   "clock": {
     "game_turn": 2,
@@ -3554,7 +3555,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,

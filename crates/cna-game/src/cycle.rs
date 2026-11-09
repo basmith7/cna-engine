@@ -7,7 +7,7 @@
 use crate::clock::{Phase, Segment};
 use crate::data::Data;
 use crate::event::{Event, Illegal};
-use crate::piece::{Piece, PieceId, PieceKind};
+use crate::piece::{Location, Piece, PieceId, PieceKind};
 use crate::state::GameState;
 use cna_data::characteristics::Equivalent;
 use cna_data::map::HexId;
@@ -136,14 +136,17 @@ impl GameState {
         sp
     }
 
-    /// Whether a hex is over its terrain's ceiling (9.14). With §32 on, no
+    /// Whether a hex is over its terrain's ceiling (9.14), or over a
+    /// set-up overfill's allowance where that is higher (R-189). With §32 on, no
     /// road or track stacking limit applies (32.9), and the engine has
     /// none to switch off: the ceiling binds only where a move ends.
     pub(crate) fn over_ceiling_at(&self, data: &Data, hex: &HexId) -> Option<Illegal> {
         let terrain = data.map.hex(hex).expect("pieces stand on hexes").terrain;
         let ceiling = data.terrain.ceiling(terrain.name()).unwrap_or(0);
         let sp = self.stacked(data, hex);
-        (sp > ceiling).then(|| {
+        // A hex the set-up overfilled holds up to its allowance (R-189).
+        let allowed = self.stack_allowance.get(hex).copied().unwrap_or(0);
+        (sp > ceiling.max(allowed)).then(|| {
             Illegal::new(
                 "9.14",
                 format!(
@@ -157,9 +160,11 @@ impl GameState {
     /// The first hex, in id order, that a piece moved this segment now
     /// stands in and that is over its ceiling (9.14). The ceiling never
     /// applies mid-move (9.31), so hexes only passed through are not
-    /// looked at; and a hex the set-up overfilled binds only once the
-    /// pieces moved into it raise its stacking points, so Rommel, an HQ
-    /// alone or a raider stopping there is no violation.
+    /// looked at. A hex the set-up overfilled holds up to its allowance
+    /// with `setup_stacking` on (R-189); past that, or with it off, a hex
+    /// over its ceiling binds only once the pieces moved into it raise
+    /// its stacking points, so Rommel, an HQ alone or a raider stopping
+    /// there is no violation.
     pub(crate) fn over_ceiling(&self, data: &Data) -> Option<Illegal> {
         let mut ends: std::collections::BTreeMap<&HexId, Vec<&PieceId>> = Default::default();
         for id in &self.moved {
@@ -171,10 +176,93 @@ impl GameState {
             let over = self.over_ceiling_at(data, hex)?;
             let mut without = self.clone();
             for id in movers {
-                without.pieces.get_mut(id).unwrap().location = crate::piece::Location::Eliminated;
+                without.pieces.get_mut(id).unwrap().location = Location::Eliminated;
             }
             (self.stacked(data, hex) > without.stacked(data, hex)).then_some(over)
         })
+    }
+
+    /// As play starts, with `setup_stacking` on: each hex the set-up
+    /// left over its ceiling may hold what it holds now (R-189).
+    pub(crate) fn allow_set_up_overfills(&mut self, data: &Data) {
+        if !self.modules.setup_stacking {
+            return;
+        }
+        let hexes: BTreeSet<HexId> = self
+            .pieces
+            .values()
+            .filter_map(Piece::hex)
+            .cloned()
+            .collect();
+        for hex in hexes {
+            if self.over_ceiling_at(data, &hex).is_some() {
+                let sp = self.stacked(data, &hex);
+                self.stack_allowance.insert(hex, sp);
+            }
+        }
+    }
+
+    /// As a movement segment opens and closes, each allowance falls to what its
+    /// hex holds, and goes once the hex is within its ceiling: a stack
+    /// over the ceiling never regains what it lost (R-189).
+    pub(crate) fn lower_allowances(&mut self, data: &Data) {
+        let allowances = std::mem::take(&mut self.stack_allowance);
+        for (hex, allowed) in allowances {
+            let terrain = data.map.hex(&hex).expect("pieces stand on hexes").terrain;
+            let ceiling = data.terrain.ceiling(terrain.name()).unwrap_or(0);
+            let sp = self.stacked(data, &hex);
+            if sp > ceiling {
+                self.stack_allowance.insert(hex, sp.min(allowed));
+            }
+        }
+    }
+
+    /// With `setup_stacking` on, a group the scenario sets up in a place
+    /// of several hexes (Cairo's five) is divided among them within the
+    /// ceiling (59.2, R-189), where the scenario's data puts it all in the
+    /// place's first hex. Each formation (an HQ with what is attached to
+    /// it there) and each other piece moves whole, in id order, to the
+    /// first of the place's hexes it fits, the first hex first; one that
+    /// fits nowhere stays in the first hex.
+    pub(crate) fn spread_places(&mut self, data: &Data) {
+        if !self.modules.setup_stacking {
+            return;
+        }
+        for place in data.map.places() {
+            if place.hexes.len() < 2 || self.over_ceiling_at(data, &place.hex).is_none() {
+                continue;
+            }
+            let mut bodies: std::collections::BTreeMap<PieceId, Vec<PieceId>> = Default::default();
+            for p in self.pieces.values().filter(|p| p.hex() == Some(&place.hex)) {
+                let head = self.top_parent(p, &place.hex).unwrap_or(p);
+                bodies
+                    .entry(head.id.clone())
+                    .or_default()
+                    .push(p.id.clone());
+            }
+            for ids in bodies.values() {
+                for id in ids {
+                    self.pieces.get_mut(id).expect("in the hex").location = Location::Eliminated;
+                }
+            }
+            let order: Vec<&HexId> = std::iter::once(&place.hex)
+                .chain(place.hexes.iter().filter(|h| **h != place.hex))
+                .collect();
+            for ids in bodies.values() {
+                let fits = order.iter().find(|hex| {
+                    for id in ids {
+                        self.pieces.get_mut(id).expect("in the hex").location =
+                            Location::Hex((**hex).clone());
+                    }
+                    self.over_ceiling_at(data, hex).is_none()
+                });
+                let to = fits.copied().unwrap_or(&place.hex).clone();
+                for id in ids {
+                    self.pieces.get_mut(id).expect("in the hex").location =
+                        Location::Hex(to.clone());
+                }
+            }
+        }
     }
 
     /// Every hex over its ceiling, for tests.
@@ -203,6 +291,7 @@ impl GameState {
         if let Some(e) = self.over_ceiling(data) {
             return Err(e);
         }
+        self.lower_allowances(data);
         let phasing = self.phasing();
         self.continuing = self
             .pieces
@@ -700,5 +789,184 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    /// Hexes holding more stacking points than their terrain allows,
+    /// allowances aside.
+    fn raw_overfilled(state: &GameState, data: &Data) -> BTreeSet<HexId> {
+        let hexes: BTreeSet<&HexId> = state.pieces.values().filter_map(Piece::hex).collect();
+        hexes
+            .into_iter()
+            .filter(|h| {
+                let terrain = data.map.hex(h).unwrap().terrain;
+                state.stacked(data, h) > data.terrain.ceiling(terrain.name()).unwrap_or(0)
+            })
+            .cloned()
+            .collect()
+    }
+
+    #[test]
+    fn set_up_overfills_only_a_hex_the_scenario_names_alone_r189() {
+        let dir = cna_data::repo_root().join("vendor/cna/data/scenarios");
+        let mut slugs: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| {
+                let name = e.unwrap().file_name().into_string().unwrap();
+                name.strip_suffix(".json").unwrap().to_owned()
+            })
+            .collect();
+        slugs.sort();
+        for slug in slugs {
+            let data = Data::load(&slug).unwrap();
+            let mut state = GameState::with_modules(&data, 1, crate::state::Modules::ALL).unwrap();
+            crate::state::test_support::auto_place(&data, &mut state);
+            // Whatever is still over its ceiling is the set-up's own doing
+            // and carries an allowance of what it holds.
+            let over = raw_overfilled(&state, &data);
+            let allowed: BTreeSet<HexId> = state.stack_allowance.keys().cloned().collect();
+            assert_eq!(over, allowed, "{slug}");
+            for (h, sp) in &state.stack_allowance {
+                assert_eq!(*sp, state.stacked(&data, h), "{slug} {h}");
+            }
+            match slug.as_str() {
+                // Crusader puts seven Italian artillery units in El Adem,
+                // one clear hex of 6 SP: forced, so allowed (59.65 read
+                // across).
+                "operation-crusader" => {
+                    assert_eq!(state.stack_allowance.get(&hex("C4507")), Some(&7));
+                }
+                // Graziani's Cairo group fills the first Cairo hex and
+                // spills into the next (59.2).
+                "grazianis-offensive" => {
+                    assert!(state.stacked(&data, &hex("E1730")) <= 8);
+                    assert!(state.stacked(&data, &hex("E1829")) > 0);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Desert Fox set up as before R-189 (A1716 7 SP of 6, Cairo's E1730
+    /// 10 of 8), then under it.
+    fn overfilled_desert_fox() -> (Data, GameState) {
+        let data = Data::load("desert-fox-campaign").unwrap();
+        let mut state = moving(&data, 3, Side::Axis);
+        state.modules.setup_stacking = true;
+        state.allow_set_up_overfills(&data);
+        assert_eq!(state.stack_allowance.get(&hex("A1716")), Some(&7));
+        assert_eq!(state.stack_allowance.get(&hex("E1730")), Some(&10));
+        (data, state)
+    }
+
+    fn one_sp_unit(state: &GameState, data: &Data, at: &HexId) -> PieceId {
+        let in_hex: Vec<&Piece> = state
+            .pieces
+            .values()
+            .filter(|p| p.hex() == Some(at))
+            .collect();
+        let before = state.stacked(data, at);
+        in_hex
+            .iter()
+            .find(|p| {
+                p.kind == PieceKind::Combat && {
+                    let mut t = state.clone();
+                    t.pieces.get_mut(&p.id).unwrap().location = Location::Eliminated;
+                    t.stacked(data, at) + 1 == before
+                }
+            })
+            .expect("a 1 SP unit")
+            .id
+            .clone()
+    }
+
+    #[test]
+    fn an_overfilled_hex_never_regains_what_it_loses_r189() {
+        let (data, mut state) = overfilled_desert_fox();
+        let cairo = hex("E1730");
+        assert!(state.over_ceiling_at(&data, &cairo).is_none());
+        // One unit leaves: 9 SP, still over 8, and 9 is all it may hold.
+        let gone = one_sp_unit(&state, &data, &cairo);
+        state.pieces.get_mut(&gone).unwrap().location = Location::Eliminated;
+        state.lower_allowances(&data);
+        assert_eq!(state.stack_allowance.get(&cairo), Some(&9));
+        state.pieces.get_mut(&gone).unwrap().location = Location::Hex(cairo.clone());
+        assert!(state.over_ceiling_at(&data, &cairo).is_some());
+
+        // A1716 falls to its ceiling: the allowance goes for good.
+        let a1716 = hex("A1716");
+        let gone = one_sp_unit(&state, &data, &a1716);
+        state.pieces.get_mut(&gone).unwrap().location = Location::Eliminated;
+        state.lower_allowances(&data);
+        assert!(!state.stack_allowance.contains_key(&a1716));
+        state.pieces.get_mut(&gone).unwrap().location = Location::Hex(a1716.clone());
+        assert!(state.over_ceiling_at(&data, &a1716).is_some());
+    }
+
+    #[test]
+    fn an_allowance_falls_with_losses_outside_movement_r189() {
+        // Everything in Cairo is lost (combat, say): as the next movement
+        // segment opens the allowance is gone, and no one, the enemy
+        // least of all, may fill the hex past its ceiling.
+        let (data, mut state) = overfilled_desert_fox();
+        let cairo = hex("E1730");
+        for p in state.pieces.values_mut() {
+            if p.hex() == Some(&cairo) {
+                p.location = Location::Eliminated;
+            }
+        }
+        state.open_movement_segment(&data, &mut Vec::new());
+        assert!(!state.stack_allowance.contains_key(&cairo));
+        assert_eq!(state.stack_allowance.get(&hex("A1716")), Some(&7));
+    }
+
+    #[test]
+    fn a_stop_in_an_allowed_hex_binds_only_if_it_adds_stacking_points_r189() {
+        let (data, state) = overfilled_desert_fox();
+        let full = hex("A1716");
+        let next = data
+            .map
+            .neighbours(&full)
+            .into_iter()
+            .find(|h| {
+                !state.pieces.values().any(|p| p.hex() == Some(h))
+                    && data
+                        .map
+                        .hex(h)
+                        .is_some_and(|x| x.terrain != cna_data::map::Terrain::Sea)
+            })
+            .expect("an empty neighbour");
+        let mut with_rommel = state.clone();
+        with_rommel.put(&pid("unit:de:rommel"), Location::Hex(next.clone()));
+        with_rommel
+            .apply(&data, Side::Axis, mv(&["unit:de:rommel"], &[full.as_str()]))
+            .unwrap();
+        with_rommel
+            .apply(&data, Side::Axis, Order::EndSegment)
+            .unwrap();
+        assert_eq!(with_rommel.stack_allowance.get(&full), Some(&7));
+
+        let mut with_bn = state.clone();
+        let bn = with_bn
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == PieceKind::Combat
+                    && p.attached_to.is_none()
+                    && p.equivalent
+                        .is_some_and(|e| cna_rules::stacking::points(&data.stacking, Some(e)) > 0)
+                    && p.hex().is_some_and(|h| h != &full)
+            })
+            .unwrap()
+            .id
+            .clone();
+        with_bn.put(&bn, Location::Hex(next));
+        with_bn
+            .apply(&data, Side::Axis, mv(&[bn.as_str()], &[full.as_str()]))
+            .unwrap();
+        let err = with_bn
+            .apply(&data, Side::Axis, Order::EndSegment)
+            .unwrap_err();
+        assert_eq!(err.case, "9.14");
     }
 }

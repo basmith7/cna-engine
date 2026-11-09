@@ -1,6 +1,6 @@
 {
   "scenario": "rommels-arrival",
-  "rules_commit": "7947d004c738c5793398a3c0a8c3ba149ebf3b6b",
+  "rules_commit": "d4fae30aba400ea3a199aa20569b94c628dbb413",
   "ruleset": {
     "R-001": 1,
     "R-009": 1,
@@ -45,7 +45,8 @@
     "voluntary_withdrawals": true,
     "absorb_by_loss_order": true,
     "captured_wrecks": true,
-    "blind_barrage": true
+    "blind_barrage": true,
+    "setup_stacking": true
   },
   "clock": {
     "game_turn": 26,
@@ -1419,7 +1420,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1450,7 +1451,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1481,7 +1482,7 @@
       "status": null,
       "equivalent": "company",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -1506,7 +1507,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2224,7 +2225,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -2584,7 +2585,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -3166,7 +3167,7 @@
       "status": null,
       "equivalent": "company",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -3215,7 +3216,7 @@
       "status": null,
       "equivalent": "hq",
       "location": {
-        "hex": "E1730"
+        "hex": "E1829"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -3819,7 +3820,6 @@
       "nation": "de",
       "id_code": "f",
       "parent": "unit:de:5-pz-regt-hq",
-      "attached_to": "unit:de:5-pz-regt-hq",
       "toe": 14,
       "weapons": [
         {
@@ -3844,7 +3844,7 @@
       "status": null,
       "equivalent": "battalion",
       "location": {
-        "hex": "A1716"
+        "hex": "A1717"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -3868,7 +3868,7 @@
       "status": null,
       "equivalent": null,
       "location": {
-        "hex": "A1717"
+        "hex": "A1716"
       },
       "cp_spent": 0.0,
       "cp_enemy_half": 0.0,
@@ -7017,7 +7017,7 @@
       "order": {
         "place": {
           "piece": "unit:de:ii-5-pz-bn",
-          "hex": "A1716"
+          "hex": "A1717"
         }
       }
     },
@@ -7026,7 +7026,7 @@
       "order": {
         "place": {
           "piece": "unit:de:rommel",
-          "hex": "A1717"
+          "hex": "A1716"
         }
       }
     },

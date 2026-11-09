@@ -19,6 +19,7 @@ impl GameState {
         let mut events = Vec::new();
         self.place_tanks_with_units(data);
         self.hold_for_release(data);
+        self.allow_set_up_overfills(data);
         self.advance(data, &mut events);
         events
     }

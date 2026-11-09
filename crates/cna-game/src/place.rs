@@ -219,7 +219,27 @@ impl GameState {
         }
         let stacked = self.stacked(data, hex);
         let sp = cna_rules::stacking::points(&data.stacking, p.equivalent);
-        if stacked + sp > ceiling {
+        // Joining its own side in a hex, a piece may complete a formation
+        // (9.2x): an HQ placed on its battalions makes them a division of
+        // 5 SP. With `setup_stacking` on the hex is counted as it would
+        // stand (R-189).
+        if self.modules.setup_stacking
+            && self
+                .pieces
+                .values()
+                .any(|q| q.side == player && q.hex() == Some(hex))
+        {
+            let mut trial = self.clone();
+            trial.pieces.get_mut(piece).expect("checked").location = Location::Hex(hex.clone());
+            trial.attach_where_stacked(Some(std::slice::from_ref(piece)));
+            let after = trial.stacked(data, hex);
+            if after > ceiling {
+                return Err(Illegal::new(
+                    "9.14",
+                    format!("{hex} would hold {after} SP of a ceiling of {ceiling} with {piece}"),
+                ));
+            }
+        } else if stacked + sp > ceiling {
             return Err(Illegal::new(
                 "9.14",
                 format!(
