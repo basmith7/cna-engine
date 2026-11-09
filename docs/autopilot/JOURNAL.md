@@ -1006,3 +1006,9 @@ Done: #191 (draft, a95e395): reach prices a ZOC-parked move's fuel at its stop (
 In flight: gates (../targets/gates-191.log), release soak seeds 1–23, fresh review.
 Next: ready + merge #191 when gates/CI green. Then hunt more overlay/apply gaps (React/RBA fuel still quoted, by design).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 12:50 MST — main (hand-off)
+Done: #191 (overlay prices a ZOC-parked move's fuel at its stop; soak strict, CNA_SOAK_SEED), #192 (move_pieces debits fuel after the walk via settle_fuel: past-CPA fuel only if reached, 32.22), #193 (`cna-game::offers`: every scenario's offer lists → apply; 0 faults; pick/shift never fire in 2 stages) all merged with CI green. Release soak seeds 1–23 clean. Worktrees/branches removed.
+In flight: none. Request for cna still open: set-up stacks over the 9.14 ceiling.
+Next: when cna answers, bump vendor/cna and home the ruling. Else more hunting: React/RBA overlays still quote unpayable fuel (pinned by design); offers soak at more stages (CNA_OFFERS_STAGES) to reach shifts/picks; a dearer path that parks earlier is never offered (reach keeps one cheapest path per hex).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).

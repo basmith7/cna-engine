@@ -41,8 +41,9 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
-**2026-11-09 (18:45–20:10 UTC):** two fuel bugs fixed, and a new test
-holds the engine's offer lists to `apply`.
+**2026-11-09 (18:45–20:10 UTC):** #191, #192 and #193 merged, all
+with CI green: two fuel bugs fixed, and a new test holds the engine's
+offer lists to `apply`.
 - #191: the move overlay offered moves a ZOC declaration might stop
   short, priced at the stage's first fuel alone, so a click there could
   be refused for fuel (32.22). In Graziani's opening an Italian tank
