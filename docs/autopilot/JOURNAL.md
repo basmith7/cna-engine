@@ -978,3 +978,9 @@ Done: #189 ready (head after 6d review fix): soak covers combat; fixes supply-un
 In flight: CI on #189 (run 42444486246).
 Next: merge #189 when CI green (`gh pr merge 189 --merge --delete-branch`). Open review notes: forced_retreat's `unfuelled` proxy counts non-fuel blocks under R-012 opt 1 (unreproduced); soak doesn't assert combat coverage.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 09:55 MST — autopilot/fuzz-orders
+Done: #189 merged (cce4b1c). New `cna-game::fuzz`: every scenario, 2 OpStages, random orders of all 40 kinds (phase-weighted) beside a quiet driver; apply must not panic, kept orders keep views drawable, save round-trips, log replays. First runs clean.
+In flight: deep release run (seeds 1–16) for faults; draft PR.
+Next: fix whatever the deep run finds; else ready + merge.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
