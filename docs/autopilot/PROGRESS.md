@@ -41,6 +41,24 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-09 (19:57–21:25 UTC):** cna answered our stacking
+request with R-189: a set-up stack over the ceiling may stay but may
+not grow. #194 bumps `vendor/cna` and builds it as the `setup_stacking`
+module, on in new games:
+- A placement now counts the formation it completes. Placing an HQ on its
+  own battalions makes a 5 SP division, which the old check missed. That
+  is how the engine's own placements overfilled A1716 (Rommel's Arrival,
+  Desert Fox) and three of Crusader's Commonwealth hexes.
+- The Cairo group is spread over Cairo's five hexes instead of piling
+  9–10 SP into E1730 (ceiling 8).
+- The one overfill a scenario forces (Crusader's El Adem: seven Italian
+  artillery units in one clear hex, 7 SP of 6) holds what it held at
+  set-up and never regains what it loses. Rommel or a lone HQ may stop
+  there; a battalion that left cannot be replaced.
+
+A fresh review's two bugs are fixed there. Deep fuzz, soak and offers
+runs are clean.
+
 **2026-11-09 (18:45–20:10 UTC):** #191, #192 and #193 merged, all
 with CI green: two fuel bugs fixed, and a new test holds the engine's
 offer lists to `apply`.
@@ -540,8 +558,10 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
   whole path's fuel before it is taken (the supply units are picked
   from where it starts), though the fuel past the CPA is debited only
   if the stack gets there.
-- One call to glance at in #190 (merged): a set-up stack over its ceiling is tolerated until
-  pieces moved in raise its stacking points (cna asked for a ruling).
+- Calls to glance at in #194 (R-189): the engine divides the Cairo
+  group among Cairo's hexes itself, without offering you the split.
+  Graziani's Cairo motorisation points stay in E1730, so a unit spread
+  to another Cairo hex steps back there to take its trucks.
 - One call to glance at in #188: the move overlay now hides moves the
   engine would refuse for fuel, but the reaction and retreat-before-assault
   overlays still show such hexes with their fuel quoted (as an earlier
@@ -682,7 +702,7 @@ What this repo needs from cna, one bullet each: what, why, which mission it
 blocks. cna's autopilot reads this every run and answers with a PR; delete
 the bullet once it lands and `vendor/cna` is bumped.
 
-- **Set-up stacks over the 9.14 ceiling.** Some scenario set-ups put more stacking points in a hex than its terrain allows (Graziani's Offensive: Cairo E1730, 9 SP in a major city's 8; Desert Fox: A1716, 7 SP in clear terrain's 6). The rules do not say whether such a stack is legal, must be fixed at once, or binds only once something moves. The engine tolerates it until pieces moved into the hex in a movement segment raise its SP, so Rommel, an HQ alone or a raider stopping there is no violation, but a battalion is (PR #190). A ruling, please: is that the reading, or does 9.14 bind the set-up stack itself (and when)? Blocks nothing; Mission 5 polish.
+None open.
 
 ## Runs and quota
 

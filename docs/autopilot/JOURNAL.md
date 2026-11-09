@@ -1018,3 +1018,9 @@ Done: #194 (draft, a0d0e9d): vendor/cna → d4fae30; R-189 as `setup_stacking` m
 In flight: gates (../targets/gates-194.log), fresh review.
 Next: ready + merge #194 on green CI; delete the R-189 request bullet from PROGRESS on main.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 13:35 MST — main (hand-off)
+Done: #194 merged (88bdc07): vendor/cna d4fae30, R-189 `setup_stacking` (placement counts completed formations; Cairo spread; El Adem allowance lowered as each movement segment opens and closes). Review's two bugs fixed. Deep: fuzz 8 seeds × 6 stages, soak seeds 1–6, offers 6 and 40 stages, all clean. Request bullet cleared.
+In flight: none.
+Next: offers at 40 stages still never offers `shift` or `pick` (the counts look flat beyond ~6 stages: check whether the driver stalls or the game ends early). Else React/RBA overlay fuel (awaits Brian), dearer-path-parks-earlier in reach.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
