@@ -33,6 +33,7 @@ pub mod log;
 pub mod movement;
 mod occupancy;
 mod off_map;
+mod offers;
 pub mod order;
 mod organisation;
 pub mod patrol;
