@@ -19,8 +19,6 @@ use cna_rules::close_assault::may_buy_out;
 /// The DP a must-attack retreat adds (10.36).
 const MUST_ATTACK_DP: u32 = 3;
 
-// TODO(32.22): fuel is not charged here until cna answers "What a unit may
-// do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
 impl GameState {
     /// `Order::RetreatBeforeAssault` (13.2x): ordinary voluntary movement
     /// by an unpinned, uncollapsed non-phasing stack, paid in the enemy
@@ -174,8 +172,6 @@ impl GameState {
             .unwrap_or(limit + 1)
     }
 
-    // TODO(32.22): fuel is not charged here until cna answers "What a unit may
-    // do that cannot pay under abstract supply" in docs/autopilot/PROGRESS.md.
     /// `Order::Retreat` or `Pass` while a forced retreat is pending
     /// (15.82, 15.29, 10.36): the stack walks `path` as a move that may
     /// leave an enemy ZOC, ending at least the ordered hexes from every
@@ -219,14 +215,31 @@ impl GameState {
         };
         // 10.36: a must-attack stack surrenders only when every route is
         // forced into enemy ZOC, so it may not pass while one is open.
-        // A stack without the fuel it owes has no way out (R-120).
-        let unfuelled = self.unfuelled(data, &pieces);
-        if path.is_none()
-            && reason == RetreatReason::MustAttack
+        // A stack without the fuel any full retreat owes has no way out
+        // (R-120): none at all, or only the stage's first and not what
+        // going past its CPA adds (32.22). `reachable` offers only the
+        // retreats it can pay.
+        // Asked only of a stack that stands: one given a path pays for
+        // that path or is refused.
+        // and only where it decides something: a must-attack stack, or
+        // abstract supply under an R-012 that forbids standing.
+        let asks = reason == RetreatReason::MustAttack
+            || (self.modules.abstract_supply && !may_buy_out(&self.ruleset, true));
+        let offered = match path {
+            None if asks => Some(self.reachable(data, side, &pieces, Purpose::ForcedRetreat)),
+            _ => None,
+        };
+        let unfuelled = self.unfuelled(data, &pieces)
+            || (self.modules.abstract_supply
+                && offered
+                    .as_ref()
+                    .and_then(|o| o.as_ref().ok())
+                    .is_some_and(|o| o.iter().all(|r| r.short > 0))
+                && self.retreat_path_exists(data, &start, side));
+        if reason == RetreatReason::MustAttack
             && !unfuelled
-            && !self
-                .reachable(data, side, &pieces, Purpose::ForcedRetreat)?
-                .is_empty()
+            && let Some(offered) = offered
+            && !offered?.is_empty()
         {
             return Err(Illegal::new(
                 "10.36",
@@ -762,5 +775,36 @@ mod tests {
             pieces: vec![tanks],
             short: 1,
         }));
+    }
+
+    #[test]
+    fn a_stack_with_its_first_fuel_but_not_its_second_stands_and_pays_r120() {
+        // The L3s can pay the stage's first fuel (2) but not the second
+        // that going past their CPA owes (32.22): no retreat is offered,
+        // `apply` refuses one, and under any R-012 they stand and pay.
+        let data = Data::load("grazianis-offensive").unwrap();
+        let (mut state, tanks, _, away) = tanks_ordered_back(&data, 2);
+        state.ruleset.r012 = cna_rules::ruleset::R012::MustRetreat;
+        let cpa = cna_data::cp::Cp::whole(state.cpa(&state.pieces[&tanks]).unwrap());
+        state.pieces.get_mut(&tanks).unwrap().cp_spent = cpa;
+        let offered = state
+            .reachable(
+                &data,
+                Side::Axis,
+                std::slice::from_ref(&tanks),
+                crate::reach::Purpose::ForcedRetreat,
+            )
+            .unwrap();
+        assert!(offered.is_empty(), "{offered:?}");
+        let err = state
+            .clone()
+            .apply(&data, Side::Axis, forced(&[&away]))
+            .unwrap_err();
+        assert_eq!(err.case, "32.22", "{}", err.reason);
+        let events = state.apply(&data, Side::Axis, Order::Pass).unwrap();
+        assert!(events.iter().any(|e| matches!(
+            e,
+            Event::RetreatBoughtOut { pieces, .. } if pieces == &vec![tanks.clone()]
+        )));
     }
 }
