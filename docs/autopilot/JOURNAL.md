@@ -984,3 +984,9 @@ Done: #189 merged (cce4b1c). New `cna-game::fuzz`: every scenario, 2 OpStages, r
 In flight: deep release run (seeds 1–16) for faults; draft PR.
 Next: fix whatever the deep run finds; else ready + merge.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 10:20 MST — autopilot/fuzz-orders
+Done: fuzz found 9.14 blocking EndSegment when Rommel/an HQ alone stops in a set-up-overfilled hex; fixed in cycle.rs (over_ceiling binds only where movers raise `stacked`). Fresh review's findings taken (views every step, refusal must not mutate, honest doc, STAGES>0); declined dedup of identical-start scenarios. Request for cna posted on main (15b1ae7): ruling on set-up stacks over the ceiling.
+In flight: gates on head; deep run seeds 70–77 × 8 stages.
+Next: ready + merge #190 when CI is green.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
