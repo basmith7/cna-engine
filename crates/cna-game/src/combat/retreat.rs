@@ -167,9 +167,7 @@ impl GameState {
 
     /// Hexes from `a` to `b`, up to `limit`; `limit + 1` beyond it.
     pub(crate) fn distance(data: &Data, a: &HexId, b: &HexId, limit: u32) -> u32 {
-        (0..=limit)
-            .find(|n| data.map.within(a, *n).contains(b))
-            .unwrap_or(limit + 1)
+        data.map.distance(a, b, limit).unwrap_or(limit + 1)
     }
 
     /// `Order::Retreat` or `Pass` while a forced retreat is pending
