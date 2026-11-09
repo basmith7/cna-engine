@@ -1024,3 +1024,9 @@ Done: #194 merged (88bdc07): vendor/cna d4fae30, R-189 `setup_stacking` (placeme
 In flight: none.
 Next: (offers at 40 stages, ~13 GT: 0 faults; no `pick`/`shift` is expected, the pick row is GT97.) Hunt: dearer path that parks earlier is never offered (reach keeps one cheapest path per hex); React/RBA overlay fuel awaits Brian. Latent from #194's review: spread_places can't tell a unit named at E1730 from `place: cairo`.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 14:42 MST — autopilot/long-games
+Done: #195 (draft): Map::distance one-pass BFS (GameState::distance was O(limit³) via within(a,n) per n; plan_fuel ranked supply by it, 120 ms/call), adjacency cached at load. Crusader C3721 overlay 355→134 ms native. CNA_SOAK_STAGES; fuzz prints the end report. Deep: fuzz 301–303 × 24 stages, soak 41 × 27, 0 faults; Graziani/Crusader/Last Chance reach their end.
+In flight: gates (../targets/gates-perf.log).
+Next: ready + merge #195 on green CI. More speed: step_into ~2 µs/edge (entry + zoc_at: pieces_at mutex + Vec per neighbour; zoc_at recomputed per edge, cacheable per hex in a search); plan_fuel called 2–3× per overlay with the same supply_in_range.
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
