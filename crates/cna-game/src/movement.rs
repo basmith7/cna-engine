@@ -819,7 +819,6 @@ impl GameState {
             self.plan_fuel(data, pieces, total, fuel_from)?
         };
         let mut events = Vec::new();
-        self.spend_fuel(data, total, payments, &mut events);
         if plan.break_off && !plan.steps.is_empty() {
             self.pay_break_off(pieces, false, &mut events);
         }
@@ -893,6 +892,9 @@ impl GameState {
                 break;
             }
         }
+        // The fuel falls due as the stack walks: past its CPA only if
+        // it got there (32.22), though the whole path had to be payable.
+        self.settle_fuel(data, payments, &mut events);
         // Stopped short by a raider (27.42): the step a ZOC declaration
         // was to precede is not coming.
         if announced_at.is_some() && announced_at != last {

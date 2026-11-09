@@ -668,6 +668,70 @@ mod tests {
     }
 
     #[test]
+    fn a_move_a_reaction_stops_short_of_its_cpa_pays_no_fuel_past_it_32_22() {
+        use crate::piece::Load;
+        let data = graziani();
+        let tanks = pid("unit:it:lxiil-tank-bn");
+        let dump = PieceId::supply(Side::Axis, 1);
+        let mut state = tanks_near_halfaya_after(&data, |s| {
+            s.modules.abstract_supply = true;
+            let ids: Vec<PieceId> = s
+                .pieces
+                .values()
+                .filter(|p| p.side == Side::Axis && p.kind == PieceKind::SupplyUnit)
+                .map(|p| p.id.clone())
+                .collect();
+            for id in ids {
+                s.pieces.get_mut(&id).unwrap().load = Some(Load { ammo: 0, fuel: 0 });
+            }
+            s.put(&dump, Location::Hex(hex("C3924")));
+            s.pieces.get_mut(&dump).unwrap().load = Some(Load { ammo: 10, fuel: 10 });
+        });
+        assert!(!state.pieces[&tanks].fuelled);
+        // Spent so far that C3923 brings the tanks to their CPA exactly;
+        // the move goes on one hex past it.
+        let reaches = state
+            .reachable(
+                &data,
+                Side::Axis,
+                std::slice::from_ref(&tanks),
+                crate::reach::Purpose::Move,
+            )
+            .unwrap();
+        let first = reaches.iter().find(|r| r.hex == hex("C3923")).unwrap().cp;
+        let cpa = Cp::whole(state.cpa(&state.pieces[&tanks]).unwrap());
+        state.pieces.get_mut(&tanks).unwrap().cp_spent = cpa.saturating_sub(first);
+        let order = |next: &HexId| mv(&["unit:it:lxiil-tank-bn"], &["C3923", next.as_str()]);
+        let next = data
+            .map
+            .neighbours(&hex("C3923"))
+            .into_iter()
+            .find(|n| state.clone().apply(&data, Side::Axis, order(n)).is_ok())
+            .unwrap();
+        // The whole path must be payable: the stage's first 2 and 2 more
+        // past the CPA; with 3 fuel at hand the move is refused.
+        let mut short = state.clone();
+        short.pieces.get_mut(&dump).unwrap().load = Some(Load { ammo: 10, fuel: 3 });
+        let err = short.apply(&data, Side::Axis, order(&next)).unwrap_err();
+        assert_eq!(err.case, "32.22");
+        let events = state.apply(&data, Side::Axis, order(&next)).unwrap();
+        assert!(
+            matches!(events.last(), Some(Event::ReactionOffered { .. })),
+            "{events:?}"
+        );
+        // A reaction stops the tanks at C3923, at their CPA: they pay the
+        // first fuel alone.
+        assert_eq!(state.pieces[&tanks].hex(), Some(&hex("C3923")));
+        assert!(events.contains(&Event::FuelSpent {
+            piece: tanks.clone(),
+            from: dump.clone(),
+            fuel: 2,
+        }));
+        assert_eq!(state.pieces[&dump].load.unwrap().fuel, 8);
+        assert!(state.pieces[&tanks].fuelled && !state.pieces[&tanks].fuelled_over);
+    }
+
+    #[test]
     fn a_unit_that_cannot_pay_its_fuel_does_not_react_r120() {
         let data = graziani();
         let (mut state, _) = with_supply(&data, 0);
