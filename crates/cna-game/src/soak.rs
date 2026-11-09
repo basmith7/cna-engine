@@ -462,14 +462,15 @@ mod tests {
         Ok(true)
     }
 
-    /// Plays `STAGES` OpStages from set-up: random moves in each
+    /// Plays `STAGES` OpStages (`CNA_SOAK_STAGES` for more) from set-up: random moves in each
     /// movement segment, every other answer as `pass_stage` gives it.
     fn soak(data: &Data, seed: u64) -> (GameState, Vec<String>) {
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
         let mut state = GameState::with_modules(data, seed, Modules::ALL).unwrap();
         auto_place(data, &mut state);
         let mut faults = Vec::new();
-        for _ in 0..STAGES {
+        let stages = std::env::var("CNA_SOAK_STAGES").map_or(STAGES, |s| s.parse().unwrap());
+        for _ in 0..stages {
             let (gt, stage) = (state.clock.game_turn, state.clock.stage);
             while !state.is_over() && (state.clock.game_turn, state.clock.stage) == (gt, stage) {
                 let player = state.to_act().unwrap();

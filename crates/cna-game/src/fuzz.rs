@@ -521,6 +521,12 @@ mod tests {
                     "{slug} seed {seed}: {kept} kept, {} faults; {kinds:?}",
                     faults.len()
                 );
+                if let Some(over) = &live.over {
+                    eprintln!(
+                        "  over at {}: axis {:?}, cw {:?}, points {:?}, unchecked {:?}",
+                        live.clock, over.axis, over.cw, over.points, over.unchecked
+                    );
+                }
                 for f in faults.iter().take(8) {
                     eprintln!("  {f}");
                 }
