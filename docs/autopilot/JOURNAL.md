@@ -996,3 +996,9 @@ Done: #189 and #190 merged (f3d4e4b): `cna-game::fuzz` + 9.14 fix (overfilled he
 In flight: none. Request for cna open: ruling on set-up stacks over the 9.14 ceiling.
 Next: when cna answers, bump vendor/cna (AGENTS.md steps) and home the ruling; adjust `over_ceiling` if it differs. Else more hunting (fuzz with combat answers: guns forward, assignments; or a soak of organisation offers ported from web/src/moves.ts).
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
+
+## 2026-11-09 12:05 MST — autopilot/fuel-at-the-instant
+Done: #192 (draft, e5c6d98): move_pieces validates the whole path's fuel but debits after the walk (settle_fuel), so a move a reaction/raider stops short of its CPA pays no past-CPA fuel (32.22 "at that instant"). Regression test in reaction.rs. Local: clippy, fmt, probe check, cargo test --no-fail-fast all green; no pins moved.
+In flight: fresh review; #191 CI; offers-soak subagent on autopilot/offers-soak (/tmp/wt-offers).
+Next: ready + merge #191 then #192 on green CI; land the offers soak (draft PR from the subagent).
+Blocked: Missions 6 and 7 on Brian's review (#148, #161).
