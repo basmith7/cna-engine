@@ -826,3 +826,4 @@ the bullet once it lands and `vendor/cna` is bumped.
 | 2026-11-07 10:55 | 79 | 17→18 | none→none | $11.39 | 2 | I built R-182 (blind barrage) and merged it as #185. Two more PRs from this run: #186 (merged) and #187 (open, CI still running at the deadline). Missions 6 and |
 | 2026-11-07 12:15 | 77 | 18→20 | none→none | $7.12 | 131 | #188 is merged (e4736a4) with CI green, Playwright included. It fixes a bug where the browser offered moves the engine then refused. #187, which moves `vendor/c |
 | 2026-11-07 19:44 | 71 | 27→30 | none→none | $6.60 | 80 | #189 is ready for review but not merged: CI takes about 23 minutes and would finish after this run's 04:14 deadline. The journal tells the next run to merge it  |
+| 2026-11-09 09:44 | 63 | 62→64 | none→none | $7.09 | 7 | I merged #189 (the combat soak test) and #190 (a fuzz test for `apply` that turned up one bug, now fixed). CI was green on the merged head. The handoff notes ar |
