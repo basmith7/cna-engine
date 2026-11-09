@@ -390,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn a_piece_that_takes_no_space_ending_in_an_overfilled_hex_is_no_violation() {
+    fn a_stop_that_adds_no_stacking_points_to_an_overfilled_hex_is_no_violation() {
         // Desert Fox's set-up overfills Axis hexes; Rommel stacks free
         // (R-135), so his stop adds nothing and the segment ends, where a
         // battalion's stop binds the ceiling (9.31).
@@ -428,6 +428,33 @@ mod tests {
         with_rommel
             .apply(&data, Side::Axis, Order::EndSegment)
             .unwrap();
+
+        // An HQ arriving with nothing attached to it there stacks as
+        // nothing (9.25): the same.
+        let hq = state
+            .pieces
+            .values()
+            .find(|p| {
+                p.side == Side::Axis
+                    && p.kind == crate::piece::PieceKind::Hq
+                    && p.attached_to.is_none()
+                    && p.hex().is_some_and(|h| h != &full)
+                    && !state.pieces.values().any(|q| {
+                        q.hex() == Some(&full)
+                            && q.attached_to.is_some()
+                            && q.attached_to == p.id.unit()
+                    })
+            })
+            .expect("a lone Axis HQ")
+            .id
+            .clone();
+        let mut with_hq = state.clone();
+        with_hq.put(&hq, Location::Hex(next.clone()));
+        with_hq
+            .apply(&data, Side::Axis, mv(&[hq.as_str()], &[full.as_str()]))
+            .unwrap();
+        assert_eq!(with_hq.stacked(&data, &full), state.stacked(&data, &full));
+        with_hq.apply(&data, Side::Axis, Order::EndSegment).unwrap();
 
         let battalion = state
             .pieces
