@@ -1022,5 +1022,5 @@ Blocked: Missions 6 and 7 on Brian's review (#148, #161).
 ## 2026-11-09 13:35 MST — main (hand-off)
 Done: #194 merged (88bdc07): vendor/cna d4fae30, R-189 `setup_stacking` (placement counts completed formations; Cairo spread; El Adem allowance lowered as each movement segment opens and closes). Review's two bugs fixed. Deep: fuzz 8 seeds × 6 stages, soak seeds 1–6, offers 6 and 40 stages, all clean. Request bullet cleared.
 In flight: none.
-Next: offers at 40 stages still never offers `shift` or `pick` (the counts look flat beyond ~6 stages: check whether the driver stalls or the game ends early). Else React/RBA overlay fuel (awaits Brian), dearer-path-parks-earlier in reach.
+Next: (offers at 40 stages, ~13 GT: 0 faults; no `pick`/`shift` is expected, the pick row is GT97.) Hunt: dearer path that parks earlier is never offered (reach keeps one cheapest path per hex); React/RBA overlay fuel awaits Brian. Latent from #194's review: spread_places can't tell a unit named at E1730 from `place: cairo`.
 Blocked: Missions 6 and 7 on Brian's review (#148, #161).
