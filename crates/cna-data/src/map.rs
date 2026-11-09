@@ -330,6 +330,9 @@ pub struct Map {
     /// The hex across each seam edge, `(hex, side) -> other`, both ways.
     seam_sides: BTreeMap<(HexId, Direction), HexId>,
     seam_pairs: usize,
+    /// Each hex's neighbours, sorted, worked out once at load: searches
+    /// ask for them millions of times.
+    adjacency: BTreeMap<HexId, Vec<HexId>>,
 }
 
 /// `seams.json`: every pair of hexes that touch across a sheet edge, with
@@ -503,7 +506,7 @@ impl Map {
                 }
             }
         }
-        Ok(Map {
+        let mut map = Map {
             sheets,
             hexes,
             hexsides,
@@ -513,7 +516,14 @@ impl Map {
             seams,
             seam_sides,
             seam_pairs,
-        })
+            adjacency: BTreeMap::new(),
+        };
+        map.adjacency = map
+            .hexes
+            .keys()
+            .map(|id| (id.clone(), map.find_neighbours(id)))
+            .collect();
+        Ok(map)
     }
 
     /// How many cross-sheet pairs `seams.json` lists.
@@ -634,6 +644,13 @@ impl Map {
     /// The neighbouring hexes that exist, on this sheet and across a seam,
     /// sorted.
     pub fn neighbours(&self, id: &HexId) -> Vec<HexId> {
+        match self.adjacency.get(id) {
+            Some(n) => n.clone(),
+            None => self.find_neighbours(id),
+        }
+    }
+
+    fn find_neighbours(&self, id: &HexId) -> Vec<HexId> {
         let mut n: Vec<HexId> = self
             .grid_neighbours(id)
             .into_iter()
@@ -647,7 +664,9 @@ impl Map {
     }
 
     pub fn adjacent(&self, a: &HexId, b: &HexId) -> bool {
-        self.hexes.contains_key(a) && self.neighbours(a).binary_search(b).is_ok()
+        self.adjacency
+            .get(a)
+            .is_some_and(|n| n.binary_search(b).is_ok())
     }
 
     /// Every hex within `n` hexes of `centre`, the centre included, by
@@ -671,6 +690,35 @@ impl Map {
             frontier = next;
         }
         seen
+    }
+
+    /// Hex-to-hex steps from `a` to `b` (seams included), searching no
+    /// further than `limit`; `None` beyond it, or when `a` is not on the
+    /// map. The `n` of the first `within(a, n)` holding `b`, in one pass.
+    pub fn distance(&self, a: &HexId, b: &HexId, limit: u32) -> Option<u32> {
+        if !self.hexes.contains_key(a) {
+            return None;
+        }
+        if a == b {
+            return Some(0);
+        }
+        let mut seen = BTreeSet::from([a.clone()]);
+        let mut frontier = vec![a.clone()];
+        for n in 1..=limit {
+            let mut next = Vec::new();
+            for h in &frontier {
+                for nb in self.neighbours(h) {
+                    if &nb == b {
+                        return Some(n);
+                    }
+                    if seen.insert(nb.clone()) {
+                        next.push(nb);
+                    }
+                }
+            }
+            frontier = next;
+        }
+        None
     }
 }
 
@@ -730,6 +778,36 @@ mod tests {
                 assert!(m.hex(&n).is_some(), "{n} missing");
             }
         }
+    }
+
+    #[test]
+    fn distance_is_the_first_ring_that_holds_the_hex() {
+        let m = map();
+        let by_rings =
+            |a: &HexId, b: &HexId, limit: u32| (0..=limit).find(|n| m.within(a, *n).contains(b));
+        let hexes: Vec<HexId> = m.hexes().map(|h| h.id.clone()).collect();
+        // Pairs on one sheet, across the seams and out of range.
+        let pairs = hexes
+            .iter()
+            .step_by(331)
+            .flat_map(|a| hexes.iter().step_by(977).map(move |b| (a, b)));
+        let mut seen = 0;
+        for (a, b) in pairs.chain([(&hexes[0], &hexes[0])]) {
+            let want = by_rings(a, b, 12);
+            seen += usize::from(want.is_some_and(|n| n > 1));
+            assert_eq!(m.distance(a, b, 12), want, "{a} -> {b}");
+        }
+        assert!(seen > 0, "no pair in range: the sample proves nothing");
+        let c3922 = HexId::parse("C3922").unwrap();
+        let c4022 = HexId::parse("C4022").unwrap();
+        assert_eq!(m.distance(&c3922, &c4022, 0), None);
+        assert_eq!(m.distance(&c3922, &c4022, 1), Some(1));
+        let off = ["A0000", "E9999", "M9999"]
+            .iter()
+            .map(|s| HexId::parse(s).unwrap())
+            .find(|h| m.hex(h).is_none())
+            .expect("an id off the map");
+        assert_eq!(m.distance(&off, &off, 3), None);
     }
 
     #[test]
