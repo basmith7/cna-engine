@@ -26,8 +26,10 @@ mod tests {
     use rand_core::{RngCore, SeedableRng};
     use std::panic::{AssertUnwindSafe, catch_unwind};
 
-    /// OpStages each scenario plays.
-    const STAGES: usize = 2;
+    /// OpStages each scenario plays; `CNA_FUZZ_STAGES` for more.
+    fn stages() -> u32 {
+        std::env::var("CNA_FUZZ_STAGES").map_or(2, |s| s.parse().unwrap())
+    }
     /// Wild orders sent before each step of the game.
     const WILD: usize = 24;
 
@@ -112,7 +114,7 @@ mod tests {
                 None => break,
             }
         }
-        if rng.next_u32() % 8 != 0 {
+        if !rng.next_u32().is_multiple_of(8) {
             path.remove(0);
         }
         path
@@ -185,7 +187,7 @@ mod tests {
         };
         let unit = other.unit();
         let kind = match pick(rng, kinds_for(state)) {
-            Some(k) if rng.next_u32() % 4 != 0 => k,
+            Some(k) if !rng.next_u32().is_multiple_of(4) => k,
             _ => rng.next_u32() % 40,
         };
         Some(match kind {
@@ -353,7 +355,7 @@ mod tests {
         }
     }
 
-    /// Plays `STAGES` OpStages; returns the state and its faults: panics
+    /// Plays `stages()` OpStages; returns the state and its faults: panics
     /// in `apply` or a view, and a quiet answer refused after a kept
     /// order (the game stuck, which ends the run).
     fn fuzz(data: &Data, seed: u64) -> (GameState, Vec<String>, usize) {
@@ -365,13 +367,19 @@ mod tests {
         let mut kept = 0;
         let mut last_kept: Option<Order> = None;
         let mut steps = 0;
-        let end = state.clock.game_turn as u32 * 10 + state.clock.stage as u32 + STAGES as u32;
-        while !state.is_over()
-            && state.clock.game_turn as u32 * 10 + (state.clock.stage as u32) < end
-        {
+        let mut left = stages();
+        let mut at = (state.clock.game_turn, state.clock.stage);
+        while !state.is_over() {
+            if (state.clock.game_turn, state.clock.stage) != at {
+                at = (state.clock.game_turn, state.clock.stage);
+                left -= 1;
+                if left == 0 {
+                    break;
+                }
+            }
             steps += 1;
-            if steps > 5_000 {
-                faults.push(format!("{}: no end after 5000 steps", state.clock));
+            if steps > 2_500 * stages() {
+                faults.push(format!("{}: no end after {steps} steps", state.clock));
                 break;
             }
             let side = state.to_act().unwrap();
