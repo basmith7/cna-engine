@@ -41,6 +41,20 @@ Commonwealth battalion swap (*Swap brigade with…* in the stack panel).
 armoured formation's chart row, the units it no longer has room for go
 independent) merged after a fresh review's fixes.
 
+**2026-11-09 (16:45–18:10 UTC):** #189 (the combat soak) merged. #190
+(ready, CI running at hand-off) adds a fuzz of `apply`: every scenario
+plays under a quiet driver while the player to act also sends random
+orders of most kinds (organisation, supply, repair, construction,
+raids, prisoners, moves), and `apply` must never panic, must leave the
+state untouched when it refuses, and every view, save and replay must
+hold. Deep local runs (over 40 seeds, up to 8 OpStages, with every
+module on and with every module off) found one bug, fixed there: a hex
+the set-up overfilled (Desert Fox's A1716, Graziani's Cairo) blocked
+*End segment* as soon as anything stopped in it, even Rommel or an HQ
+alone, which add no stacking points. It now binds only once the pieces
+moved in raise its SP. Whether a set-up stack over the ceiling is legal
+at all is asked of cna below.
+
 **2026-11-08 (02:45–04:10 UTC):** #189 (ready, CI running at
 hand-off) extends the soak test into combat: every scenario's barrages,
 gun positions, force assignments, assaults and retreats are now picked
@@ -504,7 +518,9 @@ R-009, R-011, R-012, R-015, R-018 and eight probes in `probes/` (PRs #1–#4).
 
 ## Next steps
 
-- #189 merges itself next run once CI is green; nothing to do.
+- #190 merges next run once CI is green; nothing to do. One call to
+  glance at there: a set-up stack over its ceiling is tolerated until
+  pieces moved in raise its stacking points (cna asked for a ruling).
 - One call to glance at in #188: the move overlay now hides moves the
   engine would refuse for fuel, but the reaction and retreat-before-assault
   overlays still show such hexes with their fuel quoted (as an earlier
